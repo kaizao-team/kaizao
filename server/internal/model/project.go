@@ -1,0 +1,143 @@
+package model
+
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
+
+// Project 项目/需求模型
+type Project struct {
+	ID                 int64      `gorm:"primaryKey;autoIncrement" json:"id"`
+	UUID               string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	OwnerID            int64      `gorm:"not null;index" json:"owner_id"`
+	ProviderID         *int64     `gorm:"index" json:"provider_id,omitempty"`
+	TeamID             *int64     `gorm:"index" json:"team_id,omitempty"`
+	BidID              *int64     `json:"bid_id,omitempty"`
+	Title              string     `gorm:"type:varchar(200);not null" json:"title"`
+	Description        string     `gorm:"type:text;not null" json:"description"`
+	Category           string     `gorm:"type:varchar(50);not null;index" json:"category"`
+	TemplateType       *string    `gorm:"type:varchar(50)" json:"template_type,omitempty"`
+	AiPRD              JSONBMap   `gorm:"type:jsonb" json:"ai_prd,omitempty"`
+	AiEstimate         JSONBMap   `gorm:"type:jsonb" json:"ai_estimate,omitempty"`
+	ConfirmedPRD       JSONBMap   `gorm:"type:jsonb" json:"confirmed_prd,omitempty"`
+	BudgetMin          *float64   `gorm:"type:decimal(10,2)" json:"budget_min"`
+	BudgetMax          *float64   `gorm:"type:decimal(10,2)" json:"budget_max"`
+	AgreedPrice        *float64   `gorm:"type:decimal(10,2)" json:"agreed_price,omitempty"`
+	Deadline           *time.Time `gorm:"type:date" json:"deadline,omitempty"`
+	AgreedDays         *int       `json:"agreed_days,omitempty"`
+	StartDate          *time.Time `gorm:"type:date" json:"start_date,omitempty"`
+	ActualEndDate      *time.Time `gorm:"type:date" json:"actual_end_date,omitempty"`
+	Complexity         *string    `gorm:"type:varchar(10)" json:"complexity,omitempty"`
+	TechRequirements   JSONB      `gorm:"type:jsonb;default:'[]'" json:"tech_requirements"`
+	Attachments        JSONB      `gorm:"type:jsonb;default:'[]'" json:"attachments"`
+	MatchMode          int16      `gorm:"not null;default:1;index" json:"match_mode"`
+	Progress           int16      `gorm:"not null;default:0" json:"progress"`
+	CurrentMilestoneID *int64     `json:"current_milestone_id,omitempty"`
+	Status             int16      `gorm:"not null;default:1;index" json:"status"`
+	CloseReason        *string    `gorm:"type:varchar(200)" json:"close_reason,omitempty"`
+	ViewCount          int        `gorm:"not null;default:0" json:"view_count"`
+	BidCount           int        `gorm:"not null;default:0" json:"bid_count"`
+	FavoriteCount      int        `gorm:"not null;default:0" json:"favorite_count"`
+	PublishedAt        *time.Time `json:"published_at,omitempty"`
+	MatchedAt          *time.Time `json:"matched_at,omitempty"`
+	StartedAt          *time.Time `json:"started_at,omitempty"`
+	CompletedAt        *time.Time `json:"completed_at,omitempty"`
+	CreatedAt          time.Time  `gorm:"not null;default:now()" json:"created_at"`
+	UpdatedAt          time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+
+	// 关联
+	Owner    *User `gorm:"foreignKey:OwnerID" json:"owner,omitempty"`
+	Provider *User `gorm:"foreignKey:ProviderID" json:"provider,omitempty"`
+	Team     *Team `gorm:"foreignKey:TeamID" json:"team,omitempty"`
+}
+
+func (Project) TableName() string {
+	return "projects"
+}
+
+func (p *Project) BeforeCreate(tx *gorm.DB) error {
+	if p.UUID == "" {
+		p.UUID = GenerateUUID()
+	}
+	return nil
+}
+
+// Milestone 里程碑模型
+type Milestone struct {
+	ID              int64      `gorm:"primaryKey;autoIncrement" json:"id"`
+	UUID            string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	ProjectID       int64      `gorm:"not null;index" json:"project_id"`
+	Title           string     `gorm:"type:varchar(200);not null" json:"title"`
+	Description     *string    `gorm:"type:text" json:"description,omitempty"`
+	SortOrder       int        `gorm:"not null" json:"sort_order"`
+	PaymentRatio    *float64   `gorm:"type:decimal(5,2)" json:"payment_ratio,omitempty"`
+	PaymentAmount   *float64   `gorm:"type:decimal(10,2)" json:"payment_amount,omitempty"`
+	DueDate         *time.Time `gorm:"type:date" json:"due_date,omitempty"`
+	Status          int16      `gorm:"not null;default:1;index" json:"status"`
+	DeliveryNote    *string    `gorm:"type:text" json:"delivery_note,omitempty"`
+	PreviewURL      *string    `gorm:"type:varchar(512)" json:"preview_url,omitempty"`
+	RejectionReason *string    `gorm:"type:text" json:"rejection_reason,omitempty"`
+	DeliveredAt     *time.Time `json:"delivered_at,omitempty"`
+	AcceptedAt      *time.Time `json:"accepted_at,omitempty"`
+	CreatedAt       time.Time  `gorm:"not null;default:now()" json:"created_at"`
+	UpdatedAt       time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+}
+
+func (Milestone) TableName() string {
+	return "milestones"
+}
+
+func (m *Milestone) BeforeCreate(tx *gorm.DB) error {
+	if m.UUID == "" {
+		m.UUID = GenerateUUID()
+	}
+	return nil
+}
+
+// Task EARS任务卡片模型
+type Task struct {
+	ID                 int64      `gorm:"primaryKey;autoIncrement" json:"id"`
+	UUID               string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	ProjectID          int64      `gorm:"not null;index" json:"project_id"`
+	MilestoneID        *int64     `gorm:"index" json:"milestone_id,omitempty"`
+	ParentTaskID       *int64     `gorm:"index" json:"parent_task_id,omitempty"`
+	TaskCode           string     `gorm:"type:varchar(20);not null" json:"task_code"`
+	Title              string     `gorm:"type:varchar(200);not null" json:"title"`
+	EarsType           string     `gorm:"type:varchar(20);not null;index" json:"ears_type"`
+	EarsTrigger        *string    `gorm:"type:text" json:"ears_trigger,omitempty"`
+	EarsBehavior       string     `gorm:"type:text;not null" json:"ears_behavior"`
+	EarsFullText       string     `gorm:"type:text;not null" json:"ears_full_text"`
+	Module             *string    `gorm:"type:varchar(100);index" json:"module,omitempty"`
+	RoleTag            *string    `gorm:"type:varchar(50)" json:"role_tag,omitempty"`
+	AssigneeID         *int64     `gorm:"index" json:"assignee_id,omitempty"`
+	Priority           int16      `gorm:"not null;default:2;index" json:"priority"`
+	EstimatedHours     *float64   `gorm:"type:decimal(5,1)" json:"estimated_hours,omitempty"`
+	ActualHours        *float64   `gorm:"type:decimal(5,1)" json:"actual_hours,omitempty"`
+	AcceptanceCriteria JSONB      `gorm:"type:jsonb;not null;default:'[]'" json:"acceptance_criteria"`
+	Dependencies       JSONB      `gorm:"type:jsonb;not null;default:'[]'" json:"dependencies"`
+	Blockers           JSONB      `gorm:"type:jsonb;not null;default:'[]'" json:"blockers"`
+	Status             int16      `gorm:"not null;default:1;index" json:"status"`
+	SortOrder          int        `gorm:"not null;default:0" json:"sort_order"`
+	IsAIGenerated      bool       `gorm:"not null;default:false" json:"is_ai_generated"`
+	AIConfidence       *float64   `gorm:"type:decimal(3,2)" json:"ai_confidence,omitempty"`
+	Extra              JSONBMap   `gorm:"type:jsonb;default:'{}'" json:"extra,omitempty"`
+	StartedAt          *time.Time `json:"started_at,omitempty"`
+	CompletedAt        *time.Time `json:"completed_at,omitempty"`
+	CreatedAt          time.Time  `gorm:"not null;default:now()" json:"created_at"`
+	UpdatedAt          time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+
+	// 关联
+	Assignee *User `gorm:"foreignKey:AssigneeID" json:"assignee,omitempty"`
+}
+
+func (Task) TableName() string {
+	return "tasks"
+}
+
+func (t *Task) BeforeCreate(tx *gorm.DB) error {
+	if t.UUID == "" {
+		t.UUID = GenerateUUID()
+	}
+	return nil
+}

@@ -1,0 +1,176 @@
+package errcode
+
+// 认证模块 10001-10999
+const (
+	ErrPhoneFormat         = 10001
+	ErrSMSCodeExpired      = 10002
+	ErrSMSCodeInvalid      = 10003
+	ErrPhoneAlreadyUsed    = 10004
+	ErrLoginFailed         = 10005
+	ErrWechatAuthFailed    = 10006
+	ErrTokenExpired        = 10007
+	ErrTokenInvalid        = 10008
+	ErrRefreshTokenExpired = 10009
+	ErrAccountFrozen       = 10010
+	ErrDeviceLimitReached  = 10011
+)
+
+// 用户模块 11001-11999
+const (
+	ErrUserNotFound           = 11001
+	ErrNicknameUsed           = 11002
+	ErrVerificationIncomplete = 11003
+	ErrVerificationPending    = 11004
+	ErrSkillsExceedLimit      = 11005
+	ErrAvatarFormatInvalid    = 11006
+	ErrAvatarSizeExceed       = 11007
+	ErrBioTooLong             = 11008
+	ErrPortfolioExceedLimit   = 11009
+	ErrUserDeactivated        = 11010
+)
+
+// 项目模块（需求） 20001-20999
+const (
+	ErrProjectNotFound       = 20001
+	ErrProjectStatusInvalid  = 20002
+	ErrProjectTitleEmpty     = 20003
+	ErrProjectDescTooShort   = 20004
+	ErrBudgetRangeInvalid    = 20005
+	ErrAttachmentExceedLimit = 20006
+	ErrAttachmentSizeExceed  = 20007
+	ErrCategoryInvalid       = 20008
+	ErrProjectOwnerOnly      = 20009
+	ErrProjectAlreadyClosed  = 20010
+)
+
+// 项目模块（项目管理） 21001-21999
+const (
+	ErrProjectMgmtNotFound       = 21001
+	ErrProjectMgmtStatusInvalid  = 21002
+	ErrMilestoneNotFound         = 21003
+	ErrTaskNotFound              = 21004
+	ErrEarsTypeInvalid           = 21005
+	ErrTaskDependencyCycle       = 21006
+	ErrMilestonePaymentRatioSum  = 21007
+	ErrProjectParticipantOnly    = 21008
+	ErrDeliveryAlreadySubmitted  = 21009
+	ErrPredecessorTaskIncomplete = 21010
+)
+
+// 匹配模块 30001-30999
+const (
+	ErrBidNotFound         = 30001
+	ErrBidOwnProject       = 30002
+	ErrBidClosed           = 30003
+	ErrBidDuplicate        = 30004
+	ErrBidPriceExceed      = 30005
+	ErrProjectAlreadyMatched = 30006
+	ErrTeamBidLeaderOnly   = 30007
+	ErrFavoriteExceedLimit = 30008
+)
+
+// 交易/支付模块 40001-40999
+const (
+	ErrOrderNotFound         = 40001
+	ErrOrderStatusInvalid    = 40002
+	ErrPaymentAmountMismatch = 40003
+	ErrPaymentTimeout        = 40004
+	ErrRefundExceedPaid      = 40005
+	ErrWithdrawExceedBalance = 40006
+	ErrWithdrawMinAmount     = 40007
+	ErrWithdrawDailyLimit    = 40008
+	ErrPaymentChannelError   = 40009
+	ErrSplitRatioInvalid     = 40010
+	ErrOrderAmountExceed     = 40011
+	ErrNewUserOrderLimit     = 40012
+)
+
+// AI服务模块 50001-50999
+const (
+	ErrAIServiceUnavailable = 50001
+	ErrAITimeout            = 50002
+	ErrDescriptionTooShort  = 50003
+	ErrAIDailyLimitReached  = 50004
+	ErrPRDGenerating        = 50005
+	ErrAIDegraded           = 50006
+)
+
+// 消息/沟通模块 60001-60999
+const (
+	ErrConversationNotFound  = 60001
+	ErrConversationForbidden = 60002
+	ErrMessageContentEmpty   = 60003
+	ErrFileSizeExceed        = 60004
+	ErrFileTypeUnsupported   = 60005
+	ErrMessageRateLimit      = 60006
+)
+
+// 评价模块 70001-70999
+const (
+	ErrReviewDuplicate      = 70001
+	ErrRatingOutOfRange     = 70002
+	ErrReviewBeforeComplete = 70003
+	ErrReviewSensitiveWord  = 70004
+	ErrReviewContentTooLong = 70005
+)
+
+// 通知模块 80001-80999
+const (
+	ErrNotificationNotFound    = 80001
+	ErrNotificationAlreadyRead = 80002
+)
+
+// 管理后台模块 90001-90999
+const (
+	ErrNoAdminPermission      = 90001
+	ErrAdminTargetNotFound    = 90002
+	ErrCannotFreezeSuperAdmin = 90003
+	ErrAuditActionInvalid     = 90004
+)
+
+// ErrorMessages 错误码对应的中文消息
+var ErrorMessages = map[int]string{
+	ErrPhoneFormat:          "手机号格式不正确",
+	ErrSMSCodeExpired:       "验证码已过期",
+	ErrSMSCodeInvalid:       "验证码错误",
+	ErrPhoneAlreadyUsed:     "该手机号已注册",
+	ErrLoginFailed:          "账号或密码错误",
+	ErrWechatAuthFailed:     "微信授权失败",
+	ErrTokenExpired:         "Token已过期",
+	ErrTokenInvalid:         "Token无效",
+	ErrRefreshTokenExpired:  "Refresh Token已过期，请重新登录",
+	ErrAccountFrozen:        "账号已被冻结",
+	ErrDeviceLimitReached:   "登录设备数已达上限",
+	ErrUserNotFound:         "用户不存在",
+	ErrNicknameUsed:         "昵称已被使用",
+	ErrSkillsExceedLimit:    "技能标签数量超过上限",
+	ErrBioTooLong:           "个人简介长度超限",
+	ErrUserDeactivated:      "用户已注销",
+	ErrProjectNotFound:      "项目不存在",
+	ErrProjectTitleEmpty:    "需求标题不能为空",
+	ErrProjectDescTooShort:  "需求描述长度不足",
+	ErrBudgetRangeInvalid:   "预算范围不合法",
+	ErrProjectOwnerOnly:     "仅需求发布者可操作",
+	ErrProjectAlreadyClosed: "需求已关闭",
+	ErrMilestoneNotFound:    "里程碑不存在",
+	ErrTaskNotFound:         "任务卡片不存在",
+	ErrBidNotFound:          "投标不存在",
+	ErrBidOwnProject:        "不能对自己的需求投标",
+	ErrBidDuplicate:         "已对该需求投标，不可重复",
+	ErrOrderNotFound:        "订单不存在",
+	ErrOrderStatusInvalid:   "订单状态不允许当前操作",
+	ErrConversationNotFound: "会话不存在",
+	ErrMessageContentEmpty:  "消息内容不能为空",
+	ErrReviewDuplicate:      "重复评价",
+	ErrRatingOutOfRange:     "评分范围须为1-5",
+	ErrAIServiceUnavailable: "AI服务暂不可用",
+	ErrNoAdminPermission:    "无管理员权限",
+}
+
+// GetMessage 获取错误码对应的消息
+func GetMessage(code int) string {
+	if msg, ok := ErrorMessages[code]; ok {
+		return msg
+	}
+	return "未知错误"
+}

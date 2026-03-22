@@ -1,0 +1,41 @@
+# Go
+server/server
+server/tmp/
+*.exe
+*.test
+*.out
+
+# Python
+ai-agent/venv/
+ai-agent/__pycache__/
+ai-agent/**/__pycache__/
+ai-agent/.pytest_cache/
+*.pyc
+*.pyo
+
+# Flutter
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
+app/build/
+app/.metadata
+app/web/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.env.local
+deploy/.env
+
+# Docker volumes
+deploy/data/

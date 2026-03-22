@@ -1,0 +1,49 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'routes.dart';
+import 'theme/app_theme.dart';
+import 'theme/dark_theme.dart';
+
+// 主题模式 Provider
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
+
+class VccApp extends ConsumerWidget {
+  const VccApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
+      title: '开造 VCC',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: DarkTheme.darkTheme,
+      themeMode: themeMode,
+      routerConfig: router,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('zh', 'CN'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('zh', 'CN'),
+      builder: (context, child) {
+        // 限制最大字体缩放倍数为1.3
+        final mediaQueryData = MediaQuery.of(context);
+        final scale = mediaQueryData.textScaler.scale(1).clamp(0.8, 1.3);
+        return MediaQuery(
+          data: mediaQueryData.copyWith(
+            textScaler: TextScaler.linear(scale),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+  }
+}

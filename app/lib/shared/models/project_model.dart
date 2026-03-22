@@ -1,0 +1,119 @@
+class ProjectModel {
+  final String id;
+  final String uuid;
+  final String ownerId;
+  final String? providerId;
+  final String? teamId;
+  final String title;
+  final String description;
+  final String category;
+  final double? budgetMin;
+  final double? budgetMax;
+  final double? agreedPrice;
+  final String? complexity;
+  final int progress;
+  final int status;
+  final int matchMode;
+  final int viewCount;
+  final int bidCount;
+  final List<String> techRequirements;
+  final DateTime? publishedAt;
+  final DateTime createdAt;
+
+  const ProjectModel({
+    required this.id,
+    required this.uuid,
+    required this.ownerId,
+    this.providerId,
+    this.teamId,
+    required this.title,
+    required this.description,
+    required this.category,
+    this.budgetMin,
+    this.budgetMax,
+    this.agreedPrice,
+    this.complexity,
+    this.progress = 0,
+    this.status = 1,
+    this.matchMode = 1,
+    this.viewCount = 0,
+    this.bidCount = 0,
+    this.techRequirements = const [],
+    this.publishedAt,
+    required this.createdAt,
+  });
+
+  factory ProjectModel.fromJson(Map<String, dynamic> json) {
+    return ProjectModel(
+      id: json['id']?.toString() ?? '',
+      uuid: json['uuid'] as String? ?? '',
+      ownerId: json['owner_id']?.toString() ?? '',
+      providerId: json['provider_id']?.toString(),
+      teamId: json['team_id']?.toString(),
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      budgetMin: (json['budget_min'] as num?)?.toDouble(),
+      budgetMax: (json['budget_max'] as num?)?.toDouble(),
+      agreedPrice: (json['agreed_price'] as num?)?.toDouble(),
+      complexity: json['complexity'] as String?,
+      progress: json['progress'] as int? ?? 0,
+      status: json['status'] as int? ?? 1,
+      matchMode: json['match_mode'] as int? ?? 1,
+      viewCount: json['view_count'] as int? ?? 0,
+      bidCount: json['bid_count'] as int? ?? 0,
+      techRequirements: (json['tech_requirements'] as List?)?.cast<String>() ?? [],
+      publishedAt: json['published_at'] != null
+          ? DateTime.parse(json['published_at'])
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+    );
+  }
+
+  String get statusName {
+    switch (status) {
+      case 1: return '草稿';
+      case 2: return '已发布';
+      case 3: return '匹配中';
+      case 4: return '已匹配';
+      case 5: return '进行中';
+      case 6: return '验收中';
+      case 7: return '已完成';
+      case 8: return '已关闭';
+      case 9: return '争议中';
+      default: return '未知';
+    }
+  }
+
+  String get statusTagType {
+    switch (status) {
+      case 5: return 'in_progress';
+      case 6: return 'pending';
+      case 7: return 'completed';
+      case 9: return 'at_risk';
+      default: return 'not_started';
+    }
+  }
+
+  String get budgetDisplay {
+    if (agreedPrice != null) return '\u00a5${agreedPrice!.toStringAsFixed(0)}';
+    if (budgetMin != null && budgetMax != null) {
+      return '\u00a5${budgetMin!.toStringAsFixed(0)}-${budgetMax!.toStringAsFixed(0)}';
+    }
+    return '面议';
+  }
+
+  String get categoryName {
+    switch (category) {
+      case 'app': return 'APP开发';
+      case 'web': return '网站开发';
+      case 'miniprogram': return '小程序';
+      case 'design': return 'UI设计';
+      case 'data': return '数据分析';
+      case 'consult': return '技术指导';
+      default: return '其他';
+    }
+  }
+}
