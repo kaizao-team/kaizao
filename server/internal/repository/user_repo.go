@@ -60,3 +60,17 @@ func (r *userRepository) Update(user *model.User) error {
 func (r *userRepository) UpdateFields(id int64, fields map[string]interface{}) error {
 	return r.db.Model(&model.User{}).Where("id = ?", id).Updates(fields).Error
 }
+
+func (r *userRepository) ListExperts(offset, limit int) ([]*model.User, int64, error) {
+	var users []*model.User
+	var total int64
+	query := r.db.Model(&model.User{}).Where("role IN (2,3) AND status = 1 AND available_status = 1")
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Order("avg_rating DESC, completed_orders DESC").
+		Offset(offset).Limit(limit).Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+	return users, total, nil
+}

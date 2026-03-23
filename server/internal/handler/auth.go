@@ -18,6 +18,7 @@ type Handlers struct {
 	Auth    *AuthHandler
 	User    *UserHandler
 	Project *ProjectHandler
+	Home    *HomeHandler
 }
 
 // NewHandlers 创建所有 Handler
@@ -26,6 +27,7 @@ func NewHandlers(services *service.Services, log *zap.Logger) *Handlers {
 		Auth:    NewAuthHandler(services.Auth, log),
 		User:    NewUserHandler(services.User, log),
 		Project: NewProjectHandler(services.Project, log),
+		Home:    NewHomeHandler(services.Home, log),
 	}
 }
 
@@ -41,6 +43,7 @@ func NewAuthHandler(authService *service.AuthService, log *zap.Logger) *AuthHand
 }
 
 // SendSMSCode 发送短信验证码
+// POST /api/v1/auth/sms-code
 func (h *AuthHandler) SendSMSCode(c *gin.Context) {
 	var req dto.SendSMSCodeReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -48,31 +51,66 @@ func (h *AuthHandler) SendSMSCode(c *gin.Context) {
 		return
 	}
 
-	// 手机号格式校验
 	matched, _ := regexp.MatchString(`^1[3-9]\d{9}$`, req.Phone)
 	if !matched {
 		response.ErrorBadRequest(c, errcode.ErrPhoneFormat, errcode.GetMessage(errcode.ErrPhoneFormat))
 		return
 	}
 
-	expireSeconds, retryAfter, err := h.authService.SendSMSCode(c.Request.Context(), req.Phone, req.Purpose)
+	_, retryAfter, err := h.authService.SendSMSCode(c.Request.Context(), req.Phone, req.Purpose)
+	if err != nil {
+		if err.Error() == "too_frequent" {
+			response.ErrorTooManyRequests(c, retryAfter)
+		} else {
+			code, _ := strconv.Atoi(err.Error())
+			if code > 0 {
+				response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			} else {
+				response.ErrorTooManyRequests(c, 60)
+			}
+		}
+		return
+	}
+
+	response.SuccessMsg(c, "验证码已发送", nil)
+}
+
+// Login 手机号登录（不存在自动注册）
+// POST /api/v1/auth/login  Body: { "phone": "...", "code": "..." }
+func (h *AuthHandler) Login(c *gin.Context) {
+	var req dto.LoginReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrPhoneFormat, "参数校验失败")
+		return
+	}
+
+	deviceType := req.DeviceType
+	if deviceType == "" {
+		deviceType = "android"
+	}
+
+	user, tokenPair, isNewUser, err := h.authService.LoginOrRegister(c.Request.Context(), req.Phone, req.Code, deviceType)
 	if err != nil {
 		code, _ := strconv.Atoi(err.Error())
 		if code > 0 {
 			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
 		} else {
-			response.ErrorTooManyRequests(c, 60)
+			response.ErrorInternal(c, "登录失败")
 		}
 		return
 	}
 
-	response.Success(c, dto.SendSMSCodeResp{
-		ExpireSeconds:     expireSeconds,
-		RetryAfterSeconds: retryAfter,
+	response.SuccessMsg(c, "登录成功", gin.H{
+		"access_token":  tokenPair.AccessToken,
+		"refresh_token": tokenPair.RefreshToken,
+		"user_id":       user.UUID,
+		"role":          user.Role,
+		"is_new_user":   isNewUser,
 	})
 }
 
-// Register 手机号注册
+// Register 手机号注册（独立注册接口）
+// POST /api/v1/auth/register
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -113,46 +151,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	})
 }
 
-// Login 手机号登录
-func (h *AuthHandler) Login(c *gin.Context) {
-	var req dto.LoginReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorBadRequest(c, errcode.ErrPhoneFormat, "参数校验失败")
-		return
-	}
-
-	deviceType := req.DeviceType
-	if deviceType == "" {
-		deviceType = "android"
-	}
-
-	user, tokenPair, err := h.authService.Login(c.Request.Context(), req.Phone, req.SMSCode, deviceType)
-	if err != nil {
-		code, _ := strconv.Atoi(err.Error())
-		if code > 0 {
-			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
-		} else {
-			response.ErrorInternal(c, "登录失败")
-		}
-		return
-	}
-
-	response.Success(c, dto.AuthResp{
-		User: dto.UserBriefResp{
-			UUID:        user.UUID,
-			Nickname:    user.Nickname,
-			AvatarURL:   user.AvatarURL,
-			Role:        user.Role,
-			Level:       user.Level,
-			CreditScore: user.CreditScore,
-			IsVerified:  user.IsVerified,
-		},
-		AccessToken:  tokenPair.AccessToken,
-		RefreshToken: tokenPair.RefreshToken,
-		ExpiresIn:    tokenPair.ExpiresIn,
-	})
-}
-
 // WechatLogin 微信 OAuth 登录
 func (h *AuthHandler) WechatLogin(c *gin.Context) {
 	var req dto.WechatLoginReq
@@ -160,13 +158,13 @@ func (h *AuthHandler) WechatLogin(c *gin.Context) {
 		response.ErrorBadRequest(c, errcode.ErrWechatAuthFailed, "参数校验失败")
 		return
 	}
-
 	response.Success(c, map[string]interface{}{
 		"message": "wechat login endpoint ready",
 	})
 }
 
 // RefreshToken 刷新 Token
+// POST /api/v1/auth/refresh
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req dto.RefreshTokenReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -193,6 +191,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 }
 
 // Logout 退出登录
+// POST /api/v1/auth/logout
 func (h *AuthHandler) Logout(c *gin.Context) {
 	response.Success(c, nil)
 }
@@ -206,6 +205,88 @@ type UserHandler struct {
 // NewUserHandler 创建用户处理器
 func NewUserHandler(userService *service.UserService, log *zap.Logger) *UserHandler {
 	return &UserHandler{userService: userService, log: log}
+}
+
+// GetMe 获取当前用户信息
+// GET /api/v1/users/me
+func (h *UserHandler) GetMe(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	user, err := h.userService.GetByUUID(userUUID)
+	if err != nil {
+		response.ErrorNotFound(c, errcode.ErrUserNotFound, "用户不存在")
+		return
+	}
+
+	response.Success(c, gin.H{
+		"id":               user.UUID,
+		"uuid":             user.UUID,
+		"nickname":         user.Nickname,
+		"avatar_url":       user.AvatarURL,
+		"role":             user.Role,
+		"bio":              user.Bio,
+		"city":             user.City,
+		"is_verified":      user.IsVerified,
+		"credit_score":     user.CreditScore,
+		"level":            user.Level,
+		"total_orders":     user.TotalOrders,
+		"completed_orders": user.CompletedOrders,
+		"completion_rate":  user.CompletionRate,
+		"avg_rating":       user.AvgRating,
+		"hourly_rate":      user.HourlyRate,
+		"available_status": user.AvailableStatus,
+		"skills":           []interface{}{},
+		"role_tags":        []interface{}{},
+	})
+}
+
+// UpdateMe 更新当前用户信息
+// PUT /api/v1/users/me
+func (h *UserHandler) UpdateMe(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+
+	var req dto.UpdateUserReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+
+	fields := make(map[string]interface{})
+	if req.Nickname != nil {
+		fields["nickname"] = *req.Nickname
+	}
+	if req.AvatarURL != nil {
+		fields["avatar_url"] = *req.AvatarURL
+	}
+	if req.Gender != nil {
+		fields["gender"] = *req.Gender
+	}
+	if req.Bio != nil {
+		fields["bio"] = *req.Bio
+	}
+	if req.City != nil {
+		fields["city"] = *req.City
+	}
+	if req.Role != nil {
+		fields["role"] = *req.Role
+	}
+	if req.HourlyRate != nil {
+		fields["hourly_rate"] = *req.HourlyRate
+	}
+	if req.AvailableStatus != nil {
+		fields["available_status"] = *req.AvailableStatus
+	}
+
+	if len(fields) == 0 {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "无可更新字段")
+		return
+	}
+
+	if _, err := h.userService.UpdateProfile(userUUID, fields); err != nil {
+		response.ErrorInternal(c, "更新失败")
+		return
+	}
+
+	response.SuccessMsg(c, "更新成功", nil)
 }
 
 // placeholder 为尚未实现完整逻辑的端点提供统一占位响应

@@ -9,12 +9,12 @@ import (
 // User 用户模型
 type User struct {
 	ID              int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID            string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID            string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	Phone           *string    `gorm:"type:varchar(20);uniqueIndex" json:"-"`
 	PhoneHash       *string    `gorm:"type:varchar(64);index" json:"-"`
 	PasswordHash    *string    `gorm:"type:varchar(255)" json:"-"`
-	WechatOpenID    *string    `gorm:"type:varchar(128);uniqueIndex" json:"-"`
-	WechatUnionID   *string    `gorm:"type:varchar(128)" json:"-"`
+	WechatOpenID    *string    `gorm:"column:wechat_openid;type:varchar(128);uniqueIndex" json:"-"`
+	WechatUnionID   *string    `gorm:"column:wechat_unionid;type:varchar(128)" json:"-"`
 	Nickname        string     `gorm:"type:varchar(50);not null" json:"nickname"`
 	AvatarURL       *string    `gorm:"type:varchar(512)" json:"avatar_url"`
 	Role            int16      `gorm:"not null;default:0;index" json:"role"`
@@ -39,8 +39,8 @@ type User struct {
 	FreezeReason    *string    `gorm:"type:varchar(200)" json:"freeze_reason,omitempty"`
 	LastLoginAt     *time.Time `json:"last_login_at,omitempty"`
 	LastLoginIP     *string    `gorm:"type:varchar(45)" json:"-"`
-	CreatedAt       time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt       time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt       time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt       time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 }
 
 func (User) TableName() string {
@@ -64,8 +64,8 @@ type Skill struct {
 	IsHot      bool      `gorm:"not null;default:false" json:"is_hot"`
 	UsageCount int       `gorm:"not null;default:0" json:"usage_count"`
 	Status     int16     `gorm:"not null;default:1" json:"status"`
-	CreatedAt  time.Time `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt  time.Time `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt  time.Time `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt  time.Time `gorm:"not null;autoUpdateTime" json:"updated_at"`
 }
 
 func (Skill) TableName() string {
@@ -82,7 +82,7 @@ type UserSkill struct {
 	IsPrimary         bool       `gorm:"not null;default:false" json:"is_primary"`
 	IsCertified       bool       `gorm:"not null;default:false" json:"is_certified"`
 	CertifiedAt       *time.Time `json:"certified_at,omitempty"`
-	CreatedAt         time.Time  `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt         time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
 	Skill             Skill      `gorm:"foreignKey:SkillID" json:"skill,omitempty"`
 }
 
@@ -97,7 +97,7 @@ type RoleTag struct {
 	Description *string   `gorm:"type:varchar(200)" json:"description"`
 	IconURL     *string   `gorm:"type:varchar(512)" json:"icon_url"`
 	SortOrder   int       `gorm:"not null;default:0" json:"sort_order"`
-	CreatedAt   time.Time `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt   time.Time `gorm:"not null;autoCreateTime" json:"created_at"`
 }
 
 func (RoleTag) TableName() string {
@@ -110,7 +110,7 @@ type UserRoleTag struct {
 	UserID    int64     `gorm:"not null;index;uniqueIndex:idx_user_role_tag" json:"user_id"`
 	RoleTagID int64     `gorm:"not null;index;uniqueIndex:idx_user_role_tag" json:"role_tag_id"`
 	IsPrimary bool      `gorm:"not null;default:false" json:"is_primary"`
-	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt time.Time `gorm:"not null;autoCreateTime" json:"created_at"`
 	RoleTag   RoleTag   `gorm:"foreignKey:RoleTagID" json:"role_tag,omitempty"`
 }
 
@@ -121,7 +121,7 @@ func (UserRoleTag) TableName() string {
 // Portfolio 作品集模型
 type Portfolio struct {
 	ID                  int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID                string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID                string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	UserID              int64      `gorm:"not null;index" json:"user_id"`
 	ProjectID           *int64     `json:"project_id,omitempty"`
 	Title               string     `gorm:"type:varchar(200);not null" json:"title"`
@@ -129,8 +129,8 @@ type Portfolio struct {
 	Category            string     `gorm:"type:varchar(50);not null;index" json:"category"`
 	CoverURL            *string    `gorm:"type:varchar(512)" json:"cover_url"`
 	PreviewURL          *string    `gorm:"type:varchar(512)" json:"preview_url"`
-	TechStack           JSONB      `gorm:"type:jsonb;default:'[]'" json:"tech_stack"`
-	Images              JSONB      `gorm:"type:jsonb;default:'[]'" json:"images"`
+	TechStack           JSON       `gorm:"type:json" json:"tech_stack"`
+	Images              JSON       `gorm:"type:json" json:"images"`
 	DemoVideoURL        *string    `gorm:"type:varchar(512)" json:"demo_video_url"`
 	IsPlatformCertified bool       `gorm:"not null;default:false" json:"is_platform_certified"`
 	CertifiedAt         *time.Time `json:"certified_at,omitempty"`
@@ -138,8 +138,8 @@ type Portfolio struct {
 	LikeCount           int        `gorm:"not null;default:0" json:"like_count"`
 	SortOrder           int        `gorm:"not null;default:0" json:"sort_order"`
 	Status              int16      `gorm:"not null;default:1;index" json:"status"`
-	CreatedAt           time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt           time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt           time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt           time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 }
 
 func (Portfolio) TableName() string {
@@ -162,7 +162,7 @@ type SmsCode struct {
 	IsUsed    bool      `gorm:"not null;default:false" json:"is_used"`
 	ExpireAt  time.Time `gorm:"not null" json:"expire_at"`
 	IPAddress *string   `gorm:"type:varchar(45)" json:"-"`
-	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt time.Time `gorm:"not null;autoCreateTime" json:"created_at"`
 }
 
 func (SmsCode) TableName() string {
@@ -180,8 +180,8 @@ type UserDevice struct {
 	AppVersion   *string   `gorm:"type:varchar(20)" json:"app_version"`
 	OSVersion    *string   `gorm:"type:varchar(20)" json:"os_version"`
 	IsActive     bool      `gorm:"not null;default:true" json:"is_active"`
-	LastActiveAt time.Time `gorm:"not null;default:now()" json:"last_active_at"`
-	CreatedAt    time.Time `gorm:"not null;default:now()" json:"created_at"`
+	LastActiveAt time.Time `gorm:"not null;autoCreateTime" json:"last_active_at"`
+	CreatedAt    time.Time `gorm:"not null;autoCreateTime" json:"created_at"`
 }
 
 func (UserDevice) TableName() string {

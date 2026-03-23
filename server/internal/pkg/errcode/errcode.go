@@ -128,6 +128,11 @@ const (
 	ErrAuditActionInvalid     = 90004
 )
 
+// 通用模块 99001-99999
+const (
+	ErrParamInvalid = 99001
+)
+
 // ErrorMessages 错误码对应的中文消息
 var ErrorMessages = map[int]string{
 	ErrPhoneFormat:          "手机号格式不正确",
@@ -165,6 +170,7 @@ var ErrorMessages = map[int]string{
 	ErrRatingOutOfRange:     "评分范围须为1-5",
 	ErrAIServiceUnavailable: "AI服务暂不可用",
 	ErrNoAdminPermission:    "无管理员权限",
+	ErrParamInvalid:         "参数错误",
 }
 
 // GetMessage 获取错误码对应的消息

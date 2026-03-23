@@ -9,7 +9,7 @@ import (
 // Project 项目/需求模型
 type Project struct {
 	ID                 int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID               string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID               string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	OwnerID            int64      `gorm:"not null;index" json:"owner_id"`
 	ProviderID         *int64     `gorm:"index" json:"provider_id,omitempty"`
 	TeamID             *int64     `gorm:"index" json:"team_id,omitempty"`
@@ -18,9 +18,9 @@ type Project struct {
 	Description        string     `gorm:"type:text;not null" json:"description"`
 	Category           string     `gorm:"type:varchar(50);not null;index" json:"category"`
 	TemplateType       *string    `gorm:"type:varchar(50)" json:"template_type,omitempty"`
-	AiPRD              JSONBMap   `gorm:"type:jsonb" json:"ai_prd,omitempty"`
-	AiEstimate         JSONBMap   `gorm:"type:jsonb" json:"ai_estimate,omitempty"`
-	ConfirmedPRD       JSONBMap   `gorm:"type:jsonb" json:"confirmed_prd,omitempty"`
+	AiPRD              JSONMap    `gorm:"type:json" json:"ai_prd,omitempty"`
+	AiEstimate         JSONMap    `gorm:"type:json" json:"ai_estimate,omitempty"`
+	ConfirmedPRD       JSONMap    `gorm:"type:json" json:"confirmed_prd,omitempty"`
 	BudgetMin          *float64   `gorm:"type:decimal(10,2)" json:"budget_min"`
 	BudgetMax          *float64   `gorm:"type:decimal(10,2)" json:"budget_max"`
 	AgreedPrice        *float64   `gorm:"type:decimal(10,2)" json:"agreed_price,omitempty"`
@@ -29,8 +29,8 @@ type Project struct {
 	StartDate          *time.Time `gorm:"type:date" json:"start_date,omitempty"`
 	ActualEndDate      *time.Time `gorm:"type:date" json:"actual_end_date,omitempty"`
 	Complexity         *string    `gorm:"type:varchar(10)" json:"complexity,omitempty"`
-	TechRequirements   JSONB      `gorm:"type:jsonb;default:'[]'" json:"tech_requirements"`
-	Attachments        JSONB      `gorm:"type:jsonb;default:'[]'" json:"attachments"`
+	TechRequirements   JSON       `gorm:"type:json" json:"tech_requirements"`
+	Attachments        JSON       `gorm:"type:json" json:"attachments"`
 	MatchMode          int16      `gorm:"not null;default:1;index" json:"match_mode"`
 	Progress           int16      `gorm:"not null;default:0" json:"progress"`
 	CurrentMilestoneID *int64     `json:"current_milestone_id,omitempty"`
@@ -43,8 +43,8 @@ type Project struct {
 	MatchedAt          *time.Time `json:"matched_at,omitempty"`
 	StartedAt          *time.Time `json:"started_at,omitempty"`
 	CompletedAt        *time.Time `json:"completed_at,omitempty"`
-	CreatedAt          time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt          time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt          time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt          time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 
 	// 关联
 	Owner    *User `gorm:"foreignKey:OwnerID" json:"owner,omitempty"`
@@ -66,7 +66,7 @@ func (p *Project) BeforeCreate(tx *gorm.DB) error {
 // Milestone 里程碑模型
 type Milestone struct {
 	ID              int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID            string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID            string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	ProjectID       int64      `gorm:"not null;index" json:"project_id"`
 	Title           string     `gorm:"type:varchar(200);not null" json:"title"`
 	Description     *string    `gorm:"type:text" json:"description,omitempty"`
@@ -80,8 +80,8 @@ type Milestone struct {
 	RejectionReason *string    `gorm:"type:text" json:"rejection_reason,omitempty"`
 	DeliveredAt     *time.Time `json:"delivered_at,omitempty"`
 	AcceptedAt      *time.Time `json:"accepted_at,omitempty"`
-	CreatedAt       time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt       time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt       time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt       time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 }
 
 func (Milestone) TableName() string {
@@ -98,7 +98,7 @@ func (m *Milestone) BeforeCreate(tx *gorm.DB) error {
 // Task EARS任务卡片模型
 type Task struct {
 	ID                 int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID               string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID               string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	ProjectID          int64      `gorm:"not null;index" json:"project_id"`
 	MilestoneID        *int64     `gorm:"index" json:"milestone_id,omitempty"`
 	ParentTaskID       *int64     `gorm:"index" json:"parent_task_id,omitempty"`
@@ -114,18 +114,18 @@ type Task struct {
 	Priority           int16      `gorm:"not null;default:2;index" json:"priority"`
 	EstimatedHours     *float64   `gorm:"type:decimal(5,1)" json:"estimated_hours,omitempty"`
 	ActualHours        *float64   `gorm:"type:decimal(5,1)" json:"actual_hours,omitempty"`
-	AcceptanceCriteria JSONB      `gorm:"type:jsonb;not null;default:'[]'" json:"acceptance_criteria"`
-	Dependencies       JSONB      `gorm:"type:jsonb;not null;default:'[]'" json:"dependencies"`
-	Blockers           JSONB      `gorm:"type:jsonb;not null;default:'[]'" json:"blockers"`
+	AcceptanceCriteria JSON       `gorm:"type:json" json:"acceptance_criteria"`
+	Dependencies       JSON       `gorm:"type:json" json:"dependencies"`
+	Blockers           JSON       `gorm:"type:json" json:"blockers"`
 	Status             int16      `gorm:"not null;default:1;index" json:"status"`
 	SortOrder          int        `gorm:"not null;default:0" json:"sort_order"`
 	IsAIGenerated      bool       `gorm:"not null;default:false" json:"is_ai_generated"`
 	AIConfidence       *float64   `gorm:"type:decimal(3,2)" json:"ai_confidence,omitempty"`
-	Extra              JSONBMap   `gorm:"type:jsonb;default:'{}'" json:"extra,omitempty"`
+	Extra              JSONMap    `gorm:"type:json" json:"extra,omitempty"`
 	StartedAt          *time.Time `json:"started_at,omitempty"`
 	CompletedAt        *time.Time `json:"completed_at,omitempty"`
-	CreatedAt          time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt          time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt          time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt          time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 
 	// 关联
 	Assignee *User `gorm:"foreignKey:AssigneeID" json:"assignee,omitempty"`

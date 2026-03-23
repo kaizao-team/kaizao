@@ -72,7 +72,62 @@ func (r *projectRepository) ListByProviderID(providerID int64, offset, limit int
 	return r.List(offset, limit, map[string]interface{}{"provider_id": providerID}, "created_at", "desc")
 }
 
-// --- Remaining repository implementations ---
+func (r *projectRepository) ListMarket(offset, limit int, filter ProjectFilter) ([]*model.Project, int64, error) {
+	var projects []*model.Project
+	var total int64
+
+	query := r.db.Model(&model.Project{}).Preload("Owner").Where("status = 2")
+
+	if filter.Category != "" && filter.Category != "all" {
+		query = query.Where("category = ?", filter.Category)
+	}
+	if filter.BudgetMin > 0 {
+		query = query.Where("budget_max >= ?", filter.BudgetMin)
+	}
+	if filter.BudgetMax > 0 {
+		query = query.Where("budget_min <= ?", filter.BudgetMax)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	switch filter.Sort {
+	case "budget_desc":
+		query = query.Order("budget_max DESC")
+	default:
+		query = query.Order("published_at DESC")
+	}
+
+	if err := query.Offset(offset).Limit(limit).Find(&projects).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return projects, total, nil
+}
+
+func (r *projectRepository) CountByCategory() (map[string]int64, error) {
+	type Result struct {
+		Category string
+		Count    int64
+	}
+	var results []Result
+	err := r.db.Model(&model.Project{}).
+		Select("category, count(*) as count").
+		Where("status = 2").
+		Group("category").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]int64)
+	for _, r := range results {
+		m[r.Category] = r.Count
+	}
+	return m, nil
+}
+
+// --- Bid Repository ---
 
 type bidRepository struct {
 	db *gorm.DB
@@ -108,6 +163,10 @@ func (r *bidRepository) Update(bid *model.Bid) error {
 	return r.db.Save(bid).Error
 }
 
+func (r *bidRepository) UpdateFields(id int64, fields map[string]interface{}) error {
+	return r.db.Model(&model.Bid{}).Where("id = ?", id).Updates(fields).Error
+}
+
 func (r *bidRepository) ListByProjectID(projectID int64, offset, limit int) ([]*model.Bid, int64, error) {
 	var bids []*model.Bid
 	var total int64
@@ -121,6 +180,8 @@ func (r *bidRepository) ListByProjectID(projectID int64, offset, limit int) ([]*
 	return bids, total, nil
 }
 
+// --- Task Repository ---
+
 type taskRepository struct {
 	db *gorm.DB
 }
@@ -131,6 +192,15 @@ func NewTaskRepository(db *gorm.DB) TaskRepository {
 
 func (r *taskRepository) Create(task *model.Task) error {
 	return r.db.Create(task).Error
+}
+
+func (r *taskRepository) FindByID(id int64) (*model.Task, error) {
+	var task model.Task
+	err := r.db.Preload("Assignee").Where("id = ?", id).First(&task).Error
+	if err != nil {
+		return nil, err
+	}
+	return &task, nil
 }
 
 func (r *taskRepository) FindByUUID(uuid string) (*model.Task, error) {
@@ -166,6 +236,8 @@ func (r *taskRepository) ListByProjectID(projectID int64, offset, limit int, con
 	return tasks, total, nil
 }
 
+// --- Milestone Repository ---
+
 type milestoneRepository struct {
 	db *gorm.DB
 }
@@ -196,6 +268,8 @@ func (r *milestoneRepository) ListByProjectID(projectID int64) ([]*model.Milesto
 	err := r.db.Where("project_id = ?", projectID).Order("sort_order ASC").Find(&milestones).Error
 	return milestones, err
 }
+
+// --- Order Repository ---
 
 type orderRepository struct {
 	db *gorm.DB
@@ -230,6 +304,8 @@ func (r *orderRepository) FindByOrderNo(orderNo string) (*model.Order, error) {
 func (r *orderRepository) Update(order *model.Order) error {
 	return r.db.Save(order).Error
 }
+
+// --- Wallet Repository ---
 
 type walletRepository struct {
 	db *gorm.DB
@@ -276,6 +352,8 @@ func (r *walletRepository) ListTransactions(walletID int64, offset, limit int, c
 	return txns, total, nil
 }
 
+// --- Conversation Repository ---
+
 type conversationRepository struct {
 	db *gorm.DB
 }
@@ -300,11 +378,14 @@ func (r *conversationRepository) FindByUUID(uuid string) (*model.Conversation, e
 func (r *conversationRepository) ListByUserID(userID int64, offset, limit int) ([]*model.Conversation, int64, error) {
 	var convs []*model.Conversation
 	var total int64
-	query := r.db.Model(&model.Conversation{}).Where("user_a_id = ? OR user_b_id = ?", userID, userID).Where("status = 1")
+	query := r.db.Model(&model.Conversation{}).
+		Where("(user_a_id = ? OR user_b_id = ?) AND status = 1", userID, userID)
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	if err := query.Order("last_message_at DESC NULLS LAST").Offset(offset).Limit(limit).Find(&convs).Error; err != nil {
+	// MySQL 不支持 NULLS LAST，用 IS NULL 排序替代
+	if err := query.Order("last_message_at IS NULL, last_message_at DESC").
+		Offset(offset).Limit(limit).Find(&convs).Error; err != nil {
 		return nil, 0, err
 	}
 	return convs, total, nil
@@ -322,6 +403,8 @@ func (r *conversationRepository) FindPrivateConversation(userAID, userBID int64)
 	}
 	return &conv, nil
 }
+
+// --- Message Repository ---
 
 type messageRepository struct {
 	db *gorm.DB
@@ -344,6 +427,8 @@ func (r *messageRepository) ListByConversationID(conversationID int64, beforeID 
 	err := query.Order("id DESC").Limit(limit).Find(&messages).Error
 	return messages, err
 }
+
+// --- Review Repository ---
 
 type reviewRepository struct {
 	db *gorm.DB
@@ -391,6 +476,8 @@ func (r *reviewRepository) FindByProjectAndReviewer(projectID, reviewerID int64)
 	}
 	return &review, nil
 }
+
+// --- Team Repository ---
 
 type teamRepository struct {
 	db *gorm.DB
@@ -457,6 +544,8 @@ func (r *teamRepository) ListPosts(offset, limit int, conditions map[string]inte
 	}
 	return posts, total, nil
 }
+
+// --- Notification Repository ---
 
 type notificationRepository struct {
 	db *gorm.DB

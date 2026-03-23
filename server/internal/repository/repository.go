@@ -48,6 +48,17 @@ type UserRepository interface {
 	FindByWechatOpenID(openID string) (*model.User, error)
 	Update(user *model.User) error
 	UpdateFields(id int64, fields map[string]interface{}) error
+	ListExperts(offset, limit int) ([]*model.User, int64, error)
+}
+
+// ProjectFilter 项目列表筛选条件
+type ProjectFilter struct {
+	Category  string
+	Status    int
+	OwnerID   int64
+	BudgetMin float64
+	BudgetMax float64
+	Sort      string // latest / budget_desc / match
 }
 
 // ProjectRepository 项目数据访问接口
@@ -60,6 +71,8 @@ type ProjectRepository interface {
 	List(offset, limit int, conditions map[string]interface{}, sortBy, sortOrder string) ([]*model.Project, int64, error)
 	ListByOwnerID(ownerID int64, offset, limit int) ([]*model.Project, int64, error)
 	ListByProviderID(providerID int64, offset, limit int) ([]*model.Project, int64, error)
+	ListMarket(offset, limit int, filter ProjectFilter) ([]*model.Project, int64, error)
+	CountByCategory() (map[string]int64, error)
 }
 
 // BidRepository 投标数据访问接口
@@ -68,12 +81,14 @@ type BidRepository interface {
 	FindByID(id int64) (*model.Bid, error)
 	FindByUUID(uuid string) (*model.Bid, error)
 	Update(bid *model.Bid) error
+	UpdateFields(id int64, fields map[string]interface{}) error
 	ListByProjectID(projectID int64, offset, limit int) ([]*model.Bid, int64, error)
 }
 
 // TaskRepository 任务数据访问接口
 type TaskRepository interface {
 	Create(task *model.Task) error
+	FindByID(id int64) (*model.Task, error)
 	FindByUUID(uuid string) (*model.Task, error)
 	Update(task *model.Task) error
 	UpdateFields(id int64, fields map[string]interface{}) error

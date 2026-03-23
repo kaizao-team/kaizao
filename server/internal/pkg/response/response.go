@@ -41,6 +41,16 @@ func Success(c *gin.Context, data interface{}) {
 	})
 }
 
+// SuccessMsg 成功响应（自定义消息）
+func SuccessMsg(c *gin.Context, message string, data interface{}) {
+	c.JSON(http.StatusOK, Response{
+		Code:      0,
+		Message:   message,
+		Data:      data,
+		RequestID: getRequestID(c),
+	})
+}
+
 // SuccessWithMeta 成功响应（带分页）
 func SuccessWithMeta(c *gin.Context, data interface{}, meta *Meta) {
 	c.JSON(http.StatusOK, Response{
