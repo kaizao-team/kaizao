@@ -39,3 +39,6 @@ deploy/.env
 
 # Docker volumes
 deploy/data/
+
+# Claude
+.claude

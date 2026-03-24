@@ -32,6 +32,31 @@ class ApiEndpoints {
   static const String currentUser = '/api/v1/users/me';
 
   // ============================================================
+  // 首页聚合 /api/v1/home
+  // ============================================================
+  static const String homeDemander = '/api/v1/home/demander';
+  static const String homeExpert = '/api/v1/home/expert';
+
+  // ============================================================
+  // 需求广场 /api/v1/market
+  // ============================================================
+  static const String marketProjects = '/api/v1/market/projects';
+
+  // ============================================================
+  // 需求发布 /api/v1/projects (POST 模块)
+  // ============================================================
+  static const String projectAiChat = '/api/v1/projects/ai-chat';
+  static const String projectGeneratePrd = '/api/v1/projects/generate-prd';
+  static const String projectDraft = '/api/v1/projects/draft';
+
+  // ============================================================
+  // PRD 视图 /api/v1/projects/:id/prd
+  // ============================================================
+  static String projectPrd(String id) => '/api/v1/projects/$id/prd';
+  static String prdCardUpdate(String projectId, String cardId) =>
+      '/api/v1/projects/$projectId/prd/cards/$cardId';
+
+  // ============================================================
   // 项目/需求模块 /api/v1/projects
   // ============================================================
   static const String projects = '/api/v1/projects';
@@ -57,10 +82,14 @@ class ApiEndpoints {
   // ============================================================
   static String milestoneDeliver(String id) => '/api/v1/milestones/$id/deliver';
   static String milestoneAccept(String id) => '/api/v1/milestones/$id/accept';
+  static String milestoneAcceptance(String id) => '/api/v1/milestones/$id/acceptance';
+  static String milestoneRevision(String id) => '/api/v1/milestones/$id/revision';
 
   // ============================================================
   // 投标/撮合模块 /api/v1/bids
   // ============================================================
+  static String projectAiSuggestion(String projectId) =>
+      '/api/v1/projects/$projectId/ai-suggestion';
   static String projectBids(String projectId) => '/api/v1/projects/$projectId/bids';
   static String bidAccept(String id) => '/api/v1/bids/$id/accept';
   static String bidReject(String id) => '/api/v1/bids/$id/reject';
@@ -78,6 +107,9 @@ class ApiEndpoints {
   static String orderRelease(String id) => '/api/v1/orders/$id/release';
   static String orderRefund(String id) => '/api/v1/orders/$id/refund';
   static String orderSplit(String id) => '/api/v1/orders/$id/split';
+  static String orderDetail(String id) => '/api/v1/orders/$id';
+  static String orderStatus(String id) => '/api/v1/orders/$id/status';
+  static const String coupons = '/api/v1/coupons';
   static const String walletBalance = '/api/v1/wallet/balance';
   static const String walletWithdraw = '/api/v1/wallet/withdraw';
   static const String walletTransactions = '/api/v1/wallet/transactions';

@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/routes.dart';
 import '../../../shared/widgets/vcc_button.dart';
-import '../../../shared/widgets/vcc_input.dart';
+import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/auth_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -19,21 +19,41 @@ class LoginPage extends ConsumerStatefulWidget {
 class _LoginPageState extends ConsumerState<LoginPage> {
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
+  final _phoneFocus = FocusNode();
+  final _codeFocus = FocusNode();
   Timer? _countdownTimer;
   int _countdown = 0;
   bool _agreedToTerms = false;
+  bool _phoneValid = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController.addListener(_validatePhone);
+  }
 
   @override
   void dispose() {
     _phoneController.dispose();
     _codeController.dispose();
+    _phoneFocus.dispose();
+    _codeFocus.dispose();
     _countdownTimer?.cancel();
     super.dispose();
+  }
+
+  void _validatePhone() {
+    final text = _phoneController.text;
+    final valid = text.length == 11 && text.startsWith('1');
+    if (valid != _phoneValid) {
+      setState(() => _phoneValid = valid);
+    }
   }
 
   void _startCountdown() {
     setState(() => _countdown = 60);
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) { timer.cancel(); return; }
       if (_countdown <= 1) {
         timer.cancel();
         setState(() => _countdown = 0);
@@ -44,31 +64,38 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _sendCode() async {
-    if (_phoneController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入手机号')),
-      );
-      return;
-    }
+    if (!_phoneValid) return;
     final success = await ref.read(authStateProvider.notifier).sendSmsCode(
           _phoneController.text,
         );
-    if (success) _startCountdown();
+    if (!mounted) return;
+    if (success) {
+      _startCountdown();
+      _codeFocus.requestFocus();
+    }
   }
 
   Future<void> _login() async {
     if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先同意服务协议')),
-      );
+      VccToast.show(context, message: '请先同意服务协议', type: VccToastType.warning);
       return;
     }
+    if (_codeController.text.length < 4) {
+      VccToast.show(context, message: '请输入验证码', type: VccToastType.warning);
+      return;
+    }
+
     final success = await ref.read(authStateProvider.notifier).loginWithPhone(
           _phoneController.text,
           _codeController.text,
         );
     if (success && mounted) {
-      context.go(RoutePaths.home);
+      final authState = ref.read(authStateProvider);
+      if (authState.userRole == 0) {
+        context.go(RoutePaths.roleSelect);
+      } else {
+        context.go(RoutePaths.home);
+      }
     }
   }
 
@@ -77,84 +104,146 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final authState = ref.watch(authStateProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 48),
-              // Logo + 品牌名
+              const SizedBox(height: 60),
               Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  gradient: AppGradients.primaryButton,
+                  color: AppColors.black,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.rocket_launch, color: Colors.white, size: 28),
+                child: const Center(
+                  child: Text(
+                    'V',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.white,
+                      height: 1,
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                '开造',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.gray800),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               const Text(
                 '欢迎来到开造',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.gray800),
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.black,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
                 '让每一个好想法都能被造出来',
-                style: TextStyle(fontSize: 14, color: AppColors.gray500),
+                style: TextStyle(fontSize: 15, color: AppColors.gray500),
               ),
               const SizedBox(height: 48),
 
-              // 手机号输入
-              VccInput(
-                label: '手机号',
-                hint: '请输入手机号',
+              // Phone
+              const Text(
+                '手机号',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray700),
+              ),
+              const SizedBox(height: 8),
+              TextField(
                 controller: _phoneController,
+                focusNode: _phoneFocus,
                 keyboardType: TextInputType.phone,
-                prefixIcon: const Padding(
-                  padding: EdgeInsets.only(left: 16, right: 8),
-                  child: Text('+86', style: TextStyle(fontSize: 16, color: AppColors.gray600)),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(11),
+                ],
+                style: const TextStyle(fontSize: 16, color: AppColors.black),
+                decoration: InputDecoration(
+                  hintText: '请输入手机号',
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.only(left: 16, right: 8),
+                    child: Text('+86', style: TextStyle(fontSize: 16, color: AppColors.gray500)),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 56),
+                  filled: true,
+                  fillColor: AppColors.gray50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.gray200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.gray200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.black, width: 1.5),
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // 验证码输入
-              VccInput(
-                label: '验证码',
-                hint: '请输入验证码',
+              // Code
+              const Text(
+                '验证码',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray700),
+              ),
+              const SizedBox(height: 8),
+              TextField(
                 controller: _codeController,
+                focusNode: _codeFocus,
                 keyboardType: TextInputType.number,
-                suffixIcon: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: TextButton(
-                    onPressed: _countdown > 0 ? null : _sendCode,
-                    child: Text(
-                      _countdown > 0 ? '${_countdown}s后重发' : '获取验证码',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: _countdown > 0 ? AppColors.gray400 : AppColors.brandPurple,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(6),
+                ],
+                style: const TextStyle(fontSize: 16, color: AppColors.black),
+                decoration: InputDecoration(
+                  hintText: '请输入验证码',
+                  filled: true,
+                  fillColor: AppColors.gray50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.gray200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.gray200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.black, width: 1.5),
+                  ),
+                  suffixIcon: Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: TextButton(
+                      onPressed: _countdown > 0 || !_phoneValid ? null : _sendCode,
+                      child: Text(
+                        _countdown > 0 ? '${_countdown}s' : '获取验证码',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: _countdown > 0 || !_phoneValid
+                              ? AppColors.gray400
+                              : AppColors.black,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
-              // 登录按钮
               VccButton(
                 text: '登录 / 注册',
                 onPressed: _login,
                 isLoading: authState.isLoading,
               ),
 
-              // 错误信息
               if (authState.errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -164,93 +253,50 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                 ),
 
-              // 服务协议
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Checkbox(
-                      value: _agreedToTerms,
-                      onChanged: (v) => setState(() => _agreedToTerms = v ?? false),
-                      activeColor: AppColors.brandPurple,
-                    ),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Checkbox(
+                          value: _agreedToTerms,
+                          onChanged: (v) => setState(() => _agreedToTerms = v ?? false),
+                          activeColor: AppColors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          side: const BorderSide(color: AppColors.gray300),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text('我已阅读并同意 ', style: TextStyle(fontSize: 12, color: AppColors.gray400)),
+                      GestureDetector(
+                        onTap: () {},
+                        child: const Text(
+                          '服务协议',
+                          style: TextStyle(fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      const Text(' 和 ', style: TextStyle(fontSize: 12, color: AppColors.gray400)),
+                      GestureDetector(
+                        onTap: () {},
+                        child: const Text(
+                          '隐私政策',
+                          style: TextStyle(fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  const Text('我已阅读并同意', style: TextStyle(fontSize: 12, color: AppColors.gray400)),
-                  GestureDetector(
-                    onTap: () {},
-                    child: const Text(
-                      '服务协议',
-                      style: TextStyle(fontSize: 12, color: AppColors.info),
-                    ),
-                  ),
-                  const Text(' 和 ', style: TextStyle(fontSize: 12, color: AppColors.gray400)),
-                  GestureDetector(
-                    onTap: () {},
-                    child: const Text(
-                      '隐私政策',
-                      style: TextStyle(fontSize: 12, color: AppColors.info),
-                    ),
-                  ),
-                ],
-              ),
-
-              // 第三方登录
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  const Expanded(child: Divider(color: AppColors.gray200)),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('或', style: TextStyle(fontSize: 14, color: AppColors.gray400)),
-                  ),
-                  const Expanded(child: Divider(color: AppColors.gray200)),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildSocialButton(
-                    icon: Icons.wechat,
-                    color: AppColors.wechatGreen,
-                    onTap: () {},
-                  ),
-                  if (defaultTargetPlatform == TargetPlatform.iOS) ...[
-                    const SizedBox(width: 24),
-                    _buildSocialButton(
-                      icon: Icons.apple,
-                      color: AppColors.appleBlack,
-                      onTap: () {},
-                    ),
-                  ],
-                ],
+                ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 24),
       ),
     );
   }

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 本地存储服务
@@ -14,12 +13,23 @@ class StorageService {
   static const String _keyUserRole = 'user_role';
   static const String _keyIsFirstLaunch = 'is_first_launch';
   static const String _keyThemeMode = 'theme_mode';
+  static const String _keyOnboardingCompleted = 'onboarding_completed';
+  static const String _keyOnboardingStep = 'onboarding_step';
+  static const String _keyOnboardingRole = 'onboarding_role';
+  static const String _keyOnboardingDraft = 'onboarding_draft';
 
   StorageService._();
 
   factory StorageService() {
     _instance ??= StorageService._();
     return _instance!;
+  }
+
+  bool get isReady => _prefs != null;
+
+  /// 在 main() 中调用，确保 SharedPreferences 在路由初始化前就绑就绪
+  Future<void> init() async {
+    _prefs ??= await SharedPreferences.getInstance();
   }
 
   Future<SharedPreferences> get _preferences async {
@@ -91,6 +101,52 @@ class StorageService {
   Future<String> getThemeMode() async {
     final prefs = await _preferences;
     return prefs.getString(_keyThemeMode) ?? 'system';
+  }
+
+  // Onboarding
+  Future<bool> isOnboardingCompleted() async {
+    final prefs = await _preferences;
+    return prefs.getBool(_keyOnboardingCompleted) ?? false;
+  }
+
+  Future<void> setOnboardingCompleted() async {
+    final prefs = await _preferences;
+    await prefs.setBool(_keyOnboardingCompleted, true);
+  }
+
+  Future<void> saveOnboardingStep(int step) async {
+    final prefs = await _preferences;
+    await prefs.setInt(_keyOnboardingStep, step);
+  }
+
+  Future<int> getOnboardingStep() async {
+    final prefs = await _preferences;
+    return prefs.getInt(_keyOnboardingStep) ?? 0;
+  }
+
+  Future<void> saveOnboardingRole(String role) async {
+    final prefs = await _preferences;
+    await prefs.setString(_keyOnboardingRole, role);
+  }
+
+  Future<String?> getOnboardingRole() async {
+    final prefs = await _preferences;
+    return prefs.getString(_keyOnboardingRole);
+  }
+
+  Future<void> saveOnboardingDraft(String json) async {
+    final prefs = await _preferences;
+    await prefs.setString(_keyOnboardingDraft, json);
+  }
+
+  Future<String?> getOnboardingDraft() async {
+    final prefs = await _preferences;
+    return prefs.getString(_keyOnboardingDraft);
+  }
+
+  Future<void> clearOnboardingDraft() async {
+    final prefs = await _preferences;
+    await prefs.remove(_keyOnboardingDraft);
   }
 
   Future<void> clearAll() async {

@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'routes.dart';
 import 'theme/app_theme.dart';
 import 'theme/dark_theme.dart';
+import '../shared/widgets/network_status_bar.dart';
 
 // 主题模式 Provider
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
@@ -41,7 +42,7 @@ class VccApp extends ConsumerWidget {
           data: mediaQueryData.copyWith(
             textScaler: TextScaler.linear(scale),
           ),
-          child: child ?? const SizedBox.shrink(),
+          child: NetworkStatusBar(child: child ?? const SizedBox.shrink()),
         );
       },
     );

@@ -1,22 +1,20 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import 'api_endpoints.dart';
 import 'api_response.dart';
 import '../storage/storage_service.dart';
-
-
+import '../mock/mock_interceptor.dart';
 
 /// Dio 网络客户端封装
-/// 包含 JWT 拦截器、自动刷新 Token、统一错误处理
+/// JWT 拦截器、队列式 Token 刷新、统一错误处理
 class ApiClient {
   static ApiClient? _instance;
   late final Dio _dio;
   final StorageService _storage = StorageService();
 
-  // Token 刷新锁，防止并发刷新
-  bool _isRefreshing = false;
-  final List<void Function(String)> _pendingRequests = [];
+  Completer<bool>? _refreshCompleter;
 
   ApiClient._() {
     _dio = Dio(
@@ -32,8 +30,8 @@ class ApiClient {
       ),
     );
 
-    // 添加拦截器
     _dio.interceptors.addAll([
+      if (MockInterceptor.useMock) MockInterceptor(),
       _authInterceptor(),
       _errorInterceptor(),
       if (kDebugMode) _logInterceptor(),
@@ -47,16 +45,13 @@ class ApiClient {
 
   Dio get dio => _dio;
 
-  /// JWT 认证拦截器
   InterceptorsWrapper _authInterceptor() {
     return InterceptorsWrapper(
       onRequest: (options, handler) async {
-        // 不需要认证的接口
         final noAuthPaths = [
           ApiEndpoints.sendSmsCode,
           ApiEndpoints.login,
           ApiEndpoints.register,
-          ApiEndpoints.wechatLogin,
           ApiEndpoints.refreshToken,
         ];
 
@@ -71,7 +66,6 @@ class ApiClient {
           }
         }
 
-        // 添加设备信息头
         options.headers['X-Device-Type'] = defaultTargetPlatform == TargetPlatform.iOS
             ? 'ios'
             : 'android';
@@ -80,11 +74,9 @@ class ApiClient {
         handler.next(options);
       },
       onError: (error, handler) async {
-        // 401 错误 -> 尝试刷新 Token
         if (error.response?.statusCode == 401) {
           final refreshed = await _tryRefreshToken();
           if (refreshed) {
-            // 重新发起原始请求
             final token = await _storage.getAccessToken();
             error.requestOptions.headers['Authorization'] = 'Bearer $token';
             try {
@@ -96,7 +88,6 @@ class ApiClient {
               return;
             }
           }
-          // 刷新失败 -> 清除登录态
           await _storage.clearTokens();
         }
         handler.next(error);
@@ -104,57 +95,64 @@ class ApiClient {
     );
   }
 
-  /// 尝试刷新 Token
+  /// Queue-based token refresh: concurrent 401s share a single refresh attempt
   Future<bool> _tryRefreshToken() async {
-    if (_isRefreshing) {
-      // 已经在刷新中，等待完成
-      return false;
+    if (_refreshCompleter != null) {
+      return _refreshCompleter!.future;
     }
 
-    _isRefreshing = true;
+    _refreshCompleter = Completer<bool>();
 
     try {
       final refreshToken = await _storage.getRefreshToken();
       if (refreshToken == null || refreshToken.isEmpty) {
+        _refreshCompleter!.complete(false);
         return false;
       }
 
-      // 使用独立的Dio实例刷新Token，避免循环拦截
       final refreshDio = Dio(BaseOptions(baseUrl: ApiEndpoints.baseUrl));
+      if (MockInterceptor.useMock) {
+        refreshDio.interceptors.add(MockInterceptor());
+      }
+
       final response = await refreshDio.post(
         ApiEndpoints.refreshToken,
         data: {'refresh_token': refreshToken},
       );
 
       if (response.statusCode == 200 && response.data['code'] == 0) {
-        final newAccessToken = response.data['data']['access_token'] as String;
-        final newRefreshToken = response.data['data']['refresh_token'] as String;
+        final data = response.data['data'];
+        if (data is! Map<String, dynamic>) {
+          _refreshCompleter!.complete(false);
+          return false;
+        }
+        final newAccessToken = data['access_token'] as String?;
+        final newRefreshToken = data['refresh_token'] as String?;
+        if (newAccessToken == null || newRefreshToken == null) {
+          _refreshCompleter!.complete(false);
+          return false;
+        }
 
         await _storage.saveAccessToken(newAccessToken);
         await _storage.saveRefreshToken(newRefreshToken);
 
-        // 通知所有等待的请求
-        for (final callback in _pendingRequests) {
-          callback(newAccessToken);
-        }
-        _pendingRequests.clear();
-
+        _refreshCompleter!.complete(true);
         return true;
       }
+      _refreshCompleter!.complete(false);
       return false;
     } catch (e) {
       debugPrint('Token 刷新失败: $e');
+      _refreshCompleter!.complete(false);
       return false;
     } finally {
-      _isRefreshing = false;
+      _refreshCompleter = null;
     }
   }
 
-  /// 统一错误拦截器
   InterceptorsWrapper _errorInterceptor() {
     return InterceptorsWrapper(
       onResponse: (response, handler) {
-        // 统一处理业务错误码
         final data = response.data;
         if (data is Map && data['code'] != null && data['code'] != 0) {
           handler.reject(
@@ -176,43 +174,26 @@ class ApiClient {
           case DioExceptionType.sendTimeout:
           case DioExceptionType.receiveTimeout:
             message = '网络连接超时，请稍后重试';
-            break;
           case DioExceptionType.connectionError:
             message = '网络连接失败，请检查网络设置';
-            break;
           case DioExceptionType.badResponse:
             final statusCode = error.response?.statusCode;
             final responseData = error.response?.data;
             if (responseData is Map && responseData['message'] != null) {
               message = responseData['message'];
             } else {
-              switch (statusCode) {
-                case 400:
-                  message = '请求参数错误';
-                  break;
-                case 401:
-                  message = '登录已过期，请重新登录';
-                  break;
-                case 403:
-                  message = '暂无权限';
-                  break;
-                case 404:
-                  message = '请求的资源不存在';
-                  break;
-                case 429:
-                  message = '请求过于频繁，请稍后重试';
-                  break;
-                case 500:
-                  message = '服务器开小差了，请稍后重试';
-                  break;
-                default:
-                  message = '请求失败（$statusCode）';
-              }
+              message = switch (statusCode) {
+                400 => '请求参数错误',
+                401 => '登录已过期，请重新登录',
+                403 => '暂无权限',
+                404 => '请求的资源不存在',
+                429 => '请求过于频繁，请稍后重试',
+                500 => '服务器开小差了，请稍后重试',
+                _ => '请求失败（$statusCode）',
+              };
             }
-            break;
           case DioExceptionType.cancel:
             message = '请求已取消';
-            break;
           default:
             message = '网络异常，请稍后重试';
         }
@@ -222,7 +203,6 @@ class ApiClient {
     );
   }
 
-  /// 日志拦截器（仅Debug模式）
   LogInterceptor _logInterceptor() {
     return LogInterceptor(
       requestBody: true,
@@ -272,7 +252,6 @@ class ApiClient {
     return ApiResponse.fromJson(response.data, fromJson);
   }
 
-  /// 文件上传
   Future<ApiResponse<T>> upload<T>(
     String path, {
     required String filePath,
