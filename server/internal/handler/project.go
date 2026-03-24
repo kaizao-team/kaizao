@@ -55,6 +55,7 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 
 // List 项目列表
 // GET /api/v1/projects
+// 支持 role 参数: 1=需求方(我发布的需求), 2=专家(我参与的项目)
 func (h *ProjectHandler) List(c *gin.Context) {
 	var query dto.ProjectListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
@@ -68,6 +69,21 @@ func (h *ProjectHandler) List(c *gin.Context) {
 	}
 	if query.PageSize == 0 {
 		query.PageSize = 20
+	}
+
+	roleStr := c.Query("role")
+	role, _ := strconv.Atoi(roleStr)
+	userUUID := c.GetString("user_uuid")
+
+	if role > 0 && userUUID != "" {
+		projects, total, err := h.projectService.ListByRole(userUUID, role, query.Page, query.PageSize)
+		if err != nil {
+			response.ErrorInternal(c, "获取项目列表失败")
+			return
+		}
+		list := toProjectRespList(projects)
+		response.SuccessWithMeta(c, list, response.BuildMeta(query.Page, query.PageSize, total))
+		return
 	}
 
 	conditions := make(map[string]interface{})

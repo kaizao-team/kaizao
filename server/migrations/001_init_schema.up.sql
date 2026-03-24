@@ -618,7 +618,23 @@ CREATE TABLE IF NOT EXISTS agent_sessions (
     INDEX idx_agent_sessions_type (agent_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 29. 匹配记录表
+-- 29. 优惠券表
+CREATE TABLE IF NOT EXISTS coupons (
+    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid             VARCHAR(36) NOT NULL UNIQUE,
+    user_id          BIGINT NOT NULL,
+    title            VARCHAR(100) NOT NULL,
+    discount_amount  DECIMAL(10,2) NOT NULL,
+    min_order_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    expire_date      DATE NOT NULL,
+    is_used          TINYINT(1) NOT NULL DEFAULT 0,
+    used_at          DATETIME,
+    status           SMALLINT NOT NULL DEFAULT 1,
+    created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_coupons_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 30. 匹配记录表
 CREATE TABLE IF NOT EXISTS matches (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     uuid            VARCHAR(36) NOT NULL UNIQUE,

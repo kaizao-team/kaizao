@@ -15,19 +15,35 @@ import (
 
 // Handlers 所有 Handler 的集合
 type Handlers struct {
-	Auth    *AuthHandler
-	User    *UserHandler
-	Project *ProjectHandler
-	Home    *HomeHandler
+	Auth         *AuthHandler
+	User         *UserHandler
+	Project      *ProjectHandler
+	Home         *HomeHandler
+	PRD          *PRDHandler
+	Bid          *BidHandler
+	Task         *TaskHandler
+	Conversation *ConversationHandler
+	Order        *OrderHandler
+	Wallet       *WalletHandler
+	Review       *ReviewHandler
+	Team         *TeamHandler
 }
 
 // NewHandlers 创建所有 Handler
 func NewHandlers(services *service.Services, log *zap.Logger) *Handlers {
 	return &Handlers{
-		Auth:    NewAuthHandler(services.Auth, log),
-		User:    NewUserHandler(services.User, log),
-		Project: NewProjectHandler(services.Project, log),
-		Home:    NewHomeHandler(services.Home, log),
+		Auth:         NewAuthHandler(services.Auth, log),
+		User:         NewUserHandler(services.User, log),
+		Project:      NewProjectHandler(services.Project, log),
+		Home:         NewHomeHandler(services.Home, log),
+		PRD:          NewPRDHandler(services.Project, log),
+		Bid:          NewBidHandler(services.Bid, log),
+		Task:         NewTaskHandler(services.Task, services.Milestone, log),
+		Conversation: NewConversationHandler(services.Conversation, log),
+		Order:        NewOrderHandler(services.Order, services.Wallet, log),
+		Wallet:       NewWalletHandler(services.Wallet, log),
+		Review:       NewReviewHandler(services.Review, log),
+		Team:         NewTeamHandler(services.Team, log),
 	}
 }
 
@@ -217,6 +233,8 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 		return
 	}
 
+	stats := h.userService.GetUserStats(user)
+
 	response.Success(c, gin.H{
 		"id":               user.UUID,
 		"uuid":             user.UUID,
@@ -236,6 +254,7 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 		"available_status": user.AvailableStatus,
 		"skills":           []interface{}{},
 		"role_tags":        []interface{}{},
+		"stats":            stats,
 	})
 }
 

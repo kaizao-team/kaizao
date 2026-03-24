@@ -106,6 +106,12 @@ func (r *projectRepository) ListMarket(offset, limit int, filter ProjectFilter) 
 	return projects, total, nil
 }
 
+func (r *projectRepository) CountByOwnerID(ownerID int64) (int64, error) {
+	var count int64
+	err := r.db.Model(&model.Project{}).Where("owner_id = ?", ownerID).Count(&count).Error
+	return count, err
+}
+
 func (r *projectRepository) CountByCategory() (map[string]int64, error) {
 	type Result struct {
 		Category string
@@ -250,6 +256,15 @@ func (r *milestoneRepository) Create(milestone *model.Milestone) error {
 	return r.db.Create(milestone).Error
 }
 
+func (r *milestoneRepository) FindByID(id int64) (*model.Milestone, error) {
+	var m model.Milestone
+	err := r.db.Where("id = ?", id).First(&m).Error
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
 func (r *milestoneRepository) FindByUUID(uuid string) (*model.Milestone, error) {
 	var m model.Milestone
 	err := r.db.Where("uuid = ?", uuid).First(&m).Error
@@ -283,6 +298,24 @@ func (r *orderRepository) Create(order *model.Order) error {
 	return r.db.Create(order).Error
 }
 
+func (r *orderRepository) FindByID(id int64) (*model.Order, error) {
+	var order model.Order
+	err := r.db.Where("id = ?", id).First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+func (r *orderRepository) FindByProjectID(projectID int64) (*model.Order, error) {
+	var order model.Order
+	err := r.db.Where("project_id = ?", projectID).Order("created_at DESC").First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
 func (r *orderRepository) FindByUUID(uuid string) (*model.Order, error) {
 	var order model.Order
 	err := r.db.Where("uuid = ?", uuid).First(&order).Error
@@ -303,6 +336,21 @@ func (r *orderRepository) FindByOrderNo(orderNo string) (*model.Order, error) {
 
 func (r *orderRepository) Update(order *model.Order) error {
 	return r.db.Save(order).Error
+}
+
+func (r *orderRepository) SumPaidByPayerID(payerID int64) (float64, error) {
+	var result struct{ Total *float64 }
+	err := r.db.Model(&model.Order{}).
+		Select("COALESCE(SUM(amount), 0) as total").
+		Where("payer_id = ? AND status IN (2,3,4)", payerID).
+		Scan(&result).Error
+	if err != nil {
+		return 0, err
+	}
+	if result.Total == nil {
+		return 0, nil
+	}
+	return *result.Total, nil
 }
 
 // --- Wallet Repository ---
@@ -364,6 +412,10 @@ func NewConversationRepository(db *gorm.DB) ConversationRepository {
 
 func (r *conversationRepository) Create(conv *model.Conversation) error {
 	return r.db.Create(conv).Error
+}
+
+func (r *conversationRepository) Update(conv *model.Conversation) error {
+	return r.db.Save(conv).Error
 }
 
 func (r *conversationRepository) FindByUUID(uuid string) (*model.Conversation, error) {
@@ -468,6 +520,19 @@ func (r *reviewRepository) ListByRevieweeID(revieweeID int64, offset, limit int)
 	return reviews, total, nil
 }
 
+func (r *reviewRepository) ListByProjectID(projectID int64, offset, limit int) ([]*model.Review, int64, error) {
+	var reviews []*model.Review
+	var total int64
+	query := r.db.Model(&model.Review{}).Preload("Reviewer").Preload("Reviewee").Where("project_id = ? AND status = 1", projectID)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&reviews).Error; err != nil {
+		return nil, 0, err
+	}
+	return reviews, total, nil
+}
+
 func (r *reviewRepository) FindByProjectAndReviewer(projectID, reviewerID int64) (*model.Review, error) {
 	var review model.Review
 	err := r.db.Where("project_id = ? AND reviewer_id = ?", projectID, reviewerID).First(&review).Error
@@ -506,6 +571,16 @@ func (r *teamRepository) Update(team *model.Team) error {
 
 func (r *teamRepository) CreateMember(member *model.TeamMember) error {
 	return r.db.Create(member).Error
+}
+
+func (r *teamRepository) UpdateMemberRatio(teamID, userID int64, ratio float64) error {
+	return r.db.Model(&model.TeamMember{}).Where("team_id = ? AND user_id = ?", teamID, userID).Update("split_ratio", ratio).Error
+}
+
+func (r *teamRepository) ListMembers(teamID int64) ([]*model.TeamMember, error) {
+	var members []*model.TeamMember
+	err := r.db.Preload("User").Where("team_id = ? AND status = 1", teamID).Find(&members).Error
+	return members, err
 }
 
 func (r *teamRepository) CreateInvite(invite *model.TeamInvite) error {
@@ -596,4 +671,20 @@ func (r *notificationRepository) CountUnread(userID int64) (int64, error) {
 
 func (r *notificationRepository) MarkAllRead(userID int64) error {
 	return r.db.Model(&model.Notification{}).Where("user_id = ? AND is_read = false", userID).Update("is_read", true).Error
+}
+
+// --- Coupon Repository ---
+
+type couponRepository struct {
+	db *gorm.DB
+}
+
+func NewCouponRepository(db *gorm.DB) CouponRepository {
+	return &couponRepository{db: db}
+}
+
+func (r *couponRepository) ListByUserID(userID int64) ([]*model.Coupon, error) {
+	var coupons []*model.Coupon
+	err := r.db.Where("user_id = ? AND status = 1 AND is_used = false", userID).Order("expire_date ASC").Find(&coupons).Error
+	return coupons, err
 }

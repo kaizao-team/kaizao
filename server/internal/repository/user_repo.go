@@ -74,3 +74,27 @@ func (r *userRepository) ListExperts(offset, limit int) ([]*model.User, int64, e
 	}
 	return users, total, nil
 }
+
+func (r *userRepository) ListUserSkills(userID int64) ([]*model.UserSkill, error) {
+	var skills []*model.UserSkill
+	err := r.db.Preload("Skill").Where("user_id = ?", userID).Find(&skills).Error
+	return skills, err
+}
+
+func (r *userRepository) ReplaceUserSkills(userID int64, skills []*model.UserSkill) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("user_id = ?", userID).Delete(&model.UserSkill{}).Error; err != nil {
+			return err
+		}
+		if len(skills) > 0 {
+			return tx.Create(&skills).Error
+		}
+		return nil
+	})
+}
+
+func (r *userRepository) ListUserPortfolios(userID int64) ([]*model.Portfolio, error) {
+	var portfolios []*model.Portfolio
+	err := r.db.Where("user_id = ? AND status = 1", userID).Order("sort_order ASC, created_at DESC").Find(&portfolios).Error
+	return portfolios, err
+}

@@ -37,6 +37,57 @@ func (s *UserService) UpdateProfile(uuid string, fields map[string]interface{}) 
 	return s.repos.User.FindByUUID(uuid)
 }
 
+// ListUserSkills 获取用户技能
+func (s *UserService) ListUserSkills(userID int64) ([]*model.UserSkill, error) {
+	return s.repos.User.ListUserSkills(userID)
+}
+
+// ListUserPortfolios 获取用户作品集
+func (s *UserService) ListUserPortfolios(userID int64) ([]*model.Portfolio, error) {
+	return s.repos.User.ListUserPortfolios(userID)
+}
+
+// UserStats 用户统计数据
+type UserStats struct {
+	CompletedProjects int     `json:"completed_projects"`
+	ApprovalRate      float64 `json:"approval_rate"`
+	AvgDeliveryDays   int     `json:"avg_delivery_days"`
+	TotalEarnings     float64 `json:"total_earnings"`
+	PublishedProjects int64   `json:"published_projects"`
+	TotalSpent        float64 `json:"total_spent"`
+	DaysOnPlatform    int     `json:"days_on_platform"`
+}
+
+// GetUserStats 获取用户完整统计数据
+func (s *UserService) GetUserStats(user *model.User) *UserStats {
+	stats := &UserStats{
+		CompletedProjects: user.CompletedOrders,
+		ApprovalRate:      user.CompletionRate,
+		AvgDeliveryDays:   0,
+		TotalEarnings:     user.TotalEarnings,
+	}
+	days := int(time.Since(user.CreatedAt).Hours() / 24)
+	if days < 1 {
+		days = 1
+	}
+	stats.DaysOnPlatform = days
+	publishedCount, err := s.repos.Project.CountByOwnerID(user.ID)
+	if err == nil {
+		stats.PublishedProjects = publishedCount
+	}
+	totalSpent, err := s.repos.Order.SumPaidByPayerID(user.ID)
+	if err == nil {
+		stats.TotalSpent = totalSpent
+	}
+	return stats
+}
+
+// ListExperts 获取专家列表
+func (s *UserService) ListExperts(page, pageSize int) ([]*model.User, int64, error) {
+	offset := (page - 1) * pageSize
+	return s.repos.User.ListExperts(offset, pageSize)
+}
+
 // ProjectService 项目服务
 type ProjectService struct {
 	repos *repository.Repositories
@@ -120,6 +171,19 @@ func (s *ProjectService) GetByUUID(uuid string) (*model.Project, error) {
 func (s *ProjectService) List(page, pageSize int, conditions map[string]interface{}, sortBy, sortOrder string) ([]*model.Project, int64, error) {
 	offset := (page - 1) * pageSize
 	return s.repos.Project.List(offset, pageSize, conditions, sortBy, sortOrder)
+}
+
+// ListByRole 按角色获取项目列表: role=1 需求方(我发布的), role=2 专家(我参与的)
+func (s *ProjectService) ListByRole(userUUID string, role, page, pageSize int) ([]*model.Project, int64, error) {
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * pageSize
+	if role == 2 {
+		return s.repos.Project.ListByProviderID(user.ID, offset, pageSize)
+	}
+	return s.repos.Project.ListByOwnerID(user.ID, offset, pageSize)
 }
 
 // ListMarket 需求广场列表

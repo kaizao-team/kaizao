@@ -19,6 +19,7 @@ type Repositories struct {
 	Review       ReviewRepository
 	Team         TeamRepository
 	Notification NotificationRepository
+	Coupon       CouponRepository
 }
 
 // NewRepositories 创建所有 Repository
@@ -36,6 +37,7 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Review:       NewReviewRepository(db),
 		Team:         NewTeamRepository(db),
 		Notification: NewNotificationRepository(db),
+		Coupon:       NewCouponRepository(db),
 	}
 }
 
@@ -49,6 +51,9 @@ type UserRepository interface {
 	Update(user *model.User) error
 	UpdateFields(id int64, fields map[string]interface{}) error
 	ListExperts(offset, limit int) ([]*model.User, int64, error)
+	ListUserSkills(userID int64) ([]*model.UserSkill, error)
+	ReplaceUserSkills(userID int64, skills []*model.UserSkill) error
+	ListUserPortfolios(userID int64) ([]*model.Portfolio, error)
 }
 
 // ProjectFilter 项目列表筛选条件
@@ -73,6 +78,7 @@ type ProjectRepository interface {
 	ListByProviderID(providerID int64, offset, limit int) ([]*model.Project, int64, error)
 	ListMarket(offset, limit int, filter ProjectFilter) ([]*model.Project, int64, error)
 	CountByCategory() (map[string]int64, error)
+	CountByOwnerID(ownerID int64) (int64, error)
 }
 
 // BidRepository 投标数据访问接口
@@ -98,6 +104,7 @@ type TaskRepository interface {
 // MilestoneRepository 里程碑数据访问接口
 type MilestoneRepository interface {
 	Create(milestone *model.Milestone) error
+	FindByID(id int64) (*model.Milestone, error)
 	FindByUUID(uuid string) (*model.Milestone, error)
 	Update(milestone *model.Milestone) error
 	ListByProjectID(projectID int64) ([]*model.Milestone, error)
@@ -106,9 +113,17 @@ type MilestoneRepository interface {
 // OrderRepository 订单数据访问接口
 type OrderRepository interface {
 	Create(order *model.Order) error
+	FindByID(id int64) (*model.Order, error)
 	FindByUUID(uuid string) (*model.Order, error)
 	FindByOrderNo(orderNo string) (*model.Order, error)
 	Update(order *model.Order) error
+	FindByProjectID(projectID int64) (*model.Order, error)
+	SumPaidByPayerID(payerID int64) (float64, error)
+}
+
+// CouponRepository 优惠券数据访问接口
+type CouponRepository interface {
+	ListByUserID(userID int64) ([]*model.Coupon, error)
 }
 
 // WalletRepository 钱包数据访问接口
@@ -124,6 +139,7 @@ type WalletRepository interface {
 type ConversationRepository interface {
 	Create(conv *model.Conversation) error
 	FindByUUID(uuid string) (*model.Conversation, error)
+	Update(conv *model.Conversation) error
 	ListByUserID(userID int64, offset, limit int) ([]*model.Conversation, int64, error)
 	FindPrivateConversation(userAID, userBID int64) (*model.Conversation, error)
 }
@@ -140,6 +156,7 @@ type ReviewRepository interface {
 	FindByUUID(uuid string) (*model.Review, error)
 	Update(review *model.Review) error
 	ListByRevieweeID(revieweeID int64, offset, limit int) ([]*model.Review, int64, error)
+	ListByProjectID(projectID int64, offset, limit int) ([]*model.Review, int64, error)
 	FindByProjectAndReviewer(projectID, reviewerID int64) (*model.Review, error)
 }
 
@@ -149,6 +166,8 @@ type TeamRepository interface {
 	FindByUUID(uuid string) (*model.Team, error)
 	Update(team *model.Team) error
 	CreateMember(member *model.TeamMember) error
+	UpdateMemberRatio(teamID, userID int64, ratio float64) error
+	ListMembers(teamID int64) ([]*model.TeamMember, error)
 	CreateInvite(invite *model.TeamInvite) error
 	FindInviteByUUID(uuid string) (*model.TeamInvite, error)
 	UpdateInvite(invite *model.TeamInvite) error
