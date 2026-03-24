@@ -19,7 +19,7 @@ from app.config import settings
 
 logger = structlog.get_logger()
 
-# 全局组件实例（延迟初始化，类型为 Any）
+# v1 全局组件实例（延迟初始化，类型为 Any）
 llm_router: Optional[Any] = None
 embedding_client: Optional[Any] = None
 milvus_store: Optional[Any] = None
@@ -28,12 +28,23 @@ project_analyzer: Optional[Any] = None
 smart_matcher: Optional[Any] = None
 chat_assistant: Optional[Any] = None
 
+# v2 全局组件实例
+v2_session: Optional[Any] = None
+v2_doc_writer: Optional[Any] = None
+v2_orchestrator: Optional[Any] = None
+v2_requirement_agent: Optional[Any] = None
+v2_design_agent: Optional[Any] = None
+v2_task_agent: Optional[Any] = None
+v2_pm_agent: Optional[Any] = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理：启动时初始化组件，关闭时释放资源"""
     global llm_router, embedding_client, milvus_store, retriever
     global project_analyzer, smart_matcher, chat_assistant
+    global v2_session, v2_doc_writer, v2_orchestrator
+    global v2_requirement_agent, v2_design_agent, v2_task_agent, v2_pm_agent
 
     logger.info("正在启动 VibeBuild AI Agent 服务...")
 
@@ -99,6 +110,58 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Agent 初始化跳过: {e}")
 
+    # ---- MySQL 持久化层初始化 ----
+    try:
+        from app.db.engine import init_db
+        await init_db(auto_create_tables=settings.debug)
+        logger.info("MySQL 持久化层初始化完成", auto_create_tables=settings.debug)
+    except Exception as e:
+        logger.warning(f"MySQL 初始化跳过（将仅使用 Redis/内存）: {e}")
+
+    # ---- v2 组件初始化 ----
+    try:
+        from app.session.manager import SessionManager
+        v2_session = SessionManager()
+        await v2_session.connect()
+        logger.info("v2 异步 Redis 会话管理器初始化完成")
+    except Exception as e:
+        logger.warning(f"v2 Redis 会话管理器初始化跳过: {e}")
+        v2_session = None
+
+    try:
+        from app.outputs.writer import DocumentWriter
+        v2_doc_writer = DocumentWriter()
+        logger.info("v2 文档写入器初始化完成")
+    except Exception as e:
+        logger.warning(f"v2 文档写入器初始化跳过: {e}")
+        v2_doc_writer = None
+
+    try:
+        from app.pipeline.orchestrator import PipelineOrchestrator
+        if v2_session and v2_doc_writer:
+            v2_orchestrator = PipelineOrchestrator(
+                session_manager=v2_session,
+                doc_writer=v2_doc_writer,
+            )
+            logger.info("v2 流水线编排器初始化完成")
+    except Exception as e:
+        logger.warning(f"v2 流水线编排器初始化跳过: {e}")
+
+    try:
+        from app.agents.requirement_agent import RequirementAgent
+        from app.agents.design_agent import DesignAgent
+        from app.agents.task_agent import TaskAgent
+        from app.agents.pm_agent import PMAgent
+
+        if llm_router and v2_doc_writer:
+            v2_requirement_agent = RequirementAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
+            v2_design_agent = DesignAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
+            v2_task_agent = TaskAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
+            v2_pm_agent = PMAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
+            logger.info("v2 四个文档型 Agent 初始化完成")
+    except Exception as e:
+        logger.warning(f"v2 Agent 初始化跳过: {e}")
+
     logger.info(
         "VibeBuild AI Agent 服务启动成功",
         host=settings.host,
@@ -108,8 +171,15 @@ async def lifespan(app: FastAPI):
     yield
 
     # 关闭资源
+    if v2_session:
+        await v2_session.disconnect()
     if milvus_store:
         milvus_store.disconnect()
+    try:
+        from app.db.engine import close_db
+        await close_db()
+    except Exception:
+        pass
     logger.info("VibeBuild AI Agent 服务已关闭")
 
 
@@ -119,6 +189,14 @@ app = FastAPI(
     version=settings.app_version,
     lifespan=lifespan,
 )
+
+# 注册 v2 路由
+from app.routers import requirement_router, design_router, task_router, pm_router, pipeline_router
+app.include_router(requirement_router.router)
+app.include_router(design_router.router)
+app.include_router(task_router.router)
+app.include_router(pm_router.router)
+app.include_router(pipeline_router.router)
 
 # CORS 中间件
 app.add_middleware(
