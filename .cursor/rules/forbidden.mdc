@@ -1,0 +1,77 @@
+---
+description: 开造 VCC 严禁事项 — 负面清单，编写任何 Flutter UI 代码时强制生效。
+globs: "**/*.dart"
+alwaysApply: true
+---
+
+# 严禁事项（Forbidden）
+
+> 以下规则无一例外，如有疑问先确认再动代码。
+
+## 颜色
+
+- ❌ **禁止无依据渐变**：不要随手加 `LinearGradient`、`RadialGradient`、`SweepGradient`
+  - ✅ 允许场景：品牌 Logo、启动动效、首页主视觉、`AppGradients.ears*`
+- ❌ **禁止直接写 hex 字符串**：`Color(0xFF7C3AED)`、`Colors.purple` 等
+  - ✅ 必须用 `AppColors.*` token
+- ❌ **禁止纯黑** `#000000` / `Colors.black`
+  - ✅ 用 `AppColors.black`（`#111111`）
+- ❌ **禁止冷灰背景** `#F0F0F0`、`Colors.grey[100]`
+  - ✅ 用 `AppColors.gray50`（`#FAFAFA` 暖白）
+- ❌ **禁止 `withOpacity(x)`**（Flutter 弃用）
+  - ✅ 用 `withValues(alpha: x)`
+
+## 字型
+
+- ❌ **禁止直接写字号**：`fontSize: 14`、`fontSize: 16`
+  - ✅ 用 `AppTextStyles.*`，用 `.copyWith()` 修改颜色
+- ❌ **禁止 `fontWeight: FontWeight.w400` 等裸写**（已封装在 TextStyle 里）
+  - ✅ 直接引用对应 token
+
+## 形状
+
+- ❌ **禁止圆形图标容器**：`BorderRadius.circular(999)` 或 `CircleAvatar` 包图标
+  - ✅ 图标容器用 squircle `BorderRadius.circular(AppRadius.md)`
+  - ✅ 头像是唯一允许圆形的元素（`VccAvatar`）
+- ❌ **禁止裸写圆角数字**：`BorderRadius.circular(12)`
+  - ✅ 用 `AppRadius.*` token
+
+## 阴影
+
+- ❌ **禁止重阴影**：`blurRadius > 16` 或 `spreadRadius > 0`
+  - ✅ 用 `AppShadows.shadow1` / `shadow2` / `shadow3`
+- ❌ **禁止彩色阴影**：`color: AppColors.accent.withValues(alpha: 0.4)` 等
+  - ✅ 阴影颜色只用 `rgba(0,0,0,x)`
+
+## 组件
+
+- ❌ **禁止自定义按钮**：不要用 `Container + GestureDetector` 自制按钮
+  - ✅ 统一用 `VccButton`
+- ❌ **禁止系统 SnackBar**：`ScaffoldMessenger.of(context).showSnackBar(...)`
+  - ✅ 用 `VccToast`
+- ❌ **禁止自制输入框 decoration**（重复造轮子）
+  - ✅ 用 `VccInput`
+- ❌ **禁止裸用 `Card` widget**（Material 默认样式不符合设计）
+  - ✅ 用 `VccCard`
+
+## 布局
+
+- ❌ **禁止 1px 分隔线作为布局分隔**：`Divider()`、`height: 1, color: ...`
+  - ✅ 用间距 + 背景色层次区分区块
+- ❌ **禁止随意使用 `Expanded` 撑满**（会导致溢出）
+  - ✅ 明确指定高度或用 `Flexible`
+
+## AI / 科技风
+
+- ❌ **禁止彩虹色、全息色、霓虹发光效果**
+- ❌ **禁止闪烁动画、呼吸灯动画**
+- ❌ **禁止「科技蓝」大面积背景**
+  - ✅ AI 内容用 `AppColors.infoBg`（`#EFF6FF`）浅蓝底 + `AppColors.info` 文字
+
+## 术语
+
+- ❌ 程序员、码农、开发者 → ✅ **造物者**
+- ❌ 甲方、客户 → ✅ **发起人**
+- ❌ 接单 → ✅ **接造**
+- ❌ 外包 → ✅ 不用此词
+- ❌ 需求卡片、任务卡 → ✅ **EARS 卡片**

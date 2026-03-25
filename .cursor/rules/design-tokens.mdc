@@ -1,0 +1,146 @@
+---
+description: 开造 VCC 设计 Token 速查 — 颜色、字型、间距、圆角、阴影。编写任何 Flutter UI 时自动生效。
+globs: "**/*.dart"
+alwaysApply: true
+---
+
+# Design Tokens — Quiet Craft
+
+## 颜色（AppColors）
+
+导入路径：`import 'package:vibebuild_app/app/theme/app_colors.dart';`
+
+### 品牌色
+| Token | Hex | 用途 |
+|-------|-----|------|
+| `AppColors.accent` | `#7C3AED` | 选中态、链接、小面积强调（**绝不大面积填充**）|
+| `AppColors.accentLight` | `#F3EEFF` | 标签底色、图标容器底色 |
+| `AppColors.accentMuted` | `#DDD6FE` | 次级紫色背景 |
+| `AppColors.accentDark` | `#5B21B6` | 按压态 |
+
+### 中性色
+| Token | Hex | 用途 |
+|-------|-----|------|
+| `AppColors.gray50` | `#FAFAFA` | **全局背景**（暖白）|
+| `AppColors.white` | `#FFFFFF` | 卡片、面板、输入框 |
+| `AppColors.gray100` | `#F5F5F5` | 输入框底色、次级容器 |
+| `AppColors.gray200` | `#E5E7EB` | 卡片边框、分隔线 |
+| `AppColors.gray300` | `#D1D5DB` | 禁用边框 |
+| `AppColors.gray400` | `#9CA3AF` | 占位符、时间戳 |
+| `AppColors.gray500` | `#6B7280` | 次级正文 |
+| `AppColors.gray600` | `#4B5563` | 中等正文 |
+| `AppColors.gray700` | `#374151` | 主要正文 |
+| `AppColors.gray800` | `#1F2937` | 深色文字 |
+| `AppColors.black` | `#111111` | 标题、主 CTA 按钮背景 |
+
+### 语义色
+| Token | Hex | 用途 |
+|-------|-----|------|
+| `AppColors.success` | `#10B981` | 完成、通过、在线 |
+| `AppColors.successBg` | `#ECFDF5` | 成功状态底色 |
+| `AppColors.warning` | `#F59E0B` | 评分星星、提醒 |
+| `AppColors.warningBg` | `#FFFBEB` | 警告底色 |
+| `AppColors.error` | `#EF4444` | 错误、逾期、退出 |
+| `AppColors.errorBg` | `#FEF2F2` | 错误底色 |
+| `AppColors.info` | `#3B82F6` | AI 内容标注 |
+| `AppColors.infoBg` | `#EFF6FF` | AI 生成内容底色 |
+
+### EARS 渐变
+| Token | 类型 |
+|-------|------|
+| `AppGradients.earsUbiquitous` | Ubiquitous |
+| `AppGradients.earsEvent` | Event |
+| `AppGradients.earsState` | State |
+| `AppGradients.earsOptional` | Optional |
+| `AppGradients.earsUnwanted` | Unwanted |
+
+---
+
+## 字型（AppTextStyles）
+
+导入路径：`import 'package:vibebuild_app/app/theme/app_text_styles.dart';`
+
+| Token | Size | Weight | Line Height | 用途 |
+|-------|------|--------|-------------|------|
+| `AppTextStyles.h1` | 28px | 700 | 1.21 | 页面大标题 |
+| `AppTextStyles.h2` | 22px | 600 | 1.27 | 区块标题 |
+| `AppTextStyles.h3` | 18px | 600 | 1.33 | 卡片标题 |
+| `AppTextStyles.body1` | 16px | 400 | 1.5 | 主要正文 |
+| `AppTextStyles.body2` | 14px | 400 | 1.43 | 次级正文 |
+| `AppTextStyles.caption` | 12px | 400 | 1.33 | 辅助标签 |
+| `AppTextStyles.overline` | 10px | 500 | 1.4 | 上标标签 |
+| `AppTextStyles.button1` | 16px | 600 | 1.38 | 主按钮文字 |
+| `AppTextStyles.button2` | 14px | 500 | 1.43 | 次级按钮 / accent 色 |
+| `AppTextStyles.input` | 16px | 400 | 1.5 | 输入框正文 |
+| `AppTextStyles.inputLabel` | 14px | 500 | 1.43 | 输入框 Label |
+| `AppTextStyles.inputHint` | 16px | 400 | 1.5 | 输入框占位符 |
+| `AppTextStyles.tag` | 12px | 400 | 1.33 | 普通标签 |
+| `AppTextStyles.statusTag` | 12px | 500 | 1.33 | 状态标签 |
+| `AppTextStyles.tabLabel` | 10px | 500 | 1.4 | 底部导航标签 |
+| `AppTextStyles.num1` | 36px | 700 | 1.17 | 大数字展示 |
+| `AppTextStyles.num2` | 24px | 600 | 1.25 | 中等数字 |
+| `AppTextStyles.num3` | 16px | 500 | 1.38 | 小数字 |
+
+**规则**：禁止直接写字号数字，必须用 `AppTextStyles.*` 并用 `.copyWith()` 修改颜色。
+
+---
+
+## 间距（AppSpacing）
+
+| Token | Value |
+|-------|-------|
+| `AppSpacing.xxs` | 2px |
+| `AppSpacing.xs` | 4px |
+| `AppSpacing.sm` | 8px |
+| `AppSpacing.md` | 12px |
+| `AppSpacing.base` | 16px |
+| `AppSpacing.lg` | 20px |
+| `AppSpacing.xl` | 24px |
+| `AppSpacing.xxl` | 32px |
+| `AppSpacing.xxxl` | 48px |
+
+---
+
+## 圆角（AppRadius）
+
+| Token | Value | 典型用途 |
+|-------|-------|----------|
+| `AppRadius.xs` | 4px | 标签、Badge |
+| `AppRadius.sm` | 8px | 小按钮、小卡片 |
+| `AppRadius.md` | 12px | **标准卡片**（最常用）、**分类图标容器** |
+| `AppRadius.lg` | 16px | 大卡片、浮层 |
+| `AppRadius.xl` | 20px | 底部弹层 |
+| `AppRadius.xxl` | 24px | 超大容器 |
+| `AppRadius.full` | 999px | 胶囊标签、圆形头像 |
+
+> ⚠️ 图标容器必须用 `AppRadius.md`（squircle 风格）。头像是唯一圆形例外。
+
+---
+
+## 阴影（AppShadows）
+
+| Token | 效果 | 用途 |
+|-------|------|------|
+| `AppShadows.shadow1` | `0 1px 2px rgba(0,0,0,0.04)` | 轻浮起 |
+| `AppShadows.shadow2` | `0 2px 8px rgba(0,0,0,0.06)` | 标准卡片悬浮 |
+| `AppShadows.shadow3` | `0 4px 16px rgba(0,0,0,0.08)` | 弹层、模态 |
+| `AppShadows.shadow4` | `0 8px 32px rgba(0,0,0,0.12)` | 强主视觉场景 |
+
+> ⚠️ 禁止 `blurRadius > 16` 或 `spreadRadius > 0`。
+
+---
+
+## 动效（AppDurations / AppCurves）
+
+| Token | Value |
+|-------|-------|
+| `AppDurations.fast` | 150ms |
+| `AppDurations.normal` | 200ms |
+| `AppDurations.slow` | 300ms |
+| `AppDurations.progress` | 600ms |
+
+| Token | Curve |
+|-------|-------|
+| `AppCurves.standard` | `Cubic(0.16, 1, 0.3, 1)`（类 iOS spring）|
+| `AppCurves.easeOut` | `Curves.easeOut` |
+| `AppCurves.easeInOut` | `Curves.easeInOut` |
