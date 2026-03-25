@@ -13,6 +13,17 @@ class AppColors {
   static const Color accentMuted = Color(0xFFDDD6FE);
 
   // ============================================================
+  // Onboarding Editorial Tokens
+  // ============================================================
+  static const Color onboardingBackground = Color(0xFFF7F7F5);
+  static const Color onboardingSurface = Color(0xFFFFFFFF);
+  static const Color onboardingSurfaceMuted = Color(0xFFF3F3F1);
+  static const Color onboardingHairline = Color(0xFFE5E7EB);
+  static const Color onboardingMutedText = Color(0xFF6B7280);
+  static const Color onboardingPrimary = Color(0xFF111111);
+  static const Color onboardingPrimaryPressed = Color(0xFF2B2B2B);
+
+  // ============================================================
   // 主色 — 黑白体系
   // ============================================================
   static const Color black = Color(0xFF111111);
@@ -183,6 +194,13 @@ class AppShadows {
 
   static const List<BoxShadow> brandShadow = shadow2;
   static const List<BoxShadow> brandShadowPressed = shadow1;
+  static const List<BoxShadow> onboardingLift = [
+    BoxShadow(
+      color: Color.fromRGBO(49, 51, 44, 0.07),
+      offset: Offset(0, 12),
+      blurRadius: 30,
+    ),
+  ];
 }
 
 /// 间距系统

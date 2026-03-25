@@ -63,6 +63,14 @@ class StorageService {
     await prefs.remove(_keyRefreshToken);
   }
 
+  Future<void> clearAuthSession() async {
+    final prefs = await _preferences;
+    await prefs.remove(_keyAccessToken);
+    await prefs.remove(_keyRefreshToken);
+    await prefs.remove(_keyUserId);
+    await prefs.remove(_keyUserRole);
+  }
+
   Future<void> saveUserId(String userId) async {
     final prefs = await _preferences;
     await prefs.setString(_keyUserId, userId);
@@ -146,6 +154,14 @@ class StorageService {
 
   Future<void> clearOnboardingDraft() async {
     final prefs = await _preferences;
+    await prefs.remove(_keyOnboardingDraft);
+  }
+
+  Future<void> clearOnboardingState() async {
+    final prefs = await _preferences;
+    await prefs.remove(_keyOnboardingCompleted);
+    await prefs.remove(_keyOnboardingStep);
+    await prefs.remove(_keyOnboardingRole);
     await prefs.remove(_keyOnboardingDraft);
   }
 

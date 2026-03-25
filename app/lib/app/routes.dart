@@ -103,6 +103,37 @@ Page<void> _cupertinoPage(Widget child) {
   return CupertinoPage(child: child);
 }
 
+Page<void> _onboardingFlowPage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 360),
+    reverseTransitionDuration: const Duration(milliseconds: 260),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final position = Tween<Offset>(
+        begin: const Offset(0.035, 0),
+        end: Offset.zero,
+      ).animate(
+        CurvedAnimation(
+          parent: animation,
+          curve: const Cubic(0.16, 1, 0.3, 1),
+          reverseCurve: Curves.easeOut,
+        ),
+      );
+
+      return FadeTransition(
+        opacity: animation.drive(
+          CurveTween(curve: Curves.easeOut),
+        ),
+        child: SlideTransition(
+          position: position,
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   final changeNotifier = ref.watch(authChangeNotifierProvider);
 
@@ -157,43 +188,50 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.demanderOnboarding1,
-        pageBuilder: (_, __) => _cupertinoPage(
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
           const DemanderProfilePage(),
         ),
       ),
       GoRoute(
         path: RoutePaths.demanderOnboarding2,
-        pageBuilder: (_, __) => _cupertinoPage(
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
           const DemanderGuideCreatePage(),
         ),
       ),
       GoRoute(
         path: RoutePaths.demanderOnboarding3,
-        pageBuilder: (_, __) => _cupertinoPage(
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
           const DemanderGuideFillPage(),
         ),
       ),
       GoRoute(
         path: RoutePaths.demanderOnboarding4,
-        pageBuilder: (_, __) => _cupertinoPage(
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
           const DemanderCompletePage(),
         ),
       ),
       GoRoute(
         path: RoutePaths.expertOnboarding1,
-        pageBuilder: (_, __) => _cupertinoPage(
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
           const ExpertProfilePage(),
         ),
       ),
       GoRoute(
         path: RoutePaths.expertOnboarding2,
-        pageBuilder: (_, __) => _cupertinoPage(
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
           const ExpertSupplementPage(),
         ),
       ),
       GoRoute(
         path: RoutePaths.expertOnboarding3,
-        pageBuilder: (_, __) => _cupertinoPage(
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
           const ExpertLevelPage(),
         ),
       ),

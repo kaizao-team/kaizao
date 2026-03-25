@@ -94,7 +94,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return true;
     } catch (e) {
       if (!mounted) return false;
-      state = state.copyWith(isLoading: false, errorMessage: () => e.toString());
+      state =
+          state.copyWith(isLoading: false, errorMessage: () => e.toString());
       return false;
     }
   }
@@ -120,7 +121,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return true;
     } catch (e) {
       if (!mounted) return false;
-      state = state.copyWith(isLoading: false, errorMessage: () => e.toString());
+      state =
+          state.copyWith(isLoading: false, errorMessage: () => e.toString());
       return false;
     }
   }
@@ -136,7 +138,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return true;
     } catch (e) {
       if (!mounted) return false;
-      state = state.copyWith(isLoading: false, errorMessage: () => e.toString());
+      state =
+          state.copyWith(isLoading: false, errorMessage: () => e.toString());
       return false;
     }
   }
@@ -148,6 +151,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _storage.clearAll();
     if (!mounted) return;
     state = const AuthState(isInitialized: true);
+    changeNotifier.notify();
+  }
+
+  Future<void> resetForFreshStart() async {
+    final isFirstLaunch = await _storage.isFirstLaunch();
+    await _storage.clearAuthSession();
+    await _storage.clearOnboardingState();
+    if (!mounted) return;
+    state = AuthState(
+      isInitialized: true,
+      isLoggedIn: false,
+      isFirstLaunch: isFirstLaunch,
+    );
     changeNotifier.notify();
   }
 }
