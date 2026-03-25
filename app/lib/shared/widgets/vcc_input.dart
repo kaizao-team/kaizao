@@ -10,6 +10,7 @@ class VccInput extends StatelessWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
   final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
   final bool obscureText;
   final bool enabled;
   final int maxLines;
@@ -30,6 +31,7 @@ class VccInput extends StatelessWidget {
     this.controller,
     this.focusNode,
     this.keyboardType,
+    this.textInputAction,
     this.obscureText = false,
     this.enabled = true,
     this.maxLines = 1,
@@ -67,6 +69,7 @@ class VccInput extends StatelessWidget {
           controller: controller,
           focusNode: focusNode,
           keyboardType: keyboardType,
+          textInputAction: textInputAction,
           obscureText: obscureText,
           enabled: enabled,
           maxLines: maxLines,
@@ -98,6 +101,7 @@ class VccInput extends StatelessWidget {
       child: TextField(
         controller: controller,
         focusNode: focusNode,
+        textInputAction: textInputAction,
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         style: const TextStyle(
@@ -107,7 +111,11 @@ class VccInput extends StatelessWidget {
         ),
         decoration: InputDecoration(
           hintText: hint ?? '搜索...',
-          hintStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: AppColors.gray400),
+          hintStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: AppColors.gray400,
+          ),
           filled: true,
           fillColor: AppColors.gray50,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),

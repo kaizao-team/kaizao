@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -22,18 +21,17 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   late Animation<double> _buttonOpacityAnim;
   late Animation<Offset> _buttonSlideAnim;
 
-  // DEBUG: 改这里强制跳到指定页面（仅 debug 模式生效）
-  static const String? _debugForceRoute = kDebugMode ? RoutePaths.splash : null;
-
   @override
   void initState() {
     super.initState();
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Color(0xFFF6F6F6),
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Color(0xFFF6F6F6),
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
 
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -86,21 +84,13 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   }
 
   Future<void> _onStart() async {
-    if (kDebugMode && _debugForceRoute == RoutePaths.splash) {
-      // Debug: always go to onboarding
-      context.go(RoutePaths.onboarding);
-      return;
-    }
     final storage = StorageService();
-    final isFirst = await storage.isFirstLaunch();
     final token = await storage.getAccessToken();
     if (!mounted) return;
-    if (isFirst) {
-      context.go(RoutePaths.onboarding);
-    } else if (token != null && token.isNotEmpty) {
+    if (token != null && token.isNotEmpty) {
       context.go(RoutePaths.home);
     } else {
-      context.go(RoutePaths.login);
+      context.go(RoutePaths.onboarding);
     }
   }
 
@@ -136,13 +126,20 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                       child: Transform.scale(
                         scale: _scaleAnim.value,
                         child: SizedBox(
-                          width: 64,
-                          height: 64,
-                          child: CustomPaint(painter: _VccLogoPainter()),
+                          width: 212,
+                          height: 212,
+                          child: ClipRect(
+                            child: Image.asset(
+                              'assets/branding/app_launch_motion_flat.webp',
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
+                              filterQuality: FilterQuality.low,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 2),
                     Opacity(
                       opacity: _logoOpacityAnim.value,
                       child: Transform.scale(
@@ -226,49 +223,4 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       ),
     );
   }
-}
-
-class _VccLogoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    // Left triangle — dark
-    paint.color = const Color(0xFF1A1A1A);
-    canvas.drawPath(
-      Path()
-        ..moveTo(0, h)
-        ..lineTo(w * 0.5, 0)
-        ..lineTo(w * 0.36, h)
-        ..close(),
-      paint,
-    );
-
-    // Center triangle — mid gray
-    paint.color = const Color(0xFF6B7280);
-    canvas.drawPath(
-      Path()
-        ..moveTo(w * 0.33, h)
-        ..lineTo(w * 0.67, h)
-        ..lineTo(w * 0.5, h * 0.32)
-        ..close(),
-      paint,
-    );
-
-    // Right triangle — light gray
-    paint.color = const Color(0xFFD4D4D4);
-    canvas.drawPath(
-      Path()
-        ..moveTo(w * 0.64, h)
-        ..lineTo(w, h)
-        ..lineTo(w * 0.5, 0)
-        ..close(),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
