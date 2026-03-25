@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
-import '../../../core/storage/storage_service.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -39,19 +38,24 @@ class _OnboardingPageState extends State<OnboardingPage>
   @override
   void initState() {
     super.initState();
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Color(0xFFF6F6F6),
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Color(0xFFF6F6F6),
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
 
     _btnController = AnimationController(
       duration: const Duration(milliseconds: 120),
       vsync: this,
     );
     _btnScale = Tween<double>(begin: 1.0, end: 0.94).animate(
-      CurvedAnimation(parent: _btnController, curve: Curves.easeOut,),
+      CurvedAnimation(
+        parent: _btnController,
+        curve: Curves.easeOut,
+      ),
     );
 
     _pageController.addListener(() {
@@ -75,7 +79,6 @@ class _OnboardingPageState extends State<OnboardingPage>
   }
 
   Future<void> _finish() async {
-    await StorageService().setFirstLaunchDone();
     if (mounted) context.go(RoutePaths.login);
   }
 
@@ -284,7 +287,8 @@ class _OnboardingPageState extends State<OnboardingPage>
                           child: Container(
                             height: 50,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1A).withValues(alpha: 0.06),
+                              color: const Color(0xFF1A1A1A)
+                                  .withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(13),
                             ),
                             alignment: Alignment.center,
@@ -408,7 +412,12 @@ class _ContinuousMorphPainter extends CustomPainter {
         ..strokeWidth = 1.0
         ..style = PaintingStyle.stroke;
       final connections = [
-        [0, 1], [0, 2], [1, 2], [1, 3], [2, 4], [3, 5],
+        [0, 1],
+        [0, 2],
+        [1, 2],
+        [1, 3],
+        [2, 4],
+        [3, 5],
       ];
       for (final c in connections) {
         final a = nodes[c[0]];
@@ -536,7 +545,8 @@ class _ContinuousMorphPainter extends CustomPainter {
       for (int j = 0; j < 3; j++) {
         final cy = cardYStarts[j];
         final ch = cardHeights[j];
-        paint.color = const Color(0xFFFFFFFF).withValues(alpha: alpha * (j == 0 ? 0.85 : 0.55));
+        paint.color = const Color(0xFFFFFFFF)
+            .withValues(alpha: alpha * (j == 0 ? 0.85 : 0.55));
         canvas.drawRRect(
           RRect.fromRectAndRadius(
             Rect.fromLTWH(nx - 4, cy, w * 0.24, ch),
@@ -584,4 +594,3 @@ class _Node {
   double ny(double t0, double t1) => _lerp3(ky, t0, t1);
   double nr(double t0, double t1) => _lerp3(kr, t0, t1);
 }
-
