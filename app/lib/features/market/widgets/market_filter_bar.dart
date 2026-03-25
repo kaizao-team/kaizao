@@ -9,6 +9,7 @@ class MarketFilterBar extends StatelessWidget {
   final ValueChanged<String> onCategoryChanged;
   final ValueChanged<String> onSortChanged;
   final VoidCallback onFilterTap;
+  final int userRole;
 
   const MarketFilterBar({
     super.key,
@@ -18,6 +19,7 @@ class MarketFilterBar extends StatelessWidget {
     required this.onCategoryChanged,
     required this.onSortChanged,
     required this.onFilterTap,
+    this.userRole = 1,
   });
 
   @override
@@ -109,9 +111,10 @@ class MarketFilterBar extends StatelessWidget {
   }
 
   Widget _buildSortDropdown(BuildContext context) {
-    final currentSort = MarketSortOption.all.firstWhere(
+    final sortOptions = MarketSortOption.forRole(userRole);
+    final currentSort = sortOptions.firstWhere(
       (s) => s.key == sortBy,
-      orElse: () => MarketSortOption.all.first,
+      orElse: () => sortOptions.first,
     );
 
     return PopupMenuButton<String>(
@@ -141,7 +144,7 @@ class MarketFilterBar extends StatelessWidget {
           ],
         ),
       ),
-      itemBuilder: (_) => MarketSortOption.all
+      itemBuilder: (_) => sortOptions
           .map(
             (s) => PopupMenuItem<String>(
               value: s.key,

@@ -1,11 +1,12 @@
+import '../config/app_env.dart';
+
 /// 所有 API 端点常量
 /// 从技术架构文档和API设计文档提取
 class ApiEndpoints {
   ApiEndpoints._();
 
-  // 基础URL（按环境切换）
-  static const String baseUrl = 'https://api.vibebuild.com';
-  static const String wsUrl = 'wss://ws.vibebuild.com';
+  static String get baseUrl => AppEnv.baseUrl;
+  static String get wsUrl => AppEnv.wsUrl;
 
   // ============================================================
   // 认证模块 /api/v1/auth
@@ -41,6 +42,7 @@ class ApiEndpoints {
   // 需求广场 /api/v1/market
   // ============================================================
   static const String marketProjects = '/api/v1/market/projects';
+  static const String marketExperts = '/api/v1/market/experts';
 
   // ============================================================
   // 需求发布 /api/v1/projects (POST 模块)

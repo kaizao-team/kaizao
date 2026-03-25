@@ -26,6 +26,12 @@ class MarketSortOption {
     MarketSortOption(key: 'budget_desc', name: '预算最高'),
     MarketSortOption(key: 'match', name: '匹配度'),
   ];
+
+  /// 根据角色过滤排序选项：需求方不展示"匹配度"
+  static List<MarketSortOption> forRole(int role) {
+    if (role == 2) return all;
+    return all.where((s) => s.key != 'match').toList();
+  }
 }
 
 class MarketProjectItem {

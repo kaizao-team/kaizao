@@ -60,6 +60,9 @@ class ProfileMock {
           'approval_rate': isSelf ? 98 : 95,
           'avg_delivery_days': isSelf ? 3.2 : 4.1,
           'total_earnings': isSelf ? 86500.0 : 156800.0,
+          'published_projects': isSelf ? 5 : 0,
+          'total_spent': isSelf ? 42000.0 : 0,
+          'days_on_platform': isSelf ? 285 : 180,
         },
         'bio': isSelf
             ? '5年全栈开发经验，擅长 Flutter 和 Go 后端开发，热衷于用 AI 提升开发效率。'
@@ -89,6 +92,9 @@ class ProfileMock {
           'approval_rate': 98,
           'avg_delivery_days': 3.2,
           'total_earnings': 86500.0,
+          'published_projects': 5,
+          'total_spent': 42000.0,
+          'days_on_platform': 285,
         },
         'bio': '5年全栈开发经验，擅长 Flutter 和 Go 后端开发。',
         'created_at': '2025-06-15T10:00:00Z',

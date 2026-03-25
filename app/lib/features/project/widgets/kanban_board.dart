@@ -9,6 +9,7 @@ class KanbanBoard extends StatelessWidget {
   final List<KanbanTask> completedTasks;
   final void Function(String taskId, String newStatus) onMoveTask;
   final void Function(KanbanTask task)? onTaskTap;
+  final bool readOnly;
 
   const KanbanBoard({
     super.key,
@@ -17,6 +18,7 @@ class KanbanBoard extends StatelessWidget {
     required this.completedTasks,
     required this.onMoveTask,
     this.onTaskTap,
+    this.readOnly = false,
   });
 
   @override
@@ -34,6 +36,7 @@ class KanbanBoard extends StatelessWidget {
             acceptStatus: 'todo',
             onMoveTask: onMoveTask,
             onTaskTap: onTaskTap,
+            readOnly: readOnly,
           ),
           const SizedBox(width: 12),
           _KanbanColumn(
@@ -43,6 +46,7 @@ class KanbanBoard extends StatelessWidget {
             acceptStatus: 'in_progress',
             onMoveTask: onMoveTask,
             onTaskTap: onTaskTap,
+            readOnly: readOnly,
           ),
           const SizedBox(width: 12),
           _KanbanColumn(
@@ -52,6 +56,7 @@ class KanbanBoard extends StatelessWidget {
             acceptStatus: 'completed',
             onMoveTask: onMoveTask,
             onTaskTap: onTaskTap,
+            readOnly: readOnly,
           ),
         ],
       ),
@@ -66,6 +71,7 @@ class _KanbanColumn extends StatelessWidget {
   final String acceptStatus;
   final void Function(String taskId, String newStatus) onMoveTask;
   final void Function(KanbanTask task)? onTaskTap;
+  final bool readOnly;
 
   const _KanbanColumn({
     required this.title,
@@ -74,10 +80,13 @@ class _KanbanColumn extends StatelessWidget {
     required this.acceptStatus,
     required this.onMoveTask,
     this.onTaskTap,
+    this.readOnly = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (readOnly) return _buildColumnBody(context, isHovering: false);
+
     return DragTarget<KanbanTask>(
       onWillAcceptWithDetails: (details) => details.data.status != acceptStatus,
       onAcceptWithDetails: (details) {
@@ -86,91 +95,96 @@ class _KanbanColumn extends StatelessWidget {
       },
       builder: (context, candidateData, rejectedData) {
         final isHovering = candidateData.isNotEmpty;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 280,
-          decoration: BoxDecoration(
-            color: isHovering
-                ? AppColors.accentLight
-                : AppColors.gray50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isHovering ? AppColors.accent : AppColors.gray200,
-              width: isHovering ? 1.5 : 1,
+        return _buildColumnBody(context, isHovering: isHovering);
+      },
+    );
+  }
+
+  Widget _buildColumnBody(BuildContext context, {required bool isHovering}) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: 280,
+      decoration: BoxDecoration(
+        color: isHovering ? AppColors.accentLight : AppColors.gray50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isHovering ? AppColors.accent : AppColors.gray200,
+          width: isHovering ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '$title (${tasks.length})',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.black,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: statusColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$title (${tasks.length})',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.black,
-                      ),
-                    ),
-                  ],
+          const Divider(height: 1, color: AppColors.gray200),
+          if (tasks.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('暂无任务',
+                  style: TextStyle(fontSize: 13, color: AppColors.gray400)),
+            )
+          else
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.55,
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: const EdgeInsets.all(8),
+                itemCount: tasks.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final task = tasks[index];
+                  if (readOnly) {
+                    return GestureDetector(
+                      onTap: onTaskTap != null ? () => onTaskTap!(task) : null,
+                      child: _TaskCardContent(task: task),
+                    );
+                  }
+                  return _DraggableTaskCard(
+                    task: task,
+                    onTap: onTaskTap != null ? () => onTaskTap!(task) : null,
+                  );
+                },
+              ),
+            ),
+          if (isHovering && !readOnly)
+            Container(
+              margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              height: 48,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.accent,
+                  style: BorderStyle.solid,
                 ),
               ),
-              const Divider(height: 1, color: AppColors.gray200),
-              if (tasks.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text('暂无任务',
-                      style:
-                          TextStyle(fontSize: 13, color: AppColors.gray400)),
-                )
-              else
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.55,
-                  ),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.all(8),
-                    itemCount: tasks.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final task = tasks[index];
-                      return _DraggableTaskCard(
-                        task: task,
-                        onTap: onTaskTap != null
-                            ? () => onTaskTap!(task)
-                            : null,
-                      );
-                    },
-                  ),
-                ),
-              if (isHovering)
-                Container(
-                  margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                  height: 48,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.accent,
-                      style: BorderStyle.solid,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
+            ),
+        ],
+      ),
     );
   }
 }

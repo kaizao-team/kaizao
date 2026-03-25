@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/market_expert.dart';
 import '../models/market_filter.dart';
 import '../repositories/market_repository.dart';
 
@@ -155,4 +156,59 @@ final marketStateProvider =
     StateNotifierProvider<MarketNotifier, MarketState>((ref) {
   final repository = ref.watch(marketRepositoryProvider);
   return MarketNotifier(repository);
+});
+
+class ExpertListState {
+  final bool isLoading;
+  final List<MarketExpertItem> experts;
+  final String? errorMessage;
+
+  const ExpertListState({
+    this.isLoading = false,
+    this.experts = const [],
+    this.errorMessage,
+  });
+
+  ExpertListState copyWith({
+    bool? isLoading,
+    List<MarketExpertItem>? experts,
+    String? Function()? errorMessage,
+  }) {
+    return ExpertListState(
+      isLoading: isLoading ?? this.isLoading,
+      experts: experts ?? this.experts,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
+    );
+  }
+}
+
+class ExpertListNotifier extends StateNotifier<ExpertListState> {
+  final MarketRepository _repository;
+
+  ExpertListNotifier(this._repository) : super(const ExpertListState()) {
+    load();
+  }
+
+  Future<void> load() async {
+    state = state.copyWith(isLoading: true, errorMessage: () => null);
+    try {
+      final experts = await _repository.fetchExperts();
+      if (!mounted) return;
+      state = state.copyWith(isLoading: false, experts: experts);
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: () => e.toString(),
+      );
+    }
+  }
+
+  Future<void> refresh() async => load();
+}
+
+final expertListProvider =
+    StateNotifierProvider<ExpertListNotifier, ExpertListState>((ref) {
+  final repository = ref.watch(marketRepositoryProvider);
+  return ExpertListNotifier(repository);
 });

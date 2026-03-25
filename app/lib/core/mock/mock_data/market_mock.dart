@@ -14,6 +14,29 @@ class MarketMock {
       delayMs: 300,
       handler: (options) => _projectDetail(options),
     );
+
+    handlers['GET:/api/v1/market/experts'] = MockHandler(
+      delayMs: 400,
+      handler: (_) => _expertList(),
+    );
+  }
+
+  static Map<String, dynamic> _expertList() {
+    return {
+      'code': 0,
+      'message': 'ok',
+      'data': [
+        {'id': 'exp_01', 'nickname': '阿杰', 'avatar_url': null, 'rating': 4.9, 'skills': ['Flutter', 'Dart', 'Firebase'], 'completed_projects': 23, 'hourly_rate': 300, 'tagline': '全栈移动端开发专家'},
+        {'id': 'exp_02', 'nickname': '小李', 'avatar_url': null, 'rating': 4.8, 'skills': ['React', 'TypeScript', 'Next.js'], 'completed_projects': 18, 'hourly_rate': 250, 'tagline': '前端架构师'},
+        {'id': 'exp_03', 'nickname': '王五', 'avatar_url': null, 'rating': 4.7, 'skills': ['Go', 'PostgreSQL', 'gRPC'], 'completed_projects': 31, 'hourly_rate': 350, 'tagline': '高性能后端开发'},
+        {'id': 'exp_04', 'nickname': '赵六', 'avatar_url': null, 'rating': 4.6, 'skills': ['Python', 'AI/ML', 'LangChain'], 'completed_projects': 15, 'hourly_rate': 280, 'tagline': 'AI 应用开发者'},
+        {'id': 'exp_05', 'nickname': '孙七', 'avatar_url': null, 'rating': 4.5, 'skills': ['UI设计', 'Figma', 'Framer'], 'completed_projects': 42, 'hourly_rate': 200, 'tagline': '高级UI/UX设计师'},
+        {'id': 'exp_06', 'nickname': '周八', 'avatar_url': null, 'rating': 4.8, 'skills': ['Vue.js', 'Nuxt', 'TailwindCSS'], 'completed_projects': 26, 'hourly_rate': 260, 'tagline': 'Vue 生态专家'},
+        {'id': 'exp_07', 'nickname': '钱九', 'avatar_url': null, 'rating': 4.4, 'skills': ['微信小程序', 'Taro', 'uni-app'], 'completed_projects': 35, 'hourly_rate': 220, 'tagline': '小程序全栈开发'},
+        {'id': 'exp_08', 'nickname': '林十', 'avatar_url': null, 'rating': 4.9, 'skills': ['Rust', 'WebAssembly', 'Go'], 'completed_projects': 12, 'hourly_rate': 400, 'tagline': '系统级开发专家'},
+      ],
+      'meta': {'page': 1, 'page_size': 20, 'total': 8, 'total_pages': 1},
+    };
   }
 
   static final List<Map<String, dynamic>> _allProjects = [

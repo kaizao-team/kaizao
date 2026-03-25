@@ -101,7 +101,10 @@ class ProfilePage extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    ProfileStatsRow(stats: profile.stats),
+                    ProfileStatsRow(
+                      stats: profile.stats,
+                      isDemander: profile.isDemander,
+                    ),
                     const SizedBox(height: 20),
                     if (profile.bio.isNotEmpty)
                       Padding(
@@ -116,7 +119,7 @@ class ProfilePage extends ConsumerWidget {
                           textAlign: TextAlign.center,
                         ),
                       ),
-                    if (state.skills.isNotEmpty)
+                    if (profile.isExpert && state.skills.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 20),
                         child: Wrap(
@@ -163,14 +166,16 @@ class ProfilePage extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ActionTile(
-                              icon: Icons.account_balance_wallet_outlined,
-                              label: '我的钱包',
-                              onTap: () => context.push(RoutePaths.wallet),
+                          if (profile.isExpert) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _ActionTile(
+                                icon: Icons.account_balance_wallet_outlined,
+                                label: '我的钱包',
+                                onTap: () => context.push(RoutePaths.wallet),
+                              ),
                             ),
-                          ),
+                          ],
                           const SizedBox(width: 12),
                           Expanded(
                             child: _ActionTile(
@@ -187,9 +192,10 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
             ),
-            SliverToBoxAdapter(
-              child: PortfolioGrid(items: state.portfolios),
-            ),
+            if (profile.isExpert)
+              SliverToBoxAdapter(
+                child: PortfolioGrid(items: state.portfolios),
+              ),
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
         ),
