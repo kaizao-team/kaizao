@@ -12,7 +12,7 @@ from sqlalchemy import select, delete
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 
 from app.db.engine import get_session_factory
-from app.db.models import ConversationMessage, Document, Project, ProjectStage
+from app.db.models import ConversationMessage, Document, Project, ProjectStage, ProviderProfile, VibePowerLog
 
 logger = structlog.get_logger()
 
@@ -207,6 +207,130 @@ class ProjectRepository:
                     pass
                 results.append({"role": msg.role, "content": content})
             return results
+
+
+class RatingRepository:
+    """评分定级持久化仓库"""
+
+    async def save_provider_profile(self, profile_data: dict) -> None:
+        """保存/更新供给方档案"""
+        async with get_session_factory()() as session:
+            async with session.begin():
+                stmt = mysql_insert(ProviderProfile).values(**profile_data)
+                update_fields = {
+                    k: stmt.inserted[k]
+                    for k in profile_data
+                    if k != "id"
+                }
+                update_fields["updated_at"] = datetime.now()
+                stmt = stmt.on_duplicate_key_update(**update_fields)
+                await session.execute(stmt)
+
+    async def get_provider_profile(self, provider_id: str) -> Optional[dict]:
+        """获取供给方档案"""
+        async with get_session_factory()() as session:
+            profile = await session.get(ProviderProfile, provider_id)
+            if not profile:
+                return None
+            return {
+                "id": profile.id,
+                "user_id": profile.user_id,
+                "type": profile.type,
+                "display_name": profile.display_name,
+                "vibe_power": profile.vibe_power,
+                "vibe_level": profile.vibe_level,
+                "level_weight": float(profile.level_weight),
+                "skills": profile.skills,
+                "experience_years": profile.experience_years,
+                "ai_tools": profile.ai_tools,
+                "resume_summary": profile.resume_summary,
+                "review_tags": profile.review_tags,
+                "score_tech_depth": profile.score_tech_depth,
+                "score_project_exp": profile.score_project_exp,
+                "score_ai_proficiency": profile.score_ai_proficiency,
+                "score_portfolio": profile.score_portfolio,
+                "score_background": profile.score_background,
+                "total_projects": profile.total_projects,
+                "completed_projects": profile.completed_projects,
+                "avg_rating": float(profile.avg_rating),
+                "on_time_rate": float(profile.on_time_rate),
+                "created_at": profile.created_at.isoformat() if profile.created_at else None,
+                "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
+            }
+
+    async def get_provider_by_user_id(self, user_id: str) -> Optional[dict]:
+        """通过 user_id 获取供给方档案"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(ProviderProfile).where(ProviderProfile.user_id == user_id)
+            )
+            profile = q.scalars().first()
+            if not profile:
+                return None
+            return await self.get_provider_profile(profile.id)
+
+    async def update_vibe_power(
+        self,
+        provider_id: str,
+        points_delta: int,
+        new_level: str,
+        new_weight: float,
+    ) -> None:
+        """更新供给方的积分和等级"""
+        async with get_session_factory()() as session:
+            async with session.begin():
+                profile = await session.get(ProviderProfile, provider_id)
+                if profile:
+                    profile.vibe_power = max(0, profile.vibe_power + points_delta)
+                    profile.vibe_level = new_level
+                    profile.level_weight = new_weight
+
+    async def add_power_log(
+        self,
+        provider_id: str,
+        action: str,
+        points: int,
+        reason: str = "",
+        project_id: Optional[str] = None,
+    ) -> None:
+        """添加积分变动记录"""
+        async with get_session_factory()() as session:
+            async with session.begin():
+                session.add(VibePowerLog(
+                    provider_id=provider_id,
+                    action=action,
+                    points=points,
+                    reason=reason,
+                    project_id=project_id,
+                ))
+
+    async def get_power_logs(
+        self,
+        provider_id: str,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[dict]:
+        """获取积分变动历史"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(VibePowerLog)
+                .where(VibePowerLog.provider_id == provider_id)
+                .order_by(VibePowerLog.created_at.desc())
+                .offset(offset)
+                .limit(limit)
+            )
+            return [
+                {
+                    "id": log.id,
+                    "provider_id": log.provider_id,
+                    "action": log.action,
+                    "points": log.points,
+                    "reason": log.reason,
+                    "project_id": log.project_id,
+                    "created_at": log.created_at.isoformat() if log.created_at else None,
+                }
+                for log in q.scalars().all()
+            ]
 
 
 def _parse_dt(val) -> Optional[datetime]:

@@ -2,12 +2,14 @@
 开造 VibeBuild — 架构设计 API 路由 (v2)
 """
 
+import json
 import uuid
 from typing import Optional
 
 import structlog
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
 from app.schemas.common import APIResponse
 
@@ -100,4 +102,39 @@ async def get_document(project_id: str, request: Request):
     if not content:
         return APIResponse(code=40402, message="文档尚未生成", request_id=request_id)
     path = v2_doc_writer.get_document_path(project_id, "design.md")
-    return APIResponse(code=0, data={"filename": "design.md", "path": path, "size": len(content)}, request_id=request_id)
+    return APIResponse(code=0, data={"filename": "design.md", "path": path, "size": len(content), "content": content}, request_id=request_id)
+
+
+@router.post("/{project_id}/start/stream")
+async def start_design_stream(project_id: str, req: StartRequest, request: Request):
+    """[SSE 流式] 启动架构设计生成"""
+    from app.main import v2_orchestrator, v2_design_agent, v2_doc_writer
+
+    async def event_generator():
+        try:
+            ok, msg, state = await v2_orchestrator.start_stage(project_id, "design")
+            if not ok:
+                yield {"event": "error", "data": msg}
+                return
+
+            context = v2_orchestrator.load_stage_context(project_id, "design")
+            requirement_content = context.get("requirement.md", "")
+
+            async for event in v2_design_agent.generate_stream(
+                project_id=project_id,
+                requirement_content=requirement_content,
+                feedback=req.feedback or "",
+            ):
+                yield event
+
+            # 保存状态
+            doc_exists = v2_doc_writer.read_document(project_id, "design.md") is not None
+            if doc_exists:
+                state.set_stage_status("design", "awaiting_confirmation", document_path=f"outputs/{project_id}/v1/design.md")
+            await v2_orchestrator.save_project(state)
+
+        except Exception as e:
+            logger.error("design_stream_error", error=str(e))
+            yield {"event": "error", "data": str(e)}
+
+    return EventSourceResponse(event_generator())

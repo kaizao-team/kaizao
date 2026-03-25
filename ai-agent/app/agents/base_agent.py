@@ -162,7 +162,7 @@ class ToolUseBaseAgent(ABC):
         # ---- 前置安全拦截：检查用户最新消息 ----
         last_user_text = self._extract_last_user_text(messages)
         if last_user_text:
-            check_result = _injection_defender.check(last_user_text)
+            check_result = self._check_safety(last_user_text)
             if not check_result["is_safe"]:
                 self.logger.warning(
                     "prompt_injection_blocked",
@@ -237,6 +237,133 @@ class ToolUseBaseAgent(ABC):
             self.logger.warning("agentic_loop_max_iterations", request_id=request_id)
 
         return messages, last_tool_input
+
+    # 工具名称中文映射（供 SSE 进度展示）
+    TOOL_DISPLAY_NAMES = {
+        "ask_clarification": "正在分析需求完整度...",
+        "generate_prd": "正在生成 PRD 文档...",
+        "decompose_to_ears": "正在拆解 EARS 任务...",
+        "save_document": "正在保存文档...",
+        "produce_design": "正在生成架构设计...",
+        "produce_task_breakdown": "正在生成任务分解...",
+        "produce_project_plan": "正在生成项目管理方案...",
+    }
+
+    async def run_stream(
+        self,
+        messages: list[dict],
+        system_prompt: Optional[str] = None,
+        max_tokens: int = 8192,
+        temperature: float = 0.3,
+        **context,
+    ):
+        """
+        流式执行 agentic loop，yield SSE 事件 dict
+
+        事件类型:
+        - {"event": "thinking", "data": "正在分析..."}
+        - {"event": "tool_call", "data": "正在生成 PRD 文档..."}
+        - {"event": "tool_result", "data": "PRD 已生成"}
+        - {"event": "text", "data": "Agent 的回复文本"}
+        - {"event": "done", "data": {最终结果 JSON}}
+        - {"event": "error", "data": "错误信息"}
+        """
+        import json as _json
+
+        request_id = str(uuid.uuid4())[:16]
+        start_time = time.time()
+        self.logger.info("agentic_loop_stream_start", request_id=request_id)
+
+        yield {"event": "thinking", "data": "正在理解您的需求..."}
+
+        # 前置安全拦截
+        last_user_text = self._extract_last_user_text(messages)
+        if last_user_text:
+            check_result = self._check_safety(last_user_text)
+            if not check_result["is_safe"]:
+                safe_reply = f"我是 VibeBuild 平台的{self.agent_name}，无法处理该请求。请描述您的正常需求。"
+                messages.append({"role": "assistant", "content": [{"type": "text", "text": safe_reply}]})
+                yield {"event": "error", "data": safe_reply}
+                return
+
+        sys_prompt = system_prompt or self._get_system_prompt(**context)
+        tools = self._get_tools()
+        last_tool_input: dict[str, Any] = {}
+
+        for iteration in range(settings.max_agentic_loop_iterations):
+            yield {"event": "thinking", "data": f"AI 思考中...（第 {iteration + 1} 轮）"}
+
+            response = await self.llm_router.create_message(
+                messages=messages,
+                model_tier=self.model_tier,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                system=sys_prompt,
+                tools=tools,
+            )
+
+            assistant_content = self._serialize_content_blocks(response.content)
+            messages.append({"role": "assistant", "content": assistant_content})
+
+            # 提取文本回复，流式发送
+            for block in response.content:
+                if getattr(block, "type", None) == "text" and block.text.strip():
+                    yield {"event": "text", "data": block.text}
+
+            tool_use_blocks = [b for b in response.content if getattr(b, "type", None) == "tool_use"]
+
+            if not tool_use_blocks:
+                break
+
+            # 执行 tool 调用
+            tool_results = []
+            for block in tool_use_blocks:
+                tool_name = block.name
+                tool_input = block.input
+                last_tool_input = {"tool_name": tool_name, **tool_input}
+
+                display = self.TOOL_DISPLAY_NAMES.get(tool_name, f"正在执行 {tool_name}...")
+                yield {"event": "tool_call", "data": display}
+
+                try:
+                    result_str = await self._execute_tool(tool_name, tool_input)
+                except Exception as e:
+                    result_str = f"Error: {str(e)}"
+
+                yield {"event": "tool_result", "data": result_str[:200]}
+
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": result_str,
+                })
+
+            messages.append({"role": "user", "content": tool_results})
+
+        duration_ms = round((time.time() - start_time) * 1000, 2)
+        self.logger.info("agentic_loop_stream_end", request_id=request_id, duration_ms=duration_ms)
+
+        # 最终结果
+        yield {
+            "event": "done",
+            "data": _json.dumps({
+                "messages": "ok",
+                "last_tool": last_tool_input,
+                "duration_ms": duration_ms,
+            }, ensure_ascii=False),
+        }
+
+        # 将结果存到实例变量供调用方获取
+        self._stream_result = (messages, last_tool_input)
+
+    def _check_safety(self, user_input: str) -> dict:
+        """
+        安全检查（子类可覆盖以调整策略）
+
+        默认使用全局 PromptInjectionDefender 的完整检测。
+        处理长文本输入的 Agent（如简历解析）可覆盖此方法放宽长度限制。
+        """
+        return _injection_defender.check(user_input)
 
     def extract_text_response(self, messages: list[dict]) -> str:
         """从消息列表中提取最后一条 assistant 文本回复"""
