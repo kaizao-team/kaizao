@@ -1,0 +1,76 @@
+---
+description: 开造主设计系统速查。Architectural Minimalism / The Digital Atheneum。默认单色、无分割线、靠背景层级与排版做结构。
+globs: "**/*.dart"
+alwaysApply: true
+---
+
+# Design Tokens — Architectural Minimalism
+
+## Core Palette
+
+- `surface`: `#F9F9F9`
+- `on_surface`: `#1A1C1C`
+- `primary`: `#000000`
+- `outline_variant`: `#C6C6C6` at low opacity
+
+## Surface Hierarchy
+
+- Level 0: `#F9F9F9`
+- Level 1: `#F3F3F3`
+- Level 2: `#FFFFFF`
+- Level 3: `#E8E8E8`
+
+规则：
+- 区块层级优先靠背景色切换，不靠边框
+- 常规正文不要用纯黑，靠近 `#1A1C1C`
+- 主按钮默认黑底，不用彩色主按钮
+- 默认禁止普通渐变，只有底部这条 tonal shift 例外
+
+## No-Line Rule
+
+- 不要用标准 1px 线条切 section
+- 不要用 `Divider()` 做主要层次
+- 通过 surface 层级和大留白做分隔
+
+可用例外：
+- 输入框默认 Ghost Border
+- 对比不足时使用 1px `outline_variant`，15% opacity
+- Focus 态 1.5px 黑色边框
+
+## Typography
+
+- Headlines: Plus Jakarta Sans
+- Body / Labels: Inter
+
+规则：
+- 拉大字号级差，不要平均梯度
+- metadata 用全大写 + 字距
+- 优先标题与小说明直接搭配，做高对比层级
+
+## Depth
+
+- 默认靠 Tonal Layering 做深度
+- 白卡放灰底上即可形成自然抬升
+- 浮层才允许 ambient shadow
+
+Ambient shadow:
+- blur: 24px - 40px
+- opacity: 4% - 6%
+- color source: `#1A1C1C`
+
+## Geometry
+
+- UI 元素使用 8px - 12px 圆角方形语言
+- 头像是唯一允许圆形的元素
+- 图标容器不允许做圆形
+
+## Buttons
+
+- Primary: black background
+- Secondary: `#E8E8E8`
+- Tertiary: transparent, ghost border only on hover
+
+唯一允许的纹理：
+- Hero / Main CTA 可使用极轻 tonal shift
+- 只允许：`#000000 -> #3C3B3B`
+- 这不是品牌渐变，只是黑色层次

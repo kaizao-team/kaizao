@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../config/app_env.dart';
 import 'mock_data/auth_mock.dart';
 import 'mock_data/user_mock.dart';
 import 'mock_data/project_mock.dart';
@@ -20,7 +21,7 @@ import 'mock_data/rate_mock.dart';
 /// Mock 拦截器 — 开发环境拦截 API 请求并返回模拟数据
 /// 通过 useMock 参数控制是否启用
 class MockInterceptor extends Interceptor {
-  static bool useMock = kDebugMode;
+  static bool useMock = AppEnv.useMock;
 
   final Map<String, MockHandler> _handlers = {};
 

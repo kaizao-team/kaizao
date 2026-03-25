@@ -60,12 +60,18 @@ class UserStats {
   final int approvalRate;
   final double avgDeliveryDays;
   final double totalEarnings;
+  final int publishedProjects;
+  final double totalSpent;
+  final int daysOnPlatform;
 
   const UserStats({
     this.completedProjects = 0,
     this.approvalRate = 0,
     this.avgDeliveryDays = 0,
     this.totalEarnings = 0,
+    this.publishedProjects = 0,
+    this.totalSpent = 0,
+    this.daysOnPlatform = 0,
   });
 
   factory UserStats.fromJson(Map<String, dynamic> json) {
@@ -76,6 +82,9 @@ class UserStats {
       totalEarnings: (json['total_earned'] as num?)?.toDouble() ??
           (json['total_earnings'] as num?)?.toDouble() ??
           0,
+      publishedProjects: json['published_projects'] as int? ?? 0,
+      totalSpent: (json['total_spent'] as num?)?.toDouble() ?? 0,
+      daysOnPlatform: json['days_on_platform'] as int? ?? 0,
     );
   }
 }

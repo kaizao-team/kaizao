@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_tag.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../providers/project_detail_provider.dart';
 
 class ProjectDetailPage extends ConsumerWidget {
@@ -58,31 +60,72 @@ class ProjectDetailPage extends ConsumerWidget {
                 )
               : _DetailContent(state: state),
       bottomNavigationBar: state.data != null
-          ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: VccButton(
-                        text: '沟通',
-                        type: VccButtonType.secondary,
-                        onPressed: () {},
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: VccButton(
-                        text: state.status == 2 ? '投标' : '查看进度',
-                        onPressed: () {},
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
+          ? _BottomActions(projectId: id, state: state)
           : null,
     );
+  }
+}
+
+class _BottomActions extends ConsumerWidget {
+  final String projectId;
+  final ProjectDetailState state;
+
+  const _BottomActions({required this.projectId, required this.state});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+    final isDemander = authState.userRole != 2;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: VccButton(
+                text: '沟通',
+                type: VccButtonType.secondary,
+                onPressed: () => context.push('/chat/$projectId'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: VccButton(
+                text: _rightButtonText(isDemander),
+                onPressed: () => _rightButtonAction(context, isDemander),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _rightButtonText(bool isDemander) {
+    if (isDemander) {
+      if (state.status <= 2) return '查看投标';
+      return '查看进度';
+    } else {
+      if (state.status >= 5) return '进入看板';
+      return '投标';
+    }
+  }
+
+  void _rightButtonAction(BuildContext context, bool isDemander) {
+    if (isDemander) {
+      if (state.status <= 2) {
+        context.push('/projects/$projectId/bids');
+      } else {
+        context.push('/projects/$projectId/manage');
+      }
+    } else {
+      if (state.status >= 5) {
+        context.push('/projects/$projectId/manage');
+      } else {
+        context.push('/projects/$projectId/bid');
+      }
+    }
   }
 }
 

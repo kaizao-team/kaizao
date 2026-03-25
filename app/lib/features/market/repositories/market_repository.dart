@@ -1,6 +1,7 @@
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_response.dart';
+import '../models/market_expert.dart';
 import '../models/market_filter.dart';
 
 class MarketRepository {
@@ -48,5 +49,16 @@ class MarketRepository {
       fromJson: (data) => data as Map<String, dynamic>,
     );
     return response.data ?? {};
+  }
+
+  Future<List<MarketExpertItem>> fetchExperts() async {
+    final response = await _client.get<List<dynamic>>(
+      ApiEndpoints.marketExperts,
+      fromJson: (data) => data as List<dynamic>,
+    );
+    return (response.data ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MarketExpertItem.fromJson(e))
+        .toList();
   }
 }

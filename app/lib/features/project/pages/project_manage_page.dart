@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_toast.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/project_models.dart';
 import '../providers/project_manage_provider.dart';
 import '../widgets/progress_ring.dart';
@@ -83,6 +84,9 @@ class _ProjectManagePageState extends ConsumerState<ProjectManagePage> {
   }
 
   Widget _buildTabContent(ProjectManageState state) {
+    final authState = ref.watch(authStateProvider);
+    final isDemander = authState.userRole != 2;
+
     switch (state.currentTab) {
       case ProjectTab.kanban:
         return KanbanBoard(
@@ -90,6 +94,7 @@ class _ProjectManagePageState extends ConsumerState<ProjectManagePage> {
           todoTasks: state.todoTasks,
           inProgressTasks: state.inProgressTasks,
           completedTasks: state.completedTasks,
+          readOnly: isDemander,
           onMoveTask: (taskId, newStatus) {
             ref
                 .read(projectManageProvider(widget.projectId).notifier)
