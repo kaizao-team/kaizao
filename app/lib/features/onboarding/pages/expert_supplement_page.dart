@@ -107,50 +107,40 @@ class _ExpertSupplementPageState extends ConsumerState<ExpertSupplementPage> {
           const Text('补充案例与定位', style: AppTextStyles.onboardingTitle),
           const SizedBox(height: 12),
           const Text(
-            '上传几张代表性案例，写一段足够真实的自我介绍。需求方会先看到这些信息。',
+            '先摆出你最能打的一组作品，再补一句像你本人会说的话。需求方先感受到你，再决定要不要聊。',
             style: AppTextStyles.onboardingBody,
           ),
           const SizedBox(height: 28),
           const _PortfolioDraftWall(),
           const SizedBox(height: 18),
-          Row(
-            children: [
-              const OnboardingHelperTag(
-                text: '先放草图、截图或上线页面都可以',
-                icon: Icons.grid_view_rounded,
-              ),
-              const Spacer(),
-              Text(
-                '最多 5 个案例',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.onboardingMutedText,
-                ),
-              ),
-            ],
+          const OnboardingSectionHeader(
+            title: '案例不是装饰，是信任入口',
+            description: '先上传最能代表你风格和判断力的内容，草图、过程图和交付截图都可以。',
+            accessory: OnboardingHelperTag(
+              text: '最多 5 个案例',
+              icon: Icons.grid_view_rounded,
+            ),
           ),
           const SizedBox(height: 32),
-          const Row(
-            children: [
-              Text(
-                '个人简介',
-                style: AppTextStyles.onboardingSectionLabel,
-              ),
-              Spacer(),
-              OnboardingHelperTag(text: '建议 80-160 字'),
-            ],
+          const OnboardingSectionHeader(
+            title: '写一段像你本人会说的话',
+            description: '别写成标准简历。像第一次开口介绍自己，让对方知道你擅长什么、怎么合作。',
+            accessory: OnboardingHelperTag(text: '建议 80-160 字'),
           ),
           const SizedBox(height: 10),
-          TextField(
-            controller: _bioController,
-            maxLines: 6,
-            maxLength: 200,
-            style: AppTextStyles.input.copyWith(fontSize: 15),
-            decoration: _bioDecoration(),
+          OnboardingDeckCard(
+            child: TextField(
+              controller: _bioController,
+              maxLines: 6,
+              maxLength: 200,
+              style: AppTextStyles.input.copyWith(fontSize: 15),
+              decoration: _bioDecoration(),
+            ),
           ),
           const SizedBox(height: 18),
           const OnboardingInfoBlock(
             icon: Icons.visibility_outlined,
-            title: '先看案例，再决定是否联系',
+            title: '先被看懂，才会被联系',
             description: '需求方通常会先看你的案例风格、简介和协作方式，再决定是否进入沟通。',
           ),
           const SizedBox(height: 24),
@@ -165,16 +155,8 @@ class _PortfolioDraftWall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.onboardingSurface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppColors.onboardingHairline.withValues(alpha: 0.62),
-        ),
-      ),
+    return OnboardingDeckCard(
+      elevated: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -187,42 +169,34 @@ class _PortfolioDraftWall extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              const OnboardingStatusBadge(text: '案例整理中'),
+              const OnboardingStatusBadge(text: '案例整理中', animate: true),
             ],
           ),
           const SizedBox(height: 18),
-          const SizedBox(
-            height: 208,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 6,
-                  child: _PortfolioPlaceholderTile(
-                    indexLabel: 'CASE 01',
-                    large: true,
-                  ),
+          const _PortfolioHeroTile(),
+          const SizedBox(height: 12),
+          const Row(
+            children: [
+              Expanded(
+                child: _PortfolioMiniTile(
+                  indexLabel: 'CASE 02',
+                  descriptor: '过程拆解',
+                  icon: Icons.layers_outlined,
                 ),
-                SizedBox(width: 12),
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: _PortfolioPlaceholderTile(indexLabel: 'CASE 02'),
-                      ),
-                      SizedBox(height: 12),
-                      Expanded(
-                        child: _PortfolioPlaceholderTile(indexLabel: 'CASE 03'),
-                      ),
-                    ],
-                  ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: _PortfolioMiniTile(
+                  indexLabel: 'CASE 03',
+                  descriptor: '交付结果',
+                  icon: Icons.open_in_new_rounded,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
           Text(
-            '案例越具体，越容易建立信任。即使还没有正式作品，也可以先放概念稿或过程截图。',
+            '先用一个主案例把能力立住，再补过程图和结果页，信任会快很多。',
             style: AppTextStyles.body2.copyWith(
               color: AppColors.onboardingMutedText,
             ),
@@ -233,20 +207,111 @@ class _PortfolioDraftWall extends StatelessWidget {
   }
 }
 
-class _PortfolioPlaceholderTile extends StatelessWidget {
-  final String indexLabel;
-  final bool large;
-
-  const _PortfolioPlaceholderTile({
-    required this.indexLabel,
-    this.large = false,
-  });
+class _PortfolioHeroTile extends StatelessWidget {
+  const _PortfolioHeroTile();
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(large ? 16 : 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.onboardingSurfaceMuted.withValues(alpha: 0.84),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.onboardingHairline.withValues(alpha: 0.55),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'CASE 01',
+                style: AppTextStyles.onboardingMeta.copyWith(
+                  color: AppColors.gray400,
+                ),
+              ),
+              const Spacer(),
+              const OnboardingHelperTag(
+                text: '主案例',
+                icon: Icons.image_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 112,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.onboardingSurface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: AppColors.onboardingHairline.withValues(alpha: 0.42),
+              ),
+            ),
+            child: const Stack(
+              children: [
+                Positioned.fill(
+                  child: Padding(
+                    padding: EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        OnboardingSkeletonBlock(
+                          width: double.infinity,
+                          height: 56,
+                          radius: 14,
+                          color: AppColors.gray100,
+                        ),
+                        SizedBox(height: 10),
+                        OnboardingSkeletonBlock(
+                          width: 118,
+                          height: 8,
+                          color: AppColors.gray200,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 14,
+                  bottom: 14,
+                  child: _PortfolioAddButton(size: 38),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            '第一张先放最能代表你判断力和完成度的作品。',
+            style: AppTextStyles.body2.copyWith(
+              color: AppColors.onboardingMutedText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PortfolioMiniTile extends StatelessWidget {
+  final String indexLabel;
+  final String descriptor;
+  final IconData icon;
+
+  const _PortfolioMiniTile({
+    required this.indexLabel,
+    required this.descriptor,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 104,
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       decoration: BoxDecoration(
         color: AppColors.onboardingSurfaceMuted.withValues(alpha: 0.84),
         borderRadius: BorderRadius.circular(18),
@@ -257,42 +322,77 @@ class _PortfolioPlaceholderTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            indexLabel,
-            style: AppTextStyles.onboardingMeta.copyWith(
-              color: AppColors.gray400,
-            ),
-          ),
-          const Spacer(),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: const BoxDecoration(
-                color: AppColors.onboardingPrimary,
-                shape: BoxShape.circle,
+          Row(
+            children: [
+              Text(
+                indexLabel,
+                style: AppTextStyles.onboardingMeta.copyWith(
+                  color: AppColors.gray400,
+                ),
               ),
-              child: const Icon(
-                Icons.add_rounded,
-                color: AppColors.white,
-                size: 18,
+              const Spacer(),
+              Icon(
+                icon,
+                size: 15,
+                color: AppColors.gray400,
               ),
-            ),
-          ),
-          SizedBox(height: large ? 18 : 12),
-          OnboardingSkeletonBlock(
-            width: large ? 128 : 88,
-            height: 8,
-            color: AppColors.gray200,
+            ],
           ),
           const SizedBox(height: 8),
-          OnboardingSkeletonBlock(
-            width: large ? 96 : 64,
-            height: 8,
-            color: AppColors.gray100,
+          Row(
+            children: [
+              const _PortfolioAddButton(size: 26),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      descriptor,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.onboardingMutedText,
+                        fontWeight: FontWeight.w600,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    const OnboardingSkeletonBlock(
+                      width: 42,
+                      height: 7,
+                      color: AppColors.gray200,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PortfolioAddButton extends StatelessWidget {
+  final double size;
+
+  const _PortfolioAddButton({
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: AppColors.onboardingPrimary,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.add_rounded,
+        color: AppColors.white,
+        size: size * 0.48,
       ),
     );
   }

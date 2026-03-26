@@ -7,6 +7,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
+import '../widgets/expert_onboarding_icons.dart';
 
 const _expertStepLabels = ['资料', '补充', '等级'];
 
@@ -52,6 +53,18 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
   ];
 
   final _availabilityOptions = const ['1周内', '1-2周', '1个月内', '随时'];
+  final _skillDescriptions = const {
+    'Flutter': '适合移动端产品、跨端应用与交互型工具。',
+    'React': '适合 Web 应用、后台系统与复杂前端交互。',
+    'Vue.js': '适合官网、中后台和快速交付型项目。',
+    'Python': '适合数据处理、自动化、AI 服务与后端逻辑。',
+    'Go': '适合高并发 API、服务架构与工程稳定性建设。',
+    'Rust': '适合高性能模块、底层工具与安全要求较高的项目。',
+    'UI设计': '适合界面方案、交互细化与视觉统一。',
+    'AI/ML': '适合 AI 功能接入、模型应用与智能流程。',
+    '后端': '适合业务接口、数据库设计与服务端治理。',
+    '全栈': '适合从产品原型到完整上线的整体推进。',
+  };
   final _ratingTitles = const ['入门执行', '稳定交付', '独立推进', '资深协作', '专家主导'];
   final _ratingDescriptions = const [
     '适合明确需求与标准流程任务，能在协作中快速进入状态。',
@@ -194,76 +207,97 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
                 '¥${_formatRate(_rateMin)} - ¥${_formatRate(_rateMax)} / 天',
           ),
           const SizedBox(height: 18),
-          Row(
-            children: [
-              const OnboardingHelperTag(
-                text: '平台会据此生成你的初始专家画像',
-              ),
-              const Spacer(),
-              Text(
-                '后续可继续完善',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.onboardingMutedText,
-                ),
-              ),
-            ],
+          const OnboardingSectionHeader(
+            title: '这是一份动态专家档案',
+            description: '你每选择一项能力，平台就会更准确地理解你适合解决什么问题。',
+            accessory: OnboardingHelperTag(text: '平台会据此生成初始专家画像'),
           ),
           const SizedBox(height: 32),
-          const Text('你的称呼', style: AppTextStyles.onboardingSectionLabel),
+          const OnboardingSectionHeader(
+            title: '你的称呼',
+            description: '需求方会在推荐卡片和对话页里先看到这个名字。',
+          ),
           const SizedBox(height: 8),
-          TextField(
-            controller: _nicknameController,
-            maxLength: 16,
-            onChanged: (_) => setState(() {}),
-            style: AppTextStyles.input,
-            decoration: _nicknameDecoration(),
+          OnboardingDeckCard(
+            child: TextField(
+              controller: _nicknameController,
+              maxLength: 16,
+              onChanged: (_) => setState(() {}),
+              style: AppTextStyles.h2.copyWith(fontSize: 26),
+              decoration: _nicknameDecoration(),
+            ),
           ),
           const SizedBox(height: 28),
-          const Text('技能标签', style: AppTextStyles.onboardingSectionLabel),
+          const OnboardingSectionHeader(
+            title: '选择你的主力方向',
+            description: '别全选。先选最能代表你的 2-4 项，档案会更可信。',
+          ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: _skillOptions.map((skill) {
-              return OnboardingChip(
-                label: skill,
-                selected: _selectedSkills.contains(skill),
-                onTap: () {
-                  setState(() {
-                    if (_selectedSkills.contains(skill)) {
-                      _selectedSkills.remove(skill);
-                    } else {
-                      _selectedSkills.add(skill);
-                    }
-                  });
-                },
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 12.0;
+              final itemWidth = (constraints.maxWidth - spacing) / 2;
+
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: _skillOptions.map((skill) {
+                  return SizedBox(
+                    width: itemWidth,
+                    child: OnboardingChoiceCard(
+                      title: skill,
+                      description: _skillDescriptions[skill]!,
+                      selected: _selectedSkills.contains(skill),
+                      badge: '能力',
+                      icon: onboardingExpertSkillIcon(skill),
+                      onTap: () {
+                        setState(() {
+                          if (_selectedSkills.contains(skill)) {
+                            _selectedSkills.remove(skill);
+                          } else {
+                            _selectedSkills.add(skill);
+                          }
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
               );
-            }).toList(),
+            },
           ),
           const SizedBox(height: 28),
-          const Text('协作工具', style: AppTextStyles.onboardingSectionLabel),
+          const OnboardingSectionHeader(
+            title: '你常用哪些工具',
+            description: '工具偏好会暗示你的工作流和协作方式。',
+          ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: _toolOptions.map((tool) {
-              return OnboardingChip(
-                label: tool,
-                selected: _selectedTools.contains(tool),
-                onTap: () {
-                  setState(() {
-                    if (_selectedTools.contains(tool)) {
-                      _selectedTools.remove(tool);
-                    } else {
-                      _selectedTools.add(tool);
-                    }
-                  });
-                },
-              );
-            }).toList(),
+          OnboardingDeckCard(
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _toolOptions.map((tool) {
+                return OnboardingChip(
+                  label: tool,
+                  icon: onboardingExpertToolIcon(tool),
+                  selected: _selectedTools.contains(tool),
+                  onTap: () {
+                    setState(() {
+                      if (_selectedTools.contains(tool)) {
+                        _selectedTools.remove(tool);
+                      } else {
+                        _selectedTools.add(tool);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
           ),
           const SizedBox(height: 30),
-          const Text('经验密度', style: AppTextStyles.onboardingSectionLabel),
+          const OnboardingSectionHeader(
+            title: '经验密度',
+            description: '这里不是考试分数，而是平台理解你能承担多大责任的依据。',
+          ),
           const SizedBox(height: 12),
           _ExpertRatingSelector(
             rating: _selfRating,
@@ -316,16 +350,8 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
     final availabilityText =
         availability.isEmpty ? '排期待确认' : '$availability 可启动';
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.onboardingSurface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppColors.onboardingHairline.withValues(alpha: 0.65),
-        ),
-      ),
+    return OnboardingDeckCard(
+      elevated: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -340,6 +366,7 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
               const Spacer(),
               OnboardingStatusBadge(
                 text: skills.isEmpty ? '待完善' : '画像生成中',
+                animate: skills.isNotEmpty,
               ),
             ],
           ),
@@ -383,48 +410,34 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
                 : skills
                     .take(4)
                     .map(
-                      (skill) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.onboardingSurfaceMuted,
-                          borderRadius: BorderRadius.circular(AppRadius.full),
-                        ),
-                        child: Text(
-                          skill,
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.gray700,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      (skill) => OnboardingIconTag(
+                        label: skill,
+                        icon: onboardingExpertSkillIcon(skill),
                       ),
                     )
                     .toList(),
           ),
+          const SizedBox(height: 16),
+          _PreviewToolStrip(tools: tools),
           const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
                 child: _PreviewMetric(
-                  label: '协作工具',
-                  value: tools.isEmpty ? '待选择' : '${tools.length} 项已配置',
+                  label: '工作方式',
+                  value: availabilityText,
+                  icon: Icons.schedule_rounded,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _PreviewMetric(
-                  label: '工作方式',
-                  value: availabilityText,
+                  label: '预期日薪',
+                  value: rateText,
+                  icon: Icons.payments_outlined,
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          _PreviewMetric(
-            label: '预期日薪',
-            value: rateText,
           ),
         ],
       ),
@@ -432,13 +445,68 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
   }
 }
 
+class _PreviewToolStrip extends StatelessWidget {
+  final List<String> tools;
+
+  const _PreviewToolStrip({
+    required this.tools,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'TOOLS',
+          style: AppTextStyles.onboardingMeta.copyWith(
+            color: AppColors.gray400,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: tools.isEmpty
+              ? const [
+                  OnboardingSkeletonBlock(
+                    width: 82,
+                    height: 28,
+                    radius: 999,
+                    color: AppColors.onboardingSurfaceMuted,
+                  ),
+                  OnboardingSkeletonBlock(
+                    width: 94,
+                    height: 28,
+                    radius: 999,
+                    color: AppColors.onboardingSurfaceMuted,
+                  ),
+                ]
+              : tools
+                  .take(4)
+                  .map(
+                    (tool) => OnboardingIconTag(
+                      label: tool,
+                      icon: onboardingExpertToolIcon(tool),
+                      compact: true,
+                    ),
+                  )
+                  .toList(),
+        ),
+      ],
+    );
+  }
+}
+
 class _PreviewMetric extends StatelessWidget {
   final String label;
   final String value;
+  final IconData? icon;
 
   const _PreviewMetric({
     required this.label,
     required this.value,
+    this.icon,
   });
 
   @override
@@ -453,11 +521,23 @@ class _PreviewMetric extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: AppTextStyles.onboardingMeta.copyWith(
-              color: AppColors.gray400,
-            ),
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 14,
+                  color: AppColors.gray400,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: AppTextStyles.onboardingMeta.copyWith(
+                  color: AppColors.gray400,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
@@ -488,16 +568,7 @@ class _ExpertRatingSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.onboardingSurface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppColors.onboardingHairline.withValues(alpha: 0.58),
-        ),
-      ),
+    return OnboardingDeckCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -583,33 +654,18 @@ class _ExpertWorkModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.onboardingSurface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppColors.onboardingHairline.withValues(alpha: 0.6),
-        ),
-      ),
+    return OnboardingDeckCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Text(
-                '工作方式',
-                style: AppTextStyles.onboardingSectionLabel,
+          OnboardingSectionHeader(
+            title: '工作方式',
+            accessory: Text(
+              availability.isEmpty ? '排期未选择' : availability,
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.onboardingMutedText,
               ),
-              const Spacer(),
-              Text(
-                availability.isEmpty ? '排期未选择' : availability,
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.onboardingMutedText,
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 14),
           Wrap(
@@ -624,15 +680,41 @@ class _ExpertWorkModeCard extends StatelessWidget {
             }).toList(),
           ),
           const SizedBox(height: 22),
-          Row(
-            children: [
-              Text(budgetText, style: AppTextStyles.onboardingValue),
-              const Spacer(),
-              const OnboardingHelperTag(
-                text: '后续可按项目单独报价',
-                icon: Icons.tune_rounded,
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 360) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(budgetText, style: AppTextStyles.onboardingValue),
+                    const SizedBox(height: 10),
+                    const OnboardingHelperTag(
+                      text: '后续可按项目单独报价',
+                      icon: Icons.tune_rounded,
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      budgetText,
+                      style: AppTextStyles.onboardingValue,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Flexible(
+                    child: OnboardingHelperTag(
+                      text: '后续可按项目单独报价',
+                      icon: Icons.tune_rounded,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 10),
           SliderTheme(

@@ -6,6 +6,7 @@ import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../providers/onboarding_provider.dart';
+import '../widgets/expert_onboarding_icons.dart';
 import '../widgets/onboarding_chrome.dart';
 
 const _expertLevelStepLabels = ['资料', '补充', '等级'];
@@ -100,6 +101,8 @@ class _ExpertLevelPageState extends ConsumerState<ExpertLevelPage> {
                 levelCode: _levelCode(rating),
                 levelTitle: _levelTitle(rating),
                 skills: skills,
+                rating: rating,
+                availability: availability,
                 hint: _collaborationHint(availability),
               )
             : const _AssessmentLoadingView(key: ValueKey('loading')),
@@ -121,59 +124,72 @@ class _AssessmentLoadingView extends StatelessWidget {
         const Text('正在生成你的专家等级', style: AppTextStyles.onboardingTitle),
         const SizedBox(height: 12),
         const Text(
-          'AI 正在整理你的技能、协作方式与接单节奏，生成一版初始专家档案。',
+          'AI 正在把你的能力、排期与协作方式压成一张初始专家画像。',
           style: AppTextStyles.onboardingBody,
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Text(
+              'AI ASSESSMENT',
+              style: AppTextStyles.onboardingMeta.copyWith(
+                color: AppColors.onboardingPrimary,
+              ),
+            ),
+            const Spacer(),
+            const OnboardingStatusBadge(text: '评估中', animate: true),
+          ],
+        ),
+        const SizedBox(height: 18),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppColors.onboardingSurface,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: AppColors.onboardingHairline.withValues(alpha: 0.62),
-            ),
+            color: AppColors.black,
+            borderRadius: BorderRadius.circular(28),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    'AI ASSESSMENT',
-                    style: AppTextStyles.onboardingMeta.copyWith(
-                      color: AppColors.onboardingPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  const OnboardingStatusBadge(text: '评估中'),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const _AssessmentRow(
-                title: '技能栈解析中',
-                description: '整理你的核心能力与交付方向',
-              ),
-              const SizedBox(height: 12),
-              const _AssessmentRow(
-                title: '协作方式生成中',
-                description: '推导适合你的接单节奏与沟通模式',
-              ),
-              const SizedBox(height: 12),
-              const _AssessmentRow(
-                title: '接单建议生成中',
-                description: '准备一版可直接进入市场的初始档案',
-              ),
-              const SizedBox(height: 18),
               Text(
-                '通常只需 2-3 秒',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.onboardingMutedText,
+                'SIGNAL BUILDING',
+                style: AppTextStyles.onboardingMeta.copyWith(
+                  color: AppColors.white.withValues(alpha: 0.62),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '你的起始档案正在成形',
+                style: AppTextStyles.h2.copyWith(
+                  color: AppColors.white,
+                  fontSize: 24,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '通常只需 2-3 秒，系统会先给你一个能进入市场的起始位。',
+                style: AppTextStyles.body2.copyWith(
+                  color: AppColors.white.withValues(alpha: 0.72),
+                  height: 1.5,
                 ),
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 14),
+        const _AssessmentRow(
+          title: '技能栈解析中',
+          description: '整理你的核心能力与交付方向',
+        ),
+        const SizedBox(height: 10),
+        const _AssessmentRow(
+          title: '协作方式生成中',
+          description: '推导适合你的接单节奏与沟通模式',
+        ),
+        const SizedBox(height: 10),
+        const _AssessmentRow(
+          title: '接单建议生成中',
+          description: '准备一版可直接进入市场的初始档案',
         ),
         const SizedBox(height: 16),
         const OnboardingInfoBlock(
@@ -203,7 +219,7 @@ class _AssessmentRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.onboardingSurfaceMuted.withValues(alpha: 0.84),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -257,6 +273,8 @@ class _AssessmentResultView extends StatelessWidget {
   final String levelCode;
   final String levelTitle;
   final List<String> skills;
+  final int rating;
+  final String availability;
   final String hint;
 
   const _AssessmentResultView({
@@ -264,11 +282,52 @@ class _AssessmentResultView extends StatelessWidget {
     required this.levelCode,
     required this.levelTitle,
     required this.skills,
+    required this.rating,
+    required this.availability,
     required this.hint,
   });
 
+  double _availabilityScore() {
+    switch (availability) {
+      case '随时':
+        return 1;
+      case '1周内':
+        return 0.82;
+      case '1-2周':
+        return 0.68;
+      case '1个月内':
+        return 0.52;
+      default:
+        return 0.36;
+    }
+  }
+
+  String _availabilityLabel() {
+    return availability.isEmpty ? '排期待补充' : availability;
+  }
+
+  String _ratingHint() {
+    switch (rating) {
+      case 5:
+        return '你已经具备主导关键路径的信号，适合接高判断密度的项目。';
+      case 4:
+        return '复杂协作和稳定交付是你的起点，可以直接接中高复杂度需求。';
+      case 3:
+        return '独立推进能力已经成形，先用真实案例把信任继续往上拉。';
+      default:
+        return '先用清晰案例和高响应速度，把第一批信号建立起来。';
+    }
+  }
+
+  double _marketScore() {
+    final skillScore = (skills.take(4).length / 4).clamp(0.25, 1.0);
+    return ((rating / 5) * 0.58 + skillScore * 0.42).clamp(0.0, 1.0);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final highlightedSkillCount = skills.take(4).length;
+
     return Column(
       key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,128 +336,105 @@ class _AssessmentResultView extends StatelessWidget {
         const Text('你的专家等级已生成', style: AppTextStyles.onboardingTitle),
         const SizedBox(height: 12),
         const Text(
-          '这会作为你进入 Kaizao 专家网络的初始档案。完成真实合作后，平台会继续修正它。',
+          '这不是终局评级，而是你进入 Kaizao 专家网络的起始位。后面的真实合作会继续抬高它。',
           style: AppTextStyles.onboardingBody,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Text(
+              'EXPERT SIGNAL READY',
+              style: AppTextStyles.onboardingMeta.copyWith(
+                color: AppColors.onboardingPrimary,
+              ),
+            ),
+            const Spacer(),
+            const OnboardingStatusBadge(text: '档案已激活', animate: true),
+          ],
+        ),
+        const SizedBox(height: 18),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
           decoration: BoxDecoration(
-            color: AppColors.onboardingSurface,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: AppColors.onboardingHairline.withValues(alpha: 0.62),
-            ),
+            color: AppColors.black,
+            borderRadius: BorderRadius.circular(28),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    'EXPERT LEVEL GENERATED',
-                    style: AppTextStyles.onboardingMeta.copyWith(
-                      color: AppColors.onboardingPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  const OnboardingStatusBadge(text: '档案已激活'),
-                ],
-              ),
-              const SizedBox(height: 22),
-              Center(
-                child: Container(
-                  width: 126,
-                  height: 126,
-                  decoration: BoxDecoration(
-                    color: AppColors.onboardingSurfaceMuted,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.onboardingPrimary,
-                      width: 2.5,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        levelCode,
-                        style: AppTextStyles.h1.copyWith(fontSize: 30),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        levelTitle,
-                        style: AppTextStyles.body2.copyWith(
-                          color: AppColors.gray600,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+              Text(
+                levelCode,
+                style: AppTextStyles.h1.copyWith(
+                  fontSize: 40,
+                  color: AppColors.white,
+                  letterSpacing: -1.6,
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 6),
+              Text(
+                levelTitle,
+                style: AppTextStyles.h2.copyWith(
+                  fontSize: 24,
+                  color: AppColors.white,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '你的技能结构和协作状态已经足够形成第一版市场画像。先进入网络，再用真实交付继续抬升。',
+                style: AppTextStyles.body2.copyWith(
+                  color: AppColors.white.withValues(alpha: 0.72),
+                  height: 1.5,
+                ),
+              ),
               if (skills.isNotEmpty) ...[
+                const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: skills
                       .take(4)
                       .map(
-                        (skill) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.onboardingSurfaceMuted,
-                            borderRadius: BorderRadius.circular(AppRadius.full),
-                          ),
-                          child: Text(
-                            skill,
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.gray700,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        (skill) => OnboardingIconTag(
+                          label: skill,
+                          icon: onboardingExpertSkillIcon(skill),
                         ),
                       )
                       .toList(),
                 ),
-                const SizedBox(height: 18),
               ],
-              const Row(
-                children: [
-                  Expanded(
-                    child: _LevelMetric(
-                      label: '档案状态',
-                      value: '已进入专家网络',
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: _LevelMetric(
-                      label: '下一步',
-                      value: '完善案例并开始接单',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _LevelMetric(
-                label: '平台建议',
-                value: hint,
-                fullWidth: true,
-              ),
             ],
           ),
+        ),
+        const SizedBox(height: 14),
+        _AssessmentSignalRail(
+          label: '能力密度',
+          value: '$rating / 5',
+          hint: _ratingHint(),
+          progress: rating / 5,
+          icon: Icons.bolt_rounded,
+        ),
+        const SizedBox(height: 10),
+        _AssessmentSignalRail(
+          label: '协作准备',
+          value: _availabilityLabel(),
+          hint: hint,
+          progress: _availabilityScore(),
+          icon: Icons.schedule_rounded,
+        ),
+        const SizedBox(height: 10),
+        _AssessmentSignalRail(
+          label: '市场起步',
+          value: '$highlightedSkillCount 项主力方向',
+          hint: '把前几个案例和响应速度做好，平台会更愿意把高意向需求推给你。',
+          progress: _marketScore(),
+          icon: Icons.rocket_launch_outlined,
         ),
         const SizedBox(height: 16),
         const OnboardingInfoBlock(
           icon: Icons.trending_up_rounded,
-          title: '完成首单后，曝光会更快提升',
-          description: '真实合作记录、响应速度和交付质量，会直接影响你在需求方侧的可信度与排序。',
+          title: '等级先给入口，案例再拉成交',
+          description: '真正决定你能不能持续接到好项目的，还是案例质量、响应速度和交付记录。',
         ),
         const SizedBox(height: 24),
       ],
@@ -406,41 +442,99 @@ class _AssessmentResultView extends StatelessWidget {
   }
 }
 
-class _LevelMetric extends StatelessWidget {
+class _AssessmentSignalRail extends StatelessWidget {
   final String label;
   final String value;
-  final bool fullWidth;
+  final String hint;
+  final double progress;
+  final IconData icon;
 
-  const _LevelMetric({
+  const _AssessmentSignalRail({
     required this.label,
     required this.value,
-    this.fullWidth = false,
+    required this.hint,
+    required this.progress,
+    required this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
+    final clamped = progress.clamp(0.0, 1.0).toDouble();
+
     return Container(
-      width: fullWidth ? double.infinity : null,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
         color: AppColors.onboardingSurfaceMuted.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: AppTextStyles.onboardingMeta.copyWith(
-              color: AppColors.gray400,
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppColors.onboardingSurface,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(
+                  icon,
+                  size: 16,
+                  color: AppColors.black,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: AppTextStyles.body2.copyWith(
+                    color: AppColors.black,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                value,
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.gray700,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.full),
+            child: Stack(
+              children: [
+                Container(
+                  height: 4,
+                  color: AppColors.onboardingHairline,
+                ),
+                FractionallySizedBox(
+                  widthFactor: clamped,
+                  child: OnboardingSheen(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    duration: const Duration(milliseconds: 2200),
+                    sheenWidthFactor: 0.38,
+                    child: Container(
+                      height: 4,
+                      color: AppColors.onboardingPrimary,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 9),
           Text(
-            value,
-            style: AppTextStyles.body2.copyWith(
-              color: AppColors.black,
-              fontWeight: FontWeight.w600,
+            hint,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.onboardingMutedText,
+              height: 1.45,
             ),
           ),
         ],
