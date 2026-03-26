@@ -22,6 +22,19 @@ class LoginResult {
 class AuthRepository {
   final ApiClient _client = ApiClient();
 
+  LoginResult _parseLoginResult(Map<String, dynamic> data) {
+    final user = data['user'] as Map<String, dynamic>? ?? const {};
+    final userRole = user['role'] as int? ?? data['role'] as int? ?? 0;
+
+    return LoginResult(
+      accessToken: data['access_token'] as String? ?? '',
+      refreshToken: data['refresh_token'] as String? ?? '',
+      userId: user['uuid'] as String? ?? data['user_id'] as String? ?? '',
+      userRole: userRole,
+      isNewUser: data['is_new_user'] as bool? ?? userRole == 0,
+    );
+  }
+
   /// 发送短信验证码
   Future<void> sendSmsCode(String phone) async {
     await _client.post(
@@ -34,18 +47,15 @@ class AuthRepository {
   Future<LoginResult> loginWithPhone(String phone, String code) async {
     final response = await _client.post<Map<String, dynamic>>(
       ApiEndpoints.login,
-      data: {'phone': phone, 'code': code},
+      data: {
+        'phone': phone,
+        'sms_code': code,
+        'code': code,
+      },
       fromJson: (data) => data as Map<String, dynamic>,
     );
 
-    final data = response.data ?? {};
-    return LoginResult(
-      accessToken: data['access_token'] as String? ?? '',
-      refreshToken: data['refresh_token'] as String? ?? '',
-      userId: data['user_id'] as String? ?? '',
-      userRole: data['role'] as int? ?? 0,
-      isNewUser: data['is_new_user'] as bool? ?? false,
-    );
+    return _parseLoginResult(response.data ?? const {});
   }
 
   /// 微信登录
@@ -56,14 +66,7 @@ class AuthRepository {
       fromJson: (data) => data as Map<String, dynamic>,
     );
 
-    final data = response.data ?? {};
-    return LoginResult(
-      accessToken: data['access_token'] as String? ?? '',
-      refreshToken: data['refresh_token'] as String? ?? '',
-      userId: data['user_id'] as String? ?? '',
-      userRole: data['role'] as int? ?? 0,
-      isNewUser: data['is_new_user'] as bool? ?? false,
-    );
+    return _parseLoginResult(response.data ?? const {});
   }
 
   /// 选择角色

@@ -12,6 +12,25 @@ import '../widgets/onboarding_chrome.dart';
 class DemanderCompletePage extends ConsumerWidget {
   const DemanderCompletePage({super.key});
 
+  String _displayCategoryLabel(String? value) {
+    switch (value) {
+      case 'app':
+        return 'APP开发';
+      case 'web':
+        return '网站开发';
+      case 'miniprogram':
+        return '小程序';
+      case 'design':
+        return '设计需求';
+      case 'consult':
+        return '技术指导';
+      case 'data':
+        return '数据分析';
+      default:
+        return '网站开发';
+    }
+  }
+
   String _formatBudget(num? value) {
     if (value == null) return '--';
     final amount = value.toInt().toString();
@@ -41,10 +60,24 @@ class DemanderCompletePage extends ConsumerWidget {
     return '28 天进入交付节奏';
   }
 
-  Future<void> _finish(BuildContext context, WidgetRef ref) async {
+  Future<void> _goToProjectDetail(BuildContext context, WidgetRef ref) async {
+    final draft = ref.read(onboardingProvider).draft;
+    final projectId = draft['project_uuid'] as String?;
     await ref.read(onboardingProvider.notifier).complete();
     if (context.mounted) {
-      // TODO: 需求详情页接入后替换为真实 project detail route。
+      if (projectId != null && projectId.isNotEmpty) {
+        context.go(
+          RoutePaths.projectDetail.replaceFirst(':projectId', projectId),
+        );
+        return;
+      }
+      context.go(RoutePaths.home);
+    }
+  }
+
+  Future<void> _goHome(BuildContext context, WidgetRef ref) async {
+    await ref.read(onboardingProvider.notifier).complete();
+    if (context.mounted) {
       context.go(RoutePaths.home);
     }
   }
@@ -57,9 +90,11 @@ class DemanderCompletePage extends ConsumerWidget {
     final title = (draft['project_title'] as String?)?.trim().isNotEmpty == true
         ? draft['project_title'] as String
         : '需求已准备好，等待你推进下一步';
-    final category = draft['category'] as String? ?? '网站开发';
+    final category = draft['category_label'] as String? ??
+        _displayCategoryLabel(draft['category'] as String?);
     final budgetMin = draft['budget_min'] as num?;
     final budgetMax = draft['budget_max'] as num?;
+    final projectId = draft['project_uuid'] as String?;
     final budgetText =
         '¥${_formatBudget(budgetMin)} - ¥${_formatBudget(budgetMax)} / 项目';
 
@@ -72,9 +107,9 @@ class DemanderCompletePage extends ConsumerWidget {
         }
       },
       primaryActionText: '进入需求详情',
-      onPrimaryAction: () => _finish(context, ref),
+      onPrimaryAction: () => _goToProjectDetail(context, ref),
       secondaryActionText: '去首页',
-      onSecondaryAction: () => _finish(context, ref),
+      onSecondaryAction: () => _goHome(context, ref),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -87,7 +122,7 @@ class DemanderCompletePage extends ConsumerWidget {
           ),
           const SizedBox(height: 22),
           _RequirementSummaryCard(
-            projectCode: _buildProjectCode(title),
+            projectCode: _buildProjectCode(projectId ?? title),
             title: title,
             category: category,
             budgetText: budgetText,

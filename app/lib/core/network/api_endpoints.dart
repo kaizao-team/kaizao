@@ -24,7 +24,8 @@ class ApiEndpoints {
   static String userInfo(String id) => '/api/v1/users/$id';
   static String updateUser(String id) => '/api/v1/users/$id';
   static String userProfile(String id) => '/api/v1/users/$id/profile';
-  static String userCertifications(String id) => '/api/v1/users/$id/certifications';
+  static String userCertifications(String id) =>
+      '/api/v1/users/$id/certifications';
   static String userVerification(String id) => '/api/v1/users/$id/verification';
   static String userReviews(String id) => '/api/v1/users/$id/reviews';
   static String userCredit(String id) => '/api/v1/users/$id/credit';
@@ -63,13 +64,17 @@ class ApiEndpoints {
   // ============================================================
   static const String projects = '/api/v1/projects';
   static String projectDetail(String id) => '/api/v1/projects/$id';
+  static String projectPublish(String id) => '/api/v1/projects/$id/publish';
   static String projectOverview(String id) => '/api/v1/projects/$id/overview';
   static String projectTasks(String id) => '/api/v1/projects/$id/tasks';
-  static String projectMilestones(String id) => '/api/v1/projects/$id/milestones';
+  static String projectMilestones(String id) =>
+      '/api/v1/projects/$id/milestones';
   static String projectReviews(String id) => '/api/v1/projects/$id/reviews';
-  static String projectDailyReports(String id) => '/api/v1/projects/$id/daily-reports';
+  static String projectDailyReports(String id) =>
+      '/api/v1/projects/$id/daily-reports';
   static String projectAiAssist(String id) => '/api/v1/projects/$id/ai-assist';
-  static String projectAttachments(String id) => '/api/v1/projects/$id/attachments';
+  static String projectAttachments(String id) =>
+      '/api/v1/projects/$id/attachments';
   static String projectClose(String id) => '/api/v1/projects/$id/close';
   static const String projectSearch = '/api/v1/projects/search';
 
@@ -84,22 +89,26 @@ class ApiEndpoints {
   // ============================================================
   static String milestoneDeliver(String id) => '/api/v1/milestones/$id/deliver';
   static String milestoneAccept(String id) => '/api/v1/milestones/$id/accept';
-  static String milestoneAcceptance(String id) => '/api/v1/milestones/$id/acceptance';
-  static String milestoneRevision(String id) => '/api/v1/milestones/$id/revision';
+  static String milestoneAcceptance(String id) =>
+      '/api/v1/milestones/$id/acceptance';
+  static String milestoneRevision(String id) =>
+      '/api/v1/milestones/$id/revision';
 
   // ============================================================
   // 投标/撮合模块 /api/v1/bids
   // ============================================================
   static String projectAiSuggestion(String projectId) =>
       '/api/v1/projects/$projectId/ai-suggestion';
-  static String projectBids(String projectId) => '/api/v1/projects/$projectId/bids';
+  static String projectBids(String projectId) =>
+      '/api/v1/projects/$projectId/bids';
   static String bidAccept(String id) => '/api/v1/bids/$id/accept';
   static String bidReject(String id) => '/api/v1/bids/$id/reject';
   static String projectRecommendations(String projectId) =>
       '/api/v1/projects/$projectId/recommendations';
   static String recommendedProjects(String userId) =>
       '/api/v1/users/$userId/recommended-projects';
-  static String quickMatch(String projectId) => '/api/v1/projects/$projectId/quick-match';
+  static String quickMatch(String projectId) =>
+      '/api/v1/projects/$projectId/quick-match';
 
   // ============================================================
   // 交易/支付模块 /api/v1/orders
@@ -120,7 +129,8 @@ class ApiEndpoints {
   // 消息/沟通模块 /api/v1/conversations
   // ============================================================
   static const String conversations = '/api/v1/conversations';
-  static String conversationMessages(String id) => '/api/v1/conversations/$id/messages';
+  static String conversationMessages(String id) =>
+      '/api/v1/conversations/$id/messages';
   static String conversationRead(String id) => '/api/v1/conversations/$id/read';
   static const String messageUpload = '/api/v1/messages/upload';
 
@@ -146,7 +156,8 @@ class ApiEndpoints {
   static String teamInviteRespond(String id) => '/api/v1/team-invites/$id';
   static const String teamPosts = '/api/v1/team-posts';
   static const String teamAiRecommend = '/api/v1/teams/ai-recommend';
-  static String teamBid(String projectId) => '/api/v1/projects/$projectId/team-bids';
+  static String teamBid(String projectId) =>
+      '/api/v1/projects/$projectId/team-bids';
 
   // ============================================================
   // 举报/仲裁
@@ -164,7 +175,8 @@ class ApiEndpoints {
   // ============================================================
   static const String agentSessions = '/api/v1/agent-sessions';
   static String agentSessionDetail(String id) => '/api/v1/agent-sessions/$id';
-  static String agentSessionMessage(String id) => '/api/v1/agent-sessions/$id/message';
+  static String agentSessionMessage(String id) =>
+      '/api/v1/agent-sessions/$id/message';
 
   // ============================================================
   // 文件上传

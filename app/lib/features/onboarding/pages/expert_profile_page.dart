@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 import '../widgets/expert_onboarding_icons.dart';
@@ -110,20 +111,26 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
     if (!_isValid) return;
 
     final notifier = ref.read(onboardingProvider.notifier);
-    final success = await notifier.submitData({
-      'nickname': _nicknameController.text.trim(),
-      'skills': _selectedSkills.toList(),
-      'tools': _selectedTools.toList(),
-      'self_rating': _selfRating,
-      'availability': _availability,
-      'rate_min': _rateMin,
-      'rate_max': _rateMax,
-    });
+    final success = await notifier.submitExpertProfile(
+      nickname: _nicknameController.text.trim(),
+      skills: _selectedSkills.toList(),
+      tools: _selectedTools.toList(),
+      selfRating: _selfRating,
+      availability: _availability,
+      rateMin: _rateMin,
+      rateMax: _rateMax,
+    );
     if (!mounted) return;
 
     if (success) {
       await notifier.nextStep();
       if (mounted) context.go(RoutePaths.expertOnboarding2);
+      return;
+    }
+
+    final message = ref.read(onboardingProvider).errorMessage;
+    if (message != null) {
+      VccToast.show(context, message: message, type: VccToastType.error);
     }
   }
 

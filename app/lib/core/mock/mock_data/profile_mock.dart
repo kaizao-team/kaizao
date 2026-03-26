@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../mock_interceptor.dart';
+import 'user_mock.dart';
 
 class ProfileMock {
   ProfileMock._();
@@ -73,30 +74,33 @@ class ProfileMock {
   }
 
   static Map<String, dynamic> _getCurrentUser() {
+    final currentUser = UserMock.currentUserData;
+    final role = currentUser['role'] as int? ?? 1;
+
     return {
       'code': 0,
       'message': 'ok',
       'data': {
-        'id': 'user_001',
-        'nickname': '张恒',
-        'avatar': null,
+        'id': currentUser['uuid'] ?? 'user_001',
+        'nickname': currentUser['nickname'] ?? '张恒',
+        'avatar': currentUser['avatar_url'],
         'tagline': '全栈 Vibe Coder',
-        'role': 1,
+        'role': role,
         'rating': 4.9,
         'credit_score': 920,
         'is_verified': true,
         'phone': '138****8888',
         'wechat_bound': true,
         'stats': {
-          'completed_projects': 12,
+          'completed_projects': role == 2 ? 12 : 0,
           'approval_rate': 98,
           'avg_delivery_days': 3.2,
-          'total_earnings': 86500.0,
-          'published_projects': 5,
-          'total_spent': 42000.0,
+          'total_earnings': role == 2 ? 86500.0 : 0.0,
+          'published_projects': role == 1 ? 5 : 0,
+          'total_spent': role == 1 ? 42000.0 : 0.0,
           'days_on_platform': 285,
         },
-        'bio': '5年全栈开发经验，擅长 Flutter 和 Go 后端开发。',
+        'bio': currentUser['bio'] ?? '5年全栈开发经验，擅长 Flutter 和 Go 后端开发。',
         'created_at': '2025-06-15T10:00:00Z',
       },
     };
