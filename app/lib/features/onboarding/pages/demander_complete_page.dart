@@ -129,16 +129,8 @@ class _RequirementSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.onboardingSurface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppColors.onboardingHairline.withValues(alpha: 0.62),
-        ),
-      ),
+    return OnboardingDeckCard(
+      elevated: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -151,7 +143,7 @@ class _RequirementSummaryCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              const OnboardingStatusBadge(text: '专家匹配中'),
+              const OnboardingStatusBadge(text: '专家匹配中', animate: true),
             ],
           ),
           const SizedBox(height: 14),
@@ -172,20 +164,14 @@ class _RequirementSummaryCard extends StatelessWidget {
           const SizedBox(height: 10),
           _MetaLine(icon: Icons.schedule_outlined, text: cycleText),
           const SizedBox(height: 18),
-          Row(
-            children: [
-              const Text(
-                '专家候选队列 (2)',
-                style: AppTextStyles.onboardingSectionLabel,
+          OnboardingSectionHeader(
+            title: '专家候选队列 (2)',
+            accessory: Text(
+              '实时更新中',
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.onboardingMutedText,
               ),
-              const Spacer(),
-              Text(
-                '实时更新中',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.onboardingMutedText,
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 12),
           const _QueuePlaceholder(),

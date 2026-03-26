@@ -413,12 +413,428 @@ class OnboardingChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final IconData? icon;
 
   const OnboardingChip({
     super.key,
     required this.label,
     required this.selected,
     required this.onTap,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedScale(
+        scale: selected ? 1.01 : 1,
+        duration: AppDurations.normal,
+        curve: AppCurves.standard,
+        child: AnimatedContainer(
+          duration: AppDurations.normal,
+          curve: AppCurves.standard,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.onboardingPrimary
+                : AppColors.onboardingSurface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected
+                  ? AppColors.onboardingPrimary
+                  : AppColors.onboardingHairline,
+            ),
+            boxShadow: selected ? AppShadows.shadow1 : const [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 15,
+                  color: selected ? AppColors.white : AppColors.gray700,
+                ),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                label,
+                style: AppTextStyles.body2.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: selected ? AppColors.white : AppColors.gray700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class OnboardingIconTag extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool compact;
+
+  const OnboardingIconTag({
+    super.key,
+    required this.label,
+    required this.icon,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 12,
+        vertical: compact ? 7 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.onboardingSurfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        border: Border.all(
+          color: AppColors.onboardingHairline.withValues(alpha: 0.42),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: compact ? 14 : 15,
+            color: AppColors.gray700,
+          ),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.gray700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class OnboardingSectionHeader extends StatelessWidget {
+  final String title;
+  final String? description;
+  final Widget? accessory;
+
+  const OnboardingSectionHeader({
+    super.key,
+    required this.title,
+    this.description,
+    this.accessory,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final titleWidget = Text(
+      title,
+      style: AppTextStyles.onboardingSectionLabel,
+    );
+
+    final descriptionWidget = description == null
+        ? null
+        : Text(
+            description!,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.onboardingMutedText,
+            ),
+          );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final verticalLayout = constraints.maxWidth < 360 || accessory == null;
+
+        if (verticalLayout) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              titleWidget,
+              if (descriptionWidget != null) ...[
+                const SizedBox(height: 6),
+                descriptionWidget,
+              ],
+              if (accessory != null) ...[
+                const SizedBox(height: 10),
+                accessory!,
+              ],
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  titleWidget,
+                  if (descriptionWidget != null) ...[
+                    const SizedBox(height: 6),
+                    descriptionWidget,
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Flexible(child: accessory!),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class OnboardingDeckCard extends StatefulWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final bool elevated;
+  final bool animateOnAppear;
+  final bool ambientPulse;
+
+  const OnboardingDeckCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(18),
+    this.elevated = false,
+    this.animateOnAppear = true,
+    this.ambientPulse = false,
+  });
+
+  @override
+  State<OnboardingDeckCard> createState() => _OnboardingDeckCardState();
+}
+
+class _OnboardingDeckCardState extends State<OnboardingDeckCard> {
+  bool _settled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() => _settled = true);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = onboardingReduceMotionOf(context);
+    final settled = reduceMotion || !widget.animateOnAppear ? true : _settled;
+
+    return OnboardingAmbientMotion(
+      enabled: widget.ambientPulse,
+      duration: const Duration(milliseconds: 3200),
+      scaleDelta: 0.004,
+      translateY: 2.5,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          AnimatedPositioned(
+            duration: reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 420),
+            curve: AppCurves.standard,
+            left: settled ? 8 : 4,
+            right: settled ? 18 : 10,
+            top: settled ? 14 : 10,
+            bottom: settled ? -4 : 2,
+            child: AnimatedOpacity(
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 320),
+              curve: AppCurves.standard,
+              opacity: settled ? 1 : 0.24,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.onboardingSurface.withValues(alpha: 0.34),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: AppColors.onboardingHairline.withValues(alpha: 0.22),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          AnimatedPositioned(
+            duration: reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 460),
+            curve: AppCurves.standard,
+            left: settled ? 16 : 10,
+            right: settled ? 8 : 4,
+            top: settled ? 7 : 4,
+            bottom: settled ? 6 : 10,
+            child: AnimatedOpacity(
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 340),
+              curve: AppCurves.standard,
+              opacity: settled ? 1 : 0.35,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.onboardingSurface.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: AppColors.onboardingHairline.withValues(alpha: 0.28),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          AnimatedScale(
+            scale: settled ? 1 : 0.992,
+            duration: reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 420),
+            curve: AppCurves.standard,
+            child: AnimatedContainer(
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 420),
+              curve: AppCurves.standard,
+              width: double.infinity,
+              padding: widget.padding,
+              decoration: BoxDecoration(
+                color: AppColors.onboardingSurface,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: AppColors.onboardingHairline.withValues(alpha: 0.64),
+                ),
+                boxShadow: widget.elevated
+                    ? (settled ? AppShadows.onboardingLift : AppShadows.shadow1)
+                    : const [],
+              ),
+              child: widget.child,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class OnboardingAmbientMotion extends StatefulWidget {
+  final Widget child;
+  final bool enabled;
+  final Duration duration;
+  final double scaleDelta;
+  final double translateY;
+
+  const OnboardingAmbientMotion({
+    super.key,
+    required this.child,
+    this.enabled = false,
+    this.duration = const Duration(milliseconds: 2800),
+    this.scaleDelta = 0.006,
+    this.translateY = 2,
+  });
+
+  @override
+  State<OnboardingAmbientMotion> createState() =>
+      _OnboardingAmbientMotionState();
+}
+
+class _OnboardingAmbientMotionState extends State<OnboardingAmbientMotion>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+
+  AnimationController _ensureController() {
+    return _controller ??= AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.enabled) {
+      _ensureController().repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant OnboardingAmbientMotion oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_controller != null && oldWidget.duration != widget.duration) {
+      _controller!.duration = widget.duration;
+    }
+    if (oldWidget.enabled != widget.enabled) {
+      if (widget.enabled) {
+        _ensureController().repeat(reverse: true);
+      } else if (_controller != null) {
+        _controller!
+          ..stop()
+          ..value = 0;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = onboardingReduceMotionOf(context);
+    if (!widget.enabled || reduceMotion) {
+      return widget.child;
+    }
+
+    final controller = _ensureController();
+    if (!controller.isAnimating) {
+      controller.repeat(reverse: true);
+    }
+
+    return AnimatedBuilder(
+      animation: controller,
+      child: widget.child,
+      builder: (context, child) {
+        final t = Curves.easeInOut.transform(controller.value);
+        final scale = 1 + widget.scaleDelta * t;
+        final dy = -widget.translateY * t;
+
+        return Transform.translate(
+          offset: Offset(0, dy),
+          child: Transform.scale(
+            scale: scale,
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class OnboardingChoiceCard extends StatelessWidget {
+  final String title;
+  final String description;
+  final bool selected;
+  final VoidCallback onTap;
+  final String? badge;
+  final IconData? icon;
+
+  const OnboardingChoiceCard({
+    super.key,
+    required this.title,
+    required this.description,
+    required this.selected,
+    required this.onTap,
+    this.badge,
+    this.icon,
   });
 
   @override
@@ -428,24 +844,73 @@ class OnboardingChip extends StatelessWidget {
       child: AnimatedContainer(
         duration: AppDurations.normal,
         curve: AppCurves.standard,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: selected
               ? AppColors.onboardingPrimary
               : AppColors.onboardingSurface,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: selected
                 ? AppColors.onboardingPrimary
                 : AppColors.onboardingHairline,
           ),
+          boxShadow: selected ? AppShadows.shadow2 : const [],
         ),
-        child: Text(
-          label,
-          style: AppTextStyles.body2.copyWith(
-            fontWeight: FontWeight.w500,
-            color: selected ? AppColors.white : AppColors.gray700,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (badge != null || icon != null) ...[
+              Row(
+                children: [
+                  if (icon != null)
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? AppColors.white.withValues(alpha: 0.12)
+                            : AppColors.onboardingSurfaceMuted,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        icon,
+                        size: 17,
+                        color: selected ? AppColors.white : AppColors.black,
+                      ),
+                    ),
+                  const Spacer(),
+                  if (badge != null)
+                    Text(
+                      badge!,
+                      style: AppTextStyles.onboardingMeta.copyWith(
+                        color: selected
+                            ? AppColors.white.withValues(alpha: 0.75)
+                            : AppColors.gray400,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
+            Text(
+              title,
+              style: AppTextStyles.body1.copyWith(
+                color: selected ? AppColors.white : AppColors.black,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: AppTextStyles.caption.copyWith(
+                color: selected
+                    ? AppColors.white.withValues(alpha: 0.8)
+                    : AppColors.onboardingMutedText,
+                height: 1.45,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -470,11 +935,12 @@ class OnboardingHelperTag extends StatelessWidget {
         color: AppColors.onboardingSurfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Icon(icon, size: 14, color: AppColors.black),
-          const SizedBox(width: 6),
           Text(
             text,
             style: AppTextStyles.caption.copyWith(
@@ -548,7 +1014,7 @@ class OnboardingStatusBadge extends StatelessWidget {
   const OnboardingStatusBadge({
     super.key,
     required this.text,
-    this.animate = true,
+    this.animate = false,
   });
 
   @override
@@ -565,7 +1031,7 @@ class OnboardingStatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _OnboardingPulseDot(animate: animate),
+          _OnboardingSignalGlyph(animate: animate),
           const SizedBox(width: 8),
           Text(
             text,
@@ -725,27 +1191,53 @@ class _OnboardingSheenState extends State<OnboardingSheen>
   }
 }
 
-class _OnboardingPulseDot extends StatefulWidget {
+class _OnboardingSignalGlyph extends StatefulWidget {
   final bool animate;
 
-  const _OnboardingPulseDot({
+  const _OnboardingSignalGlyph({
     required this.animate,
   });
 
   @override
-  State<_OnboardingPulseDot> createState() => _OnboardingPulseDotState();
+  State<_OnboardingSignalGlyph> createState() => _OnboardingSignalGlyphState();
 }
 
-class _OnboardingPulseDotState extends State<_OnboardingPulseDot>
+class _OnboardingSignalGlyphState extends State<_OnboardingSignalGlyph>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1600),
-  )..repeat();
+  AnimationController? _controller;
+
+  AnimationController _ensureController() {
+    return _controller ??= AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animate) {
+      _ensureController().repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _OnboardingSignalGlyph oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animate != widget.animate) {
+      if (widget.animate) {
+        _ensureController().repeat();
+      } else if (_controller != null) {
+        _controller!
+          ..stop()
+          ..value = 0;
+      }
+    }
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -753,47 +1245,75 @@ class _OnboardingPulseDotState extends State<_OnboardingPulseDot>
   Widget build(BuildContext context) {
     final reduceMotion = onboardingReduceMotionOf(context);
     if (reduceMotion || !widget.animate) {
-      return Container(
-        width: 6,
-        height: 6,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.onboardingPrimary,
+      return SizedBox(
+        width: 12,
+        height: 12,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.onboardingPrimary.withValues(alpha: 0.04),
+                border: Border.all(
+                  color: AppColors.onboardingPrimary.withValues(alpha: 0.24),
+                ),
+              ),
+            ),
+            Container(
+              width: 4,
+              height: 4,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.onboardingPrimary,
+              ),
+            ),
+          ],
         ),
       );
     }
 
+    final controller = _ensureController();
+    if (!controller.isAnimating) {
+      controller.repeat();
+    }
+
     return AnimatedBuilder(
-      animation: _controller,
+      animation: controller,
       builder: (context, _) {
-        final t = _controller.value;
+        final angle = controller.value * math.pi * 2;
 
         return SizedBox(
-          width: 10,
-          height: 10,
+          width: 12,
+          height: 12,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Opacity(
-                opacity: 0.16 * (1 - t),
-                child: Transform.scale(
-                  scale: 0.7 + (t * 1.1),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.onboardingPrimary.withValues(alpha: 0.04),
+                  border: Border.all(
+                    color: AppColors.onboardingPrimary.withValues(alpha: 0.24),
+                  ),
+                ),
+              ),
+              Transform.rotate(
+                angle: angle,
+                child: Align(
+                  alignment: Alignment.topCenter,
                   child: Container(
-                    width: 10,
-                    height: 10,
+                    width: 4,
+                    height: 4,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       color: AppColors.onboardingPrimary,
                     ),
                   ),
-                ),
-              ),
-              Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.onboardingPrimary,
                 ),
               ),
             ],

@@ -34,32 +34,25 @@ class DemanderGuideCreatePage extends ConsumerWidget {
         await ref.read(onboardingProvider.notifier).complete();
         if (context.mounted) context.go(RoutePaths.home);
       },
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 36),
-          const Text('发布你的第一个需求', style: AppTextStyles.onboardingTitle),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: 36),
+          Text('发布你的第一个需求', style: AppTextStyles.onboardingTitle),
+          SizedBox(height: 12),
+          Text(
             '描述你想要实现的功能，AI 会帮你整理成更清晰的项目需求文档。',
             style: AppTextStyles.onboardingBody,
           ),
-          const SizedBox(height: 28),
-          const _RequirementDraftPreview(),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              const OnboardingHelperTag(text: 'AI 会先帮你整理结构'),
-              const Spacer(),
-              Text(
-                '从一个想法开始',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.onboardingMutedText,
-                ),
-              ),
-            ],
+          SizedBox(height: 28),
+          _RequirementDraftPreview(),
+          SizedBox(height: 18),
+          OnboardingSectionHeader(
+            title: '先让 AI 起一版草稿',
+            description: '你不用从 PRD 开始，只要先把方向说清，结构会慢慢长出来。',
+            accessory: OnboardingHelperTag(text: 'AI 会先帮你整理结构'),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
         ],
       ),
     );
@@ -71,16 +64,8 @@ class _RequirementDraftPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.onboardingSurface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppColors.onboardingHairline.withValues(alpha: 0.65),
-        ),
-      ),
+    return OnboardingDeckCard(
+      elevated: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
