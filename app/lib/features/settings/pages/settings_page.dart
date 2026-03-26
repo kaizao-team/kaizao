@@ -189,15 +189,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<bool?> _showLogoutConfirm(BuildContext context) {
     return showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.white,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) {
         final bottomPadding = MediaQuery.of(ctx).padding.bottom;
-        return Container(
+        return Padding(
           padding: EdgeInsets.fromLTRB(20, 24, 20, 16 + bottomPadding),
-          decoration: const BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
