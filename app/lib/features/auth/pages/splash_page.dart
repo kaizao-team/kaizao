@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../app/routes.dart';
-import '../../../core/storage/storage_service.dart';
 
-class SplashPage extends StatefulWidget {
+import '../../../app/routes.dart';
+import '../../onboarding/providers/onboarding_provider.dart';
+import '../providers/auth_provider.dart';
+
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
+class _SplashPageState extends ConsumerState<SplashPage>
+    with TickerProviderStateMixin {
   late AnimationController _logoController;
   late AnimationController _sloganController;
   late AnimationController _buttonController;
@@ -84,14 +88,10 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   }
 
   Future<void> _onStart() async {
-    final storage = StorageService();
-    final token = await storage.getAccessToken();
+    await ref.read(authStateProvider.notifier).resetForFreshStart();
+    await ref.read(onboardingProvider.notifier).reset();
     if (!mounted) return;
-    if (token != null && token.isNotEmpty) {
-      context.go(RoutePaths.home);
-    } else {
-      context.go(RoutePaths.onboarding);
-    }
+    context.go(RoutePaths.onboarding);
   }
 
   @override
@@ -116,7 +116,6 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
         builder: (context, _) {
           return Stack(
             children: [
-              // Centered logo + text
               Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -178,38 +177,38 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                           color: Color(0xFF9CA3AF),
-                          letterSpacing: 2,
+                          letterSpacing: 4,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              // Start button at bottom
               Positioned(
-                left: 32,
-                right: 32,
-                bottom: padding.bottom + 48,
+                left: 24,
+                right: 24,
+                bottom: padding.bottom + 34,
                 child: FadeTransition(
                   opacity: _buttonOpacityAnim,
                   child: SlideTransition(
                     position: _buttonSlideAnim,
-                    child: GestureDetector(
-                      onTap: _onStart,
-                      child: Container(
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A1A1A),
-                          borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _onStart,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A1A1A),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
-                        alignment: Alignment.center,
                         child: const Text(
                           '开始',
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            letterSpacing: 1,
                           ),
                         ),
                       ),

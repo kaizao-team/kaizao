@@ -11,6 +11,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_input.dart';
 import '../../../shared/widgets/vcc_toast.dart';
+import '../../onboarding/providers/onboarding_provider.dart';
 import '../providers/auth_provider.dart';
 
 enum _AuthMode { password, phone }
@@ -177,6 +178,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   Future<void> _restartOnboardingFlow() async {
+    await ref.read(authStateProvider.notifier).resetForFreshStart();
+    await ref.read(onboardingProvider.notifier).reset();
+    if (!mounted) return;
     context.go(RoutePaths.onboarding);
   }
 
@@ -185,158 +189,129 @@ class _LoginPageState extends ConsumerState<LoginPage>
     final authState = ref.watch(authStateProvider);
     final isSubmitting = authState.isLoading && !_isSendingCode;
     final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final compact = screenHeight < 820 || keyboardInset > 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+      backgroundColor: AppColors.gray50,
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final compact = constraints.maxHeight < 820 || keyboardInset > 0;
-              return AnimatedPadding(
-                duration: AppDurations.normal,
-                curve: AppCurves.standard,
-                padding: EdgeInsets.fromLTRB(
-                  AppSpacing.xl,
-                  compact ? AppSpacing.sm : AppSpacing.base,
-                  AppSpacing.xl,
-                  compact ? AppSpacing.md : AppSpacing.base,
-                ),
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 392),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _LoginMetaBar(
-                          onHelpTap: () =>
-                              _showToast('帮助中心即将开放', type: VccToastType.info),
-                        ),
-                        SizedBox(
-                          height: compact ? AppSpacing.sm : AppSpacing.md,
-                        ),
-                        Expanded(
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverFillRemaining(
+                          hasScrollBody: false,
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Expanded(
-                                flex: compact ? 4 : 4,
-                                child: _LoginHero(
-                                  compact: compact,
-                                  scale: _heroScale,
-                                  lift: _heroLift,
+                              const SizedBox(height: AppSpacing.sm),
+                              _LoginMetaBar(
+                                onHelpTap: () => _showToast(
+                                  '帮助中心即将开放',
+                                  type: VccToastType.info,
                                 ),
                               ),
-                              Expanded(
-                                flex: compact ? 7 : 6,
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    _ModeTabs(
-                                      mode: _mode,
-                                      onModeChanged: _switchMode,
+                              const Spacer(flex: 2),
+                              _LoginHero(
+                                compact: compact,
+                                scale: _heroScale,
+                                lift: _heroLift,
+                                mode: _mode,
+                              ),
+                              const Spacer(flex: 2),
+                              _ModeTabs(
+                                mode: _mode,
+                                onModeChanged: _switchMode,
+                              ),
+                              SizedBox(
+                                height:
+                                    compact ? AppSpacing.md : AppSpacing.base,
+                              ),
+                              AnimatedSwitcher(
+                                duration: AppDurations.normal,
+                                switchInCurve: AppCurves.standard,
+                                switchOutCurve: AppCurves.standard,
+                                transitionBuilder: (child, animation) {
+                                  final slide = Tween<Offset>(
+                                    begin: const Offset(0.02, 0),
+                                    end: Offset.zero,
+                                  ).animate(animation);
+                                  return FadeTransition(
+                                    opacity: animation,
+                                    child: SlideTransition(
+                                      position: slide,
+                                      child: child,
                                     ),
-                                    SizedBox(
-                                      height: compact
-                                          ? AppSpacing.sm
-                                          : AppSpacing.md,
-                                    ),
-                                    Expanded(
-                                      child: AnimatedSwitcher(
-                                        duration: AppDurations.normal,
-                                        switchInCurve: AppCurves.standard,
-                                        switchOutCurve: AppCurves.standard,
-                                        transitionBuilder: (child, animation) {
-                                          final slide = Tween<Offset>(
-                                            begin: const Offset(0.02, 0),
-                                            end: Offset.zero,
-                                          ).animate(animation);
-                                          return FadeTransition(
-                                            opacity: animation,
-                                            child: SlideTransition(
-                                              position: slide,
-                                              child: child,
-                                            ),
+                                  );
+                                },
+                                child: _mode == _AuthMode.password
+                                    ? _PasswordPanel(
+                                        key: const ValueKey('password-panel'),
+                                        usernameController: _usernameController,
+                                        passwordController: _passwordController,
+                                        usernameFocus: _usernameFocus,
+                                        passwordFocus: _passwordFocus,
+                                        obscurePassword: _obscurePassword,
+                                        onPasswordToggle: () {
+                                          setState(
+                                            () => _obscurePassword =
+                                                !_obscurePassword,
                                           );
                                         },
-                                        child: _mode == _AuthMode.password
-                                            ? _PasswordPanel(
-                                                key: const ValueKey(
-                                                  'password-panel',
-                                                ),
-                                                usernameController:
-                                                    _usernameController,
-                                                passwordController:
-                                                    _passwordController,
-                                                usernameFocus: _usernameFocus,
-                                                passwordFocus: _passwordFocus,
-                                                obscurePassword:
-                                                    _obscurePassword,
-                                                onPasswordToggle: () {
-                                                  setState(
-                                                    () => _obscurePassword =
-                                                        !_obscurePassword,
-                                                  );
-                                                },
-                                                compact: compact,
-                                              )
-                                            : _PhonePanel(
-                                                key: const ValueKey(
-                                                  'phone-panel',
-                                                ),
-                                                phoneController:
-                                                    _phoneController,
-                                                codeController: _codeController,
-                                                phoneFocus: _phoneFocus,
-                                                codeFocus: _codeFocus,
-                                                countdown: _countdown,
-                                                isPhoneValid: _phoneValid,
-                                                isSendingCode: _isSendingCode,
-                                                onSendCode: _sendCode,
-                                                compact: compact,
-                                              ),
+                                        compact: compact,
+                                      )
+                                    : _PhonePanel(
+                                        key: const ValueKey('phone-panel'),
+                                        phoneController: _phoneController,
+                                        codeController: _codeController,
+                                        phoneFocus: _phoneFocus,
+                                        codeFocus: _codeFocus,
+                                        countdown: _countdown,
+                                        isPhoneValid: _phoneValid,
+                                        isSendingCode: _isSendingCode,
+                                        onSendCode: _sendCode,
+                                        compact: compact,
                                       ),
-                                    ),
-                                    if (_mode == _AuthMode.phone &&
-                                        authState.errorMessage != null) ...[
-                                      const SizedBox(height: AppSpacing.xs),
-                                      Text(
-                                        authState.errorMessage!,
-                                        style: AppTextStyles.caption.copyWith(
-                                          color: AppColors.error,
-                                        ),
-                                      ),
-                                    ],
-                                    SizedBox(
-                                      height: compact
-                                          ? AppSpacing.md
-                                          : AppSpacing.base,
-                                    ),
-                                    VccButton(
-                                      text: _mode == _AuthMode.password
-                                          ? '登录'
-                                          : '登录 / 注册',
-                                      onPressed: _submit,
-                                      isLoading: isSubmitting,
-                                    ),
-                                    const SizedBox(height: AppSpacing.md),
-                                    _AgreementRow(
-                                      isChecked: _agreedToTerms,
-                                      onToggle: () {
-                                        setState(
-                                          () =>
-                                              _agreedToTerms = !_agreedToTerms,
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(height: AppSpacing.sm),
-                                    _LoginFooter(
-                                      onRegisterTap: _restartOnboardingFlow,
-                                    ),
-                                  ],
-                                ),
                               ),
+                              if (_mode == _AuthMode.phone &&
+                                  authState.errorMessage != null) ...[
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  authState.errorMessage!,
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                              ],
+                              const Spacer(flex: 3),
+                              VccButton(
+                                text: _mode == _AuthMode.password
+                                    ? '登录'
+                                    : '登录 / 注册',
+                                onPressed: _submit,
+                                isLoading: isSubmitting,
+                              ),
+                              const SizedBox(height: AppSpacing.base),
+                              _AgreementRow(
+                                isChecked: _agreedToTerms,
+                                onToggle: () {
+                                  setState(
+                                    () => _agreedToTerms = !_agreedToTerms,
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              _LoginFooter(
+                                onRegisterTap: _restartOnboardingFlow,
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
                             ],
                           ),
                         ),
@@ -413,58 +388,72 @@ class _LoginHero extends StatelessWidget {
   final bool compact;
   final Animation<double> scale;
   final Animation<double> lift;
+  final _AuthMode mode;
 
   const _LoginHero({
     required this.compact,
     required this.scale,
     required this.lift,
+    required this.mode,
   });
 
   @override
   Widget build(BuildContext context) {
-    final logoSize = compact ? 92.0 : 112.0;
+    final logoSize = compact ? 140.0 : 160.0;
 
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(height: compact ? AppSpacing.xs : AppSpacing.sm),
-          AnimatedBuilder(
-            animation: Listenable.merge([scale, lift]),
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(0, lift.value),
-                child: Transform.scale(scale: scale.value, child: child),
-              );
-            },
-            child: Image.asset(
-              'assets/branding/app_launch_static_transparent_cropped.png',
-              width: logoSize,
-              height: logoSize,
-              fit: BoxFit.contain,
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedBuilder(
+          animation: Listenable.merge([scale, lift]),
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, lift.value),
+              child: Transform.scale(scale: scale.value, child: child),
+            );
+          },
+          child: Image.asset(
+            'assets/branding/app_launch_static_transparent_cropped.png',
+            width: logoSize,
+            height: logoSize,
+            fit: BoxFit.contain,
           ),
-          SizedBox(height: compact ? AppSpacing.sm : AppSpacing.base),
-          Text(
-            '欢迎回来',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.h1.copyWith(
-              fontSize: compact ? 28 : 30,
-              height: 1.08,
-            ),
+        ),
+        const SizedBox(height: AppSpacing.xxs),
+        Text(
+          'VCC',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: compact ? 20 : 22,
+            fontWeight: FontWeight.w700,
+            color: AppColors.black,
+            letterSpacing: 5,
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
-            child: Text(
-              '输入手机号继续，把想法直接推进到开造流程里。',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.body2.copyWith(color: AppColors.gray500),
-            ),
+        ),
+        const SizedBox(height: AppSpacing.xxs),
+        Text(
+          '开造',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: compact ? 13 : 14,
+            fontWeight: FontWeight.w500,
+            color: AppColors.gray500,
+            letterSpacing: 2,
           ),
-        ],
-      ),
+        ),
+        SizedBox(height: compact ? AppSpacing.lg : AppSpacing.xl),
+        Text(
+          '欢迎回来',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.h1.copyWith(height: 1.1),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          mode == _AuthMode.phone ? '输入手机号，把想法推进到开造流程。' : '登录你的账号，继续造物之旅。',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.body2.copyWith(color: AppColors.gray400),
+        ),
+      ],
     );
   }
 }
@@ -569,9 +558,9 @@ class _PasswordPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _FieldShell(
-          label: 'ACCOUNT',
+          label: '账号',
           child: VccInput(
-            hint: 'Username or Email',
+            hint: '用户名或邮箱',
             controller: usernameController,
             focusNode: usernameFocus,
             keyboardType: TextInputType.emailAddress,
@@ -579,9 +568,9 @@ class _PasswordPanel extends StatelessWidget {
             onSubmitted: (_) => passwordFocus.requestFocus(),
           ),
         ),
-        SizedBox(height: compact ? AppSpacing.md : 14),
+        SizedBox(height: compact ? AppSpacing.md : AppSpacing.base),
         _FieldShell(
-          label: 'PASSWORD',
+          label: '密码',
           child: VccInput(
             hint: '••••••••',
             controller: passwordController,
@@ -637,7 +626,7 @@ class _PhonePanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _FieldShell(
-          label: 'PHONE',
+          label: '手机号',
           child: VccInput(
             hint: '请输入手机号',
             controller: phoneController,
@@ -665,9 +654,9 @@ class _PhonePanel extends StatelessWidget {
             onSubmitted: (_) => codeFocus.requestFocus(),
           ),
         ),
-        SizedBox(height: compact ? AppSpacing.md : 14),
+        SizedBox(height: compact ? AppSpacing.md : AppSpacing.base),
         _FieldShell(
-          label: 'CODE',
+          label: '验证码',
           child: VccInput(
             hint: '请输入短信验证码',
             controller: codeController,
@@ -728,13 +717,12 @@ class _FieldShell extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: 7),
+          padding: const EdgeInsets.only(left: 2, bottom: AppSpacing.xs),
           child: Text(
             label,
-            style: AppTextStyles.overline.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.4,
-              color: const Color(0xFF8A8A8A),
+            style: AppTextStyles.caption.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.gray500,
             ),
           ),
         ),
@@ -743,31 +731,30 @@ class _FieldShell extends StatelessWidget {
             inputDecorationTheme: theme.inputDecorationTheme.copyWith(
               fillColor: AppColors.white,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
+                horizontal: AppSpacing.base,
+                vertical: AppSpacing.base,
               ),
               hintStyle: AppTextStyles.inputHint.copyWith(
-                fontSize: 14,
-                color: const Color(0xFFA9A9A9),
+                color: AppColors.gray300,
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: const BorderSide(
-                  color: Color(0xFFE5E7EB),
+                  color: AppColors.gray200,
                   width: 1.2,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: const BorderSide(
                   color: AppColors.black,
                   width: 1.4,
                 ),
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: const BorderSide(
-                  color: Color(0xFFE5E7EB),
+                  color: AppColors.gray200,
                   width: 1.2,
                 ),
               ),

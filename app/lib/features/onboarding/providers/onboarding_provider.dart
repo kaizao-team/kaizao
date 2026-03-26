@@ -116,6 +116,12 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     state = state.copyWith(isCompleted: true);
   }
 
+  Future<void> reset() async {
+    await _storage.clearOnboardingState();
+    if (!mounted) return;
+    state = const OnboardingState();
+  }
+
   Future<bool> submitData(Map<String, dynamic> data) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
