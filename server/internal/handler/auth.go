@@ -234,6 +234,7 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 	}
 
 	stats := h.userService.GetUserStats(user)
+	skills, _ := h.userService.ListUserSkills(user.ID)
 
 	response.Success(c, gin.H{
 		"id":               user.UUID,
@@ -252,7 +253,7 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 		"avg_rating":       user.AvgRating,
 		"hourly_rate":      user.HourlyRate,
 		"available_status": user.AvailableStatus,
-		"skills":           []interface{}{},
+		"skills":           userSkillsToResponse(skills),
 		"role_tags":        []interface{}{},
 		"stats":            stats,
 	})
