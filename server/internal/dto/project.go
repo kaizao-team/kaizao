@@ -54,6 +54,16 @@ type ProjectListQuery struct {
 	Keyword    string  `form:"keyword" binding:"omitempty"`
 }
 
+// MarketProjectQuery 需求广场查询
+type MarketProjectQuery struct {
+	Page      int     `form:"page,default=1"`
+	PageSize  int     `form:"page_size,default=10"`
+	Category  string  `form:"category"`
+	Sort      string  `form:"sort,default=latest"`
+	BudgetMin float64 `form:"budget_min"`
+	BudgetMax float64 `form:"budget_max"`
+}
+
 // ProjectSearchQuery 项目搜索查询
 type ProjectSearchQuery struct {
 	PaginationQuery

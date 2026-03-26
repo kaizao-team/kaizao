@@ -25,14 +25,16 @@ type ServerConfig struct {
 	WriteTimeoutSec int    `mapstructure:"write_timeout_sec"`
 }
 
-// DatabaseConfig PostgreSQL 配置
+// DatabaseConfig MySQL 配置
 type DatabaseConfig struct {
 	Host               string `mapstructure:"host"`
 	Port               int    `mapstructure:"port"`
 	User               string `mapstructure:"user"`
 	Password           string `mapstructure:"password"`
 	DBName             string `mapstructure:"dbname"`
-	SSLMode            string `mapstructure:"sslmode"`
+	Charset            string `mapstructure:"charset"`
+	ParseTime          bool   `mapstructure:"parse_time"`
+	Loc                string `mapstructure:"loc"`
 	MaxIdleConns       int    `mapstructure:"max_idle_conns"`
 	MaxOpenConns       int    `mapstructure:"max_open_conns"`
 	ConnMaxLifetimeMin int    `mapstructure:"conn_max_lifetime_min"`
@@ -87,11 +89,13 @@ func Load() (*Config, error) {
 	v.SetDefault("server.read_timeout_sec", 10)
 	v.SetDefault("server.write_timeout_sec", 10)
 	v.SetDefault("database.host", "localhost")
-	v.SetDefault("database.port", 5432)
-	v.SetDefault("database.user", "vibebuild")
-	v.SetDefault("database.password", "vibebuild123")
-	v.SetDefault("database.dbname", "vibebuild")
-	v.SetDefault("database.sslmode", "disable")
+	v.SetDefault("database.port", 3306)
+	v.SetDefault("database.user", "root")
+	v.SetDefault("database.password", "")
+	v.SetDefault("database.dbname", "kaizao")
+	v.SetDefault("database.charset", "utf8mb4")
+	v.SetDefault("database.parse_time", true)
+	v.SetDefault("database.loc", "Local")
 	v.SetDefault("database.max_idle_conns", 10)
 	v.SetDefault("database.max_open_conns", 100)
 	v.SetDefault("database.conn_max_lifetime_min", 30)

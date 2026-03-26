@@ -1,15 +1,25 @@
 # Go
 server/server
 server/tmp/
+vendor/
 *.exe
 *.test
 *.out
+*.coverprofile
+coverage.out
 
 # Python
 ai-agent/venv/
+ai-agent/.venv/
 ai-agent/__pycache__/
 ai-agent/**/__pycache__/
 ai-agent/.pytest_cache/
+ai-agent/.mypy_cache/
+ai-agent/.ruff_cache/
+ai-agent/htmlcov/
+ai-agent/.coverage
+ai-agent/dist/
+ai-agent/*.egg-info/
 *.pyc
 *.pyo
 
@@ -21,16 +31,23 @@ app/.packages
 app/build/
 app/.metadata
 app/web/
+app/.fvm/
+app/ios/Pods/
+app/ios/.symlinks/
+app/android/.gradle/
 
 # IDE
 .idea/
 .vscode/
 *.iml
 *.swp
+*.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Environment
 .env
@@ -40,5 +57,8 @@ deploy/.env
 # Docker volumes
 deploy/data/
 
+# Logs
+*.log
+server/logs/
 # Claude
 .claude

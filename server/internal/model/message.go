@@ -9,7 +9,7 @@ import (
 // Conversation 会话模型
 type Conversation struct {
 	ID                 int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID               string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID               string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	ProjectID          *int64     `gorm:"index" json:"project_id,omitempty"`
 	ConversationType   int16      `gorm:"not null;default:1" json:"conversation_type"`
 	UserAID            *int64     `gorm:"index" json:"user_a_id,omitempty"`
@@ -19,8 +19,8 @@ type Conversation struct {
 	LastMessageAt      *time.Time `json:"last_message_at,omitempty"`
 	LastMessageUserID  *int64     `json:"last_message_user_id,omitempty"`
 	Status             int16      `gorm:"not null;default:1" json:"status"`
-	CreatedAt          time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt          time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt          time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt          time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 }
 
 func (Conversation) TableName() string {
@@ -44,7 +44,7 @@ type ConversationMember struct {
 	LastReadMsgID  int64     `gorm:"default:0" json:"last_read_msg_id"`
 	IsMuted        bool      `gorm:"not null;default:false" json:"is_muted"`
 	IsPinned       bool      `gorm:"not null;default:false" json:"is_pinned"`
-	JoinedAt       time.Time `gorm:"not null;default:now()" json:"joined_at"`
+	JoinedAt       time.Time `gorm:"not null;autoCreateTime" json:"joined_at"`
 }
 
 func (ConversationMember) TableName() string {
@@ -54,7 +54,7 @@ func (ConversationMember) TableName() string {
 // Message 消息模型
 type Message struct {
 	ID             int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID           string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID           string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	ConversationID int64      `gorm:"not null;index" json:"conversation_id"`
 	SenderID       int64      `gorm:"not null;index" json:"sender_id"`
 	ContentType    string     `gorm:"type:varchar(20);not null;default:'text'" json:"content_type"`
@@ -69,7 +69,7 @@ type Message struct {
 	ClientSeq      *int64     `json:"client_seq,omitempty"`
 	Status         int16      `gorm:"not null;default:1" json:"status"`
 	RecalledAt     *time.Time `json:"recalled_at,omitempty"`
-	CreatedAt      time.Time  `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt      time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
 
 	// 关联
 	Sender *User `gorm:"foreignKey:SenderID" json:"sender,omitempty"`
@@ -89,7 +89,7 @@ func (m *Message) BeforeCreate(tx *gorm.DB) error {
 // Review 评价模型
 type Review struct {
 	ID                    int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID                  string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID                  string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	ProjectID             int64      `gorm:"not null;index" json:"project_id"`
 	ReviewerID            int64      `gorm:"not null;index" json:"reviewer_id"`
 	RevieweeID            int64      `gorm:"not null;index" json:"reviewee_id"`
@@ -103,14 +103,14 @@ type Review struct {
 	PaymentRating         *float64   `gorm:"type:decimal(2,1)" json:"payment_rating,omitempty"`
 	CooperationRating     *float64   `gorm:"type:decimal(2,1)" json:"cooperation_rating,omitempty"`
 	Content               *string    `gorm:"type:text" json:"content,omitempty"`
-	Tags                  JSONB      `gorm:"type:jsonb;default:'[]'" json:"tags"`
-	MemberRatings         JSONB      `gorm:"type:jsonb;default:'[]'" json:"member_ratings"`
+	Tags                  JSON       `gorm:"type:json" json:"tags"`
+	MemberRatings         JSON       `gorm:"type:json" json:"member_ratings"`
 	IsAnonymous           bool       `gorm:"not null;default:false" json:"is_anonymous"`
 	Status                int16      `gorm:"not null;default:1" json:"status"`
 	ReplyContent          *string    `gorm:"type:text" json:"reply_content,omitempty"`
 	ReplyAt               *time.Time `json:"reply_at,omitempty"`
-	CreatedAt             time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt             time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt             time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt             time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 
 	// 关联
 	Reviewer *User `gorm:"foreignKey:ReviewerID" json:"reviewer,omitempty"`
@@ -131,7 +131,7 @@ func (r *Review) BeforeCreate(tx *gorm.DB) error {
 // Notification 通知模型
 type Notification struct {
 	ID               int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID             string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID             string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	UserID           int64      `gorm:"not null;index" json:"user_id"`
 	Title            string     `gorm:"type:varchar(200);not null" json:"title"`
 	Content          string     `gorm:"type:text;not null" json:"content"`
@@ -142,7 +142,7 @@ type Notification struct {
 	IsPushed         bool       `gorm:"not null;default:false" json:"is_pushed"`
 	PushResult       *string    `gorm:"type:varchar(200)" json:"push_result,omitempty"`
 	ReadAt           *time.Time `json:"read_at,omitempty"`
-	CreatedAt        time.Time  `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt        time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
 }
 
 func (Notification) TableName() string {
@@ -159,18 +159,18 @@ func (n *Notification) BeforeCreate(tx *gorm.DB) error {
 // Report 举报模型
 type Report struct {
 	ID           int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID         string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID         string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	ReporterID   int64      `gorm:"not null;index" json:"reporter_id"`
 	TargetType   string     `gorm:"type:varchar(50);not null" json:"target_type"`
 	TargetID     int64      `gorm:"not null" json:"target_id"`
 	ReasonType   int16      `gorm:"not null" json:"reason_type"`
 	ReasonDetail *string    `gorm:"type:text" json:"reason_detail,omitempty"`
-	Evidence     JSONB      `gorm:"type:jsonb;default:'[]'" json:"evidence"`
+	Evidence     JSON       `gorm:"type:json" json:"evidence"`
 	Status       int16      `gorm:"not null;default:1;index" json:"status"`
 	HandlerID    *int64     `json:"handler_id,omitempty"`
 	HandleResult *string    `gorm:"type:text" json:"handle_result,omitempty"`
 	HandledAt    *time.Time `json:"handled_at,omitempty"`
-	CreatedAt    time.Time  `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt    time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
 }
 
 func (Report) TableName() string {
@@ -187,21 +187,21 @@ func (r *Report) BeforeCreate(tx *gorm.DB) error {
 // Arbitration 仲裁模型
 type Arbitration struct {
 	ID           int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID         string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID         string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	ProjectID    int64      `gorm:"not null;index" json:"project_id"`
 	OrderID      *int64     `json:"order_id,omitempty"`
 	ApplicantID  int64      `gorm:"not null;index" json:"applicant_id"`
 	RespondentID int64      `gorm:"not null" json:"respondent_id"`
 	Reason       string     `gorm:"type:text;not null" json:"reason"`
-	Evidence     JSONB      `gorm:"type:jsonb;default:'[]'" json:"evidence"`
+	Evidence     JSON       `gorm:"type:json" json:"evidence"`
 	Status       int16      `gorm:"not null;default:1;index" json:"status"`
 	ArbiterID    *int64     `json:"arbiter_id,omitempty"`
 	Verdict      *string    `gorm:"type:text" json:"verdict,omitempty"`
 	VerdictType  *int16     `json:"verdict_type,omitempty"`
 	RefundAmount *float64   `gorm:"type:decimal(10,2)" json:"refund_amount,omitempty"`
 	ArbitratedAt *time.Time `json:"arbitrated_at,omitempty"`
-	CreatedAt    time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt    time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt    time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt    time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 }
 
 func (Arbitration) TableName() string {
@@ -218,22 +218,22 @@ func (a *Arbitration) BeforeCreate(tx *gorm.DB) error {
 // AgentSession AI Agent 会话模型
 type AgentSession struct {
 	ID                  int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID                string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID                string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	UserID              int64      `gorm:"not null;index" json:"user_id"`
 	ProjectID           *int64     `gorm:"index" json:"project_id,omitempty"`
 	AgentType           string     `gorm:"type:varchar(50);not null;index" json:"agent_type"`
 	Status              int16      `gorm:"not null;default:1;index" json:"status"`
 	CompletenessScore   float64    `gorm:"type:decimal(5,2);default:0.00" json:"completeness_score"`
-	ConversationHistory JSONB      `gorm:"type:jsonb;not null;default:'[]'" json:"conversation_history"`
-	GeneratedPRD        JSONBMap   `gorm:"type:jsonb" json:"generated_prd,omitempty"`
-	GeneratedTasks      JSONBMap   `gorm:"type:jsonb" json:"generated_tasks,omitempty"`
-	GeneratedEstimate   JSONBMap   `gorm:"type:jsonb" json:"generated_estimate,omitempty"`
+	ConversationHistory JSON       `gorm:"type:json" json:"conversation_history"`
+	GeneratedPRD        JSONMap    `gorm:"type:json" json:"generated_prd,omitempty"`
+	GeneratedTasks      JSONMap    `gorm:"type:json" json:"generated_tasks,omitempty"`
+	GeneratedEstimate   JSONMap    `gorm:"type:json" json:"generated_estimate,omitempty"`
 	ModelUsed           *string    `gorm:"type:varchar(50)" json:"model_used,omitempty"`
 	TotalTokens         int        `gorm:"default:0" json:"total_tokens"`
 	TotalCost           float64    `gorm:"type:decimal(8,4);default:0.0000" json:"total_cost"`
 	CompletedAt         *time.Time `json:"completed_at,omitempty"`
-	CreatedAt           time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt           time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt           time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt           time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 }
 
 func (AgentSession) TableName() string {
@@ -250,22 +250,22 @@ func (as *AgentSession) BeforeCreate(tx *gorm.DB) error {
 // Team 团队模型
 type Team struct {
 	ID             int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID           string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID           string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	Name           string     `gorm:"type:varchar(100);not null" json:"name"`
 	LeaderID       int64      `gorm:"not null;index" json:"leader_id"`
 	AvatarURL      *string    `gorm:"type:varchar(512)" json:"avatar_url,omitempty"`
 	Description    *string    `gorm:"type:text" json:"description,omitempty"`
 	TeamType       int16      `gorm:"not null;default:1;index" json:"team_type"`
 	ProjectID      *int64     `gorm:"index" json:"project_id,omitempty"`
-	SkillsCoverage JSONB      `gorm:"type:jsonb;default:'[]'" json:"skills_coverage"`
+	SkillsCoverage JSON       `gorm:"type:json" json:"skills_coverage"`
 	MemberCount    int        `gorm:"not null;default:1" json:"member_count"`
 	AvgRating      float64    `gorm:"type:decimal(3,2);not null;default:0.00" json:"avg_rating"`
 	TotalProjects  int        `gorm:"not null;default:0" json:"total_projects"`
 	TotalEarnings  float64    `gorm:"type:decimal(12,2);not null;default:0.00" json:"total_earnings"`
 	Status         int16      `gorm:"not null;default:1;index" json:"status"`
 	DisbandedAt    *time.Time `json:"disbanded_at,omitempty"`
-	CreatedAt      time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt      time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt      time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt      time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 
 	// 关联
 	Leader  *User        `gorm:"foreignKey:LeaderID" json:"leader,omitempty"`
@@ -291,7 +291,7 @@ type TeamMember struct {
 	RoleInTeam string     `gorm:"type:varchar(50);not null" json:"role_in_team"`
 	SplitRatio float64    `gorm:"type:decimal(5,2);not null" json:"split_ratio"`
 	Status     int16      `gorm:"not null;default:1" json:"status"`
-	JoinedAt   time.Time  `gorm:"not null;default:now()" json:"joined_at"`
+	JoinedAt   time.Time  `gorm:"not null;autoCreateTime" json:"joined_at"`
 	LeftAt     *time.Time `json:"left_at,omitempty"`
 
 	// 关联
@@ -305,7 +305,7 @@ func (TeamMember) TableName() string {
 // TeamInvite 团队邀请模型
 type TeamInvite struct {
 	ID          int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID        string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID        string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	TeamID      int64      `gorm:"not null;index" json:"team_id"`
 	InviterID   int64      `gorm:"not null" json:"inviter_id"`
 	InviteeID   int64      `gorm:"not null;index" json:"invitee_id"`
@@ -315,7 +315,7 @@ type TeamInvite struct {
 	Status      int16      `gorm:"not null;default:1" json:"status"`
 	ExpireAt    time.Time  `gorm:"not null" json:"expire_at"`
 	RespondedAt *time.Time `json:"responded_at,omitempty"`
-	CreatedAt   time.Time  `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt   time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
 }
 
 func (TeamInvite) TableName() string {
@@ -332,18 +332,18 @@ func (ti *TeamInvite) BeforeCreate(tx *gorm.DB) error {
 // TeamPost 组队大厅帖子模型
 type TeamPost struct {
 	ID             int64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID           string    `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID           string    `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	AuthorID       int64     `gorm:"not null;index" json:"author_id"`
 	ProjectID      *int64    `gorm:"index" json:"project_id,omitempty"`
 	Title          string    `gorm:"type:varchar(200);not null" json:"title"`
 	Description    string    `gorm:"type:text;not null" json:"description"`
-	NeededRoles    JSONB     `gorm:"type:jsonb;not null;default:'[]'" json:"needed_roles"`
-	RequiredSkills JSONB     `gorm:"type:jsonb;default:'[]'" json:"required_skills"`
+	NeededRoles    JSON      `gorm:"type:json" json:"needed_roles"`
+	RequiredSkills JSON      `gorm:"type:json" json:"required_skills"`
 	Status         int16     `gorm:"not null;default:1;index" json:"status"`
 	ViewCount      int       `gorm:"not null;default:0" json:"view_count"`
 	ApplyCount     int       `gorm:"not null;default:0" json:"apply_count"`
-	CreatedAt      time.Time `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt      time.Time `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt      time.Time `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt      time.Time `gorm:"not null;autoUpdateTime" json:"updated_at"`
 
 	// 关联
 	Author *User `gorm:"foreignKey:AuthorID" json:"author,omitempty"`

@@ -21,10 +21,10 @@ type RegisterReq struct {
 	InviteCode string `json:"invite_code" binding:"omitempty"`
 }
 
-// LoginReq 登录请求
+// LoginReq 登录请求（phone + code，不存在则自动注册）
 type LoginReq struct {
 	Phone      string `json:"phone" binding:"required,len=11"`
-	SMSCode    string `json:"sms_code" binding:"required,len=6"`
+	Code       string `json:"code" binding:"required,len=6"`
 	DeviceType string `json:"device_type" binding:"omitempty,oneof=android ios web"`
 	DeviceID   string `json:"device_id" binding:"omitempty"`
 }

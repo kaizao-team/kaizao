@@ -2,11 +2,15 @@ package handler
 
 import (
 	"encoding/json"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vibebuild/server/internal/dto"
+	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
+	"github.com/vibebuild/server/internal/repository"
 	"github.com/vibebuild/server/internal/service"
 	"go.uber.org/zap"
 )
@@ -23,6 +27,7 @@ func NewProjectHandler(projectService *service.ProjectService, log *zap.Logger) 
 }
 
 // Create 创建项目/发布需求
+// POST /api/v1/projects
 func (h *ProjectHandler) Create(c *gin.Context) {
 	var req dto.CreateProjectReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -34,33 +39,23 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 
 	project, err := h.projectService.Create(
 		userUUID, req.Title, req.Description, req.Category,
-		req.BudgetMin, req.BudgetMax, req.MatchMode, req.IsDraft,
+		req.BudgetMin, req.BudgetMax, req.TechRequirements, req.MatchMode, req.IsDraft,
 	)
 	if err != nil {
 		response.ErrorInternal(c, "创建项目失败")
 		return
 	}
 
-	statusText := map[int16]string{1: "草稿", 2: "已发布"}
-
-	resp := dto.ProjectResp{
-		UUID:        project.UUID,
-		Title:       project.Title,
-		Description: project.Description,
-		Category:    project.Category,
-		BudgetMin:   project.BudgetMin,
-		BudgetMax:   project.BudgetMax,
-		Status:      project.Status,
-		StatusText:  statusText[project.Status],
-		MatchMode:   project.MatchMode,
-		PublishedAt: project.PublishedAt,
-		CreatedAt:   project.CreatedAt,
-	}
-
-	response.Success(c, resp)
+	response.SuccessMsg(c, "项目发布成功", gin.H{
+		"id":     project.UUID,
+		"uuid":   project.UUID,
+		"status": project.Status,
+	})
 }
 
 // List 项目列表
+// GET /api/v1/projects
+// 支持 role 参数: 1=需求方(我发布的需求), 2=专家(我参与的项目)
 func (h *ProjectHandler) List(c *gin.Context) {
 	var query dto.ProjectListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
@@ -68,6 +63,27 @@ func (h *ProjectHandler) List(c *gin.Context) {
 		query.PageSize = 20
 		query.SortBy = "published_at"
 		query.SortOrder = "desc"
+	}
+	if query.Page == 0 {
+		query.Page = 1
+	}
+	if query.PageSize == 0 {
+		query.PageSize = 20
+	}
+
+	roleStr := c.Query("role")
+	role, _ := strconv.Atoi(roleStr)
+	userUUID := c.GetString("user_uuid")
+
+	if role > 0 && userUUID != "" {
+		projects, total, err := h.projectService.ListByRole(userUUID, role, query.Page, query.PageSize)
+		if err != nil {
+			response.ErrorInternal(c, "获取项目列表失败")
+			return
+		}
+		list := toProjectRespList(projects)
+		response.SuccessWithMeta(c, list, response.BuildMeta(query.Page, query.PageSize, total))
+		return
 	}
 
 	conditions := make(map[string]interface{})
@@ -87,90 +103,39 @@ func (h *ProjectHandler) List(c *gin.Context) {
 		return
 	}
 
-	var list []dto.ProjectResp
-	for _, p := range projects {
-		var techReqs []string
-		if len(p.TechRequirements) > 0 {
-			json.Unmarshal([]byte(p.TechRequirements), &techReqs)
-		}
-
-		item := dto.ProjectResp{
-			UUID:             p.UUID,
-			Title:            p.Title,
-			Description:      p.Description,
-			Category:         p.Category,
-			Complexity:       p.Complexity,
-			BudgetMin:        p.BudgetMin,
-			BudgetMax:        p.BudgetMax,
-			TechRequirements: techReqs,
-			Status:           p.Status,
-			MatchMode:        p.MatchMode,
-			ViewCount:        p.ViewCount,
-			BidCount:         p.BidCount,
-			PublishedAt:      p.PublishedAt,
-			CreatedAt:        p.CreatedAt,
-		}
-		if p.Owner != nil {
-			item.Owner = &dto.UserBriefResp{
-				UUID:      p.Owner.UUID,
-				Nickname:  p.Owner.Nickname,
-				AvatarURL: p.Owner.AvatarURL,
-			}
-		}
-		list = append(list, item)
-	}
-
-	if list == nil {
-		list = []dto.ProjectResp{}
-	}
-
-	response.SuccessWithMeta(c, dto.ListData{List: list}, response.BuildMeta(query.Page, query.PageSize, total))
+	list := toProjectRespList(projects)
+	response.SuccessWithMeta(c, list, response.BuildMeta(query.Page, query.PageSize, total))
 }
 
 // Get 项目详情
+// GET /api/v1/projects/:id
 func (h *ProjectHandler) Get(c *gin.Context) {
-	uuid := c.Param("uuid")
+	idStr := c.Param("id")
 
-	project, err := h.projectService.GetByUUID(uuid)
+	// 先尝试数字 ID
+	if numID, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+		p, err := h.projectService.GetByID(numID)
+		if err != nil {
+			response.ErrorNotFound(c, errcode.ErrProjectNotFound, errcode.GetMessage(errcode.ErrProjectNotFound))
+			return
+		}
+		response.Success(c, toProjectDetail(p))
+		return
+	}
+
+	// 否则当 UUID 处理
+	p, err := h.projectService.GetByUUID(idStr)
 	if err != nil {
 		response.ErrorNotFound(c, errcode.ErrProjectNotFound, errcode.GetMessage(errcode.ErrProjectNotFound))
 		return
 	}
-
-	resp := dto.ProjectResp{
-		UUID:          project.UUID,
-		Title:         project.Title,
-		Description:   project.Description,
-		Category:      project.Category,
-		Complexity:    project.Complexity,
-		BudgetMin:     project.BudgetMin,
-		BudgetMax:     project.BudgetMax,
-		AgreedPrice:   project.AgreedPrice,
-		Deadline:      project.Deadline,
-		Status:        project.Status,
-		MatchMode:     project.MatchMode,
-		Progress:      project.Progress,
-		ViewCount:     project.ViewCount,
-		BidCount:      project.BidCount,
-		FavoriteCount: project.FavoriteCount,
-		PublishedAt:   project.PublishedAt,
-		CreatedAt:     project.CreatedAt,
-	}
-	if project.Owner != nil {
-		resp.Owner = &dto.UserBriefResp{
-			UUID:       project.Owner.UUID,
-			Nickname:   project.Owner.Nickname,
-			AvatarURL:  project.Owner.AvatarURL,
-			IsVerified: project.Owner.IsVerified,
-		}
-	}
-
-	response.Success(c, resp)
+	response.Success(c, toProjectDetail(p))
 }
 
 // Update 更新项目
+// PUT /api/v1/projects/:id
 func (h *ProjectHandler) Update(c *gin.Context) {
-	uuid := c.Param("uuid")
+	uuid := c.Param("id")
 
 	var req dto.UpdateProjectReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -201,19 +166,17 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, dto.ProjectResp{
-		UUID:        project.UUID,
-		Title:       project.Title,
-		Description: project.Description,
-		Category:    project.Category,
-		Status:      project.Status,
-		CreatedAt:   project.CreatedAt,
+	response.SuccessMsg(c, "更新成功", gin.H{
+		"uuid":     project.UUID,
+		"title":    project.Title,
+		"category": project.Category,
+		"status":   project.Status,
 	})
 }
 
 // Close 关闭项目
 func (h *ProjectHandler) Close(c *gin.Context) {
-	uuid := c.Param("uuid")
+	uuid := c.Param("id")
 
 	var req dto.CloseProjectReq
 	c.ShouldBindJSON(&req)
@@ -224,4 +187,121 @@ func (h *ProjectHandler) Close(c *gin.Context) {
 	}
 
 	response.Success(c, nil)
+}
+
+// ListMarket 需求广场列表
+// GET /api/v1/market/projects
+func (h *ProjectHandler) ListMarket(c *gin.Context) {
+	var query dto.MarketProjectQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		query.Page = 1
+		query.PageSize = 10
+	}
+	if query.Page == 0 {
+		query.Page = 1
+	}
+	if query.PageSize == 0 {
+		query.PageSize = 10
+	}
+
+	filter := repository.ProjectFilter{
+		Category:  query.Category,
+		BudgetMin: query.BudgetMin,
+		BudgetMax: query.BudgetMax,
+		Sort:      query.Sort,
+	}
+
+	projects, total, err := h.projectService.ListMarket(query.Page, query.PageSize, filter)
+	if err != nil {
+		response.ErrorInternal(c, "获取需求广场失败")
+		return
+	}
+
+	list := toMarketProjectList(projects)
+	response.SuccessWithMeta(c, list, response.BuildMeta(query.Page, query.PageSize, total))
+}
+
+// ---- 辅助函数 ----
+
+func parseTechReqs(raw model.JSON) []string {
+	var result []string
+	if len(raw) > 0 {
+		json.Unmarshal([]byte(raw), &result)
+	}
+	if result == nil {
+		return []string{}
+	}
+	return result
+}
+
+type projectItem struct {
+	ID               string     `json:"id"`
+	UUID             string     `json:"uuid"`
+	OwnerID          string     `json:"owner_id"`
+	OwnerName        string     `json:"owner_name,omitempty"`
+	Title            string     `json:"title"`
+	Description      string     `json:"description"`
+	Category         string     `json:"category"`
+	BudgetMin        *float64   `json:"budget_min"`
+	BudgetMax        *float64   `json:"budget_max"`
+	Progress         int16      `json:"progress"`
+	Status           int16      `json:"status"`
+	TechRequirements []string   `json:"tech_requirements"`
+	ViewCount        int        `json:"view_count"`
+	BidCount         int        `json:"bid_count"`
+	CreatedAt        time.Time  `json:"created_at"`
+	MatchScore       *int       `json:"match_score,omitempty"`
+}
+
+func toProjectItem(p *model.Project) projectItem {
+	ownerID := ""
+	ownerName := ""
+	if p.Owner != nil {
+		ownerID = p.Owner.UUID
+		ownerName = p.Owner.Nickname
+	}
+	return projectItem{
+		ID:               p.UUID,
+		UUID:             p.UUID,
+		OwnerID:          ownerID,
+		OwnerName:        ownerName,
+		Title:            p.Title,
+		Description:      p.Description,
+		Category:         p.Category,
+		BudgetMin:        p.BudgetMin,
+		BudgetMax:        p.BudgetMax,
+		Progress:         p.Progress,
+		Status:           p.Status,
+		TechRequirements: parseTechReqs(p.TechRequirements),
+		ViewCount:        p.ViewCount,
+		BidCount:         p.BidCount,
+		CreatedAt:        p.CreatedAt,
+	}
+}
+
+func toProjectRespList(projects []*model.Project) []projectItem {
+	list := make([]projectItem, 0, len(projects))
+	for _, p := range projects {
+		list = append(list, toProjectItem(p))
+	}
+	return list
+}
+
+func toMarketProjectList(projects []*model.Project) []projectItem {
+	return toProjectRespList(projects)
+}
+
+type projectDetail struct {
+	projectItem
+	PrdSummary string      `json:"prd_summary"`
+	Milestones interface{} `json:"milestones"`
+}
+
+func toProjectDetail(p *model.Project) projectDetail {
+	item := toProjectItem(p)
+	return projectDetail{
+		projectItem: item,
+		PrdSummary:  "",
+		Milestones:  []interface{}{},
+	}
 }

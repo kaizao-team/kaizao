@@ -9,7 +9,7 @@ import (
 // Order 订单模型
 type Order struct {
 	ID              int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID            string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID            string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	OrderNo         string     `gorm:"type:varchar(32);not null;uniqueIndex" json:"order_no"`
 	ProjectID       int64      `gorm:"not null;index" json:"project_id"`
 	MilestoneID     *int64     `gorm:"index" json:"milestone_id,omitempty"`
@@ -33,8 +33,8 @@ type Order struct {
 	RefundedAt      *time.Time `json:"refunded_at,omitempty"`
 	ExpireAt        *time.Time `json:"expire_at,omitempty"`
 	AutoReleaseAt   *time.Time `json:"auto_release_at,omitempty"`
-	CreatedAt       time.Time  `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt       time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+	CreatedAt       time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt       time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 }
 
 func (Order) TableName() string {
@@ -51,7 +51,7 @@ func (o *Order) BeforeCreate(tx *gorm.DB) error {
 // SplitRecord 分账记录模型
 type SplitRecord struct {
 	ID         int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID       string     `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID       string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	OrderID    int64      `gorm:"not null;index" json:"order_id"`
 	TeamID     int64      `gorm:"not null;index" json:"team_id"`
 	UserID     int64      `gorm:"not null;index" json:"user_id"`
@@ -59,7 +59,7 @@ type SplitRecord struct {
 	Amount     float64    `gorm:"type:decimal(10,2);not null" json:"amount"`
 	Status     int16      `gorm:"not null;default:1;index" json:"status"`
 	SplitAt    *time.Time `json:"split_at,omitempty"`
-	CreatedAt  time.Time  `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt  time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
 }
 
 func (SplitRecord) TableName() string {
@@ -74,8 +74,8 @@ type Wallet struct {
 	FrozenBalance    float64   `gorm:"type:decimal(12,2);not null;default:0.00" json:"frozen_balance"`
 	TotalIncome      float64   `gorm:"type:decimal(12,2);not null;default:0.00" json:"total_income"`
 	TotalWithdrawn   float64   `gorm:"type:decimal(12,2);not null;default:0.00" json:"total_withdrawn"`
-	UpdatedAt        time.Time `gorm:"not null;default:now()" json:"updated_at"`
-	CreatedAt        time.Time `gorm:"not null;default:now()" json:"created_at"`
+	UpdatedAt        time.Time `gorm:"not null;autoUpdateTime" json:"updated_at"`
+	CreatedAt        time.Time `gorm:"not null;autoCreateTime" json:"created_at"`
 }
 
 func (Wallet) TableName() string {
@@ -85,7 +85,7 @@ func (Wallet) TableName() string {
 // WalletTransaction 钱包交易流水模型
 type WalletTransaction struct {
 	ID              int64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	UUID            string    `gorm:"type:uuid;not null;uniqueIndex;default:gen_random_uuid()" json:"uuid"`
+	UUID            string    `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	WalletID        int64     `gorm:"not null;index" json:"wallet_id"`
 	UserID          int64     `gorm:"not null;index" json:"user_id"`
 	OrderID         *int64    `gorm:"index" json:"order_id,omitempty"`
@@ -98,9 +98,16 @@ type WalletTransaction struct {
 	WithdrawTradeNo *string   `gorm:"type:varchar(64)" json:"withdraw_trade_no,omitempty"`
 	Remark          *string   `gorm:"type:varchar(200)" json:"remark,omitempty"`
 	Status          int16     `gorm:"not null;default:1" json:"status"`
-	CreatedAt       time.Time `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt       time.Time `gorm:"not null;autoCreateTime" json:"created_at"`
 }
 
 func (WalletTransaction) TableName() string {
 	return "wallet_transactions"
+}
+
+func (wt *WalletTransaction) BeforeCreate(tx *gorm.DB) error {
+	if wt.UUID == "" {
+		wt.UUID = GenerateUUID()
+	}
+	return nil
 }
