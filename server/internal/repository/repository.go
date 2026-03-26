@@ -53,6 +53,8 @@ type UserRepository interface {
 	ListExperts(offset, limit int) ([]*model.User, int64, error)
 	ListUserSkills(userID int64) ([]*model.UserSkill, error)
 	ReplaceUserSkills(userID int64, skills []*model.UserSkill) error
+	FindSkillByID(id int64) (*model.Skill, error)
+	EnsureSkill(name, category string) (*model.Skill, error)
 	ListUserPortfolios(userID int64) ([]*model.Portfolio, error)
 }
 

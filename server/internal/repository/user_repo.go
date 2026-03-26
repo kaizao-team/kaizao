@@ -1,6 +1,9 @@
 package repository
 
 import (
+	"errors"
+	"strings"
+
 	"github.com/vibebuild/server/internal/model"
 	"gorm.io/gorm"
 )
@@ -91,6 +94,43 @@ func (r *userRepository) ReplaceUserSkills(userID int64, skills []*model.UserSki
 		}
 		return nil
 	})
+}
+
+func (r *userRepository) FindSkillByID(id int64) (*model.Skill, error) {
+	var s model.Skill
+	err := r.db.Where("id = ? AND status = 1", id).First(&s).Error
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+func (r *userRepository) EnsureSkill(name, category string) (*model.Skill, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, errors.New("empty skill name")
+	}
+	var s model.Skill
+	err := r.db.Where("name = ?", name).First(&s).Error
+	if err == nil {
+		return &s, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	cat := strings.TrimSpace(category)
+	if cat == "" {
+		cat = "other"
+	}
+	s = model.Skill{
+		Name:     name,
+		Category: cat,
+		Status:   1,
+	}
+	if err := r.db.Create(&s).Error; err != nil {
+		return nil, err
+	}
+	return &s, nil
 }
 
 func (r *userRepository) ListUserPortfolios(userID int64) ([]*model.Portfolio, error) {
