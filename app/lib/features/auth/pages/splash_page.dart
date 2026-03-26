@@ -104,6 +104,9 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
   @override
   Widget build(BuildContext context) {
+    final auth = ref.watch(authStateProvider);
+    final showStartButton =
+        !(auth.isInitialized && auth.isLoggedIn);
     final padding = MediaQuery.of(context).padding;
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
@@ -184,38 +187,39 @@ class _SplashPageState extends ConsumerState<SplashPage>
                   ],
                 ),
               ),
-              Positioned(
-                left: 24,
-                right: 24,
-                bottom: padding.bottom + 34,
-                child: FadeTransition(
-                  opacity: _buttonOpacityAnim,
-                  child: SlideTransition(
-                    position: _buttonSlideAnim,
-                    child: SizedBox(
-                      height: 54,
-                      child: ElevatedButton(
-                        onPressed: _onStart,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A1A1A),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+              if (showStartButton)
+                Positioned(
+                  left: 24,
+                  right: 24,
+                  bottom: padding.bottom + 34,
+                  child: FadeTransition(
+                    opacity: _buttonOpacityAnim,
+                    child: SlideTransition(
+                      position: _buttonSlideAnim,
+                      child: SizedBox(
+                        height: 54,
+                        child: ElevatedButton(
+                          onPressed: _onStart,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1A1A1A),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          '开始',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                          child: const Text(
+                            '开始',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           );
         },

@@ -3,15 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/routes.dart';
-import '../../../shared/widgets/vcc_button.dart';
+import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_loading.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
-import '../widgets/profile_header.dart';
-import '../widgets/profile_stats_row.dart';
-import '../widgets/portfolio_grid.dart';
-import '../widgets/role_switch_dialog.dart';
 
 class ProfilePage extends ConsumerWidget {
   final String? userId;
@@ -45,211 +40,217 @@ class ProfilePage extends ConsumerWidget {
     if (profile == null) return const Scaffold(body: VccLoading());
 
     return Scaffold(
+      backgroundColor: AppColors.white,
       body: RefreshIndicator(
         color: AppColors.black,
         onRefresh: () =>
             ref.read(profileProvider(effectiveId).notifier).loadProfile(),
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: ProfileHeader(profile: profile, isSelf: isSelf),
+        child: ListView(
+          children: [
+            if (isSelf) _buildTopBar(context),
+
+            if (!isSelf)
+              AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+              ),
+
+            const SizedBox(height: 24),
+
+            // Avatar
+            Center(
+              child: VccAvatar(
+                size: VccAvatarSize.xlarge,
+                imageUrl: profile.avatar,
+                fallbackText: profile.nickname.isNotEmpty
+                    ? profile.nickname[0]
+                    : 'U',
+              ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 52),
-                    Text(
-                      profile.nickname,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      profile.tagline,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.gray500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.star,
-                            size: 14, color: AppColors.accentGold),
-                        const SizedBox(width: 2),
-                        Text(
-                          profile.rating.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.black,
-                          ),
-                        ),
-                        Text(
-                          ' · 信用分 ${profile.creditScore}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.gray400,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    ProfileStatsRow(
-                      stats: profile.stats,
-                      isDemander: profile.isDemander,
-                    ),
-                    const SizedBox(height: 20),
-                    if (profile.bio.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: Text(
-                          profile.bio,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.gray600,
-                            height: 1.6,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    if (profile.isExpert && state.skills.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: state.skills
-                              .map((s) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.gray100,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      s.name,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.gray600,
-                                      ),
-                                    ),
-                                  ))
-                              .toList(),
-                        ),
-                      ),
-                    if (isSelf) ...[
-                      VccButton(
-                        text: '编辑主页',
-                        type: VccButtonType.secondary,
-                        onPressed: () => context.push(RoutePaths.editProfile),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ActionTile(
-                              icon: Icons.swap_horiz,
-                              label: '切换角色',
-                              onTap: () => _showRoleSwitch(
-                                context,
-                                ref,
-                                profile.role,
-                              ),
-                            ),
-                          ),
-                          if (profile.isExpert) ...[
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _ActionTile(
-                                icon: Icons.account_balance_wallet_outlined,
-                                label: '我的钱包',
-                                onTap: () => context.push(RoutePaths.wallet),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ActionTile(
-                              icon: Icons.settings_outlined,
-                              label: '设置',
-                              onTap: () => context.push(RoutePaths.settings),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                  ],
+            const SizedBox(height: 16),
+
+            // Name
+            Center(
+              child: Text(
+                profile.nickname,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.black,
+                  letterSpacing: -0.3,
                 ),
               ),
             ),
-            if (profile.isExpert)
-              SliverToBoxAdapter(
-                child: PortfolioGrid(items: state.portfolios),
+            const SizedBox(height: 8),
+
+            // Role badge
+            Center(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.gray100,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  profile.isDemander ? '发起人' : '造物者',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.gray500,
+                  ),
+                ),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+            ),
+            const SizedBox(height: 8),
+
+            // Tagline
+            Center(
+              child: Text(
+                profile.tagline.isNotEmpty
+                    ? profile.tagline
+                    : '${profile.roleName} · 开造平台',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.gray400,
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // Stats row
+            _buildStatsRow(profile),
+
+            // Separator
+            _buildSeparator(),
+
+            // Menu group 1
+            _buildMenuItem('我的项目', onTap: () {
+              // TODO: navigate to my projects
+            }),
+            _buildMenuItem('我的钱包', onTap: () {
+              context.push(RoutePaths.wallet);
+            }),
+            _buildMenuItem('消息通知', onTap: () {
+              // TODO: navigate to notifications
+            }),
+
+            _buildSeparator(),
+
+            // Menu group 2
+            _buildMenuItem('帮助与反馈', onTap: () {}),
+            _buildMenuItem('关于开造', onTap: () {}),
+
+            const SizedBox(height: 80),
           ],
         ),
       ),
     );
   }
 
-  void _showRoleSwitch(BuildContext context, WidgetRef ref, int currentRole) {
-    showDialog(
-      context: context,
-      builder: (_) => RoleSwitchDialog(
-        currentRole: currentRole,
-        onConfirm: () async {
-          final newRole = currentRole == 1 ? 2 : 1;
-          await ref.read(authStateProvider.notifier).selectRole(newRole);
-        },
+  Widget _buildTopBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          IconButton(
+            onPressed: () => context.push(RoutePaths.settings),
+            icon: const Icon(
+              Icons.settings_outlined,
+              size: 22,
+              color: AppColors.gray400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsRow(profile) {
+    final items = profile.isDemander
+        ? [
+            _StatData('${profile.stats.publishedProjects}', '发布需求'),
+            _StatData(profile.rating.toStringAsFixed(1), '评分'),
+            _StatData('${profile.creditScore}', '信用分'),
+          ]
+        : [
+            _StatData('${profile.stats.completedProjects}', '完成项目'),
+            _StatData(profile.rating.toStringAsFixed(1), '评分'),
+            _StatData('${profile.creditScore}', '信用分'),
+          ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: items
+            .map((item) => Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        item.value,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.label,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.gray400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ))
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildSeparator() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      height: 1,
+      color: const Color(0xFFF0F0F0),
+    );
+  }
+
+  Widget _buildMenuItem(String title, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.gray700,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: AppColors.gray300,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _ActionTile extends StatelessWidget {
-  final IconData icon;
+class _StatData {
+  final String value;
   final String label;
-  final VoidCallback onTap;
-
-  const _ActionTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.gray50,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 22, color: AppColors.black),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: AppColors.gray600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  const _StatData(this.value, this.label);
 }

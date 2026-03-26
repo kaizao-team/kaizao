@@ -153,6 +153,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (location == RoutePaths.splash) {
+        if (authState.isLoggedIn) {
+          return RoutePaths.home;
+        }
         return null;
       }
 
@@ -291,6 +294,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ),
       ),
+      // 静态路径须在 /profile/:userId 之前注册，否则 /profile/edit 会被当成 userId=edit
+      GoRoute(
+        path: RoutePaths.editProfile,
+        pageBuilder: (_, __) => _cupertinoPage(
+          const EditProfilePage(),
+        ),
+      ),
       GoRoute(
         path: RoutePaths.profileView,
         pageBuilder: (_, state) => _cupertinoPage(
@@ -341,12 +351,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.settings,
         pageBuilder: (_, __) => _cupertinoPage(
           const SettingsPage(),
-        ),
-      ),
-      GoRoute(
-        path: RoutePaths.editProfile,
-        pageBuilder: (_, __) => _cupertinoPage(
-          const EditProfilePage(),
         ),
       ),
       GoRoute(

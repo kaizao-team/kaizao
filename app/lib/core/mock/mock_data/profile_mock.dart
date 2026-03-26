@@ -30,11 +30,6 @@ class ProfileMock {
       delayMs: 300,
       handler: (_) => _getPortfolios(),
     );
-
-    handlers['GET:/api/v1/users/me'] = MockHandler(
-      delayMs: 200,
-      handler: (_) => _getCurrentUser(),
-    );
   }
 
   static Map<String, dynamic> _getUserProfile(RequestOptions options) {
@@ -68,39 +63,6 @@ class ProfileMock {
         'bio': isSelf
             ? '5年全栈开发经验，擅长 Flutter 和 Go 后端开发，热衷于用 AI 提升开发效率。'
             : '资深移动端开发者，主攻 Flutter 跨平台方案，交付过20+商业项目。',
-        'created_at': '2025-06-15T10:00:00Z',
-      },
-    };
-  }
-
-  static Map<String, dynamic> _getCurrentUser() {
-    final currentUser = UserMock.currentUserData;
-    final role = currentUser['role'] as int? ?? 1;
-
-    return {
-      'code': 0,
-      'message': 'ok',
-      'data': {
-        'id': currentUser['uuid'] ?? 'user_001',
-        'nickname': currentUser['nickname'] ?? '张恒',
-        'avatar': currentUser['avatar_url'],
-        'tagline': '全栈 Vibe Coder',
-        'role': role,
-        'rating': 4.9,
-        'credit_score': 920,
-        'is_verified': true,
-        'phone': '138****8888',
-        'wechat_bound': true,
-        'stats': {
-          'completed_projects': role == 2 ? 12 : 0,
-          'approval_rate': 98,
-          'avg_delivery_days': 3.2,
-          'total_earnings': role == 2 ? 86500.0 : 0.0,
-          'published_projects': role == 1 ? 5 : 0,
-          'total_spent': role == 1 ? 42000.0 : 0.0,
-          'days_on_platform': 285,
-        },
-        'bio': currentUser['bio'] ?? '5年全栈开发经验，擅长 Flutter 和 Go 后端开发。',
         'created_at': '2025-06-15T10:00:00Z',
       },
     };

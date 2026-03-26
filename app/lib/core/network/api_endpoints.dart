@@ -129,6 +129,7 @@ class ApiEndpoints {
   // 消息/沟通模块 /api/v1/conversations
   // ============================================================
   static const String conversations = '/api/v1/conversations';
+  static String conversationDetail(String id) => '/api/v1/conversations/$id';
   static String conversationMessages(String id) =>
       '/api/v1/conversations/$id/messages';
   static String conversationRead(String id) => '/api/v1/conversations/$id/read';
