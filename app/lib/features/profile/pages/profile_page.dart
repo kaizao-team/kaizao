@@ -40,106 +40,21 @@ class ProfilePage extends ConsumerWidget {
     if (profile == null) return const Scaffold(body: VccLoading());
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: const Color(0xFFF9F9F9),
       body: RefreshIndicator(
         color: AppColors.black,
         onRefresh: () =>
             ref.read(profileProvider(effectiveId).notifier).loadProfile(),
         child: ListView(
+          padding: EdgeInsets.zero,
           children: [
-            if (isSelf) _buildTopBar(context),
-
-            if (!isSelf)
-              AppBar(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-              ),
-
+            _buildHeaderSection(context, profile, isSelf),
             const SizedBox(height: 24),
 
-            // Avatar
-            Center(
-              child: VccAvatar(
-                size: VccAvatarSize.xlarge,
-                imageUrl: profile.avatar,
-                fallbackText: profile.nickname.isNotEmpty
-                    ? profile.nickname[0]
-                    : 'U',
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Name
-            Center(
-              child: Text(
-                profile.nickname,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.black,
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Role badge
-            Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.gray100,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  profile.isDemander ? '发起人' : '造物者',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.gray500,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Tagline
-            Center(
-              child: Text(
-                profile.tagline.isNotEmpty
-                    ? profile.tagline
-                    : '${profile.roleName} · 开造平台',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.gray400,
-                ),
-              ),
-            ),
-            const SizedBox(height: 28),
-
-            // Stats row
             _buildStatsRow(profile),
+            const SizedBox(height: 24),
 
-            // Separator
-            _buildSeparator(),
-
-            // Menu group 1
-            _buildMenuItem('我的项目', onTap: () {
-              // TODO: navigate to my projects
-            }),
-            _buildMenuItem('我的钱包', onTap: () {
-              context.push(RoutePaths.wallet);
-            }),
-            _buildMenuItem('消息通知', onTap: () {
-              // TODO: navigate to notifications
-            }),
-
-            _buildSeparator(),
-
-            // Menu group 2
-            _buildMenuItem('帮助与反馈', onTap: () {}),
-            _buildMenuItem('关于开造', onTap: () {}),
+            _buildMenuSection(context),
 
             const SizedBox(height: 80),
           ],
@@ -148,26 +63,165 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildTopBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          IconButton(
-            onPressed: () => context.push(RoutePaths.settings),
-            icon: const Icon(
-              Icons.settings_outlined,
-              size: 22,
-              color: AppColors.gray400,
+  Widget _buildHeaderSection(
+      BuildContext context, dynamic profile, bool isSelf) {
+    final topPadding = MediaQuery.of(context).padding.top;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.only(top: topPadding),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF1A1C1C), Color(0xFF2D2F2F)],
             ),
           ),
-        ],
-      ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -40,
+                top: -20,
+                child: CustomPaint(
+                  size: const Size(200, 200),
+                  painter: _GridPatternPainter(),
+                ),
+              ),
+              Positioned(
+                left: -30,
+                bottom: -10,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.04),
+                      width: 1,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 12, 60),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'VCC',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.8),
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        if (isSelf)
+                          IconButton(
+                            onPressed: () =>
+                                context.push(RoutePaths.settings),
+                            icon: Icon(
+                              Icons.settings_outlined,
+                              size: 22,
+                              color: Colors.white.withValues(alpha: 0.6),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: -40,
+          child: Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: VccAvatar(
+                  size: VccAvatarSize.xlarge,
+                  imageUrl: profile.avatar,
+                  fallbackText: profile.nickname.isNotEmpty
+                      ? profile.nickname[0]
+                      : 'U',
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: -100,
+          child: Column(
+            children: [
+              Text(
+                profile.nickname,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1C1C),
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F3F3),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  profile.isDemander ? '需求方' : '专家',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.gray500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                profile.tagline.isNotEmpty
+                    ? profile.tagline
+                    : '${profile.roleName} · 开造平台',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.gray400,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 200 + MediaQuery.of(context).padding.top,
+          width: double.infinity,
+        ),
+      ],
     );
   }
 
-  Widget _buildStatsRow(profile) {
+  Widget _buildStatsRow(dynamic profile) {
     final items = profile.isDemander
         ? [
             _StatData('${profile.stats.publishedProjects}', '发布需求'),
@@ -193,7 +247,7 @@ class ProfilePage extends ConsumerWidget {
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.black,
+                          color: Color(0xFF1A1C1C),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -212,11 +266,31 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSeparator() {
+  Widget _buildMenuSection(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      height: 1,
-      color: const Color(0xFFF0F0F0),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          _buildMenuItem('我的项目', onTap: () {}),
+          _buildMenuItem('我的钱包', onTap: () {
+            context.push(RoutePaths.wallet);
+          }),
+          _buildMenuItem('消息通知', onTap: () {}),
+          const SizedBox(height: 8),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            height: 1,
+            color: const Color(0xFFF3F3F3),
+          ),
+          const SizedBox(height: 8),
+          _buildMenuItem('帮助与反馈', onTap: () {}),
+          _buildMenuItem('关于开造', onTap: () {}),
+        ],
+      ),
     );
   }
 
@@ -253,4 +327,35 @@ class _StatData {
   final String value;
   final String label;
   const _StatData(this.value, this.label);
+}
+
+class _GridPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    const step = 20.0;
+    for (double i = 0; i < size.width; i += step) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+    for (double j = 0; j < size.height; j += step) {
+      canvas.drawLine(Offset(0, j), Offset(size.width, j), paint);
+    }
+
+    final dotPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.08)
+      ..style = PaintingStyle.fill;
+
+    for (double i = 0; i < size.width; i += step) {
+      for (double j = 0; j < size.height; j += step) {
+        canvas.drawCircle(Offset(i, j), 1.2, dotPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
