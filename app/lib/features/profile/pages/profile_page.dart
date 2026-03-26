@@ -125,9 +125,6 @@ class ProfilePage extends ConsumerWidget {
             _buildSeparator(),
 
             // Menu group 1
-            _buildMenuItem('我的项目', onTap: () {
-              // TODO: navigate to my projects
-            }),
             _buildMenuItem('我的钱包', onTap: () {
               context.push(RoutePaths.wallet);
             }),
