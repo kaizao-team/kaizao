@@ -189,27 +189,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<bool?> _showLogoutConfirm(BuildContext context) {
     return showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.white,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      enableDrag: true,
+      showDragHandle: false,
       builder: (ctx) {
         final bottomPadding = MediaQuery.of(ctx).padding.bottom;
-        return Container(
-          padding: EdgeInsets.fromLTRB(20, 24, 20, 16 + bottomPadding),
-          decoration: const BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 16 + bottomPadding),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.gray200,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 24),
               const Text(
                 '确认退出',
                 style: TextStyle(

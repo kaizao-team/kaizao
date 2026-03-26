@@ -48,174 +48,151 @@ class ProfilePage extends ConsumerWidget {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            _buildHeaderSection(context, profile, isSelf),
-            const SizedBox(height: 24),
-
-            _buildStatsRow(profile),
-            const SizedBox(height: 24),
-
-            _buildMenuSection(context),
-
-            const SizedBox(height: 80),
+            _buildBannerSection(context, isSelf),
+            Transform.translate(
+              offset: const Offset(0, -36),
+              child: Column(
+                children: [
+                  _buildAvatarAndInfo(profile),
+                  const SizedBox(height: 20),
+                  _buildStatsRow(profile),
+                  const SizedBox(height: 24),
+                  _buildMenuSection(context),
+                ],
+              ),
+            ),
+            const SizedBox(height: 44),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeaderSection(
-      BuildContext context, dynamic profile, bool isSelf) {
+  Widget _buildBannerSection(BuildContext context, bool isSelf) {
     final topPadding = MediaQuery.of(context).padding.top;
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.only(top: topPadding),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF1A1C1C), Color(0xFF2D2F2F)],
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(top: topPadding),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1A1C1C), Color(0xFF2D2F2F)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -40,
+            top: -20,
+            child: CustomPaint(
+              size: const Size(200, 200),
+              painter: _GridPatternPainter(),
             ),
           ),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -40,
-                top: -20,
-                child: CustomPaint(
-                  size: const Size(200, 200),
-                  painter: _GridPatternPainter(),
+          Positioned(
+            left: -30,
+            bottom: -10,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  width: 1,
                 ),
               ),
-              Positioned(
-                left: -30,
-                bottom: -10,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.04),
-                      width: 1,
-                    ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 12, 56),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'VCC',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: 0.8),
+                    letterSpacing: 1.5,
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 12, 60),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'VCC',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withValues(alpha: 0.8),
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        if (isSelf)
-                          IconButton(
-                            onPressed: () =>
-                                context.push(RoutePaths.settings),
-                            icon: Icon(
-                              Icons.settings_outlined,
-                              size: 22,
-                              color: Colors.white.withValues(alpha: 0.6),
-                            ),
-                          ),
-                      ],
+                if (isSelf)
+                  IconButton(
+                    onPressed: () => context.push(RoutePaths.settings),
+                    icon: Icon(
+                      Icons.settings_outlined,
+                      size: 22,
+                      color: Colors.white.withValues(alpha: 0.6),
                     ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: -40,
-          child: Column(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: VccAvatar(
-                  size: VccAvatarSize.xlarge,
-                  imageUrl: profile.avatar,
-                  fallbackText: profile.nickname.isNotEmpty
-                      ? profile.nickname[0]
-                      : 'U',
-                ),
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: -100,
-          child: Column(
-            children: [
-              Text(
-                profile.nickname,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1C1C),
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F3F3),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  profile.isDemander ? '需求方' : '专家',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.gray500,
                   ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                profile.tagline.isNotEmpty
-                    ? profile.tagline
-                    : '${profile.roleName} · 开造平台',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.gray400,
-                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarAndInfo(dynamic profile) {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
+          child: VccAvatar(
+            size: VccAvatarSize.xlarge,
+            imageUrl: profile.avatar,
+            fallbackText:
+                profile.nickname.isNotEmpty ? profile.nickname[0] : 'U',
+          ),
         ),
-        SizedBox(
-          height: 200 + MediaQuery.of(context).padding.top,
-          width: double.infinity,
+        const SizedBox(height: 14),
+        Text(
+          profile.nickname,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1C1C),
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F3F3),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            profile.isDemander ? '需求方' : '专家',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppColors.gray500,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          profile.tagline.isNotEmpty
+              ? profile.tagline
+              : '${profile.roleName} · 开造平台',
+          style: const TextStyle(
+            fontSize: 14,
+            color: AppColors.gray400,
+          ),
         ),
       ],
     );
@@ -275,7 +252,6 @@ class ProfilePage extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          _buildMenuItem('我的项目', onTap: () {}),
           _buildMenuItem('我的钱包', onTap: () {
             context.push(RoutePaths.wallet);
           }),
