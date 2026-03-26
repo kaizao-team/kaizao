@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../mock_interceptor.dart';
+import 'user_mock.dart';
 
 class ProfileMock {
   ProfileMock._();
@@ -28,11 +29,6 @@ class ProfileMock {
     handlers['GET:/api/v1/users/:id/portfolios'] = MockHandler(
       delayMs: 300,
       handler: (_) => _getPortfolios(),
-    );
-
-    handlers['GET:/api/v1/users/me'] = MockHandler(
-      delayMs: 200,
-      handler: (_) => _getCurrentUser(),
     );
   }
 
@@ -67,36 +63,6 @@ class ProfileMock {
         'bio': isSelf
             ? '5年全栈开发经验，擅长 Flutter 和 Go 后端开发，热衷于用 AI 提升开发效率。'
             : '资深移动端开发者，主攻 Flutter 跨平台方案，交付过20+商业项目。',
-        'created_at': '2025-06-15T10:00:00Z',
-      },
-    };
-  }
-
-  static Map<String, dynamic> _getCurrentUser() {
-    return {
-      'code': 0,
-      'message': 'ok',
-      'data': {
-        'id': 'user_001',
-        'nickname': '张恒',
-        'avatar': null,
-        'tagline': '全栈 Vibe Coder',
-        'role': 1,
-        'rating': 4.9,
-        'credit_score': 920,
-        'is_verified': true,
-        'phone': '138****8888',
-        'wechat_bound': true,
-        'stats': {
-          'completed_projects': 12,
-          'approval_rate': 98,
-          'avg_delivery_days': 3.2,
-          'total_earnings': 86500.0,
-          'published_projects': 5,
-          'total_spent': 42000.0,
-          'days_on_platform': 285,
-        },
-        'bio': '5年全栈开发经验，擅长 Flutter 和 Go 后端开发。',
         'created_at': '2025-06-15T10:00:00Z',
       },
     };

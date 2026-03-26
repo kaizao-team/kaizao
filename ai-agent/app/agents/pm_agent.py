@@ -68,6 +68,16 @@ class PMAgent(ToolUseBaseAgent):
 
         return f"未知工具: {tool_name}"
 
+    async def generate_stream(self, project_id: str, requirement_content: str, design_content: str, task_content: str, feedback: str = ""):
+        """流式生成项目管理方案，yield SSE 事件"""
+        self._project_id = project_id
+        user_msg = "请基于所有前序文档，使用 produce_project_plan 工具生成完整的项目管理方案。"
+        if feedback:
+            user_msg = f"请根据以下反馈修改项目管理方案：\n\n{feedback}\n\n使用 produce_project_plan 工具输出修改后的方案。"
+        messages = [{"role": "user", "content": user_msg}]
+        async for event in self.run_stream(messages=messages, max_tokens=16384, requirement_content=requirement_content, design_content=design_content, task_content=task_content):
+            yield event
+
     async def generate(
         self,
         project_id: str,

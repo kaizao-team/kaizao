@@ -6,6 +6,34 @@
 > 容器版本：kaizao-server:latest / mysql:8.0 / redis:7-alpine
 > 测试方式：SSH 到远程服务器执行 `test_api.py`，目标 `http://localhost:39527`
 
+## 2026-03-26 复核结论
+
+- 远端登录接口当前仍使用旧字段 `code`；仅传 `sms_code` 会返回 `400 参数校验失败`，同时传 `code + sms_code` 可正常登录。
+- 远端 `POST /api/v1/projects/draft` 返回 `draft_id`，不是完整项目对象。
+- 远端不存在 `POST /api/v1/projects/:uuid/publish`，会返回 `404 page not found`。
+- 需求方四步引导在远端需按兼容路径执行：
+  1. `PUT /api/v1/users/me`
+  2. `POST /api/v1/projects/draft`
+  3. `PUT /api/v1/projects/:draft_id`
+  4. `POST /api/v1/projects`
+- 以上兼容链路已于 2026-03-26 实测通过，最终发布项目状态为 `2`。
+- 专家引导补充验证已于 2026-03-26 实测通过：
+  1. `PUT /api/v1/users/me` 写入 `role=2`、昵称、报价、排期
+  2. `PUT /api/v1/users/me/skills` 返回 `200 / 技能更新成功`
+  3. `PUT /api/v1/users/me` 写入 `bio`
+- 当前现网现象：`PUT /api/v1/users/me/skills` 成功后，`GET /api/v1/users/me` 的 `skills` 仍为空数组，技能回显链路待后端进一步确认。
+
+## 2026-03-26 专家引导补充验证
+
+| # | 接口 | 方法 | 路径 | 结果 |
+|---|------|------|------|------|
+| E1 | 发送短信验证码 | POST | `/api/v1/auth/sms-code` | ✓ PASS |
+| E2 | 登录（`code + sms_code`） | POST | `/api/v1/auth/login` | ✓ PASS |
+| E3 | 更新专家基础资料 | PUT | `/api/v1/users/me` | ✓ PASS |
+| E4 | 更新专家技能 | PUT | `/api/v1/users/me/skills` | ✓ PASS |
+| E5 | 更新专家简介 | PUT | `/api/v1/users/me` | ✓ PASS |
+| E6 | 回读当前用户资料 | GET | `/api/v1/users/me` | ✓ PASS（`skills` 未回显） |
+
 ## 测试结果：17/17 全部通过
 
 | # | 接口 | 方法 | 路径 | 结果 |

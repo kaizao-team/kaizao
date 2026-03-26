@@ -92,6 +92,54 @@ class AppTextStyles {
     color: AppColors.accent,
   );
 
+  static const TextStyle onboardingWordmark = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.w500,
+    height: 1.1,
+    letterSpacing: -0.8,
+    fontStyle: FontStyle.italic,
+    color: AppColors.black,
+  );
+
+  static const TextStyle onboardingTitle = TextStyle(
+    fontSize: 34,
+    fontWeight: FontWeight.w600,
+    height: 1.12,
+    letterSpacing: -1.0,
+    color: AppColors.black,
+  );
+
+  static const TextStyle onboardingBody = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w400,
+    height: 1.65,
+    color: AppColors.onboardingMutedText,
+  );
+
+  static const TextStyle onboardingMeta = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    height: 1.35,
+    letterSpacing: 0.6,
+    color: AppColors.gray400,
+  );
+
+  static const TextStyle onboardingSectionLabel = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    height: 1.4,
+    letterSpacing: 0.4,
+    color: AppColors.gray700,
+  );
+
+  static const TextStyle onboardingValue = TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+    letterSpacing: -0.4,
+    color: AppColors.black,
+  );
+
   static const TextStyle input = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w400,

@@ -103,12 +103,44 @@ Page<void> _cupertinoPage(Widget child) {
   return CupertinoPage(child: child);
 }
 
+Page<void> _onboardingFlowPage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 360),
+    reverseTransitionDuration: const Duration(milliseconds: 260),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final position = Tween<Offset>(
+        begin: const Offset(0.035, 0),
+        end: Offset.zero,
+      ).animate(
+        CurvedAnimation(
+          parent: animation,
+          curve: const Cubic(0.16, 1, 0.3, 1),
+          reverseCurve: Curves.easeOut,
+        ),
+      );
+
+      return FadeTransition(
+        opacity: animation.drive(
+          CurveTween(curve: Curves.easeOut),
+        ),
+        child: SlideTransition(
+          position: position,
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   final changeNotifier = ref.watch(authChangeNotifierProvider);
 
   final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: RoutePaths.splash,
+    overridePlatformDefaultLocation: true,
     debugLogDiagnostics: false,
     refreshListenable: changeNotifier,
     redirect: (context, state) {
@@ -121,8 +153,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (location == RoutePaths.splash) {
-        if (authState.isFirstLaunch) return RoutePaths.onboarding;
-        return authState.isLoggedIn ? RoutePaths.home : RoutePaths.login;
+        if (authState.isLoggedIn) {
+          return RoutePaths.home;
+        }
+        return null;
       }
 
       final isLoggedIn = authState.isLoggedIn;
@@ -139,20 +173,71 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: RoutePaths.splash, builder: (_, __) => const SplashPage()),
-      GoRoute(path: RoutePaths.onboarding, builder: (_, __) => const OnboardingPage()),
-      GoRoute(path: RoutePaths.login, builder: (_, __) => const LoginPage()),
-      GoRoute(path: RoutePaths.roleSelect, builder: (_, __) => const RoleSelectPage()),
-
-      GoRoute(path: RoutePaths.demanderOnboarding1, pageBuilder: (_, __) => _cupertinoPage(const DemanderProfilePage())),
-      GoRoute(path: RoutePaths.demanderOnboarding2, pageBuilder: (_, __) => _cupertinoPage(const DemanderGuideCreatePage())),
-      GoRoute(path: RoutePaths.demanderOnboarding3, pageBuilder: (_, __) => _cupertinoPage(const DemanderGuideFillPage())),
-      GoRoute(path: RoutePaths.demanderOnboarding4, pageBuilder: (_, __) => _cupertinoPage(const DemanderCompletePage())),
-
-      GoRoute(path: RoutePaths.expertOnboarding1, pageBuilder: (_, __) => _cupertinoPage(const ExpertProfilePage())),
-      GoRoute(path: RoutePaths.expertOnboarding2, pageBuilder: (_, __) => _cupertinoPage(const ExpertSupplementPage())),
-      GoRoute(path: RoutePaths.expertOnboarding3, pageBuilder: (_, __) => _cupertinoPage(const ExpertLevelPage())),
-
+      GoRoute(
+        path: RoutePaths.splash,
+        builder: (_, __) => const SplashPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.onboarding,
+        builder: (_, __) => const OnboardingPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.login,
+        builder: (_, __) => const LoginPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.roleSelect,
+        builder: (_, __) => const RoleSelectPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.demanderOnboarding1,
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
+          const DemanderProfilePage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.demanderOnboarding2,
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
+          const DemanderGuideCreatePage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.demanderOnboarding3,
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
+          const DemanderGuideFillPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.demanderOnboarding4,
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
+          const DemanderCompletePage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.expertOnboarding1,
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
+          const ExpertProfilePage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.expertOnboarding2,
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
+          const ExpertSupplementPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.expertOnboarding3,
+        pageBuilder: (_, state) => _onboardingFlowPage(
+          state,
+          const ExpertLevelPage(),
+        ),
+      ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => VccBottomNav(child: child),
@@ -167,19 +252,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RoutePaths.chatList,
-            pageBuilder: (_, __) => const NoTransitionPage(child: ConversationListPage()),
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: ConversationListPage()),
           ),
           GoRoute(
             path: RoutePaths.projectList,
-            pageBuilder: (_, __) => const NoTransitionPage(child: ProjectListPage()),
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: ProjectListPage()),
           ),
           GoRoute(
             path: RoutePaths.profile,
-            pageBuilder: (_, __) => const NoTransitionPage(child: ProfilePage()),
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: ProfilePage()),
           ),
         ],
       ),
-
       GoRoute(
         path: RoutePaths.projectDetail,
         pageBuilder: (_, state) => _cupertinoPage(
@@ -202,7 +289,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.chatDetail,
         pageBuilder: (_, state) => _cupertinoPage(
-          ChatDetailPage(conversationId: state.pathParameters['conversationId'] ?? ''),
+          ChatDetailPage(
+            conversationId: state.pathParameters['conversationId'] ?? '',
+          ),
+        ),
+      ),
+      // 静态路径须在 /profile/:userId 之前注册，否则 /profile/edit 会被当成 userId=edit
+      GoRoute(
+        path: RoutePaths.editProfile,
+        pageBuilder: (_, __) => _cupertinoPage(
+          const EditProfilePage(),
         ),
       ),
       GoRoute(
@@ -226,13 +322,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.projectManage,
         pageBuilder: (_, state) => _cupertinoPage(
-          ProjectManagePage(projectId: state.pathParameters['projectId'] ?? ''),
+          ProjectManagePage(
+            projectId: state.pathParameters['projectId'] ?? '',
+          ),
         ),
       ),
       GoRoute(
         path: RoutePaths.acceptance,
         pageBuilder: (_, state) => _cupertinoPage(
-          AcceptancePage(milestoneId: state.pathParameters['milestoneId'] ?? ''),
+          AcceptancePage(
+            milestoneId: state.pathParameters['milestoneId'] ?? '',
+          ),
         ),
       ),
       GoRoute(
@@ -247,12 +347,36 @@ final routerProvider = Provider<GoRouter>((ref) {
           PaymentResultPage(orderId: state.pathParameters['orderId'] ?? ''),
         ),
       ),
-      GoRoute(path: RoutePaths.settings, pageBuilder: (_, __) => _cupertinoPage(const SettingsPage())),
-      GoRoute(path: RoutePaths.editProfile, pageBuilder: (_, __) => _cupertinoPage(const EditProfilePage())),
-      GoRoute(path: RoutePaths.wallet, pageBuilder: (_, __) => _cupertinoPage(const WalletPage())),
-      GoRoute(path: RoutePaths.income, pageBuilder: (_, __) => _cupertinoPage(const WalletPage())),
-      GoRoute(path: RoutePaths.teamHall, pageBuilder: (_, __) => _cupertinoPage(const TeamHallPage())),
-      GoRoute(path: RoutePaths.createTeamPost, pageBuilder: (_, __) => _cupertinoPage(const CreateTeamPostPage())),
+      GoRoute(
+        path: RoutePaths.settings,
+        pageBuilder: (_, __) => _cupertinoPage(
+          const SettingsPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.wallet,
+        pageBuilder: (_, __) => _cupertinoPage(
+          const WalletPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.income,
+        pageBuilder: (_, __) => _cupertinoPage(
+          const WalletPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.teamHall,
+        pageBuilder: (_, __) => _cupertinoPage(
+          const TeamHallPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.createTeamPost,
+        pageBuilder: (_, __) => _cupertinoPage(
+          const CreateTeamPostPage(),
+        ),
+      ),
       GoRoute(
         path: RoutePaths.teamConfirm,
         pageBuilder: (_, state) => _cupertinoPage(
@@ -266,12 +390,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           final revieweeId = state.uri.queryParameters['revieweeId'] ?? '';
           final revieweeName = state.uri.queryParameters['revieweeName'] ?? '';
           final isDemander = state.uri.queryParameters['isDemander'] != 'false';
-          return _cupertinoPage(RatePage(
-            projectId: projectId,
-            revieweeId: revieweeId,
-            revieweeName: revieweeName,
-            isDemander: isDemander,
-          ));
+          return _cupertinoPage(
+            RatePage(
+              projectId: projectId,
+              revieweeId: revieweeId,
+              revieweeName: revieweeName,
+              isDemander: isDemander,
+            ),
+          );
         },
       ),
     ],

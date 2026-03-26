@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 39528
     log_level: str = "INFO"
 
     # Claude API 配置（主选 LLM）

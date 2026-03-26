@@ -1,3 +1,24 @@
+`shared/widgets` 只放跨模块基础件，不放复杂业务块。
+
+适合放这里的：
+
+- Button
+- Input
+- Card
+- Tag
+- Avatar
+- Toast
+- Empty / Loading
+
+不适合放这里的：
+
+- 首页 Hero
+- 引导页骨架
+- 复杂业务卡片
+- 强依赖单个 feature 语义的组合块
+
+如果组件只在一个模块里有意义，优先留在该模块的 `widgets/` 目录。
+
 <claude-mem-context>
 # Recent Activity
 

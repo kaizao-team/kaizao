@@ -119,6 +119,50 @@ class RequirementAgent(ToolUseBaseAgent):
             self._completeness_score,
         )
 
+    async def chat_stream(
+        self,
+        project_id: str,
+        messages: list[dict],
+        sub_stage: str = "clarifying",
+        completeness_score: int = 0,
+    ):
+        """流式执行一轮对话，yield SSE 事件"""
+        self._project_id = project_id
+        self._sub_stage = sub_stage
+        self._completeness_score = completeness_score
+
+        async for event in self.run_stream(messages=messages, max_tokens=16384):
+            yield event
+
+        # 追加阶段信息到 done 事件后
+        yield {
+            "event": "stage_info",
+            "data": f'{{"sub_stage": "{self._sub_stage}", "completeness_score": {self._completeness_score}}}',
+        }
+
+    async def confirm_prd_stream(
+        self,
+        project_id: str,
+        messages: list[dict],
+    ):
+        """流式确认 PRD，yield SSE 事件"""
+        self._project_id = project_id
+        self._sub_stage = "prd_confirmed"
+        self._completeness_score = 100
+
+        messages.append({
+            "role": "user",
+            "content": "PRD 已确认，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
+        })
+
+        async for event in self.run_stream(messages=messages, max_tokens=16384):
+            yield event
+
+        yield {
+            "event": "stage_info",
+            "data": f'{{"sub_stage": "{self._sub_stage}", "completeness_score": {self._completeness_score}}}',
+        }
+
     async def confirm_prd(
         self,
         project_id: str,

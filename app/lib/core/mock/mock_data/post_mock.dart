@@ -1,8 +1,11 @@
 import 'package:dio/dio.dart';
 import '../mock_interceptor.dart';
+import 'market_mock.dart';
 
 class PostMock {
   PostMock._();
+
+  static int _draftCount = 0;
 
   static void register(Map<String, MockHandler> handlers) {
     handlers['POST:/api/v1/projects/ai-chat'] = MockHandler(
@@ -17,12 +20,22 @@ class PostMock {
 
     handlers['POST:/api/v1/projects/draft'] = MockHandler(
       delayMs: 300,
-      handler: (_) => _saveDraft(),
+      handler: (options) => _saveDraft(options),
+    );
+
+    handlers['PUT:/api/v1/projects/:id'] = MockHandler(
+      delayMs: 300,
+      handler: (options) => _updateDraft(options),
+    );
+
+    handlers['POST:/api/v1/projects/:id/publish'] = MockHandler(
+      delayMs: 300,
+      handler: (options) => _publishDraft(options),
     );
 
     handlers['POST:/api/v1/projects'] = MockHandler(
       delayMs: 500,
-      handler: (_) => _publishProject(),
+      handler: (options) => _publishProject(options),
     );
   }
 
@@ -39,9 +52,11 @@ class PostMock {
     if (_turnCount == 1) {
       reply = '好的，我来帮你梳理需求。你提到「$userMessage」，能详细说说你期望的核心功能有哪些吗？比如用户端需要哪些主要页面？';
     } else if (_turnCount == 2) {
-      reply = '明白了，我整理一下：\n\n1. **用户注册/登录** — 手机号 + 短信验证\n2. **首页推荐** — 个性化内容推荐\n3. **核心功能模块** — 根据你描述的业务场景\n4. **个人中心** — 账号管理与设置\n\n你对技术栈有偏好吗？需要支持哪些平台？';
+      reply =
+          '明白了，我整理一下：\n\n1. **用户注册/登录** — 手机号 + 短信验证\n2. **首页推荐** — 个性化内容推荐\n3. **核心功能模块** — 根据你描述的业务场景\n4. **个人中心** — 账号管理与设置\n\n你对技术栈有偏好吗？需要支持哪些平台？';
     } else if (_turnCount == 3) {
-      reply = '需求已经比较清晰了！我帮你总结一下：\n\n📋 **项目概要**\n- 平台：移动端 (iOS + Android)\n- 核心模块：3-4个主要功能\n- 预计工期：4-6周\n- 技术建议：Flutter + Go 后端\n\n信息足够生成 PRD 了，你可以点击「生成PRD」按钮，我会帮你生成完整的需求文档。';
+      reply =
+          '需求已经比较清晰了！我帮你总结一下：\n\n📋 **项目概要**\n- 平台：移动端 (iOS + Android)\n- 核心模块：3-4个主要功能\n- 预计工期：4-6周\n- 技术建议：Flutter + Go 后端\n\n信息足够生成 PRD 了，你可以点击「生成PRD」按钮，我会帮你生成完整的需求文档。';
       canGeneratePrd = true;
     } else {
       reply = '好的，我已经记录了你的补充。你还有其他要补充的吗？信息已经足够生成 PRD 了。';
@@ -84,7 +99,11 @@ class PostMock {
                 'response': '验证成功跳转首页，失败提示错误',
                 'state_change': '用户状态从未登录变为已登录',
                 'acceptance_criteria': [
-                  {'id': 'ac_001', 'content': '手机号格式校验（11位数字）', 'checked': false},
+                  {
+                    'id': 'ac_001',
+                    'content': '手机号格式校验（11位数字）',
+                    'checked': false
+                  },
                   {'id': 'ac_002', 'content': '验证码60秒倒计时', 'checked': false},
                   {'id': 'ac_003', 'content': '3次错误后锁定5分钟', 'checked': false},
                 ],
@@ -227,26 +246,141 @@ class PostMock {
     };
   }
 
-  static Map<String, dynamic> _saveDraft() {
+  static Map<String, dynamic> _saveDraft(RequestOptions options) {
+    _draftCount += 1;
+    final data = options.data as Map<String, dynamic>? ?? {};
+    final now = DateTime.now().toIso8601String();
+    final projectId = 'proj_draft_${_draftCount.toString().padLeft(3, '0')}';
+
+    final project = <String, dynamic>{
+      'id': projectId,
+      'uuid': projectId,
+      'owner_id': 'user_001',
+      'owner_name': '开造用户',
+      'title': '未命名需求草稿',
+      'description': '需求方正在完善项目描述，发布后会补充完整的业务背景、目标与交付要求。',
+      'category': data['category']?.toString() ?? 'web',
+      'budget_min': (data['budget_min'] as num?)?.toDouble() ?? 1000,
+      'budget_max': (data['budget_max'] as num?)?.toDouble() ?? 5000,
+      'match_mode': data['match_mode'] as int? ?? 1,
+      'status': 1,
+      'status_text': '草稿',
+      'tech_requirements': <String>[],
+      'view_count': 0,
+      'bid_count': 0,
+      'created_at': now,
+    };
+    MarketMock.upsertProject(project);
+
     return {
       'code': 0,
       'message': '草稿已保存',
       'data': {
-        'draft_id': 'draft_mock_001',
-        'saved_at': DateTime.now().toIso8601String(),
+        ...project,
+        'saved_at': now,
       },
     };
   }
 
-  static Map<String, dynamic> _publishProject() {
+  static Map<String, dynamic> _updateDraft(RequestOptions options) {
+    final path = options.path;
+    final projectId = path.split('/').last;
+    final current = MarketMock.findProject(projectId) ??
+        <String, dynamic>{
+          'id': projectId,
+          'uuid': projectId,
+          'owner_id': 'user_001',
+          'owner_name': '开造用户',
+          'status': 1,
+          'created_at': DateTime.now().toIso8601String(),
+          'tech_requirements': <String>[],
+          'view_count': 0,
+          'bid_count': 0,
+        };
+    final data = options.data as Map<String, dynamic>? ?? {};
+
+    final updated = <String, dynamic>{
+      ...current,
+      ...data,
+      'id': current['id'] ?? projectId,
+      'uuid': current['uuid'] ?? projectId,
+      'status': current['status'] ?? 1,
+      'status_text': '草稿',
+    };
+    MarketMock.upsertProject(updated);
+
+    return {
+      'code': 0,
+      'message': '草稿更新成功',
+      'data': updated,
+    };
+  }
+
+  static Map<String, dynamic> _publishDraft(RequestOptions options) {
+    final pathParts = options.path.split('/');
+    final projectId = pathParts[pathParts.length - 2];
+    final current = MarketMock.findProject(projectId) ??
+        <String, dynamic>{
+          'id': projectId,
+          'uuid': projectId,
+          'owner_id': 'user_001',
+          'owner_name': '开造用户',
+          'title': '未命名需求',
+          'description': '需求方正在完善项目描述，发布后会补充完整的业务背景、目标与交付要求。',
+          'category': 'web',
+          'budget_min': 1000,
+          'budget_max': 5000,
+          'match_mode': 1,
+          'tech_requirements': <String>[],
+          'view_count': 0,
+          'bid_count': 0,
+          'created_at': DateTime.now().toIso8601String(),
+        };
+    final published = <String, dynamic>{
+      ...current,
+      'status': 2,
+      'status_text': '已发布',
+      'published_at': DateTime.now().toIso8601String(),
+    };
+    MarketMock.upsertProject(published);
+
     return {
       'code': 0,
       'message': '项目发布成功',
-      'data': {
-        'id': 'proj_new_001',
-        'uuid': 'proj_uuid_new_001',
-        'status': 2,
-      },
+      'data': published,
+    };
+  }
+
+  static Map<String, dynamic> _publishProject(RequestOptions options) {
+    final data = options.data as Map<String, dynamic>? ?? {};
+    _draftCount += 1;
+    final now = DateTime.now().toIso8601String();
+    final projectId = 'proj_new_${_draftCount.toString().padLeft(3, '0')}';
+    final project = <String, dynamic>{
+      'id': projectId,
+      'uuid': projectId,
+      'owner_id': 'user_001',
+      'owner_name': '开造用户',
+      'title': data['title'] ?? 'AI 生成需求',
+      'description': data['description'] ?? '来自发布流的需求描述',
+      'category': data['category']?.toString() ?? 'web',
+      'budget_min': (data['budget_min'] as num?)?.toDouble() ?? 5000,
+      'budget_max': (data['budget_max'] as num?)?.toDouble() ?? 15000,
+      'match_mode': data['match_mode'] as int? ?? 1,
+      'status': 2,
+      'status_text': '已发布',
+      'tech_requirements': <String>[],
+      'view_count': 0,
+      'bid_count': 0,
+      'published_at': now,
+      'created_at': now,
+    };
+    MarketMock.upsertProject(project);
+
+    return {
+      'code': 0,
+      'message': '项目发布成功',
+      'data': project,
     };
   }
 }

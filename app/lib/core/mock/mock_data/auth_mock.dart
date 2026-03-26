@@ -35,20 +35,29 @@ class AuthMock {
 
   static Map<String, dynamic> _login(RequestOptions options) {
     final data = options.data as Map<String, dynamic>?;
-    final code = data?['code']?.toString() ?? '';
+    final code = data?['sms_code']?.toString() ?? '';
 
-    // 验证码 "1234" 模拟新用户，其余模拟老用户
-    final isNewUser = code == '1234';
+    // 验证码 "123456" 模拟新用户，其余模拟老用户
+    final isNewUser = code == '123456';
 
     return {
       'code': 0,
       'message': '登录成功',
       'data': {
-        'access_token': 'mock_access_token_${DateTime.now().millisecondsSinceEpoch}',
-        'refresh_token': 'mock_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
-        'user_id': 'user_001',
-        'role': isNewUser ? 0 : 1,
-        'is_new_user': isNewUser,
+        'access_token':
+            'mock_access_token_${DateTime.now().millisecondsSinceEpoch}',
+        'refresh_token':
+            'mock_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
+        'expires_in': 7200,
+        'user': {
+          'uuid': 'user_001',
+          'nickname': isNewUser ? '新需求方' : '开造用户',
+          'avatar_url': null,
+          'role': isNewUser ? 0 : 1,
+          'level': 1,
+          'credit_score': 500,
+          'is_verified': false,
+        },
       },
     };
   }
@@ -66,8 +75,10 @@ class AuthMock {
       'code': 0,
       'message': 'ok',
       'data': {
-        'access_token': 'mock_refreshed_token_${DateTime.now().millisecondsSinceEpoch}',
-        'refresh_token': 'mock_refreshed_refresh_${DateTime.now().millisecondsSinceEpoch}',
+        'access_token':
+            'mock_refreshed_token_${DateTime.now().millisecondsSinceEpoch}',
+        'refresh_token':
+            'mock_refreshed_refresh_${DateTime.now().millisecondsSinceEpoch}',
       },
     };
   }

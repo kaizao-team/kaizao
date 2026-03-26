@@ -69,6 +69,16 @@ class TaskAgent(ToolUseBaseAgent):
 
         return f"未知工具: {tool_name}"
 
+    async def generate_stream(self, project_id: str, requirement_content: str, design_content: str, feedback: str = ""):
+        """流式生成任务分解，yield SSE 事件"""
+        self._project_id = project_id
+        user_msg = "请基于需求文档和架构设计，使用 produce_task_breakdown 工具生成完整的任务分解方案。"
+        if feedback:
+            user_msg = f"请根据以下反馈修改任务分解：\n\n{feedback}\n\n使用 produce_task_breakdown 工具输出修改后的方案。"
+        messages = [{"role": "user", "content": user_msg}]
+        async for event in self.run_stream(messages=messages, max_tokens=16384, requirement_content=requirement_content, design_content=design_content):
+            yield event
+
     async def generate(
         self,
         project_id: str,
