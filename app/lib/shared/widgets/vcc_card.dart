@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import 'vcc_tag.dart';
 
-/// 开造 VCC 通用卡片组件
+/// 开造 VCC 通用卡片组件 — 白底 + 细边框，Notion 风格
 class VccCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -12,6 +12,7 @@ class VccCard extends StatelessWidget {
   final List<BoxShadow>? boxShadow;
   final Border? border;
   final Gradient? gradient;
+  final Color? backgroundColor;
 
   const VccCard({
     super.key,
@@ -23,6 +24,7 @@ class VccCard extends StatelessWidget {
     this.boxShadow,
     this.border,
     this.gradient,
+    this.backgroundColor,
   });
 
   @override
@@ -36,18 +38,16 @@ class VccCard extends StatelessWidget {
         padding: padding ?? const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: gradient == null
-              ? (isDark ? AppColors.darkCard : Colors.white)
+              ? (backgroundColor ?? (isDark ? AppColors.darkCard : AppColors.white))
               : null,
           gradient: gradient,
-          borderRadius: BorderRadius.circular(borderRadius ?? 16),
+          borderRadius: BorderRadius.circular(borderRadius ?? 12),
           border: border ??
               Border.all(
-                color: isDark
-                    ? Colors.white.withOpacity(0.06)
-                    : Colors.black.withOpacity(0.06),
-                width: 0.5,
+                color: isDark ? AppColors.darkDivider : AppColors.gray200,
+                width: 1,
               ),
-          boxShadow: boxShadow ?? AppShadows.shadow2,
+          boxShadow: boxShadow,
         ),
         child: child,
       ),
@@ -55,7 +55,7 @@ class VccCard extends StatelessWidget {
   }
 }
 
-/// 项目卡片
+/// 项目卡片 — 白底细边框风格
 class VccProjectCard extends StatelessWidget {
   final String title;
   final String description;
@@ -85,15 +85,14 @@ class VccProjectCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 顶部行：匹配度标签 + 金额
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (matchScore != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    gradient: AppGradients.primaryButton,
+                    color: AppColors.accentLight,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -101,7 +100,7 @@ class VccProjectCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white,
+                      color: AppColors.accent,
                     ),
                   ),
                 ),
@@ -111,25 +110,23 @@ class VccProjectCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.gray800,
+                    color: AppColors.black,
                   ),
                 ),
             ],
           ),
           const SizedBox(height: 8),
-          // 标题
           Text(
             title,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.gray800,
+              color: AppColors.black,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
-          // 描述
           Text(
             description,
             style: const TextStyle(
@@ -153,7 +150,7 @@ class VccProjectCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.infoBg,
+                color: AppColors.accentLight,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -161,7 +158,7 @@ class VccProjectCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
-                  color: AppColors.info,
+                  color: AppColors.accent,
                 ),
               ),
             ),

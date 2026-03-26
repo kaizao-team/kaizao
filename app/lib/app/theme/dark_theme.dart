@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app_colors.dart';
 
-/// 深色主题配置 — 所有值从UI原型规范深色模式映射表提取
+/// 深色主题 — Notion/Linear 暗色风格
 class DarkTheme {
   DarkTheme._();
 
@@ -10,37 +10,35 @@ class DarkTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      primaryColor: AppColors.brandPurple,
+      primaryColor: AppColors.white,
       scaffoldBackgroundColor: AppColors.darkBg,
-      fontFamily: 'PingFangSC',
 
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.brandPurple,
-        secondary: AppColors.brandIndigo,
-        tertiary: AppColors.brandBlue,
+        primary: AppColors.white,
+        secondary: AppColors.accent,
+        tertiary: AppColors.accent,
         error: AppColors.errorDark,
         surface: AppColors.darkCard,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onSurface: Color(0xFFF8FAFC),
-        onError: Colors.white,
+        onPrimary: AppColors.black,
+        onSecondary: AppColors.white,
+        onSurface: AppColors.darkText,
+        onError: AppColors.white,
         outline: AppColors.darkDivider,
       ),
 
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.darkBg,
-        foregroundColor: Color(0xFFF8FAFC),
+        foregroundColor: AppColors.darkText,
         elevation: 0,
-        scrolledUnderElevation: 0.5,
+        scrolledUnderElevation: 0,
         centerTitle: true,
         toolbarHeight: 44,
         titleTextStyle: TextStyle(
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
-          color: Color(0xFFF8FAFC),
-          fontFamily: 'PingFangSC',
+          color: AppColors.darkText,
         ),
-        iconTheme: IconThemeData(color: Color(0xFFE2E8F0), size: 24),
+        iconTheme: IconThemeData(color: AppColors.darkText, size: 24),
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
@@ -51,9 +49,11 @@ class DarkTheme {
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         type: BottomNavigationBarType.fixed,
         backgroundColor: AppColors.darkBg,
-        selectedItemColor: AppColors.brandPurple,
-        unselectedItemColor: AppColors.gray500,
+        selectedItemColor: AppColors.darkText,
+        unselectedItemColor: AppColors.darkTextSecondary,
         elevation: 0,
+        selectedLabelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+        unselectedLabelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.w400),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
@@ -63,30 +63,30 @@ class DarkTheme {
         hintStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w400,
-          color: AppColors.gray600,
+          color: AppColors.darkTextSecondary,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.darkDivider, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.darkDivider, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.darkText, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.errorDark, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.errorDark, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.errorDark, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.errorDark, width: 1.5),
         ),
         disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.darkDivider, width: 1),
         ),
       ),
@@ -115,7 +115,7 @@ class DarkTheme {
           ),
         ),
         showDragHandle: true,
-        dragHandleColor: AppColors.gray600,
+        dragHandleColor: AppColors.darkTextSecondary,
         dragHandleSize: Size(40, 4),
       ),
 
@@ -124,36 +124,38 @@ class DarkTheme {
         contentTextStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          color: Color(0xFFF8FAFC),
+          color: AppColors.darkText,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
         behavior: SnackBarBehavior.floating,
       ),
 
       switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.all(Colors.white),
+        thumbColor: WidgetStateProperty.all(AppColors.white),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.brandPurple;
+            return AppColors.white;
           }
           return AppColors.darkDivider;
         }),
         trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
       ),
 
-      textSelectionTheme: const TextSelectionThemeData(
-        cursorColor: AppColors.brandPurple,
-        selectionColor: Color(0x557C3AED),
-        selectionHandleColor: AppColors.brandPurple,
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: AppColors.white,
+        selectionColor: Color.fromRGBO(124, 58, 237, 0.3),
+        selectionHandleColor: AppColors.accent,
       ),
 
       cardTheme: CardThemeData(
         color: AppColors.darkCard,
         surfaceTintColor: AppColors.darkCard,
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.darkDivider, width: 1),
         ),
       ),
 

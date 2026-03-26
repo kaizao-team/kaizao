@@ -3,25 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'routes.dart';
 import 'theme/app_theme.dart';
-import 'theme/dark_theme.dart';
-
-// 主题模式 Provider
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
+import '../shared/widgets/network_status_bar.dart';
 
 class VccApp extends ConsumerWidget {
   const VccApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeProvider);
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
       title: '开造 VCC',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      darkTheme: DarkTheme.darkTheme,
-      themeMode: themeMode,
+      themeMode: ThemeMode.light,
       routerConfig: router,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
@@ -41,7 +36,7 @@ class VccApp extends ConsumerWidget {
           data: mediaQueryData.copyWith(
             textScaler: TextScaler.linear(scale),
           ),
-          child: child ?? const SizedBox.shrink(),
+          child: NetworkStatusBar(child: child ?? const SizedBox.shrink()),
         );
       },
     );

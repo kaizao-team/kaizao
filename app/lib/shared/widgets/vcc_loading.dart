@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../app/theme/app_colors.dart';
 
-/// 全屏加载指示器
+/// 全屏加载指示器 — 黑色 spinner
 class VccLoading extends StatelessWidget {
   final String? message;
 
@@ -10,28 +10,31 @@ class VccLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      color: Colors.white.withOpacity(0.8),
+      color: isDark
+          ? const Color.fromRGBO(10, 10, 10, 0.85)
+          : const Color.fromRGBO(255, 255, 255, 0.85),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
-              width: 40,
-              height: 40,
+            SizedBox(
+              width: 32,
+              height: 32,
               child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.brandPurple),
+                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isDark ? AppColors.white : AppColors.black,
+                ),
               ),
             ),
             if (message != null) ...[
               const SizedBox(height: 16),
               Text(
                 message!,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.gray500,
-                ),
+                style: const TextStyle(fontSize: 14, color: AppColors.gray500),
               ),
             ],
           ],
@@ -51,7 +54,7 @@ class VccSkeleton extends StatelessWidget {
     super.key,
     this.width = double.infinity,
     required this.height,
-    this.borderRadius = 4,
+    this.borderRadius = 6,
   });
 
   @override
@@ -81,8 +84,9 @@ class VccCardSkeleton extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gray200, width: 1),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,22 +94,22 @@ class VccCardSkeleton extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              VccSkeleton(width: 60, height: 20, borderRadius: 4),
-              VccSkeleton(width: 80, height: 20, borderRadius: 4),
+              VccSkeleton(width: 60, height: 20),
+              VccSkeleton(width: 80, height: 20),
             ],
           ),
           SizedBox(height: 12),
-          VccSkeleton(height: 20, borderRadius: 4),
+          VccSkeleton(height: 20),
           SizedBox(height: 8),
-          VccSkeleton(height: 16, borderRadius: 4),
+          VccSkeleton(height: 16),
           SizedBox(height: 12),
           Row(
             children: [
-              VccSkeleton(width: 60, height: 24, borderRadius: 4),
+              VccSkeleton(width: 60, height: 24),
               SizedBox(width: 8),
-              VccSkeleton(width: 60, height: 24, borderRadius: 4),
+              VccSkeleton(width: 60, height: 24),
               SizedBox(width: 8),
-              VccSkeleton(width: 60, height: 24, borderRadius: 4),
+              VccSkeleton(width: 60, height: 24),
             ],
           ),
         ],

@@ -4,7 +4,7 @@ import '../../app/theme/app_colors.dart';
 
 enum VccAvatarSize { small, medium, large, xlarge }
 
-/// 开造 VCC 头像组件
+/// 开造 VCC 头像组件 — 黑白风格
 class VccAvatar extends StatelessWidget {
   final String? imageUrl;
   final VccAvatarSize size;
@@ -57,9 +57,8 @@ class VccAvatar extends StatelessWidget {
         decoration: BoxDecoration(
           shape: isTeam ? BoxShape.rectangle : BoxShape.circle,
           borderRadius: isTeam ? BorderRadius.circular(_borderRadius + 2) : null,
-          gradient: AppGradients.primaryButton,
+          border: Border.all(color: AppColors.black, width: 2),
         ),
-        padding: const EdgeInsets.all(2),
         child: avatar,
       );
     }
@@ -77,7 +76,7 @@ class VccAvatar extends StatelessWidget {
         width: _size,
         height: _size,
         decoration: BoxDecoration(
-          color: AppColors.gray200,
+          color: AppColors.gray100,
           borderRadius: BorderRadius.circular(_borderRadius),
         ),
         child: Center(
@@ -97,7 +96,7 @@ class VccAvatar extends StatelessWidget {
       width: _size,
       height: _size,
       decoration: BoxDecoration(
-        color: AppColors.gray200,
+        color: AppColors.gray100,
         borderRadius: BorderRadius.circular(_borderRadius),
       ),
       child: Icon(

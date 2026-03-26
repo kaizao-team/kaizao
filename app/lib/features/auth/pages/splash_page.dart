@@ -1,127 +1,228 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../app/theme/app_colors.dart';
-import '../../../app/routes.dart';
-import '../../../core/storage/storage_service.dart';
 
-class SplashPage extends StatefulWidget {
+import '../../../app/routes.dart';
+import '../../onboarding/providers/onboarding_provider.dart';
+import '../providers/auth_provider.dart';
+
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _opacityAnimation;
+class _SplashPageState extends ConsumerState<SplashPage>
+    with TickerProviderStateMixin {
+  late AnimationController _logoController;
+  late AnimationController _sloganController;
+  late AnimationController _buttonController;
+  late Animation<double> _scaleAnim;
+  late Animation<double> _logoOpacityAnim;
+  late Animation<double> _sloganOpacityAnim;
+  late Animation<double> _buttonOpacityAnim;
+  late Animation<Offset> _buttonSlideAnim;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Color(0xFFF6F6F6),
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+
+    _logoController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    _sloganController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
     );
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    _buttonController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
     );
-    _controller.forward();
-    _navigateAfterDelay();
+
+    _scaleAnim = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
+    );
+    _logoOpacityAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _logoController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+    _sloganOpacityAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _sloganController, curve: Curves.easeOut),
+    );
+    _buttonOpacityAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _buttonController, curve: Curves.easeOut),
+    );
+    _buttonSlideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.4),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _buttonController, curve: Curves.easeOutCubic),
+    );
+
+    _runSequence();
   }
 
-  Future<void> _navigateAfterDelay() async {
-    await Future.delayed(const Duration(seconds: 2));
+  Future<void> _runSequence() async {
+    await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
-
-    final storage = StorageService();
-    final isFirst = await storage.isFirstLaunch();
-    final token = await storage.getAccessToken();
-
+    _logoController.forward();
+    await Future.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
+    _sloganController.forward();
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    _buttonController.forward();
+  }
 
-    if (isFirst) {
-      context.go(RoutePaths.onboarding);
-    } else if (token != null && token.isNotEmpty) {
-      context.go(RoutePaths.home);
-    } else {
-      context.go(RoutePaths.login);
-    }
+  Future<void> _onStart() async {
+    await ref.read(authStateProvider.notifier).resetForFreshStart();
+    await ref.read(onboardingProvider.notifier).reset();
+    if (!mounted) return;
+    context.go(RoutePaths.onboarding);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _logoController.dispose();
+    _sloganController.dispose();
+    _buttonController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = ref.watch(authStateProvider);
+    final showStartButton =
+        !(auth.isInitialized && auth.isLoggedIn);
+    final padding = MediaQuery.of(context).padding;
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppGradients.deepSpace),
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _opacityAnimation.value,
-                child: Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Icon(
-                          Icons.rocket_launch,
-                          size: 40,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'VCC',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 2,
+      backgroundColor: const Color(0xFFF6F6F6),
+      body: AnimatedBuilder(
+        animation: Listenable.merge([
+          _logoController,
+          _sloganController,
+          _buttonController,
+        ]),
+        builder: (context, _) {
+          return Stack(
+            children: [
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Opacity(
+                      opacity: _logoOpacityAnim.value,
+                      child: Transform.scale(
+                        scale: _scaleAnim.value,
+                        child: SizedBox(
+                          width: 212,
+                          height: 212,
+                          child: ClipRect(
+                            child: Image.asset(
+                              'assets/branding/app_launch_motion_flat.webp',
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
+                              filterQuality: FilterQuality.low,
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '开造',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                    ),
+                    const SizedBox(height: 2),
+                    Opacity(
+                      opacity: _logoOpacityAnim.value,
+                      child: Transform.scale(
+                        scale: _scaleAnim.value,
+                        child: const Column(
+                          children: [
+                            Text(
+                              'VCC',
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1A1A1A),
+                                letterSpacing: 6,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '开造',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF6B7280),
+                                letterSpacing: 3,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      Text(
+                    ),
+                    const SizedBox(height: 40),
+                    Opacity(
+                      opacity: _sloganOpacityAnim.value,
+                      child: const Text(
                         '点亮每一个想法',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w400,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Color(0xFF9CA3AF),
+                          letterSpacing: 4,
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              if (showStartButton)
+                Positioned(
+                  left: 24,
+                  right: 24,
+                  bottom: padding.bottom + 34,
+                  child: FadeTransition(
+                    opacity: _buttonOpacityAnim,
+                    child: SlideTransition(
+                      position: _buttonSlideAnim,
+                      child: SizedBox(
+                        height: 54,
+                        child: ElevatedButton(
+                          onPressed: _onStart,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1A1A1A),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text(
+                            '开始',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              );
-            },
-          ),
-        ),
+            ],
+          );
+        },
       ),
     );
   }

@@ -1,11 +1,12 @@
+import '../config/app_env.dart';
+
 /// 所有 API 端点常量
 /// 从技术架构文档和API设计文档提取
 class ApiEndpoints {
   ApiEndpoints._();
 
-  // 基础URL（按环境切换）
-  static const String baseUrl = 'https://api.vibebuild.com';
-  static const String wsUrl = 'wss://ws.vibebuild.com';
+  static String get baseUrl => AppEnv.baseUrl;
+  static String get wsUrl => AppEnv.wsUrl;
 
   // ============================================================
   // 认证模块 /api/v1/auth
@@ -23,7 +24,8 @@ class ApiEndpoints {
   static String userInfo(String id) => '/api/v1/users/$id';
   static String updateUser(String id) => '/api/v1/users/$id';
   static String userProfile(String id) => '/api/v1/users/$id/profile';
-  static String userCertifications(String id) => '/api/v1/users/$id/certifications';
+  static String userCertifications(String id) =>
+      '/api/v1/users/$id/certifications';
   static String userVerification(String id) => '/api/v1/users/$id/verification';
   static String userReviews(String id) => '/api/v1/users/$id/reviews';
   static String userCredit(String id) => '/api/v1/users/$id/credit';
@@ -32,17 +34,47 @@ class ApiEndpoints {
   static const String currentUser = '/api/v1/users/me';
 
   // ============================================================
+  // 首页聚合 /api/v1/home
+  // ============================================================
+  static const String homeDemander = '/api/v1/home/demander';
+  static const String homeExpert = '/api/v1/home/expert';
+
+  // ============================================================
+  // 需求广场 /api/v1/market
+  // ============================================================
+  static const String marketProjects = '/api/v1/market/projects';
+  static const String marketExperts = '/api/v1/market/experts';
+
+  // ============================================================
+  // 需求发布 /api/v1/projects (POST 模块)
+  // ============================================================
+  static const String projectAiChat = '/api/v1/projects/ai-chat';
+  static const String projectGeneratePrd = '/api/v1/projects/generate-prd';
+  static const String projectDraft = '/api/v1/projects/draft';
+
+  // ============================================================
+  // PRD 视图 /api/v1/projects/:id/prd
+  // ============================================================
+  static String projectPrd(String id) => '/api/v1/projects/$id/prd';
+  static String prdCardUpdate(String projectId, String cardId) =>
+      '/api/v1/projects/$projectId/prd/cards/$cardId';
+
+  // ============================================================
   // 项目/需求模块 /api/v1/projects
   // ============================================================
   static const String projects = '/api/v1/projects';
   static String projectDetail(String id) => '/api/v1/projects/$id';
+  static String projectPublish(String id) => '/api/v1/projects/$id/publish';
   static String projectOverview(String id) => '/api/v1/projects/$id/overview';
   static String projectTasks(String id) => '/api/v1/projects/$id/tasks';
-  static String projectMilestones(String id) => '/api/v1/projects/$id/milestones';
+  static String projectMilestones(String id) =>
+      '/api/v1/projects/$id/milestones';
   static String projectReviews(String id) => '/api/v1/projects/$id/reviews';
-  static String projectDailyReports(String id) => '/api/v1/projects/$id/daily-reports';
+  static String projectDailyReports(String id) =>
+      '/api/v1/projects/$id/daily-reports';
   static String projectAiAssist(String id) => '/api/v1/projects/$id/ai-assist';
-  static String projectAttachments(String id) => '/api/v1/projects/$id/attachments';
+  static String projectAttachments(String id) =>
+      '/api/v1/projects/$id/attachments';
   static String projectClose(String id) => '/api/v1/projects/$id/close';
   static const String projectSearch = '/api/v1/projects/search';
 
@@ -57,18 +89,26 @@ class ApiEndpoints {
   // ============================================================
   static String milestoneDeliver(String id) => '/api/v1/milestones/$id/deliver';
   static String milestoneAccept(String id) => '/api/v1/milestones/$id/accept';
+  static String milestoneAcceptance(String id) =>
+      '/api/v1/milestones/$id/acceptance';
+  static String milestoneRevision(String id) =>
+      '/api/v1/milestones/$id/revision';
 
   // ============================================================
   // 投标/撮合模块 /api/v1/bids
   // ============================================================
-  static String projectBids(String projectId) => '/api/v1/projects/$projectId/bids';
+  static String projectAiSuggestion(String projectId) =>
+      '/api/v1/projects/$projectId/ai-suggestion';
+  static String projectBids(String projectId) =>
+      '/api/v1/projects/$projectId/bids';
   static String bidAccept(String id) => '/api/v1/bids/$id/accept';
   static String bidReject(String id) => '/api/v1/bids/$id/reject';
   static String projectRecommendations(String projectId) =>
       '/api/v1/projects/$projectId/recommendations';
   static String recommendedProjects(String userId) =>
       '/api/v1/users/$userId/recommended-projects';
-  static String quickMatch(String projectId) => '/api/v1/projects/$projectId/quick-match';
+  static String quickMatch(String projectId) =>
+      '/api/v1/projects/$projectId/quick-match';
 
   // ============================================================
   // 交易/支付模块 /api/v1/orders
@@ -78,6 +118,9 @@ class ApiEndpoints {
   static String orderRelease(String id) => '/api/v1/orders/$id/release';
   static String orderRefund(String id) => '/api/v1/orders/$id/refund';
   static String orderSplit(String id) => '/api/v1/orders/$id/split';
+  static String orderDetail(String id) => '/api/v1/orders/$id';
+  static String orderStatus(String id) => '/api/v1/orders/$id/status';
+  static const String coupons = '/api/v1/coupons';
   static const String walletBalance = '/api/v1/wallet/balance';
   static const String walletWithdraw = '/api/v1/wallet/withdraw';
   static const String walletTransactions = '/api/v1/wallet/transactions';
@@ -86,7 +129,9 @@ class ApiEndpoints {
   // 消息/沟通模块 /api/v1/conversations
   // ============================================================
   static const String conversations = '/api/v1/conversations';
-  static String conversationMessages(String id) => '/api/v1/conversations/$id/messages';
+  static String conversationDetail(String id) => '/api/v1/conversations/$id';
+  static String conversationMessages(String id) =>
+      '/api/v1/conversations/$id/messages';
   static String conversationRead(String id) => '/api/v1/conversations/$id/read';
   static const String messageUpload = '/api/v1/messages/upload';
 
@@ -112,7 +157,8 @@ class ApiEndpoints {
   static String teamInviteRespond(String id) => '/api/v1/team-invites/$id';
   static const String teamPosts = '/api/v1/team-posts';
   static const String teamAiRecommend = '/api/v1/teams/ai-recommend';
-  static String teamBid(String projectId) => '/api/v1/projects/$projectId/team-bids';
+  static String teamBid(String projectId) =>
+      '/api/v1/projects/$projectId/team-bids';
 
   // ============================================================
   // 举报/仲裁
@@ -130,7 +176,8 @@ class ApiEndpoints {
   // ============================================================
   static const String agentSessions = '/api/v1/agent-sessions';
   static String agentSessionDetail(String id) => '/api/v1/agent-sessions/$id';
-  static String agentSessionMessage(String id) => '/api/v1/agent-sessions/$id/message';
+  static String agentSessionMessage(String id) =>
+      '/api/v1/agent-sessions/$id/message';
 
   // ============================================================
   // 文件上传
