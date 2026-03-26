@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import 'vcc_button.dart';
 
-/// 开造 VCC 空状态组件
+/// 开造 VCC 空状态组件 — 简洁黑白风格
 class VccEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -28,25 +28,21 @@ class VccEmptyState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 160,
-              height: 160,
-              decoration: const BoxDecoration(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
                 color: AppColors.gray50,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(
-                icon,
-                size: 48,
-                color: AppColors.gray300,
-              ),
+              child: Icon(icon, size: 36, color: AppColors.gray300),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Text(
               title,
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.gray800,
+                color: AppColors.black,
               ),
               textAlign: TextAlign.center,
             ),
@@ -54,11 +50,7 @@ class VccEmptyState extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 subtitle!,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.gray500,
-                ),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.gray500),
                 textAlign: TextAlign.center,
               ),
             ],

@@ -3,8 +3,8 @@ import '../../app/theme/app_colors.dart';
 
 enum VccButtonType { primary, secondary, ghost, text, danger, small }
 
-/// 开造 VCC 按钮组件
-/// 支持主按钮(渐变)、次要按钮、幽灵按钮、文字按钮、危险按钮、小按钮
+/// 开造 VCC 按钮组件 — Notion/Linear 风格
+/// primary: 黑色实底白字 / secondary: 白底黑边 / ghost: 透明黑边
 class VccButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
@@ -36,46 +36,52 @@ class _VccButtonState extends State<VccButton> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     switch (widget.type) {
       case VccButtonType.primary:
-        return _buildPrimaryButton(isDark);
+        return _buildPrimaryButton();
       case VccButtonType.secondary:
-        return _buildSecondaryButton(isDark);
+        return _buildSecondaryButton();
       case VccButtonType.ghost:
-        return _buildGhostButton(isDark);
+        return _buildGhostButton();
       case VccButtonType.text:
-        return _buildTextButton(isDark);
+        return _buildTextButton();
       case VccButtonType.danger:
-        return _buildDangerButton(isDark);
+        return _buildDangerButton();
       case VccButtonType.small:
-        return _buildSmallButton(isDark);
+        return _buildSmallButton();
     }
   }
 
-  Widget _buildPrimaryButton(bool isDark) {
+  Widget _wrapGesture({required Widget child}) {
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
       onTap: _isDisabled ? null : widget.onPressed,
+      child: child,
+    );
+  }
+
+  BoxConstraints? get _constraints =>
+      widget.isFullWidth ? null : const BoxConstraints(minWidth: 120);
+
+  double? get _width => widget.isFullWidth ? double.infinity : widget.width;
+
+  Widget _buildPrimaryButton() {
+    final bgColor = _isDisabled
+        ? AppColors.gray200
+        : (_isPressed ? AppColors.gray700 : AppColors.black);
+    final textColor = _isDisabled ? AppColors.gray400 : AppColors.white;
+
+    return _wrapGesture(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 120),
         height: 48,
-        width: widget.isFullWidth ? double.infinity : widget.width,
-        constraints: widget.isFullWidth
-            ? null
-            : const BoxConstraints(minWidth: 120),
+        width: _width,
+        constraints: _constraints,
         decoration: BoxDecoration(
-          gradient: _isDisabled
-              ? null
-              : (_isPressed ? AppGradients.primaryPressed : AppGradients.primaryButton),
-          color: _isDisabled ? AppColors.gray200 : null,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: _isDisabled
-              ? null
-              : (_isPressed ? AppShadows.brandShadowPressed : AppShadows.brandShadow),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Center(
           child: widget.isLoading
@@ -84,101 +90,65 @@ class _VccButtonState extends State<VccButton> {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                   ),
                 )
-              : _buildContent(
-                  color: _isDisabled ? AppColors.gray400 : Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+              : _buildContent(color: textColor, fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );
   }
 
-  Widget _buildSecondaryButton(bool isDark) {
+  Widget _buildSecondaryButton() {
     final borderColor = _isDisabled
         ? AppColors.gray200
-        : (_isPressed
-            ? AppColors.brandDarkPurple
-            : (isDark ? const Color(0xFF8B5CF6) : AppColors.brandPurple));
+        : (_isPressed ? AppColors.gray600 : AppColors.gray300);
     final bgColor = _isDisabled
         ? AppColors.gray50
-        : (_isPressed
-            ? const Color(0xFFF8F7FF)
-            : (isDark ? AppColors.darkCard : Colors.white));
-    final textColor = _isDisabled
-        ? AppColors.gray400
-        : (_isPressed ? AppColors.brandDarkPurple : AppColors.brandPurple);
+        : (_isPressed ? AppColors.gray50 : AppColors.white);
+    final textColor = _isDisabled ? AppColors.gray400 : AppColors.black;
 
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: _isDisabled ? null : widget.onPressed,
+    return _wrapGesture(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 120),
         height: 48,
-        width: widget.isFullWidth ? double.infinity : widget.width,
-        constraints: widget.isFullWidth
-            ? null
-            : const BoxConstraints(minWidth: 120),
+        width: _width,
+        constraints: _constraints,
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: borderColor, width: 1),
         ),
         child: Center(
-          child: _buildContent(
-            color: textColor,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          child: _buildContent(color: textColor, fontSize: 16, fontWeight: FontWeight.w500),
         ),
       ),
     );
   }
 
-  Widget _buildGhostButton(bool isDark) {
-    final borderColor = _isDisabled
-        ? AppColors.gray200
-        : (isDark ? const Color(0xFF8B5CF6) : AppColors.brandPurple);
-    final textColor = _isDisabled
-        ? AppColors.gray300
-        : (isDark ? const Color(0xFF8B5CF6) : AppColors.brandPurple);
+  Widget _buildGhostButton() {
+    final borderColor = _isDisabled ? AppColors.gray200 : AppColors.gray300;
+    final textColor = _isDisabled ? AppColors.gray300 : AppColors.black;
 
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: _isDisabled ? null : widget.onPressed,
+    return _wrapGesture(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 120),
         height: 48,
-        width: widget.isFullWidth ? double.infinity : widget.width,
+        width: _width,
         decoration: BoxDecoration(
-          color: _isPressed
-              ? AppColors.brandPurple.withOpacity(0.06)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          color: _isPressed ? AppColors.gray50 : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: borderColor, width: 1),
         ),
         child: Center(
-          child: _buildContent(
-            color: textColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          child: _buildContent(color: textColor, fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ),
     );
   }
 
-  Widget _buildTextButton(bool isDark) {
-    final textColor = _isDisabled
-        ? AppColors.gray300
-        : (isDark ? const Color(0xFF8B5CF6) : AppColors.brandPurple);
+  Widget _buildTextButton() {
+    final textColor = _isDisabled ? AppColors.gray300 : AppColors.accent;
 
     return GestureDetector(
       onTap: _isDisabled ? null : widget.onPressed,
@@ -190,51 +160,41 @@ class _VccButtonState extends State<VccButton> {
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: textColor,
-            decoration: _isPressed ? TextDecoration.underline : null,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDangerButton(bool isDark) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: _isDisabled ? null : widget.onPressed,
+  Widget _buildDangerButton() {
+    return _wrapGesture(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 120),
         height: 48,
-        width: widget.isFullWidth ? double.infinity : widget.width,
+        width: _width,
         decoration: BoxDecoration(
           color: _isPressed ? const Color(0xFFDC2626) : AppColors.error,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Center(
-          child: _buildContent(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          child: _buildContent(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );
   }
 
-  Widget _buildSmallButton(bool isDark) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: _isDisabled ? null : widget.onPressed,
+  Widget _buildSmallButton() {
+    final bgColor = _isDisabled
+        ? AppColors.gray200
+        : (_isPressed ? AppColors.gray700 : AppColors.black);
+
+    return _wrapGesture(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 120),
         height: 32,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          gradient: _isDisabled ? null : AppGradients.primaryButton,
-          color: _isDisabled ? AppColors.gray200 : null,
+          color: bgColor,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
@@ -243,7 +203,7 @@ class _VccButtonState extends State<VccButton> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: _isDisabled ? AppColors.gray400 : Colors.white,
+              color: _isDisabled ? AppColors.gray400 : AppColors.white,
             ),
           ),
         ),
@@ -262,24 +222,10 @@ class _VccButtonState extends State<VccButton> {
         children: [
           Icon(widget.icon, color: color, size: 20),
           const SizedBox(width: 8),
-          Text(
-            widget.text,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: fontWeight,
-              color: color,
-            ),
-          ),
+          Text(widget.text, style: TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color)),
         ],
       );
     }
-    return Text(
-      widget.text,
-      style: TextStyle(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: color,
-      ),
-    );
+    return Text(widget.text, style: TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color));
   }
 }

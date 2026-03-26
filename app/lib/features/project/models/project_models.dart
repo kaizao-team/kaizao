@@ -1,0 +1,137 @@
+class KanbanTask {
+  final String id;
+  final String title;
+  final String description;
+  final String status;
+  final String priority;
+  final String? assignee;
+  final String? milestoneId;
+  final int effortHours;
+  final bool isAtRisk;
+  final String createdAt;
+  final String? completedAt;
+
+  const KanbanTask({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.status,
+    required this.priority,
+    this.assignee,
+    this.milestoneId,
+    required this.effortHours,
+    required this.isAtRisk,
+    required this.createdAt,
+    this.completedAt,
+  });
+
+  bool get isTodo => status == 'todo';
+  bool get isInProgress => status == 'in_progress';
+  bool get isCompleted => status == 'completed';
+
+  KanbanTask copyWith({String? status}) {
+    return KanbanTask(
+      id: id,
+      title: title,
+      description: description,
+      status: status ?? this.status,
+      priority: priority,
+      assignee: assignee,
+      milestoneId: milestoneId,
+      effortHours: effortHours,
+      isAtRisk: isAtRisk,
+      createdAt: createdAt,
+      completedAt: status == 'completed' ? DateTime.now().toIso8601String() : completedAt,
+    );
+  }
+
+  factory KanbanTask.fromJson(Map<String, dynamic> json) {
+    return KanbanTask(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      status: json['status'] as String,
+      priority: json['priority'] as String,
+      assignee: json['assignee'] as String?,
+      milestoneId: json['milestone_id'] as String?,
+      effortHours: json['effort_hours'] as int,
+      isAtRisk: json['is_at_risk'] as bool,
+      createdAt: json['created_at'] as String,
+      completedAt: json['completed_at'] as String?,
+    );
+  }
+}
+
+class Milestone {
+  final String id;
+  final String title;
+  final String status;
+  final int progress;
+  final String dueDate;
+  final double amount;
+  final int taskCount;
+  final int completedTaskCount;
+
+  const Milestone({
+    required this.id,
+    required this.title,
+    required this.status,
+    required this.progress,
+    required this.dueDate,
+    required this.amount,
+    required this.taskCount,
+    required this.completedTaskCount,
+  });
+
+  bool get isCompleted => status == 'completed';
+  bool get isInProgress => status == 'in_progress';
+  bool get isPending => status == 'pending';
+
+  factory Milestone.fromJson(Map<String, dynamic> json) {
+    return Milestone(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      status: json['status'] as String,
+      progress: json['progress'] as int,
+      dueDate: json['due_date'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      taskCount: json['task_count'] as int,
+      completedTaskCount: json['completed_task_count'] as int,
+    );
+  }
+}
+
+class DailyReport {
+  final String id;
+  final String date;
+  final String summary;
+  final List<String> completedTasks;
+  final List<String> inProgressTasks;
+  final List<String> riskItems;
+  final String tomorrowPlan;
+
+  const DailyReport({
+    required this.id,
+    required this.date,
+    required this.summary,
+    this.completedTasks = const [],
+    this.inProgressTasks = const [],
+    this.riskItems = const [],
+    required this.tomorrowPlan,
+  });
+
+  factory DailyReport.fromJson(Map<String, dynamic> json) {
+    return DailyReport(
+      id: json['id'] as String,
+      date: json['date'] as String,
+      summary: json['summary'] as String,
+      completedTasks: (json['completed_tasks'] as List?)?.cast<String>() ?? [],
+      inProgressTasks:
+          (json['in_progress_tasks'] as List?)?.cast<String>() ?? [],
+      riskItems: (json['risk_items'] as List?)?.cast<String>() ?? [],
+      tomorrowPlan: json['tomorrow_plan'] as String,
+    );
+  }
+}
+
+enum ProjectTab { kanban, milestone, prd, files, report }

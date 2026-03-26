@@ -1,23 +1,36 @@
 import 'package:flutter/material.dart';
 
-/// 开造 VCC 完整颜色系统
-/// 所有颜色值从UI原型规范文档精确提取
+/// 开造 VCC 颜色系统 — Notion/Linear 黑白风格 + 紫色强调色
 class AppColors {
   AppColors._();
 
   // ============================================================
-  // 品牌主色（渐变色系）
+  // 品牌强调色（紫色点缀）
   // ============================================================
-  static const Color brandPurple = Color(0xFF7C3AED);     // 星辉紫，渐变起点
-  static const Color brandIndigo = Color(0xFF6366F1);     // 深邃靛，渐变中段
-  static const Color brandBlue = Color(0xFF3B82F6);       // 天际蓝，渐变终点
-  static const Color brandDarkPurple = Color(0xFF5B21B6); // 暗夜紫，深色变体/按下态
+  static const Color accent = Color(0xFF7C3AED);
+  static const Color accentLight = Color(0xFFF3EEFF);
+  static const Color accentDark = Color(0xFF5B21B6);
+  static const Color accentMuted = Color(0xFFDDD6FE);
 
   // ============================================================
-  // 辅助色
+  // 主色 — 黑白体系
   // ============================================================
-  static const Color accentCyan = Color(0xFF06B6D4);      // 极光青
-  static const Color accentGold = Color(0xFFF59E0B);      // 星芒金
+  static const Color black = Color(0xFF111111);
+  static const Color white = Color(0xFFFFFFFF);
+
+  // ============================================================
+  // 中性色阶 — 浅色模式
+  // ============================================================
+  static const Color gray50 = Color(0xFFFAFAFA);
+  static const Color gray100 = Color(0xFFF5F5F5);
+  static const Color gray200 = Color(0xFFE5E7EB);
+  static const Color gray300 = Color(0xFFD1D5DB);
+  static const Color gray400 = Color(0xFF9CA3AF);
+  static const Color gray500 = Color(0xFF6B7280);
+  static const Color gray600 = Color(0xFF4B5563);
+  static const Color gray700 = Color(0xFF374151);
+  static const Color gray800 = Color(0xFF1F2937);
+  static const Color gray900 = Color(0xFF111827);
 
   // ============================================================
   // 语义色 — 浅色模式
@@ -32,7 +45,7 @@ class AppColors {
   static const Color infoBg = Color(0xFFEFF6FF);
 
   // ============================================================
-  // 语义色 — 深色模式（提亮版）
+  // 语义色 — 深色模式
   // ============================================================
   static const Color successDark = Color(0xFF34D399);
   static const Color warningDark = Color(0xFFFBBF24);
@@ -40,34 +53,22 @@ class AppColors {
   static const Color infoDark = Color(0xFF60A5FA);
 
   // ============================================================
-  // 中性色阶
-  // ============================================================
-  static const Color gray50 = Color(0xFFF8FAFC);   // 页面底色
-  static const Color gray100 = Color(0xFFF1F5F9);  // 输入框背景/骨架屏
-  static const Color gray200 = Color(0xFFE2E8F0);  // 分割线/边框
-  static const Color gray300 = Color(0xFFCBD5E1);  // 禁用态边框
-  static const Color gray400 = Color(0xFF94A3B8);  // 占位文字/次要图标
-  static const Color gray500 = Color(0xFF64748B);  // 次要文字/辅助说明
-  static const Color gray600 = Color(0xFF475569);  // 副标题
-  static const Color gray700 = Color(0xFF334155);  // 正文文字（浅色模式）
-  static const Color gray800 = Color(0xFF1E293B);  // 标题文字（浅色模式）
-  static const Color gray900 = Color(0xFF0F172A);  // 极深灰
-
-  // ============================================================
   // 深色模式专用色
   // ============================================================
-  static const Color darkBg = Color(0xFF0F0B1E);          // 页面背景
-  static const Color darkBg2 = Color(0xFF1A1035);         // 二级背景
-  static const Color darkCard = Color(0xFF1E1640);        // 卡片背景
-  static const Color darkCardHover = Color(0xFF261D52);   // 卡片悬停
-  static const Color darkDivider = Color(0xFF2D2650);     // 分割线/边框
+  static const Color darkBg = Color(0xFF0A0A0A);
+  static const Color darkBg2 = Color(0xFF141414);
+  static const Color darkCard = Color(0xFF1A1A1A);
+  static const Color darkCardHover = Color(0xFF222222);
+  static const Color darkDivider = Color(0xFF2A2A2A);
+  static const Color darkText = Color(0xFFF5F5F5);
+  static const Color darkTextSecondary = Color(0xFFA1A1AA);
 
   // ============================================================
   // 项目状态色
   // ============================================================
   static const Color statusCompleted = Color(0xFF10B981);
-  static const Color statusInProgress = Color(0xFF3B82F6);
-  static const Color statusPending = Color(0xFFCBD5E1);
+  static const Color statusInProgress = Color(0xFF7C3AED);
+  static const Color statusPending = Color(0xFFD1D5DB);
   static const Color statusAtRisk = Color(0xFFEF4444);
   static const Color statusOverdue = Color(0xFFEF4444);
 
@@ -85,63 +86,32 @@ class AppColors {
   static const Color earsUnwantedStart = Color(0xFFFF3B30);
   static const Color earsUnwantedEnd = Color(0xFFFC5C65);
 
-  // ============================================================
-  // 第三方登录色
-  // ============================================================
-  static const Color wechatGreen = Color(0xFF07C160);
-  static const Color appleBlack = Color(0xFF000000);
+  // 向后兼容别名
+  static const Color brandPurple = accent;
+  static const Color brandIndigo = Color(0xFF6366F1);
+  static const Color brandBlue = Color(0xFF3B82F6);
+  static const Color brandDarkPurple = accentDark;
+  static const Color accentCyan = Color(0xFF06B6D4);
+  static const Color accentGold = Color(0xFFF59E0B);
 }
 
-/// 品牌渐变集合
+/// 渐变集合 — 仅保留必要场景
 class AppGradients {
   AppGradients._();
 
-  // 主渐变：星河紫蓝
-  static const LinearGradient primary = LinearGradient(
+  static const LinearGradient accent = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF7C3AED), Color(0xFF6366F1), Color(0xFF3B82F6)],
-    stops: [0.0, 0.5, 1.0],
+    colors: [Color(0xFF7C3AED), Color(0xFF6366F1)],
   );
 
-  // 按钮用简化渐变（两色）
-  static const LinearGradient primaryButton = LinearGradient(
+  static const LinearGradient accentSubtle = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF7C3AED), Color(0xFF3B82F6)],
+    colors: [Color(0xFFF3EEFF), Color(0xFFEDE9FE)],
   );
 
-  // 按钮按下态渐变
-  static const LinearGradient primaryPressed = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF6D28D9), Color(0xFF2563EB)],
-  );
-
-  // 极光流转（运营/辅助场景）
-  static const LinearGradient aurora = LinearGradient(
-    begin: Alignment(-0.5, -1),
-    end: Alignment(0.5, 1),
-    colors: [Color(0xFF8B5CF6), Color(0xFF06B6D4)],
-  );
-
-  // 深空沉浸（启动页/深色场景）
-  static const LinearGradient deepSpace = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0xFF5B21B6), Color(0xFF3730A3), Color(0xFF1E3A5F)],
-    stops: [0.0, 0.5, 1.0],
-  );
-
-  // 深色模式主渐变（提亮12%）
-  static const LinearGradient primaryDark = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF8B5CF6), Color(0xFF818CF8), Color(0xFF60A5FA)],
-    stops: [0.0, 0.5, 1.0],
-  );
-
-  // EARS类型渐变
+  // EARS 类型渐变
   static const LinearGradient earsUbiquitous = LinearGradient(
     colors: [Color(0xFF7C5CFC), Color(0xFF6C5CE7)],
   );
@@ -157,85 +127,62 @@ class AppGradients {
   static const LinearGradient earsUnwanted = LinearGradient(
     colors: [Color(0xFFFF3B30), Color(0xFFFC5C65)],
   );
+
+  // 向后兼容
+  static const LinearGradient primary = accent;
+  static const LinearGradient primaryButton = accent;
+  static const LinearGradient primaryPressed = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF6D28D9), Color(0xFF4F46E5)],
+  );
+  static const LinearGradient deepSpace = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF111111), Color(0xFF1A1A1A)],
+  );
+  static const LinearGradient primaryDark = accent;
+  static const LinearGradient aurora = accent;
 }
 
-/// 阴影系统
+/// 阴影系统 — 极轻阴影，偏 Notion 风格
 class AppShadows {
   AppShadows._();
 
-  // Level 1 - 微阴影：输入框、小标签
-  static final List<BoxShadow> shadow1 = [
-    const BoxShadow(
-      color: Color(0x0F000000),
-      offset: Offset(0, 1),
-      blurRadius: 3,
-    ),
-    const BoxShadow(
-      color: Color(0x0A000000),
+  static const List<BoxShadow> shadow1 = [
+    BoxShadow(
+      color: Color.fromRGBO(0, 0, 0, 0.04),
       offset: Offset(0, 1),
       blurRadius: 2,
     ),
   ];
 
-  // Level 2 - 轻阴影：通用卡片、列表卡片
-  static final List<BoxShadow> shadow2 = [
-    const BoxShadow(
-      color: Color(0x14000000),
-      offset: Offset(0, 4),
-      blurRadius: 12,
-    ),
-    const BoxShadow(
-      color: Color(0x0A000000),
+  static const List<BoxShadow> shadow2 = [
+    BoxShadow(
+      color: Color.fromRGBO(0, 0, 0, 0.06),
       offset: Offset(0, 2),
-      blurRadius: 4,
-    ),
-  ];
-
-  // Level 3 - 中阴影：悬浮按钮、弹窗、展开态卡片
-  static final List<BoxShadow> shadow3 = [
-    const BoxShadow(
-      color: Color(0x1F000000),
-      offset: Offset(0, 8),
-      blurRadius: 24,
-    ),
-    const BoxShadow(
-      color: Color(0x0F000000),
-      offset: Offset(0, 4),
       blurRadius: 8,
     ),
   ];
 
-  // Level 4 - 重阴影：全屏Modal
-  static final List<BoxShadow> shadow4 = [
-    const BoxShadow(
-      color: Color(0x29000000),
-      offset: Offset(0, 16),
-      blurRadius: 48,
-    ),
-    const BoxShadow(
-      color: Color(0x14000000),
-      offset: Offset(0, 8),
+  static const List<BoxShadow> shadow3 = [
+    BoxShadow(
+      color: Color.fromRGBO(0, 0, 0, 0.08),
+      offset: Offset(0, 4),
       blurRadius: 16,
     ),
   ];
 
-  // 品牌色阴影：主按钮
-  static final List<BoxShadow> brandShadow = [
+  static const List<BoxShadow> shadow4 = [
     BoxShadow(
-      color: AppColors.brandPurple.withOpacity(0.35),
-      offset: const Offset(0, 4),
-      blurRadius: 15,
+      color: Color.fromRGBO(0, 0, 0, 0.12),
+      offset: Offset(0, 8),
+      blurRadius: 32,
     ),
   ];
 
-  // 品牌色阴影-按下态
-  static final List<BoxShadow> brandShadowPressed = [
-    BoxShadow(
-      color: AppColors.brandPurple.withOpacity(0.30),
-      offset: const Offset(0, 2),
-      blurRadius: 8,
-    ),
-  ];
+  static const List<BoxShadow> brandShadow = shadow2;
+  static const List<BoxShadow> brandShadowPressed = shadow1;
 }
 
 /// 间距系统
@@ -257,21 +204,21 @@ class AppSpacing {
 class AppRadius {
   AppRadius._();
 
-  static const double xs = 4;     // 标签/Chip/徽章
-  static const double sm = 8;     // 输入框、小按钮、Toast
-  static const double md = 12;    // 通用卡片、主按钮、EARS卡片
-  static const double lg = 16;    // 大卡片、毛玻璃卡片
-  static const double xl = 20;    // 底部弹窗顶部
-  static const double xxl = 24;   // 全屏Modal顶部
-  static const double full = 999; // 头像、胶囊
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
+  static const double full = 999;
 }
 
 /// 动画时长
 class AppDurations {
   AppDurations._();
 
-  static const Duration fast = Duration(milliseconds: 200);
-  static const Duration normal = Duration(milliseconds: 260);
+  static const Duration fast = Duration(milliseconds: 150);
+  static const Duration normal = Duration(milliseconds: 200);
   static const Duration slow = Duration(milliseconds: 300);
   static const Duration progress = Duration(milliseconds: 600);
 }

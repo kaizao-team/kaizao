@@ -38,11 +38,11 @@ class AuthRepository {
       fromJson: (data) => data as Map<String, dynamic>,
     );
 
-    final data = response.data!;
+    final data = response.data ?? {};
     return LoginResult(
-      accessToken: data['access_token'] as String,
-      refreshToken: data['refresh_token'] as String,
-      userId: data['user_id'] as String,
+      accessToken: data['access_token'] as String? ?? '',
+      refreshToken: data['refresh_token'] as String? ?? '',
+      userId: data['user_id'] as String? ?? '',
       userRole: data['role'] as int? ?? 0,
       isNewUser: data['is_new_user'] as bool? ?? false,
     );
@@ -56,11 +56,11 @@ class AuthRepository {
       fromJson: (data) => data as Map<String, dynamic>,
     );
 
-    final data = response.data!;
+    final data = response.data ?? {};
     return LoginResult(
-      accessToken: data['access_token'] as String,
-      refreshToken: data['refresh_token'] as String,
-      userId: data['user_id'] as String,
+      accessToken: data['access_token'] as String? ?? '',
+      refreshToken: data['refresh_token'] as String? ?? '',
+      userId: data['user_id'] as String? ?? '',
       userRole: data['role'] as int? ?? 0,
       isNewUser: data['is_new_user'] as bool? ?? false,
     );

@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'app_colors.dart';
 import 'app_text_styles.dart';
 
-/// 浅色主题配置
+/// 浅色主题 — Notion/Linear 黑白风格
 class AppTheme {
   AppTheme._();
 
@@ -11,39 +11,35 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      primaryColor: AppColors.brandPurple,
-      scaffoldBackgroundColor: AppColors.gray50,
-      fontFamily: 'PingFangSC',
+      primaryColor: AppColors.black,
+      scaffoldBackgroundColor: AppColors.white,
 
-      // 颜色方案
       colorScheme: const ColorScheme.light(
-        primary: AppColors.brandPurple,
-        secondary: AppColors.brandIndigo,
-        tertiary: AppColors.brandBlue,
+        primary: AppColors.black,
+        secondary: AppColors.accent,
+        tertiary: AppColors.accent,
         error: AppColors.error,
-        surface: Colors.white,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onSurface: AppColors.gray800,
-        onError: Colors.white,
+        surface: AppColors.white,
+        onPrimary: AppColors.white,
+        onSecondary: AppColors.white,
+        onSurface: AppColors.black,
+        onError: AppColors.white,
         outline: AppColors.gray200,
       ),
 
-      // AppBar
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.gray800,
+        backgroundColor: AppColors.white,
+        foregroundColor: AppColors.black,
         elevation: 0,
-        scrolledUnderElevation: 0.5,
+        scrolledUnderElevation: 0,
         centerTitle: true,
         toolbarHeight: 44,
         titleTextStyle: TextStyle(
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
-          color: AppColors.gray800,
-          fontFamily: 'PingFangSC',
+          color: AppColors.black,
         ),
-        iconTheme: IconThemeData(color: AppColors.gray800, size: 24),
+        iconTheme: IconThemeData(color: AppColors.black, size: 24),
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.dark,
@@ -51,19 +47,19 @@ class AppTheme {
         ),
       ),
 
-      // 底部导航栏
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: AppColors.brandPurple,
+        backgroundColor: AppColors.white,
+        selectedItemColor: AppColors.black,
         unselectedItemColor: AppColors.gray400,
         elevation: 0,
+        selectedLabelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+        unselectedLabelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.w400),
       ),
 
-      // 输入框
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.gray100,
+        fillColor: AppColors.gray50,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: AppTextStyles.inputHint,
         labelStyle: AppTextStyles.inputLabel,
@@ -73,52 +69,49 @@ class AppTheme {
           color: AppColors.error,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.gray200, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.gray200, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.brandPurple, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.black, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.gray200, width: 1),
         ),
       ),
 
-      // 分割线
       dividerTheme: const DividerThemeData(
         color: AppColors.gray200,
         thickness: 0.5,
         space: 0,
       ),
 
-      // 对话框
       dialogTheme: DialogThemeData(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        elevation: 16,
+        elevation: 8,
       ),
 
-      // 底部弹窗
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
@@ -130,40 +123,46 @@ class AppTheme {
         dragHandleSize: Size(40, 4),
       ),
 
-      // SnackBar
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.gray800,
+        backgroundColor: AppColors.black,
         contentTextStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          color: Colors.white,
+          color: AppColors.white,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
         behavior: SnackBarBehavior.floating,
       ),
 
-      // Switch
       switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.all(Colors.white),
+        thumbColor: WidgetStateProperty.all(AppColors.white),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.brandPurple;
+            return AppColors.black;
           }
           return AppColors.gray200;
         }),
         trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
       ),
 
-      // 文本选择
-      textSelectionTheme: const TextSelectionThemeData(
-        cursorColor: AppColors.brandPurple,
-        selectionColor: Color(0x337C3AED),
-        selectionHandleColor: AppColors.brandPurple,
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: AppColors.black,
+        selectionColor: Color.fromRGBO(124, 58, 237, 0.2),
+        selectionHandleColor: AppColors.accent,
       ),
 
-      // 页面过渡动画
+      cardTheme: CardThemeData(
+        color: AppColors.white,
+        surfaceTintColor: AppColors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.gray200, width: 1),
+        ),
+      ),
+
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: CupertinoPageTransitionsBuilder(),

@@ -60,3 +60,5 @@ deploy/data/
 # Logs
 *.log
 server/logs/
+# Claude
+.claude

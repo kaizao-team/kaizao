@@ -1,0 +1,113 @@
+import '../mock_interceptor.dart';
+
+class HomeMock {
+  HomeMock._();
+
+  static void register(Map<String, MockHandler> handlers) {
+    handlers['GET:/api/v1/home/demander'] = MockHandler(
+      delayMs: 400,
+      handler: (_) => _demanderHome(),
+    );
+
+    handlers['GET:/api/v1/home/expert'] = MockHandler(
+      delayMs: 400,
+      handler: (_) => _expertHome(),
+    );
+  }
+
+  static Map<String, dynamic> _demanderHome() {
+    return {
+      'code': 0,
+      'message': 'ok',
+      'data': {
+        'ai_prompt': '把你的想法告诉我，AI 帮你变成现实',
+        'categories': [
+          {'key': 'app', 'name': 'APP开发', 'icon': 'phone_android', 'count': 128},
+          {'key': 'web', 'name': '网站开发', 'icon': 'language', 'count': 96},
+          {'key': 'miniprogram', 'name': '小程序', 'icon': 'widgets', 'count': 64},
+          {'key': 'design', 'name': 'UI设计', 'icon': 'palette', 'count': 53},
+          {'key': 'data', 'name': '数据分析', 'icon': 'analytics', 'count': 31},
+          {'key': 'consult', 'name': '技术指导', 'icon': 'school', 'count': 22},
+        ],
+        'my_projects': [
+          {
+            'id': '1', 'uuid': 'proj_001', 'owner_id': 'user_001',
+            'title': '智能客服系统', 'description': '开发一款基于AI的智能客服聊天机器人',
+            'category': 'app', 'budget_min': 3000, 'budget_max': 8000,
+            'progress': 68, 'status': 5,
+            'tech_requirements': ['Flutter', 'GPT-4', 'WebSocket'],
+            'view_count': 126, 'bid_count': 5, 'created_at': '2026-03-15T10:00:00Z',
+          },
+          {
+            'id': '2', 'uuid': 'proj_002', 'owner_id': 'user_001',
+            'title': '企业官网改版', 'description': '将现有官网升级为响应式设计',
+            'category': 'web', 'budget_min': 2000, 'budget_max': 5000,
+            'progress': 30, 'status': 5,
+            'tech_requirements': ['Vue.js', 'TailwindCSS'],
+            'view_count': 89, 'bid_count': 3, 'created_at': '2026-03-18T14:30:00Z',
+          },
+        ],
+        'recommended_experts': [
+          {'id': 'exp_01', 'nickname': '阿杰', 'avatar_url': null, 'rating': 4.9, 'skill': 'Flutter', 'hourly_rate': 300, 'completed_orders': 23},
+          {'id': 'exp_02', 'nickname': '小李', 'avatar_url': null, 'rating': 4.8, 'skill': 'React', 'hourly_rate': 250, 'completed_orders': 18},
+          {'id': 'exp_03', 'nickname': '王五', 'avatar_url': null, 'rating': 4.7, 'skill': 'Go', 'hourly_rate': 350, 'completed_orders': 31},
+          {'id': 'exp_04', 'nickname': '赵六', 'avatar_url': null, 'rating': 4.6, 'skill': 'Python', 'hourly_rate': 280, 'completed_orders': 15},
+          {'id': 'exp_05', 'nickname': '孙七', 'avatar_url': null, 'rating': 4.5, 'skill': 'UI设计', 'hourly_rate': 200, 'completed_orders': 42},
+        ],
+      },
+    };
+  }
+
+  static Map<String, dynamic> _expertHome() {
+    return {
+      'code': 0,
+      'message': 'ok',
+      'data': {
+        'revenue': {
+          'total_income': 28500.0,
+          'month_income': 6800.0,
+          'pending_income': 3200.0,
+          'trend': 12.5,
+        },
+        'recommended_demands': [
+          {
+            'id': '10', 'uuid': 'proj_010', 'owner_id': 'user_010',
+            'title': '在线教育平台', 'description': '开发一款支持直播、录播、互动课堂的教育平台',
+            'category': 'app', 'budget_min': 8000, 'budget_max': 15000,
+            'match_score': 92, 'status': 2,
+            'tech_requirements': ['Flutter', 'WebRTC', 'Node.js'],
+            'view_count': 56, 'bid_count': 2, 'created_at': '2026-03-20T09:00:00Z',
+          },
+          {
+            'id': '11', 'uuid': 'proj_011', 'owner_id': 'user_011',
+            'title': 'SaaS 管理后台', 'description': '企业级SaaS后台管理系统',
+            'category': 'web', 'budget_min': 5000, 'budget_max': 12000,
+            'match_score': 87, 'status': 2,
+            'tech_requirements': ['React', 'TypeScript', 'Go'],
+            'view_count': 43, 'bid_count': 4, 'created_at': '2026-03-19T15:00:00Z',
+          },
+          {
+            'id': '12', 'uuid': 'proj_012', 'owner_id': 'user_012',
+            'title': '智能家居控制App', 'description': '物联网智能家居手机控制端',
+            'category': 'app', 'budget_min': 6000, 'budget_max': 10000,
+            'match_score': 78, 'status': 2,
+            'tech_requirements': ['Flutter', 'MQTT', 'BLE'],
+            'view_count': 28, 'bid_count': 1, 'created_at': '2026-03-21T11:00:00Z',
+          },
+        ],
+        'skill_heat': [
+          {'name': 'Flutter', 'heat': 95},
+          {'name': 'React', 'heat': 88},
+          {'name': 'Go', 'heat': 82},
+          {'name': 'Python', 'heat': 76},
+          {'name': 'AI/ML', 'heat': 91},
+          {'name': 'UI设计', 'heat': 70},
+        ],
+        'team_opportunities': [
+          {'id': 'team_01', 'project_title': '大型电商平台重构', 'needed_role': 'Flutter工程师', 'team_size': 5, 'budget': 50000},
+          {'id': 'team_02', 'project_title': 'AI 图像识别平台', 'needed_role': '算法工程师', 'team_size': 3, 'budget': 30000},
+        ],
+      },
+    };
+  }
+}

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/routes.dart';
+import '../../features/chat/providers/chat_provider.dart';
 
-/// 底部导航栏容器
-class VccBottomNav extends StatelessWidget {
+/// 底部导航栏 — Notion/Linear 黑白风格
+class VccBottomNav extends ConsumerWidget {
   final Widget child;
 
   const VccBottomNav({super.key, required this.child});
@@ -23,25 +25,22 @@ class VccBottomNav extends StatelessWidget {
     switch (index) {
       case 0:
         context.go(RoutePaths.home);
-        break;
       case 1:
         context.go(RoutePaths.square);
-        break;
       case 2:
         context.go(RoutePaths.chatList);
-        break;
       case 3:
         context.go(RoutePaths.projectList);
-        break;
       case 4:
         context.go(RoutePaths.profile);
-        break;
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final chatState = ref.watch(conversationListProvider);
+    final unreadCount = chatState.totalUnread;
 
     return Scaffold(
       body: child,
@@ -57,28 +56,28 @@ class VccBottomNav extends StatelessWidget {
         child: BottomNavigationBar(
           currentIndex: _currentIndex(context),
           onTap: (index) => _onTap(context, index),
-          items: const [
-            BottomNavigationBarItem(
+          items: [
+            const BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home),
               label: '首页',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.explore_outlined),
               activeIcon: Icon(Icons.explore),
               label: '广场',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline),
-              activeIcon: Icon(Icons.chat_bubble),
+              icon: _buildChatIcon(Icons.chat_bubble_outline, unreadCount),
+              activeIcon: _buildChatIcon(Icons.chat_bubble, unreadCount),
               label: '消息',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.dashboard_outlined),
               activeIcon: Icon(Icons.dashboard),
               label: '项目',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
               label: '我的',
@@ -86,6 +85,38 @@ class VccBottomNav extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildChatIcon(IconData icon, int unreadCount) {
+    if (unreadCount <= 0) return Icon(icon);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        Positioned(
+          right: -6,
+          top: -4,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            constraints: const BoxConstraints(minWidth: 16, minHeight: 14),
+            decoration: BoxDecoration(
+              color: AppColors.error,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.white, width: 1.5),
+            ),
+            child: Center(
+              child: Text(
+                unreadCount > 99 ? '99+' : '$unreadCount',
+                style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.white),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

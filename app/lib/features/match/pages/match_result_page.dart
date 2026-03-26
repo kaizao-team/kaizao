@@ -24,7 +24,7 @@ class MatchResultPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: isAiRecommend
                   ? Border.all(color: AppColors.brandPurple, width: 2)
-                  : Border.all(color: Colors.black.withOpacity(0.06), width: 0.5),
+                  : Border.all(color: const Color.fromRGBO(0, 0, 0, 0.06), width: 0.5),
               boxShadow: AppShadows.shadow2,
             ),
             child: Column(
