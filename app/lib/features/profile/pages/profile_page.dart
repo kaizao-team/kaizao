@@ -252,7 +252,6 @@ class ProfilePage extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          _buildMenuItem('我的项目', onTap: () {}),
           _buildMenuItem('我的钱包', onTap: () {
             context.push(RoutePaths.wallet);
           }),
