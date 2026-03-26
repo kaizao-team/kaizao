@@ -1,3 +1,11 @@
+`theme/` 是前端 token 层。
+
+规则：
+
+- 颜色、字体、阴影、圆角、动效 token 优先集中在这里
+- 旧 token 可以暂时兼容，但新增 token 要向 `app/AGENTS.md` 和 `app/DESIGN_SPEC.md` 收口
+- 不要在业务页面里临时发明新的品牌颜色体系
+
 <claude-mem-context>
 # Recent Activity
 

@@ -14,6 +14,7 @@ alwaysApply: true
 - 禁止出现白屏、约束冲突、布局抖动、不可点击区域
 - 禁止标题、金额、标签、按钮文案、状态徽标发生裁切或越界
 - 默认检查 `compact` 小屏和主流手机宽度，确认选中态、展开态、加载态都稳定
+- 首页、引导页、表单页默认检查长文案和空态
 
 ## 实现要求
 
@@ -22,8 +23,10 @@ alwaysApply: true
 - `Row` / `Column` 中的文本默认考虑长文案，必要时使用 `Expanded`、`Flexible`、`Wrap`
 - 对关键文本显式设置 `maxLines`、`TextOverflow.ellipsis` 或允许换行
 - 动效切换不能破坏约束关系，展开收起和选中态都要实机检查
+- 页面改动时，同步检查 loading / error / empty 三种状态，不只看 happy path
 
 ## 交付门槛
 
 - 代码通过 analyze 不算完成
 - 必须实际运行页面，确认没有 overflow、黄黑条、裁切和白屏
+- 如果修改的是共享组件，要至少抽查一个实际使用页面
