@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 
@@ -21,13 +22,21 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
     with SingleTickerProviderStateMixin {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
+  static const Map<String, String> _categoryValueMap = {
+    'APP开发': 'app',
+    '网站开发': 'web',
+    '小程序': 'miniprogram',
+    'UI设计': 'design',
+    '品牌设计': 'design',
+    '技术指导': 'consult',
+  };
 
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 900),
   );
 
-  String _selectedCategory = '';
+  String _selectedCategoryLabel = '';
   double _budgetMin = 1000;
   double _budgetMax = 5000;
 
@@ -41,13 +50,25 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
     '技术指导': '适合先拆方案、定路线，再啃关键难点。',
   };
 
+  String? _labelForCategoryValue(String? value) {
+    if (value == null || value.isEmpty) return null;
+    for (final entry in _categoryValueMap.entries) {
+      if (entry.value == value) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
     final draft = ref.read(onboardingProvider).draft;
     _titleController.text = draft['project_title'] as String? ?? '';
     _descController.text = draft['project_desc'] as String? ?? '';
-    _selectedCategory = draft['category'] as String? ?? '';
+    _selectedCategoryLabel = draft['category_label'] as String? ??
+        _labelForCategoryValue(draft['category'] as String?) ??
+        '';
     _budgetMin = (draft['budget_min'] as num?)?.toDouble() ?? 1000;
     _budgetMax = (draft['budget_max'] as num?)?.toDouble() ?? 5000;
     _controller.forward();
@@ -61,26 +82,38 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
     super.dispose();
   }
 
-  bool get _isValid =>
-      _titleController.text.trim().isNotEmpty && _selectedCategory.isNotEmpty;
+  bool get _isValid {
+    final title = _titleController.text.trim();
+    final description = _descController.text.trim();
+    return title.length >= 5 &&
+        description.length >= 20 &&
+        _selectedCategoryLabel.isNotEmpty;
+  }
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!_isValid) return;
 
     final notifier = ref.read(onboardingProvider.notifier);
-    final success = await notifier.submitData({
-      'project_title': _titleController.text.trim(),
-      'project_desc': _descController.text.trim(),
-      'category': _selectedCategory,
-      'budget_min': _budgetMin,
-      'budget_max': _budgetMax,
-    });
+    final projectId = await notifier.publishDemanderProject(
+      title: _titleController.text.trim(),
+      description: _descController.text.trim(),
+      category: _categoryValueMap[_selectedCategoryLabel]!,
+      categoryLabel: _selectedCategoryLabel,
+      budgetMin: _budgetMin,
+      budgetMax: _budgetMax,
+    );
     if (!mounted) return;
 
-    if (success) {
+    if (projectId != null) {
       await notifier.nextStep();
       if (mounted) context.go(RoutePaths.demanderOnboarding4);
+      return;
+    }
+
+    final message = ref.read(onboardingProvider).errorMessage;
+    if (message != null) {
+      VccToast.show(context, message: message, type: VccToastType.error);
     }
   }
 
@@ -178,19 +211,32 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingProvider);
     final title = _titleController.text.trim();
+    final description = _descController.text.trim();
     final hasTitle = title.isNotEmpty;
+    final hasDescription = description.isNotEmpty;
     final budgetText =
         '¥${_formatBudget(_budgetMin)} - ¥${_formatBudget(_budgetMax)}';
-    final categoryHint = _selectedCategory.isEmpty
+    final categoryHint = _selectedCategoryLabel.isEmpty
         ? '先点亮一个方向，后面的匹配才有抓手。'
-        : _categoryDescriptions[_selectedCategory]!;
-    final briefStatusText =
-        _selectedCategory.isEmpty ? '等待起笔' : (hasTitle ? '匹配准备中' : '方向已点亮');
-    final titleHelperText =
-        hasTitle ? '很好，这一行已经让人知道你要做什么了。' : '先抛出一句干净有力的话，让项目先站住。';
+        : _categoryDescriptions[_selectedCategoryLabel]!;
+    final briefStatusText = _selectedCategoryLabel.isEmpty
+        ? '等待起笔'
+        : _isValid
+            ? '可直接发布'
+            : (hasTitle ? '继续完善' : '方向已点亮');
+    final titleHelperText = !hasTitle
+        ? '标题至少 5 个字，接口才会接收。'
+        : title.length >= 5
+            ? '这一行已经够清楚了。'
+            : '再补 ${5 - title.length} 个字，至少 5 个字。';
+    final descriptionHelperText = !hasDescription
+        ? '项目语境至少 20 个字，目标和范围要写出来。'
+        : description.length >= 20
+            ? '这段信息已经够专家快速判断。'
+            : '再补 ${20 - description.length} 个字，接口才会接收。';
     final footnoteText = _isValid
         ? '骨架已经立住了，再补两句语境，系统会更快把你推到合适的人面前。'
-        : '先把方向和预算定住，这一页 brief 就会自己长起来。';
+        : '标题至少 5 个字，描述至少 20 个字，分类也要选定。';
 
     return OnboardingScaffold(
       currentStep: 2,
@@ -235,7 +281,7 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
                       const Spacer(),
                       OnboardingStatusBadge(
                         text: briefStatusText,
-                        animate: hasTitle || _selectedCategory.isNotEmpty,
+                        animate: hasTitle || _selectedCategoryLabel.isNotEmpty,
                       ),
                     ],
                   ),
@@ -290,9 +336,10 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
                         children: _categories.map((category) {
                           return OnboardingChip(
                             label: category,
-                            selected: _selectedCategory == category,
-                            onTap: () =>
-                                setState(() => _selectedCategory = category),
+                            selected: _selectedCategoryLabel == category,
+                            onTap: () => setState(
+                              () => _selectedCategoryLabel = category,
+                            ),
                           );
                         }).toList(),
                       ),
@@ -428,8 +475,20 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
                       TextField(
                         controller: _descController,
                         maxLines: 5,
+                        onChanged: (_) => setState(() {}),
                         style: AppTextStyles.input.copyWith(fontSize: 15),
                         decoration: _descriptionDecoration(),
+                      ),
+                      const SizedBox(height: 10),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        child: Text(
+                          descriptionHelperText,
+                          key: ValueKey(descriptionHelperText),
+                          style: AppTextStyles.body2.copyWith(
+                            color: AppColors.onboardingMutedText,
+                          ),
+                        ),
                       ),
                     ],
                   ),

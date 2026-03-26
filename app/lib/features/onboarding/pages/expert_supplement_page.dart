@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 
@@ -67,10 +68,18 @@ class _ExpertSupplementPageState extends ConsumerState<ExpertSupplementPage> {
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     final notifier = ref.read(onboardingProvider.notifier);
-    await notifier.submitData({
-      'bio': _bioController.text.trim(),
-    });
+    final success = await notifier.submitExpertSupplement(
+      bio: _bioController.text.trim(),
+    );
     if (!mounted) return;
+
+    if (!success) {
+      final message = ref.read(onboardingProvider).errorMessage;
+      if (message != null) {
+        VccToast.show(context, message: message, type: VccToastType.error);
+      }
+      return;
+    }
 
     await notifier.nextStep();
     if (mounted) context.go(RoutePaths.expertOnboarding3);

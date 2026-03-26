@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 
@@ -14,6 +15,8 @@ class DemanderGuideCreatePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(onboardingProvider);
+
     return OnboardingScaffold(
       currentStep: 1,
       onBack: () async {
@@ -24,11 +27,27 @@ class DemanderGuideCreatePage extends ConsumerWidget {
       },
       primaryActionText: '创建需求',
       onPrimaryAction: () async {
+        final projectId = await ref
+            .read(onboardingProvider.notifier)
+            .createDemanderProjectDraft();
+        if (projectId == null) {
+          final message = ref.read(onboardingProvider).errorMessage;
+          if (context.mounted && message != null) {
+            VccToast.show(
+              context,
+              message: message,
+              type: VccToastType.error,
+            );
+          }
+          return;
+        }
+
         await ref.read(onboardingProvider.notifier).nextStep();
         if (context.mounted) {
           context.go(RoutePaths.demanderOnboarding3);
         }
       },
+      isPrimaryLoading: state.isLoading,
       secondaryActionText: '先逛逛',
       onSecondaryAction: () async {
         await ref.read(onboardingProvider.notifier).complete();

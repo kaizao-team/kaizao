@@ -158,8 +158,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
       _showToast('请输入正确的手机号', type: VccToastType.warning);
       return;
     }
-    if (_codeController.text.trim().length < 4) {
-      _showToast('请输入短信验证码', type: VccToastType.warning);
+    if (_codeController.text.trim().length != 6) {
+      _showToast('请输入 6 位短信验证码', type: VccToastType.warning);
       return;
     }
 

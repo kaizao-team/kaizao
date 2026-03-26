@@ -1,8 +1,8 @@
 # VCC 开造 — API 接口规范（Mock 数据对应）
 
-> 版本：v2.0（Phase 2）
-> 日期：2026-03-23
-> 说明：此文档整理前端 Mock 层对应的所有 API 接口，方便后端按此规范实现。
+> 版本：v2.1（Phase 2）
+> 日期：2026-03-26
+> 说明：此文档整理前端 Mock 层对应的所有 API 接口，并补充 2026-03-26 对测试环境 `http://47.236.165.75:39527` 的实际校验结果。
 
 ## 通用约定
 
@@ -25,6 +25,23 @@
 - `code`: 0 成功, 非0 业务错误
 - `meta`: 仅分页接口返回
 
+## 现网兼容说明（2026-03-26）
+
+- 测试环境登录接口当前仍使用旧字段 `code`；仓库内新后端实现使用 `sms_code`。前端已兼容为同时发送 `code` 和 `sms_code`。
+- 测试环境登录接口实测接受 `code + sms_code` 同时提交；仅传 `sms_code` 单字段会返回 `400 参数校验失败`。
+- 测试环境 `POST /api/v1/projects/draft` 返回 `draft_id`；仓库内新后端实现返回完整项目对象并包含 `uuid`。前端已兼容两种返回。
+- 仓库内新后端提供 `POST /api/v1/projects/:uuid/publish`；测试环境当前未部署该端点，调用会返回 `404 page not found`。
+- 需求方四步引导在测试环境的实际发布路径为：
+  1. `PUT /api/v1/users/me`
+  2. `POST /api/v1/projects/draft`
+  3. `PUT /api/v1/projects/:draft_id`
+  4. 若 `POST /api/v1/projects/:uuid/publish` 返回 404，则回退 `POST /api/v1/projects`
+- 专家三步引导在测试环境的实际写入路径为：
+  1. `PUT /api/v1/users/me` 写入 `role`、`nickname`、`hourly_rate`、`available_status`
+  2. `PUT /api/v1/users/me/skills` 写入技能列表
+  3. `PUT /api/v1/users/me` 写入 `bio`
+- `PUT /api/v1/users/me/skills` 在测试环境返回 `200 / 技能更新成功`，但随后 `GET /api/v1/users/me` 的 `skills` 仍为空数组；当前测试环境未验证出技能回显链路。
+
 ---
 
 ## 1. 认证模块
@@ -37,7 +54,14 @@
 
 ### 1.2 手机号登录/注册
 - **POST** `/api/v1/auth/login`
-- **Body**: `{ "phone": "13800138000", "code": "1234" }`
+- **Body（现网兼容写法）**:
+```json
+{
+  "phone": "13800138000",
+  "sms_code": "952786",
+  "code": "952786"
+}
+```
 - **Response**:
 ```json
 {
@@ -52,7 +76,10 @@
   }
 }
 ```
-- **说明**: role=0 未选角色, role=1 需求方, role=2 专家; is_new_user=true 时前端进入引导流程
+- **说明**:
+  - 测试环境当前只校验 `code`；仅传 `sms_code` 会返回 400，同时传 `code + sms_code` 可正常登录。
+  - 仓库内新后端实现校验 `sms_code`。
+  - role=0 未选角色, role=1 需求方, role=2 专家; is_new_user=true 时前端进入引导流程。
 
 ### 1.3 刷新 Token
 - **POST** `/api/v1/auth/refresh`
@@ -103,6 +130,23 @@
 - **Headers**: 需认证
 - **Body**: 任意用户字段子集, 如 `{ "role": 1, "nickname": "张三" }`
 - **Response**: `{ "code": 0, "message": "更新成功" }`
+
+### 2.3 更新当前用户技能
+- **PUT** `/api/v1/users/me/skills`
+- **Headers**: 需认证
+- **Body**:
+```json
+{
+  "skills": [
+    { "name": "Flutter", "category": "framework", "is_primary": true },
+    { "name": "Figma", "category": "design", "is_primary": false }
+  ]
+}
+```
+- **Response**: `{ "code": 0, "message": "技能更新成功" }`
+- **说明**:
+  - 2026-03-26 对测试环境实测返回 200。
+  - 同次验证中，随后调用 `GET /api/v1/users/me`，返回体里的 `skills` 仍为空数组；前端目前只把该接口作为提交流程，不依赖它做即时回显。
 
 ---
 
@@ -467,33 +511,73 @@
 }
 ```
 
-### 6.4 发布项目
+- **兼容说明**:
+  - 测试环境当前返回 `draft_id`。
+  - 仓库内新后端实现返回完整项目对象，前端应从 `uuid / project_uuid / draft_id / id` 中兜底读取项目标识。
 
-- **POST** `/api/v1/projects`
-- **描述**: 发布新项目需求
+### 6.4 完善草稿
+
+- **PUT** `/api/v1/projects/:draftId`
+- **描述**: 在草稿阶段补充标题、描述、分类和预算
 - **Request Body**:
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| title | string | Y | 标题，至少 5 个字 |
+| description | string | Y | 描述，至少 20 个字 |
+| category | string | Y | `app/web/miniprogram/design/data/consult` |
+| budget_min | number | N | 预算下限 |
+| budget_max | number | N | 预算上限 |
+| match_mode | int | N | 1=AI撮合, 2=人工撮合, 3=邀请制 |
+
+- **Response（测试环境实测）**:
+
+```json
+{
+  "code": 0,
+  "message": "更新成功",
+  "data": {
+    "category": "web",
+    "status": 1,
+    "title": "兼容验证 1816 官网改版",
+    "uuid": "a35dd458-006c-435a-b757-2fcff250e9f8"
+  }
+}
+```
+
+### 6.5 发布项目
+
+- **首选端点（仓库新后端）**: `POST /api/v1/projects/:uuid/publish`
+- **测试环境兼容回退**: `POST /api/v1/projects`
+
+- **回退 Request Body**:
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| title | string | Y | 项目标题 |
+| description | string | Y | 项目描述 |
 | category | string | Y | 项目分类 |
-| prd_id | string | Y | PRD 文档 ID |
 | budget_min | number | Y | 预算下限 |
 | budget_max | number | Y | 预算上限 |
-| match_mode | string | Y | 撮合模式: ai/manual/invite |
+| match_mode | int | N | 撮合模式，测试环境可省略 |
 
-- **Response**:
+- **Response（测试环境实测）**:
 
 ```json
 {
   "code": 0,
   "message": "项目发布成功",
   "data": {
-    "id": "proj_001",
-    "uuid": "proj_uuid_001",
+    "id": "fd2be6c3-79fa-484c-8033-299dd97783ad",
+    "uuid": "fd2be6c3-79fa-484c-8033-299dd97783ad",
     "status": 2
   }
 }
 ```
+
+- **说明**:
+  - 若 `POST /api/v1/projects/:uuid/publish` 返回 404，前端应回退 `POST /api/v1/projects`。
+  - 测试环境已按该兼容路径验证通过。
 
 ## 7. PRD 文档模块 (Phase 3)
 
