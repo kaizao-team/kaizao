@@ -5,7 +5,6 @@ import os
 import sys
 import textwrap
 import urllib.error
-import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -26,18 +25,25 @@ def main() -> int:
     reasoning_effort = required_env("OPENAI_REASONING_EFFORT")
 
     pr = event.get("pull_request") or {}
-    pr_number = pr.get("number") or event.get("number")
+    pr_number = pr.get("number") or event.get("number") or os.getenv("PR_NUMBER")
     if not pr_number:
         raise RuntimeError("pull_request.number is missing from the workflow event payload.")
+    pr_number = int(pr_number)
+    if not pr:
+        pr = github_api_request(
+            github_token=github_token,
+            method="GET",
+            path=f"/repos/{repo}/pulls/{pr_number}",
+        )
 
     prompt = Path(required_env("AI_REVIEW_PROMPT_FILE")).read_text(encoding="utf-8")
-    diff_path = Path(required_env("AI_REVIEW_DIFF_FILE"))
-    files_path = Path(required_env("AI_REVIEW_FILES_FILE"))
     result_path = Path(required_env("AI_REVIEW_RESULT_FILE"))
-
-    diff_text = diff_path.read_text(encoding="utf-8")
-    files_text = files_path.read_text(encoding="utf-8").strip()
     max_diff_chars = int(os.getenv("AI_REVIEW_MAX_DIFF_CHARS", "120000"))
+    files_text, diff_text = load_review_inputs(
+        repo=repo,
+        pr_number=pr_number,
+        github_token=github_token,
+    )
     truncated_diff = clip_text(diff_text, max_diff_chars)
 
     user_input = build_user_input(pr, files_text, truncated_diff)
@@ -117,6 +123,60 @@ def build_user_input(pr: dict[str, Any], files_text: str, diff_text: str) -> str
         {diff_text}
         """
     )
+
+
+def load_review_inputs(*, repo: str, pr_number: int, github_token: str) -> tuple[str, str]:
+    files_path = os.getenv("AI_REVIEW_FILES_FILE")
+    diff_path = os.getenv("AI_REVIEW_DIFF_FILE")
+    if files_path and diff_path:
+        files_file = Path(files_path)
+        diff_file = Path(diff_path)
+        if files_file.exists() and diff_file.exists():
+            return (
+                files_file.read_text(encoding="utf-8").strip(),
+                diff_file.read_text(encoding="utf-8"),
+            )
+
+    files = list_pull_request_files(repo=repo, pr_number=pr_number, github_token=github_token)
+    files_text = "\n".join(
+        f"{item.get('status', 'modified')}\t{item.get('filename', '')}".rstrip()
+        for item in files
+    ).strip()
+
+    diff_text = github_api_text_request(
+        github_token=github_token,
+        path=f"/repos/{repo}/pulls/{pr_number}",
+        accept="application/vnd.github.v3.diff",
+    )
+    if diff_text.strip():
+        return files_text, diff_text
+
+    patch_parts = []
+    for item in files:
+        patch = item.get("patch")
+        if not patch:
+            continue
+        filename = item.get("filename", "")
+        patch_parts.append(f"diff --git a/{filename} b/{filename}\n{patch}")
+    return files_text, "\n\n".join(patch_parts)
+
+
+def list_pull_request_files(*, repo: str, pr_number: int, github_token: str) -> list[dict[str, Any]]:
+    files: list[dict[str, Any]] = []
+    page = 1
+    while True:
+        batch = github_api_request(
+            github_token=github_token,
+            method="GET",
+            path=f"/repos/{repo}/pulls/{pr_number}/files?per_page=100&page={page}",
+        )
+        if not batch:
+            break
+        files.extend(batch)
+        if len(batch) < 100:
+            break
+        page += 1
+    return files
 
 
 def run_openai_review(
@@ -310,7 +370,6 @@ def write_step_summary(review: dict[str, Any]) -> None:
 
 def upsert_issue_comment(*, repo: str, issue_number: int, github_token: str, body: str) -> None:
     comments = github_api_request(
-        repo=repo,
         github_token=github_token,
         method="GET",
         path=f"/repos/{repo}/issues/{issue_number}/comments?per_page=100",
@@ -323,7 +382,6 @@ def upsert_issue_comment(*, repo: str, issue_number: int, github_token: str, bod
 
     if existing_comment:
         github_api_request(
-            repo=repo,
             github_token=github_token,
             method="PATCH",
             path=f"/repos/{repo}/issues/comments/{existing_comment['id']}",
@@ -332,7 +390,6 @@ def upsert_issue_comment(*, repo: str, issue_number: int, github_token: str, bod
         return
 
     github_api_request(
-        repo=repo,
         github_token=github_token,
         method="POST",
         path=f"/repos/{repo}/issues/{issue_number}/comments",
@@ -342,7 +399,6 @@ def upsert_issue_comment(*, repo: str, issue_number: int, github_token: str, bod
 
 def github_api_request(
     *,
-    repo: str,
     github_token: str,
     method: str,
     path: str,
@@ -373,6 +429,27 @@ def github_api_request(
     if not response_body:
         return None
     return json.loads(response_body)
+
+
+def github_api_text_request(*, github_token: str, path: str, accept: str) -> str:
+    request = urllib.request.Request(
+        url=f"https://api.github.com{path}",
+        method="GET",
+        headers={
+            "Accept": accept,
+            "Authorization": f"Bearer {github_token}",
+            "X-GitHub-Api-Version": GITHUB_API_VERSION,
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"GitHub text API request failed with {exc.code}: {error_body}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"GitHub text API request failed: {exc}") from exc
 
 
 if __name__ == "__main__":
