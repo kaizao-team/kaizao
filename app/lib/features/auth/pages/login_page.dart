@@ -290,7 +290,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                 ),
                               ],
-                              const Spacer(flex: 3),
+                              SizedBox(
+                                height:
+                                    compact ? AppSpacing.xl : AppSpacing.xxl,
+                              ),
+                              if (!compact) const Spacer(flex: 3),
                               VccButton(
                                 text: _mode == _AuthMode.password
                                     ? '登录'
