@@ -53,7 +53,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final profileState = ref.watch(profileProvider('me'));
     final profile = profileState.profile;
 
-    final currentRoleName = authState.userRole == 2 ? '专家' : '需求方';
+    final currentRoleName = authState.userRole == 2 ? '团队方' : '项目方';
 
     final phoneTrailing = profileState.isLoading && profile == null
         ? '加载中...'

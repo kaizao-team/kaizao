@@ -176,7 +176,7 @@ class ProfilePage extends ConsumerWidget {
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
-            profile.isDemander ? '需求方' : '专家',
+            profile.isDemander ? '项目方' : '团队方',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
