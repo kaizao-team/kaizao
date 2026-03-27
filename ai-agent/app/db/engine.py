@@ -51,9 +51,23 @@ async def init_db(auto_create_tables: bool = False):
     )
 
     if auto_create_tables:
+        from app.db.models import (
+            AIProjectStage, AIDocument, AIConversationMessage,
+            AIProviderProfile, AIVibePowerLog,
+        )
+        # 只建 AI 独有表，不动 Go 后端的 projects 表
+        ai_tables = [
+            AIProjectStage.__table__,
+            AIDocument.__table__,
+            AIConversationMessage.__table__,
+            AIProviderProfile.__table__,
+            AIVibePowerLog.__table__,
+        ]
         from app.db.models import Base
         async with _engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(
+                lambda sync_conn: Base.metadata.create_all(sync_conn, tables=ai_tables)
+            )
 
 
 async def close_db():

@@ -1,6 +1,7 @@
 """
 开造 VibeBuild — 异步 CRUD 操作封装
-提供 ProjectRepository 用于 MySQL 持久化
+ProjectRepository: 读写 Go 后端 kaizao.projects + AI 独有的 ai_* 表
+RatingRepository: 读写 ai_provider_profiles / ai_vibe_power_logs
 """
 
 import json
@@ -8,46 +9,59 @@ from datetime import datetime
 from typing import Optional
 
 import structlog
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 
 from app.db.engine import get_session_factory
-from app.db.models import ConversationMessage, Document, Project, ProjectStage, ProviderProfile, VibePowerLog
+from app.db.models import (
+    AIConversationMessage,
+    AIDocument,
+    AIProjectStage,
+    AIProviderProfile,
+    AIVibePowerLog,
+    Project,
+)
 
 logger = structlog.get_logger()
 
 
 class ProjectRepository:
-    """项目持久化仓库"""
+    """项目持久化仓库 — 以 Go 后端 projects.uuid 为关联键"""
 
     # ---- 项目 CRUD ----
 
     async def save_project(self, project_id: str, state: dict) -> None:
-        """保存/更新项目及其阶段状态"""
+        """
+        保存/更新项目的 AI 流水线状态。
+
+        project_id 是 Go 后端 projects.uuid。
+        - 对 projects 表：仅 UPDATE ai_prd / ai_estimate / confirmed_prd
+        - 对 ai_project_stages 表：upsert 各阶段状态
+        """
         async with get_session_factory()() as session:
             async with session.begin():
-                # upsert 项目主表
-                stmt = mysql_insert(Project).values(
-                    id=project_id,
-                    title=state.get("title", ""),
-                    current_stage=state.get("current_stage", "requirement"),
-                    version=state.get("version", 1),
-                    session_id=state.get("session_id"),
-                )
-                stmt = stmt.on_duplicate_key_update(
-                    title=stmt.inserted.title,
-                    current_stage=stmt.inserted.current_stage,
-                    version=stmt.inserted.version,
-                    session_id=stmt.inserted.session_id,
-                    updated_at=datetime.now(),
-                )
-                await session.execute(stmt)
+                # UPDATE Go 后端 projects 表的 AI 字段（如果有数据）
+                ai_updates = {}
+                if state.get("ai_prd"):
+                    ai_updates["ai_prd"] = state["ai_prd"]
+                if state.get("ai_estimate"):
+                    ai_updates["ai_estimate"] = state["ai_estimate"]
+                if state.get("confirmed_prd"):
+                    ai_updates["confirmed_prd"] = state["confirmed_prd"]
 
-                # upsert 各阶段状态
+                if ai_updates:
+                    ai_updates["updated_at"] = datetime.now()
+                    await session.execute(
+                        update(Project)
+                        .where(Project.uuid == project_id)
+                        .values(**ai_updates)
+                    )
+
+                # upsert 各阶段状态到 ai_project_stages
                 for stage_name in ("requirement", "design", "task", "pm"):
                     stage_data = state.get(stage_name, {})
                     if isinstance(stage_data, dict):
-                        stage_stmt = mysql_insert(ProjectStage).values(
+                        stage_stmt = mysql_insert(AIProjectStage).values(
                             project_id=project_id,
                             stage_name=stage_name,
                             status=stage_data.get("status", "pending"),
@@ -68,26 +82,34 @@ class ProjectRepository:
                         await session.execute(stage_stmt)
 
     async def get_project(self, project_id: str) -> Optional[dict]:
-        """从 MySQL 读取项目及阶段状态，还原为 ProjectState 格式的 dict"""
+        """
+        从 kaizao.projects 按 uuid 查找项目，合并 ai_project_stages 数据，
+        返回 ProjectState 格式的 dict。
+        """
         async with get_session_factory()() as session:
-            project = await session.get(Project, project_id)
+            # 按 uuid 查找 Go 后端的 project
+            q = await session.execute(
+                select(Project).where(Project.uuid == project_id)
+            )
+            project = q.scalars().first()
             if not project:
                 return None
 
             result = {
-                "project_id": project.id,
-                "title": project.title,
-                "current_stage": project.current_stage,
-                "version": project.version,
-                "session_id": project.session_id,
+                "project_id": project.uuid,  # AI 侧统一用 uuid 作为 project_id
+                "title": project.title or "",
+                "current_stage": "requirement",  # 默认值，下面从 stages 推断
+                "version": 1,
+                "session_id": None,
                 "created_at": project.created_at.isoformat() if project.created_at else None,
                 "updated_at": project.updated_at.isoformat() if project.updated_at else None,
             }
 
-            # 读取各阶段
+            # 读取 AI 阶段状态
             stages_q = await session.execute(
-                select(ProjectStage).where(ProjectStage.project_id == project_id)
+                select(AIProjectStage).where(AIProjectStage.project_id == project_id)
             )
+            last_active_stage = "requirement"
             for stage in stages_q.scalars().all():
                 result[stage.stage_name] = {
                     "status": stage.status,
@@ -97,18 +119,26 @@ class ProjectRepository:
                     "started_at": stage.started_at.isoformat() if stage.started_at else None,
                     "completed_at": stage.completed_at.isoformat() if stage.completed_at else None,
                 }
+                if stage.status in ("running", "awaiting_confirmation", "confirmed"):
+                    last_active_stage = stage.stage_name
 
+            result["current_stage"] = last_active_stage
             return result
 
+    async def verify_project_exists(self, project_id: str) -> bool:
+        """验证 Go 后端 projects 表中是否存在指定 uuid 的项目"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(Project.uuid).where(Project.uuid == project_id)
+            )
+            return q.scalars().first() is not None
+
     async def delete_project(self, project_id: str) -> None:
-        """删除项目（级联删除阶段）"""
+        """只删除 AI 阶段数据，不动 Go 后端的 projects 行"""
         async with get_session_factory()() as session:
             async with session.begin():
                 await session.execute(
-                    delete(ProjectStage).where(ProjectStage.project_id == project_id)
-                )
-                await session.execute(
-                    delete(Project).where(Project.id == project_id)
+                    delete(AIProjectStage).where(AIProjectStage.project_id == project_id)
                 )
 
     # ---- 文档记录 ----
@@ -125,7 +155,7 @@ class ProjectRepository:
         """保存文档元信息"""
         async with get_session_factory()() as session:
             async with session.begin():
-                stmt = mysql_insert(Document).values(
+                stmt = mysql_insert(AIDocument).values(
                     project_id=project_id,
                     stage=stage,
                     filename=filename,
@@ -144,7 +174,7 @@ class ProjectRepository:
         """获取项目所有文档记录"""
         async with get_session_factory()() as session:
             q = await session.execute(
-                select(Document).where(Document.project_id == project_id)
+                select(AIDocument).where(AIDocument.project_id == project_id)
             )
             return [
                 {
@@ -170,18 +200,16 @@ class ProjectRepository:
         """批量保存对话消息（全量覆盖写入）"""
         async with get_session_factory()() as session:
             async with session.begin():
-                # 先清除该 session 的旧消息
                 await session.execute(
-                    delete(ConversationMessage).where(
-                        ConversationMessage.session_id == session_id
+                    delete(AIConversationMessage).where(
+                        AIConversationMessage.session_id == session_id
                     )
                 )
-                # 写入新消息
                 for idx, msg in enumerate(messages):
                     content = msg.get("content", "")
                     if not isinstance(content, str):
                         content = json.dumps(content, ensure_ascii=False, default=str)
-                    session.add(ConversationMessage(
+                    session.add(AIConversationMessage(
                         session_id=session_id,
                         project_id=project_id,
                         role=msg.get("role", "unknown"),
@@ -193,14 +221,13 @@ class ProjectRepository:
         """读取对话消息"""
         async with get_session_factory()() as session:
             q = await session.execute(
-                select(ConversationMessage)
-                .where(ConversationMessage.session_id == session_id)
-                .order_by(ConversationMessage.message_index)
+                select(AIConversationMessage)
+                .where(AIConversationMessage.session_id == session_id)
+                .order_by(AIConversationMessage.message_index)
             )
             results = []
             for msg in q.scalars().all():
                 content = msg.content
-                # 尝试还原 JSON 格式的 content
                 try:
                     content = json.loads(content)
                 except (json.JSONDecodeError, TypeError):
@@ -216,7 +243,7 @@ class RatingRepository:
         """保存/更新供给方档案"""
         async with get_session_factory()() as session:
             async with session.begin():
-                stmt = mysql_insert(ProviderProfile).values(**profile_data)
+                stmt = mysql_insert(AIProviderProfile).values(**profile_data)
                 update_fields = {
                     k: stmt.inserted[k]
                     for k in profile_data
@@ -229,7 +256,7 @@ class RatingRepository:
     async def get_provider_profile(self, provider_id: str) -> Optional[dict]:
         """获取供给方档案"""
         async with get_session_factory()() as session:
-            profile = await session.get(ProviderProfile, provider_id)
+            profile = await session.get(AIProviderProfile, provider_id)
             if not profile:
                 return None
             return {
@@ -262,7 +289,7 @@ class RatingRepository:
         """通过 user_id 获取供给方档案"""
         async with get_session_factory()() as session:
             q = await session.execute(
-                select(ProviderProfile).where(ProviderProfile.user_id == user_id)
+                select(AIProviderProfile).where(AIProviderProfile.user_id == user_id)
             )
             profile = q.scalars().first()
             if not profile:
@@ -279,7 +306,7 @@ class RatingRepository:
         """更新供给方的积分和等级"""
         async with get_session_factory()() as session:
             async with session.begin():
-                profile = await session.get(ProviderProfile, provider_id)
+                profile = await session.get(AIProviderProfile, provider_id)
                 if profile:
                     profile.vibe_power = max(0, profile.vibe_power + points_delta)
                     profile.vibe_level = new_level
@@ -296,7 +323,7 @@ class RatingRepository:
         """添加积分变动记录"""
         async with get_session_factory()() as session:
             async with session.begin():
-                session.add(VibePowerLog(
+                session.add(AIVibePowerLog(
                     provider_id=provider_id,
                     action=action,
                     points=points,
@@ -313,9 +340,9 @@ class RatingRepository:
         """获取积分变动历史"""
         async with get_session_factory()() as session:
             q = await session.execute(
-                select(VibePowerLog)
-                .where(VibePowerLog.provider_id == provider_id)
-                .order_by(VibePowerLog.created_at.desc())
+                select(AIVibePowerLog)
+                .where(AIVibePowerLog.provider_id == provider_id)
+                .order_by(AIVibePowerLog.created_at.desc())
                 .offset(offset)
                 .limit(limit)
             )

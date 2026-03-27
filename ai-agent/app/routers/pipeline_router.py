@@ -3,7 +3,6 @@
 """
 
 import uuid
-from typing import Optional
 
 import structlog
 from fastapi import APIRouter, Request
@@ -16,24 +15,24 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v2/pipeline", tags=["v2-pipeline"])
 
 
-class CreateProjectRequest(BaseModel):
-    title: str
-    project_id: Optional[str] = None
+class InitProjectRequest(BaseModel):
+    """初始化 AI 流水线（project_id 为 Go 后端 projects.uuid，必填）"""
+    project_id: str
+    title: str = ""
 
 
 @router.post("/start", response_model=APIResponse)
-async def create_project(req: CreateProjectRequest, request: Request):
-    """创建项目（不启动任何阶段）"""
+async def init_project(req: InitProjectRequest, request: Request):
+    """初始化 AI 流水线状态（项目需已在 Go 后端创建）"""
     from app.main import v2_orchestrator
 
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
 
-    project_id = req.project_id or str(uuid.uuid4())[:12]
-    state = await v2_orchestrator.create_project(project_id, req.title)
+    state = await v2_orchestrator.init_project(req.project_id, req.title)
 
     return APIResponse(
         code=0,
-        message="项目已创建",
+        message="AI 流水线已初始化",
         data=state.to_summary(),
         request_id=request_id,
     )

@@ -20,10 +20,10 @@ router = APIRouter(prefix="/api/v2/requirement", tags=["v2-requirement"])
 
 
 class StartRequest(BaseModel):
-    """创建项目 + 首轮对话"""
+    """初始化 AI 流水线 + 首轮需求对话"""
     message: str
     title: Optional[str] = ""
-    project_id: Optional[str] = None
+    project_id: str  # Go 后端 projects.uuid，必填
 
 
 class MessageRequest(BaseModel):
@@ -48,10 +48,10 @@ async def start_requirement(req: StartRequest, request: Request):
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
 
     try:
-        project_id = req.project_id or str(uuid.uuid4())[:12]
+        project_id = req.project_id
         session_id = f"req-{project_id}"
 
-        state = await v2_orchestrator.create_project(project_id, req.title or req.message[:50], session_id)
+        state = await v2_orchestrator.init_project(project_id, req.title or req.message[:50], session_id)
         state.set_stage_status("requirement", "running", sub_stage="clarifying")
         await v2_orchestrator.save_project(state)
 
@@ -68,7 +68,7 @@ async def start_requirement(req: StartRequest, request: Request):
         await v2_orchestrator.save_project(state)
 
         agent_text = v2_requirement_agent.extract_text_response(updated_msgs)
-        slim_tool = {k: v for k, v in tool_result.items() if k not in ("markdown_preview", "prd", "ears_tasks")}
+        slim_tool = {k: v for k, v in tool_result.items() if k not in ("markdown_preview", "prd", "ears_tasks", "questions", "dimension_coverage")}
 
         return APIResponse(
             code=0,
@@ -80,6 +80,8 @@ async def start_requirement(req: StartRequest, request: Request):
                 "sub_stage": sub_stage,
                 "completeness_score": score,
                 "tool_result": slim_tool,
+                "questions": tool_result.get("questions", []),
+                "dimension_coverage": tool_result.get("dimension_coverage") or v2_requirement_agent.dimension_coverage,
             },
             request_id=request_id,
         )
@@ -127,6 +129,8 @@ async def send_message(project_id: str, req: MessageRequest, request: Request):
                 "sub_stage": sub_stage,
                 "completeness_score": score,
                 "tool_name": tool_result.get("tool_name", ""),
+                "questions": tool_result.get("questions", []),
+                "dimension_coverage": tool_result.get("dimension_coverage") or v2_requirement_agent.dimension_coverage,
             },
             request_id=request_id,
         )
@@ -204,14 +208,14 @@ async def start_requirement_stream(req: StartRequest, request: Request):
     """[SSE 流式] 创建项目 + 首轮需求对话"""
     from app.main import v2_orchestrator, v2_session, v2_requirement_agent
 
-    project_id = req.project_id or str(uuid.uuid4())[:12]
+    project_id = req.project_id
     session_id = f"req-{project_id}"
 
     async def event_generator():
         try:
             yield {"event": "init", "data": json.dumps({"project_id": project_id, "session_id": session_id}, ensure_ascii=False)}
 
-            state = await v2_orchestrator.create_project(project_id, req.title or req.message[:50], session_id)
+            state = await v2_orchestrator.init_project(project_id, req.title or req.message[:50], session_id)
             state.set_stage_status("requirement", "running", sub_stage="clarifying")
             await v2_orchestrator.save_project(state)
 
