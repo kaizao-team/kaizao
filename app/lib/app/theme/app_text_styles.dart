@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
-/// 开造 VCC 字体样式系统 — Notion/Linear 风格
+/// KAIZAO 字体样式系统 — Notion/Linear 风格
 class AppTextStyles {
   AppTextStyles._();
 

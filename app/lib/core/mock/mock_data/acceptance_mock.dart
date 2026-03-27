@@ -31,12 +31,42 @@ class AcceptanceMock {
         'payee_name': '张开发',
         'preview_url': 'https://preview.vibebuild.com/proj_001/m1',
         'items': [
-          {'id': 'ac_001', 'description': '用户可通过手机号+验证码登录', 'is_checked': true, 'source_card': 'FE-AUTH-001'},
-          {'id': 'ac_002', 'description': '登录后自动跳转首页', 'is_checked': true, 'source_card': 'FE-AUTH-001'},
-          {'id': 'ac_003', 'description': '角色选择页支持需求方/专家切换', 'is_checked': false, 'source_card': 'FE-AUTH-002'},
-          {'id': 'ac_004', 'description': '引导页展示品牌介绍和功能亮点', 'is_checked': false, 'source_card': 'FE-ONBOARD-001'},
-          {'id': 'ac_005', 'description': '需求方引导4步表单正常提交', 'is_checked': false, 'source_card': 'FE-ONBOARD-003'},
-          {'id': 'ac_006', 'description': '断点续传：退出后重新进入保留进度', 'is_checked': false, 'source_card': 'FE-ONBOARD-006'},
+          {
+            'id': 'ac_001',
+            'description': '用户可通过手机号+验证码登录',
+            'is_checked': true,
+            'source_card': 'FE-AUTH-001'
+          },
+          {
+            'id': 'ac_002',
+            'description': '登录后自动跳转首页',
+            'is_checked': true,
+            'source_card': 'FE-AUTH-001'
+          },
+          {
+            'id': 'ac_003',
+            'description': '角色选择页支持项目方/团队方切换',
+            'is_checked': false,
+            'source_card': 'FE-AUTH-002'
+          },
+          {
+            'id': 'ac_004',
+            'description': '引导页展示品牌介绍和功能亮点',
+            'is_checked': false,
+            'source_card': 'FE-ONBOARD-001'
+          },
+          {
+            'id': 'ac_005',
+            'description': '项目方引导4步表单正常提交',
+            'is_checked': false,
+            'source_card': 'FE-ONBOARD-003'
+          },
+          {
+            'id': 'ac_006',
+            'description': '断点续传：退出后重新进入保留进度',
+            'is_checked': false,
+            'source_card': 'FE-ONBOARD-006'
+          },
         ],
       },
     };

@@ -11,7 +11,7 @@ import '../widgets/onboarding_chrome.dart';
 
 const _expertSupplementStepLabels = ['资料', '补充', '等级'];
 
-/// ONBOARD-006: 引导专家补充评估信息
+/// ONBOARD-006: 引导团队方补充评估信息
 class ExpertSupplementPage extends ConsumerStatefulWidget {
   const ExpertSupplementPage({super.key});
 
@@ -104,7 +104,7 @@ class _ExpertSupplementPageState extends ConsumerState<ExpertSupplementPage> {
           context.go(RoutePaths.expertOnboarding1);
         }
       },
-      primaryActionText: '生成专家等级',
+      primaryActionText: '生成团队等级',
       onPrimaryAction: _submit,
       isPrimaryLoading: state.isLoading,
       secondaryActionText: '暂时跳过',
@@ -116,7 +116,7 @@ class _ExpertSupplementPageState extends ConsumerState<ExpertSupplementPage> {
           const Text('补充案例与定位', style: AppTextStyles.onboardingTitle),
           const SizedBox(height: 12),
           const Text(
-            '先摆出你最能打的一组作品，再补一句像你本人会说的话。需求方先感受到你，再决定要不要聊。',
+            '先摆出你最能打的一组作品，再补一句像你本人会说的话。项目方先感受到你，再决定要不要聊。',
             style: AppTextStyles.onboardingBody,
           ),
           const SizedBox(height: 28),
@@ -150,7 +150,7 @@ class _ExpertSupplementPageState extends ConsumerState<ExpertSupplementPage> {
           const OnboardingInfoBlock(
             icon: Icons.visibility_outlined,
             title: '先被看懂，才会被联系',
-            description: '需求方通常会先看你的案例风格、简介和协作方式，再决定是否进入沟通。',
+            description: '项目方通常会先看你的案例风格、简介和协作方式，再决定是否进入沟通。',
           ),
           const SizedBox(height: 24),
         ],

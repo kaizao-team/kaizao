@@ -27,7 +27,9 @@ class _PostPageState extends ConsumerState<PostPage> {
     super.initState();
     if (widget.initialCategory != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(postStateProvider.notifier).selectCategory(widget.initialCategory!);
+        ref
+            .read(postStateProvider.notifier)
+            .selectCategory(widget.initialCategory!);
       });
     }
   }
@@ -46,13 +48,18 @@ class _PostPageState extends ConsumerState<PostPage> {
           icon: const Icon(Icons.close, color: AppColors.black),
           onPressed: () => _handleBack(postState),
         ),
-        title: const Text('发布需求', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.black)),
+        title: const Text('创建项目',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black)),
         centerTitle: true,
         actions: [
           if (postState.currentStep > 0 && postState.currentStep < 4)
             TextButton(
               onPressed: () => ref.read(postStateProvider.notifier).saveDraft(),
-              child: const Text('保存草稿', style: TextStyle(fontSize: 13, color: AppColors.gray500)),
+              child: const Text('保存草稿',
+                  style: TextStyle(fontSize: 13, color: AppColors.gray500)),
             ),
         ],
       ),
@@ -83,7 +90,8 @@ class _PostPageState extends ConsumerState<PostPage> {
       case 0:
         return PostCategoryStep(
           selected: postState.category,
-          onSelect: (cat) => ref.read(postStateProvider.notifier).selectCategory(cat),
+          onSelect: (cat) =>
+              ref.read(postStateProvider.notifier).selectCategory(cat),
         );
       case 1:
         return const PostAiChat();
@@ -94,12 +102,15 @@ class _PostPageState extends ConsumerState<PostPage> {
           budgetMin: postState.budgetMin,
           budgetMax: postState.budgetMax,
           suggestion: postState.budgetSuggestion,
-          onChanged: (range) => ref.read(postStateProvider.notifier).setBudget(range.start, range.end),
+          onChanged: (range) => ref
+              .read(postStateProvider.notifier)
+              .setBudget(range.start, range.end),
         );
       case 4:
         return PostMatchMode(
           selected: postState.matchMode,
-          onSelect: (mode) => ref.read(postStateProvider.notifier).setMatchMode(mode),
+          onSelect: (mode) =>
+              ref.read(postStateProvider.notifier).setMatchMode(mode),
         );
       default:
         return const SizedBox();
@@ -124,7 +135,7 @@ class _PostPageState extends ConsumerState<PostPage> {
         );
       case 4:
         return _BottomBar(
-          label: '发布需求',
+          label: '创建项目',
           enabled: postState.canPublish,
           isLoading: postState.isPublishing,
           onTap: _handlePublish,
@@ -147,14 +158,16 @@ class _PostPageState extends ConsumerState<PostPage> {
         'matchMode': '请选择撮合模式',
       };
       if (mounted) {
-        VccToast.show(context, message: errorMessages[firstError] ?? '请完善信息', type: VccToastType.warning);
+        VccToast.show(context,
+            message: errorMessages[firstError] ?? '请完善信息',
+            type: VccToastType.warning);
       }
       return;
     }
 
     final projectId = await notifier.publish();
     if (projectId != null && mounted) {
-      VccToast.show(context, message: '发布成功！', type: VccToastType.success);
+      VccToast.show(context, message: '项目创建成功', type: VccToastType.success);
       context.go('/projects/$projectId');
     }
   }
@@ -164,19 +177,22 @@ class _PostPageState extends ConsumerState<PostPage> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('确认离开？', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          title: const Text('确认离开？',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           content: const Text('当前编辑内容将丢失，确定要离开吗？'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消', style: TextStyle(color: AppColors.gray500)),
+              child:
+                  const Text('取消', style: TextStyle(color: AppColors.gray500)),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 context.pop();
               },
-              child: const Text('确定离开', style: TextStyle(color: AppColors.error)),
+              child:
+                  const Text('确定离开', style: TextStyle(color: AppColors.error)),
             ),
           ],
         ),
@@ -195,7 +211,8 @@ class _PrdPreviewStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (prdData == null) {
-      return const Center(child: Text('暂无PRD数据', style: TextStyle(color: AppColors.gray400)));
+      return const Center(
+          child: Text('暂无PRD数据', style: TextStyle(color: AppColors.gray400)));
     }
 
     return SingleChildScrollView(
@@ -205,18 +222,26 @@ class _PrdPreviewStep extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.description_outlined, size: 20, color: AppColors.accent),
+              const Icon(Icons.description_outlined,
+                  size: 20, color: AppColors.accent),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   prdData!.title,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.black),
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.black),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 20),
-          const Text('模块概览', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.gray600)),
+          const Text('模块概览',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.gray600)),
           const SizedBox(height: 12),
           ...prdData!.modules.map((m) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -236,20 +261,28 @@ class _PrdPreviewStep extends StatelessWidget {
                           color: AppColors.accentLight,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.widgets_outlined, size: 18, color: AppColors.accent),
+                        child: const Icon(Icons.widgets_outlined,
+                            size: 18, color: AppColors.accent),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(m.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.black)),
+                            Text(m.name,
+                                style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.black)),
                             const SizedBox(height: 2),
-                            Text('${m.cardCount} 张需求卡片', style: const TextStyle(fontSize: 12, color: AppColors.gray500)),
+                            Text('${m.cardCount} 张需求卡片',
+                                style: const TextStyle(
+                                    fontSize: 12, color: AppColors.gray500)),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right, size: 18, color: AppColors.gray400),
+                      const Icon(Icons.chevron_right,
+                          size: 18, color: AppColors.gray400),
                     ],
                   ),
                 ),
@@ -264,12 +297,14 @@ class _PrdPreviewStep extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.lightbulb_outline, size: 18, color: AppColors.accent),
+                  const Icon(Icons.lightbulb_outline,
+                      size: 18, color: AppColors.accent),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       prdData!.budgetSuggestion!.reason,
-                      style: const TextStyle(fontSize: 13, color: AppColors.accent),
+                      style: const TextStyle(
+                          fontSize: 13, color: AppColors.accent),
                     ),
                   ),
                 ],
@@ -305,11 +340,14 @@ class _BudgetStep extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             '设置预算范围',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.black),
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.black),
           ),
           const SizedBox(height: 8),
           const Text(
-            '设置合理的预算有助于吸引优质专家',
+            '设置合理的预算有助于吸引优质团队',
             style: TextStyle(fontSize: 14, color: AppColors.gray500),
           ),
           const SizedBox(height: 32),
@@ -331,17 +369,25 @@ class _BudgetStep extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.auto_awesome, size: 18, color: AppColors.accent),
+                  const Icon(Icons.auto_awesome,
+                      size: 18, color: AppColors.accent),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('AI 推荐预算', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent)),
+                        const Text('AI 推荐预算',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.accent)),
                         const SizedBox(height: 2),
                         Text(
                           '¥${suggestion!.min.toStringAsFixed(0)} - ¥${suggestion!.max.toStringAsFixed(0)}',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.accent),
+                          style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.accent),
                         ),
                       ],
                     ),
@@ -393,14 +439,17 @@ class _BottomBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: enabled ? AppColors.black : AppColors.gray300,
             borderRadius: BorderRadius.circular(12),
-            border: hasValidationError ? Border.all(color: AppColors.error, width: 2) : null,
+            border: hasValidationError
+                ? Border.all(color: AppColors.error, width: 2)
+                : null,
           ),
           child: Center(
             child: isLoading
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.white),
                   )
                 : Text(
                     label,

@@ -34,7 +34,7 @@ class MarketMock {
           'skills': ['Flutter', 'Dart', 'Firebase'],
           'completed_projects': 23,
           'hourly_rate': 300,
-          'tagline': '全栈移动端开发专家'
+          'tagline': '全栈移动端开发团队'
         },
         {
           'id': 'exp_02',
@@ -84,7 +84,7 @@ class MarketMock {
           'skills': ['Vue.js', 'Nuxt', 'TailwindCSS'],
           'completed_projects': 26,
           'hourly_rate': 260,
-          'tagline': 'Vue 生态专家'
+          'tagline': 'Vue 生态团队'
         },
         {
           'id': 'exp_07',
@@ -104,7 +104,7 @@ class MarketMock {
           'skills': ['Rust', 'WebAssembly', 'Go'],
           'completed_projects': 12,
           'hourly_rate': 400,
-          'tagline': '系统级开发专家'
+          'tagline': '系统级开发团队'
         },
       ],
       'meta': {'page': 1, 'page_size': 20, 'total': 8, 'total_pages': 1},

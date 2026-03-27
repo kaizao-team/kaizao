@@ -58,7 +58,12 @@ class MarketState {
 class MarketNotifier extends StateNotifier<MarketState> {
   final MarketRepository _repository;
 
-  MarketNotifier(this._repository) : super(const MarketState()) {
+  MarketNotifier(this._repository, {String? initialCategory})
+      : super(
+          MarketState(
+            selectedCategory: normalizeMarketCategory(initialCategory),
+          ),
+        ) {
     loadInitial();
   }
 
@@ -124,8 +129,9 @@ class MarketNotifier extends StateNotifier<MarketState> {
   }
 
   void setCategory(String category) {
-    if (state.selectedCategory == category) return;
-    state = state.copyWith(selectedCategory: category);
+    final normalizedCategory = normalizeMarketCategory(category);
+    if (state.selectedCategory == normalizedCategory) return;
+    state = state.copyWith(selectedCategory: normalizedCategory);
     loadInitial();
   }
 
@@ -153,9 +159,12 @@ final marketRepositoryProvider = Provider<MarketRepository>((ref) {
 });
 
 final marketStateProvider =
-    StateNotifierProvider<MarketNotifier, MarketState>((ref) {
+    StateNotifierProvider.family<MarketNotifier, MarketState, String?>((
+  ref,
+  initialCategory,
+) {
   final repository = ref.watch(marketRepositoryProvider);
-  return MarketNotifier(repository);
+  return MarketNotifier(repository, initialCategory: initialCategory);
 });
 
 class ExpertListState {

@@ -26,7 +26,7 @@ class _OnboardingPageState extends State<OnboardingPage>
       description: '只需描述你的想法，AI 会通过对话\n帮你梳理需求，自动生成专业的\n项目需求文档',
     ),
     _PageData(
-      title: '智能匹配造物者',
+      title: '智能匹配团队',
       description: '基于技能、评价、作品多维度分析，\n为你精准推荐最合适的\n开发者或团队',
     ),
     _PageData(

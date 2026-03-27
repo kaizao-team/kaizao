@@ -47,7 +47,7 @@ class PaymentReleaseDialog extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              '验收通过后，托管资金将释放给供给方',
+              '验收通过后，托管资金将释放给团队',
               style: TextStyle(fontSize: 13, color: AppColors.gray500),
             ),
             const SizedBox(height: 20),

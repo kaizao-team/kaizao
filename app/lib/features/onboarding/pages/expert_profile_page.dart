@@ -12,7 +12,7 @@ import '../widgets/expert_onboarding_icons.dart';
 
 const _expertStepLabels = ['资料', '补充', '等级'];
 
-/// ONBOARD-005: 专家资料编辑引导
+/// ONBOARD-005: 团队方资料编辑引导
 class ExpertProfilePage extends ConsumerStatefulWidget {
   const ExpertProfilePage({super.key});
 
@@ -66,7 +66,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
     '后端': '适合业务接口、数据库设计与服务端治理。',
     '全栈': '适合从产品原型到完整上线的整体推进。',
   };
-  final _ratingTitles = const ['入门执行', '稳定交付', '独立推进', '资深协作', '专家主导'];
+  final _ratingTitles = const ['入门执行', '稳定交付', '独立推进', '资深协作', '团队主导'];
   final _ratingDescriptions = const [
     '适合明确需求与标准流程任务，能在协作中快速进入状态。',
     '可以稳定完成常规模块，对节奏和质量有基本把控。',
@@ -178,7 +178,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingProvider);
     final nickname = _nicknameController.text.trim().isEmpty
-        ? '你的专家称呼'
+        ? '你的团队称呼'
         : _nicknameController.text.trim();
 
     return OnboardingScaffold(
@@ -198,10 +198,10 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 36),
-          const Text('建立你的专家档案', style: AppTextStyles.onboardingTitle),
+          const Text('建立你的团队档案', style: AppTextStyles.onboardingTitle),
           const SizedBox(height: 12),
           const Text(
-            '告诉平台你擅长什么、习惯怎样合作。需求方会更快判断你是否适合这个项目。',
+            '告诉平台你擅长什么、习惯怎样合作。项目方会更快判断你是否适合这个项目。',
             style: AppTextStyles.onboardingBody,
           ),
           const SizedBox(height: 28),
@@ -215,14 +215,14 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
           ),
           const SizedBox(height: 18),
           const OnboardingSectionHeader(
-            title: '这是一份动态专家档案',
+            title: '这是一份动态团队档案',
             description: '你每选择一项能力，平台就会更准确地理解你适合解决什么问题。',
-            accessory: OnboardingHelperTag(text: '平台会据此生成初始专家画像'),
+            accessory: OnboardingHelperTag(text: '平台会据此生成初始团队画像'),
           ),
           const SizedBox(height: 32),
           const OnboardingSectionHeader(
             title: '你的称呼',
-            description: '需求方会在推荐卡片和对话页里先看到这个名字。',
+            description: '项目方会在推荐卡片和对话页里先看到这个名字。',
           ),
           const SizedBox(height: 8),
           OnboardingDeckCard(
@@ -365,7 +365,7 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'EXPERT PROFILE DRAFT',
+                'TEAM PROFILE DRAFT',
                 style: AppTextStyles.onboardingMeta.copyWith(
                   color: AppColors.onboardingPrimary,
                 ),
@@ -384,7 +384,7 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '让需求方在几秒内理解你的方向、技术栈与合作节奏。',
+            '让项目方在几秒内理解你的方向、技术栈与合作节奏。',
             style: AppTextStyles.body2.copyWith(
               color: AppColors.onboardingMutedText,
             ),

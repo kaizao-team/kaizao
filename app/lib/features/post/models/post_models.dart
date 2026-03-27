@@ -1,7 +1,7 @@
 enum MatchMode {
-  ai('ai', 'AI 智能撮合', '系统根据需求特征自动匹配最合适的专家'),
-  manual('manual', '手动选择', '在需求广场公开发布，专家主动投标'),
-  invite('invite', '定向邀请', '指定邀请特定专家参与项目');
+  ai('ai', 'AI 智能撮合', '系统根据项目特征自动匹配最合适的团队'),
+  manual('manual', '手动选择', '在项目广场公开发布，团队主动投标'),
+  invite('invite', '定向邀请', '指定邀请特定团队参与项目');
 
   const MatchMode(this.value, this.label, this.description);
   final String value;
@@ -64,7 +64,8 @@ class PrdGeneratedData {
               .toList() ??
           [],
       budgetSuggestion: json['budget_suggestion'] != null
-          ? BudgetSuggestion.fromJson(json['budget_suggestion'] as Map<String, dynamic>)
+          ? BudgetSuggestion.fromJson(
+              json['budget_suggestion'] as Map<String, dynamic>)
           : null,
     );
   }

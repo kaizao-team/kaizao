@@ -11,7 +11,9 @@ import '../widgets/market_project_card.dart';
 import '../widgets/market_expert_card.dart';
 
 class MarketPage extends ConsumerStatefulWidget {
-  const MarketPage({super.key});
+  final String? initialCategory;
+
+  const MarketPage({super.key, this.initialCategory});
 
   @override
   ConsumerState<MarketPage> createState() => _MarketPageState();
@@ -22,6 +24,9 @@ class _MarketPageState extends ConsumerState<MarketPage>
   final ScrollController _scrollController = ScrollController();
   late TabController _tabController;
   bool _isDemander = true;
+
+  StateNotifierProvider<MarketNotifier, MarketState> get _marketProvider =>
+      marketStateProvider(widget.initialCategory);
 
   @override
   void initState() {
@@ -41,18 +46,17 @@ class _MarketPageState extends ConsumerState<MarketPage>
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 100) {
-      ref.read(marketStateProvider.notifier).loadMore();
+      ref.read(_marketProvider.notifier).loadMore();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(marketStateProvider);
+    final state = ref.watch(_marketProvider);
     final authState = ref.watch(authStateProvider);
     final isExpert = authState.userRole == 2;
     _isDemander = !isExpert;
-    final hasActiveFilter =
-        state.budgetMin != null || state.budgetMax != null;
+    final hasActiveFilter = state.budgetMin != null || state.budgetMax != null;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -60,12 +64,11 @@ class _MarketPageState extends ConsumerState<MarketPage>
         child: Column(
           children: [
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
                 children: [
                   const Text(
-                    '需求广场',
+                    '项目广场',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -139,8 +142,8 @@ class _MarketPageState extends ConsumerState<MarketPage>
         dividerHeight: 0,
         padding: const EdgeInsets.all(3),
         tabs: const [
-          Tab(text: '需求', height: 36),
-          Tab(text: '找专家', height: 36),
+          Tab(text: '项目', height: 36),
+          Tab(text: '找团队', height: 36),
         ],
       ),
     );
@@ -161,9 +164,9 @@ class _MarketPageState extends ConsumerState<MarketPage>
           hasActiveFilter: hasActiveFilter,
           userRole: userRole,
           onCategoryChanged: (cat) =>
-              ref.read(marketStateProvider.notifier).setCategory(cat),
+              ref.read(_marketProvider.notifier).setCategory(cat),
           onSortChanged: (sort) =>
-              ref.read(marketStateProvider.notifier).setSort(sort),
+              ref.read(_marketProvider.notifier).setSort(sort),
           onFilterTap: () => _showFilterSheet(context, state),
         ),
         const SizedBox(height: 12),
@@ -176,17 +179,14 @@ class _MarketPageState extends ConsumerState<MarketPage>
                       ? _buildEmpty()
                       : RefreshIndicator(
                           color: AppColors.black,
-                          onRefresh: () => ref
-                              .read(marketStateProvider.notifier)
-                              .refresh(),
+                          onRefresh: () =>
+                              ref.read(_marketProvider.notifier).refresh(),
                           child: ListView.separated(
                             controller: _scrollController,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 4),
                             itemCount: state.projects.length +
-                                (state.hasMore || state.isLoadingMore
-                                    ? 1
-                                    : 0),
+                                (state.hasMore || state.isLoadingMore ? 1 : 0),
                             separatorBuilder: (_, __) =>
                                 const SizedBox(height: 12),
                             itemBuilder: (context, index) {
@@ -202,8 +202,8 @@ class _MarketPageState extends ConsumerState<MarketPage>
                                         project.matchScore! >= 80
                                     ? '技能高度匹配，推荐组队投标'
                                     : null,
-                                onTap: () => context
-                                    .push('/projects/${project.id}'),
+                                onTap: () =>
+                                    context.push('/projects/${project.id}'),
                               );
                             },
                           ),
@@ -303,11 +303,9 @@ class _MarketPageState extends ConsumerState<MarketPage>
               textAlign: TextAlign.center),
           const SizedBox(height: 20),
           GestureDetector(
-            onTap: () =>
-                ref.read(marketStateProvider.notifier).refresh(),
+            onTap: () => ref.read(_marketProvider.notifier).refresh(),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               decoration: BoxDecoration(
                 color: AppColors.black,
                 borderRadius: BorderRadius.circular(8),
@@ -331,8 +329,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(AppColors.gray400),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.gray400),
             ),
           ),
         ),
@@ -361,7 +358,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
       budgetMin: state.budgetMin,
       budgetMax: state.budgetMax,
       onApply: (result) {
-        final notifier = ref.read(marketStateProvider.notifier);
+        final notifier = ref.read(_marketProvider.notifier);
         notifier.setCategory(result.category);
         notifier.setBudgetRange(result.budgetMin, result.budgetMax);
       },
