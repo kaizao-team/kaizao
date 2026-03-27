@@ -12,10 +12,10 @@ class RoleSwitchDialog extends StatelessWidget {
     required this.onConfirm,
   });
 
-  String get _targetRoleName => currentRole == 1 ? '专家' : '需求方';
+  String get _targetRoleName => currentRole == 1 ? '团队方' : '项目方';
   String get _targetRoleDesc => currentRole == 1
-      ? '切换后将显示专家视图，包括接单、投标等功能'
-      : '切换后将显示需求方视图，包括发需求、管理项目等功能';
+      ? '切换后将显示团队视图，包括接单、投标等功能'
+      : '切换后将显示项目方视图，包括发布项目、管理项目等功能';
 
   @override
   Widget build(BuildContext context) {

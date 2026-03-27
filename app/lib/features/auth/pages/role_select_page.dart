@@ -46,7 +46,7 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
       case 1:
         return '你会先进入需求发布路径，把想法、预算和方向收拢成一份能推进的 brief。';
       case 2:
-        return '你会先进入专家建档路径，把能力、案例和协作方式压成一张可接单的画像。';
+        return '你会先进入团队建档路径，把能力、案例和协作方式压成一张可接单的画像。';
       default:
         return '先挑一个更顺手的入口。选中后，版面会顺势展开，后面的引导也会直接接上。';
     }
@@ -55,9 +55,9 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
   String get _buttonText {
     switch (_selectedRole) {
       case 1:
-        return '以需求方身份继续';
+        return '以项目方身份继续';
       case 2:
-        return '以专家身份继续';
+        return '以团队方身份继续';
       default:
         return '下一步';
     }
@@ -129,22 +129,22 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
                     title: '我有需求',
                     titleTag: '发布路径',
                     shortDescription: '带着想法、目标和预算进来。',
-                    expandedDescription: '先定方向，再收 brief，系统会把需求推到更合适的专家面前。',
+                    expandedDescription: '先定方向，再收 brief，系统会把需求推到更合适的团队面前。',
                     icon: Icons.wb_incandescent_outlined,
-                    pathLabel: '需求方路径',
-                    steps: const ['发起需求', '整理 brief', '匹配专家'],
+                    pathLabel: '项目方路径',
+                    steps: const ['发布项目', '整理 brief', '匹配团队'],
                     isSelected: _selectedRole == 1,
                     onTap: () => setState(() => _selectedRole = 1),
                   ),
                   const SizedBox(height: 18),
                   _PaperRoleBranch(
                     serial: '02',
-                    title: '我是专家',
+                    title: '我是团队',
                     titleTag: '建档路径',
                     shortDescription: '带着能力、案例和协作方式进来。',
-                    expandedDescription: '先建立专家画像，再把能力信号、案例和协作节奏整理成可接单的入口。',
+                    expandedDescription: '先建立团队画像，再把能力信号、案例和协作节奏整理成可接单的入口。',
                     icon: Icons.code_rounded,
-                    pathLabel: '专家路径',
+                    pathLabel: '团队方路径',
                     steps: const ['展示能力', '补案例', '开始接单'],
                     isSelected: _selectedRole == 2,
                     onTap: () => setState(() => _selectedRole = 2),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/profile_provider.dart';
+import '../../profile/widgets/role_switch_dialog.dart';
 
 String _formatMaskedPhone(String? phone) {
   if (phone == null || phone.isEmpty) return '未设置';
@@ -25,10 +26,34 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _notificationsEnabled = true;
 
+  Future<void> _showRoleSwitchDialog() async {
+    final authState = ref.read(authStateProvider);
+    final currentRole = authState.userRole;
+
+    await showDialog(
+      context: context,
+      builder: (_) => RoleSwitchDialog(
+        currentRole: currentRole,
+        onConfirm: () async {
+          final targetRole = currentRole == 1 ? 2 : 1;
+          final success = await ref
+              .read(authStateProvider.notifier)
+              .selectRole(targetRole);
+          if (success) {
+            ref.invalidate(profileProvider('me'));
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authStateProvider);
     final profileState = ref.watch(profileProvider('me'));
     final profile = profileState.profile;
+
+    final currentRoleName = authState.userRole == 2 ? '团队方' : '项目方';
 
     final phoneTrailing = profileState.isLoading && profile == null
         ? '加载中...'
@@ -75,6 +100,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
           _buildGroupLabel('账号与安全'),
           _buildCardGroup([
+            _buildIconItem(
+              Icons.swap_horiz_rounded,
+              '当前角色',
+              trailing: currentRoleName,
+              showArrow: true,
+              onTap: _showRoleSwitchDialog,
+            ),
             _buildIconItem(
               Icons.smartphone_outlined,
               '手机号',
