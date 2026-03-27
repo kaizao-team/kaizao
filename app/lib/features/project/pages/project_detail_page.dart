@@ -5,6 +5,8 @@ import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_tag.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../models/comment_models.dart';
+import '../providers/comment_provider.dart';
 import '../providers/project_detail_provider.dart';
 
 class ProjectDetailPage extends ConsumerWidget {
@@ -58,7 +60,7 @@ class ProjectDetailPage extends ConsumerWidget {
                   child: Text('加载失败',
                       style: TextStyle(color: AppColors.gray500)),
                 )
-              : _DetailContent(state: state),
+              : _DetailContent(state: state, projectId: id),
       bottomNavigationBar: state.data != null
           ? _BottomActions(projectId: id, state: state)
           : null,
@@ -83,10 +85,37 @@ class _BottomActions extends ConsumerWidget {
         child: Row(
           children: [
             Expanded(
-              child: VccButton(
-                text: '沟通',
-                type: VccButtonType.secondary,
-                onPressed: () => context.push('/chat/$projectId'),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  VccButton(
+                    text: '沟通',
+                    type: VccButtonType.secondary,
+                    onPressed: null,
+                  ),
+                  Positioned(
+                    right: -4,
+                    top: -8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.gray500,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        '即将开放',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 12),
@@ -129,13 +158,29 @@ class _BottomActions extends ConsumerWidget {
   }
 }
 
-class _DetailContent extends StatelessWidget {
+class _DetailContent extends ConsumerStatefulWidget {
   final ProjectDetailState state;
+  final String projectId;
 
-  const _DetailContent({required this.state});
+  const _DetailContent({required this.state, required this.projectId});
+
+  @override
+  ConsumerState<_DetailContent> createState() => _DetailContentState();
+}
+
+class _DetailContentState extends ConsumerState<_DetailContent> {
+  final TextEditingController _commentController = TextEditingController();
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final commentState = ref.watch(commentListProvider(widget.projectId));
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -145,13 +190,13 @@ class _DetailContent extends StatelessWidget {
           Row(
             children: [
               VccStatusTag(
-                label: state.statusName,
+                label: widget.state.statusName,
                 type: VccTagType.status,
-                status: _statusTagType(state.status),
+                status: _statusTagType(widget.state.status),
               ),
               const Spacer(),
               Text(
-                state.budgetDisplay,
+                widget.state.budgetDisplay,
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -162,7 +207,7 @@ class _DetailContent extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            state.title,
+            widget.state.title,
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -171,19 +216,19 @@ class _DetailContent extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            state.description,
+            widget.state.description,
             style: const TextStyle(
               fontSize: 15,
               height: 1.6,
               color: AppColors.gray600,
             ),
           ),
-          if (state.techRequirements.isNotEmpty) ...[
+          if (widget.state.techRequirements.isNotEmpty) ...[
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: state.techRequirements
+              children: widget.state.techRequirements
                   .map((t) => VccTag(label: t))
                   .toList(),
             ),
@@ -191,23 +236,23 @@ class _DetailContent extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.visibility_outlined,
+              const Icon(Icons.visibility_outlined,
                   size: 14, color: AppColors.gray400),
               const SizedBox(width: 4),
-              Text('${state.viewCount}',
+              Text('${widget.state.viewCount}',
                   style: const TextStyle(
                       fontSize: 12, color: AppColors.gray400)),
               const SizedBox(width: 16),
-              Icon(Icons.gavel_outlined,
+              const Icon(Icons.gavel_outlined,
                   size: 14, color: AppColors.gray400),
               const SizedBox(width: 4),
-              Text('${state.bidCount}投标',
+              Text('${widget.state.bidCount}投标',
                   style: const TextStyle(
                       fontSize: 12, color: AppColors.gray400)),
             ],
           ),
           const Divider(height: 32),
-          if (state.prdSummary.isNotEmpty) ...[
+          if (widget.state.prdSummary.isNotEmpty) ...[
             const Text(
               'PRD 摘要',
               style: TextStyle(
@@ -226,7 +271,7 @@ class _DetailContent extends StatelessWidget {
                 border: Border.all(color: AppColors.gray200),
               ),
               child: Text(
-                state.prdSummary,
+                widget.state.prdSummary,
                 style: const TextStyle(
                   fontSize: 14,
                   height: 1.6,
@@ -236,7 +281,7 @@ class _DetailContent extends StatelessWidget {
             ),
             const SizedBox(height: 24),
           ],
-          if (state.milestones.isNotEmpty) ...[
+          if (widget.state.milestones.isNotEmpty) ...[
             const Text(
               '里程碑',
               style: TextStyle(
@@ -246,9 +291,249 @@ class _DetailContent extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            ...state.milestones.map((m) => _buildMilestone(m)),
+            ...widget.state.milestones.map((m) => _buildMilestone(m)),
+            const SizedBox(height: 8),
           ],
+          const Divider(height: 32),
+          _buildCommentSection(commentState),
           const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommentSection(CommentListState commentState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              '评论',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (commentState.comments.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.gray100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${commentState.comments.length}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.gray600,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildCommentInput(commentState),
+        const SizedBox(height: 16),
+        if (commentState.isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(AppColors.gray400),
+                ),
+              ),
+            ),
+          )
+        else if (commentState.comments.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: Text(
+                '暂无评论，来说两句吧',
+                style: TextStyle(fontSize: 13, color: AppColors.gray400),
+              ),
+            ),
+          )
+        else
+          ...commentState.comments.map(
+            (comment) => _buildCommentItem(comment),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCommentInput(CommentListState commentState) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.gray50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.gray200),
+            ),
+            child: TextField(
+              controller: _commentController,
+              style: const TextStyle(fontSize: 14, color: AppColors.black),
+              decoration: const InputDecoration(
+                hintText: '写评论…',
+                hintStyle: TextStyle(fontSize: 14, color: AppColors.gray400),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                border: InputBorder.none,
+                isDense: true,
+              ),
+              maxLines: 1,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _submitComment(),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: commentState.isSubmitting ? null : _submitComment,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: commentState.isSubmitting
+                  ? AppColors.gray200
+                  : AppColors.black,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: commentState.isSubmitting
+                ? const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.white),
+                    ),
+                  )
+                : const Icon(Icons.send_rounded,
+                    size: 18, color: AppColors.white),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _submitComment() async {
+    final text = _commentController.text;
+    if (text.trim().isEmpty) return;
+
+    final success = await ref
+        .read(commentListProvider(widget.projectId).notifier)
+        .addComment(text);
+    if (success && mounted) {
+      _commentController.clear();
+      FocusScope.of(context).unfocus();
+    }
+  }
+
+  Widget _buildCommentItem(CommentItem comment) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.gray200,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                comment.userName.isNotEmpty
+                    ? comment.userName.substring(0, 1)
+                    : '?',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.gray600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      comment.userName,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.black,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      comment.timeAgo,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.gray400,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  comment.content,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.5,
+                    color: AppColors.gray700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                GestureDetector(
+                  onTap: () => ref
+                      .read(
+                          commentListProvider(widget.projectId).notifier)
+                      .toggleLike(comment.id),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        comment.isLiked
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        size: 14,
+                        color: comment.isLiked
+                            ? AppColors.error
+                            : AppColors.gray400,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${comment.likeCount}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: comment.isLiked
+                              ? AppColors.error
+                              : AppColors.gray400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
