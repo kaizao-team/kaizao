@@ -39,6 +39,7 @@ class HomePage extends ConsumerWidget {
                 color: AppColors.black,
                 onRefresh: () => ref.read(homeStateProvider.notifier).refresh(),
                 child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
                     const SliverToBoxAdapter(child: _HomeAppBar()),
                     if (isDemander)
