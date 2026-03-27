@@ -34,22 +34,21 @@ class HomePage extends ConsumerWidget {
                 ],
               )
             : homeState.errorMessage != null
-                ? _buildError(ref, homeState.errorMessage!)
-                : RefreshIndicator(
-                    color: AppColors.black,
-                    onRefresh: () =>
-                        ref.read(homeStateProvider.notifier).refresh(),
-                    child: CustomScrollView(
-                      slivers: [
-                        const SliverToBoxAdapter(child: _HomeAppBar()),
-                        if (isDemander)
-                          ..._buildDemanderSlices(context, homeState)
-                        else
-                          ..._buildExpertSlices(context, ref, homeState),
-                        const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                      ],
-                    ),
-                  ),
+            ? _buildError(ref, homeState.errorMessage!)
+            : RefreshIndicator(
+                color: AppColors.black,
+                onRefresh: () => ref.read(homeStateProvider.notifier).refresh(),
+                child: CustomScrollView(
+                  slivers: [
+                    const SliverToBoxAdapter(child: _HomeAppBar()),
+                    if (isDemander)
+                      ..._buildDemanderSlices(context, homeState)
+                    else
+                      ..._buildExpertSlices(context, ref, homeState),
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  ],
+                ),
+              ),
       ),
     );
   }
@@ -61,14 +60,12 @@ class HomePage extends ConsumerWidget {
         title: '加载失败',
         subtitle: message,
         buttonText: '重试',
-        onButtonPressed: () =>
-            ref.read(homeStateProvider.notifier).refresh(),
+        onButtonPressed: () => ref.read(homeStateProvider.notifier).refresh(),
       ),
     );
   }
 
-  List<Widget> _buildDemanderSlices(
-      BuildContext context, HomeState state) {
+  List<Widget> _buildDemanderSlices(BuildContext context, HomeState state) {
     final data = state.demanderData;
     return [
       SliverToBoxAdapter(
@@ -81,8 +78,12 @@ class HomePage extends ConsumerWidget {
         SliverToBoxAdapter(
           child: HomeCategoryGrid(
             categories: data.categories,
-            onCategoryTap: (key) =>
-                context.push('${RoutePaths.publishProject}?category=$key'),
+            onCategoryTap: (key) => context.go(
+              Uri(
+                path: RoutePaths.square,
+                queryParameters: {'category': key},
+              ).toString(),
+            ),
           ),
         ),
       if (data != null && data.myProjects.isNotEmpty)
@@ -97,7 +98,10 @@ class HomePage extends ConsumerWidget {
   }
 
   List<Widget> _buildExpertSlices(
-      BuildContext context, WidgetRef ref, HomeState state) {
+    BuildContext context,
+    WidgetRef ref,
+    HomeState state,
+  ) {
     final data = state.expertData;
     return [
       if (data != null)
@@ -112,9 +116,7 @@ class HomePage extends ConsumerWidget {
           child: ExpertHomeDemands(demands: data.recommendedDemands),
         ),
       if (data != null && data.skillHeat.isNotEmpty)
-        SliverToBoxAdapter(
-          child: HomeSkillHeat(skills: data.skillHeat),
-        ),
+        SliverToBoxAdapter(child: HomeSkillHeat(skills: data.skillHeat)),
     ];
   }
 }
@@ -135,8 +137,11 @@ class _HomeAppBar extends StatelessWidget {
               color: AppColors.black,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: const Icon(Icons.rocket_launch,
-                color: Colors.white, size: 16),
+            child: const Icon(
+              Icons.rocket_launch,
+              color: Colors.white,
+              size: 16,
+            ),
           ),
           const SizedBox(width: 8),
           const Text(
@@ -149,8 +154,11 @@ class _HomeAppBar extends StatelessWidget {
           ),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.notifications_outlined,
-                size: 24, color: AppColors.gray500),
+            icon: const Icon(
+              Icons.notifications_outlined,
+              size: 24,
+              color: AppColors.gray500,
+            ),
             onPressed: () {},
           ),
         ],

@@ -41,10 +41,10 @@ class HomeCategoryGrid extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 109 / 72,
+              crossAxisCount: 4,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 76 / 84,
             ),
             itemCount: categories.length,
             itemBuilder: (context, index) {
@@ -53,9 +53,9 @@ class HomeCategoryGrid extends StatelessWidget {
                 onTap: () => onCategoryTap(cat.key),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.gray50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.gray200, width: 0.5),
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.gray200),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -71,8 +71,9 @@ class HomeCategoryGrid extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.gray700,
+                          color: AppColors.gray600,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),

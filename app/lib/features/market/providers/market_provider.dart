@@ -58,7 +58,10 @@ class MarketState {
 class MarketNotifier extends StateNotifier<MarketState> {
   final MarketRepository _repository;
 
-  MarketNotifier(this._repository) : super(const MarketState()) {
+  MarketNotifier(this._repository, {String? initialCategory})
+    : super(
+        MarketState(selectedCategory: normalizeMarketCategory(initialCategory)),
+      ) {
     loadInitial();
   }
 
@@ -124,8 +127,9 @@ class MarketNotifier extends StateNotifier<MarketState> {
   }
 
   void setCategory(String category) {
-    if (state.selectedCategory == category) return;
-    state = state.copyWith(selectedCategory: category);
+    final normalizedCategory = normalizeMarketCategory(category);
+    if (state.selectedCategory == normalizedCategory) return;
+    state = state.copyWith(selectedCategory: normalizedCategory);
     loadInitial();
   }
 
@@ -136,10 +140,7 @@ class MarketNotifier extends StateNotifier<MarketState> {
   }
 
   void setBudgetRange(double? min, double? max) {
-    state = state.copyWith(
-      budgetMin: () => min,
-      budgetMax: () => max,
-    );
+    state = state.copyWith(budgetMin: () => min, budgetMax: () => max);
     loadInitial();
   }
 
@@ -153,10 +154,13 @@ final marketRepositoryProvider = Provider<MarketRepository>((ref) {
 });
 
 final marketStateProvider =
-    StateNotifierProvider<MarketNotifier, MarketState>((ref) {
-  final repository = ref.watch(marketRepositoryProvider);
-  return MarketNotifier(repository);
-});
+    StateNotifierProvider.family<MarketNotifier, MarketState, String?>((
+      ref,
+      initialCategory,
+    ) {
+      final repository = ref.watch(marketRepositoryProvider);
+      return MarketNotifier(repository, initialCategory: initialCategory);
+    });
 
 class ExpertListState {
   final bool isLoading;
@@ -209,6 +213,6 @@ class ExpertListNotifier extends StateNotifier<ExpertListState> {
 
 final expertListProvider =
     StateNotifierProvider<ExpertListNotifier, ExpertListState>((ref) {
-  final repository = ref.watch(marketRepositoryProvider);
-  return ExpertListNotifier(repository);
-});
+      final repository = ref.watch(marketRepositoryProvider);
+      return ExpertListNotifier(repository);
+    });
