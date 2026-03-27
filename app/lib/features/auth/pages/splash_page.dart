@@ -24,6 +24,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
   late Animation<double> _sloganOpacityAnim;
   late Animation<double> _buttonOpacityAnim;
   late Animation<Offset> _buttonSlideAnim;
+  
 
   @override
   void initState() {
@@ -85,6 +86,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
     _buttonController.forward();
+  
   }
 
   Future<void> _onStart() async {
@@ -141,46 +143,33 @@ class _SplashPageState extends ConsumerState<SplashPage>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 8),
                     Opacity(
                       opacity: _logoOpacityAnim.value,
                       child: Transform.scale(
                         scale: _scaleAnim.value,
-                        child: const Column(
-                          children: [
-                            Text(
-                              'VCC',
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1A1A1A),
-                                letterSpacing: 6,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              '开造',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF6B7280),
-                                letterSpacing: 3,
-                              ),
-                            ),
-                          ],
+                        child: const Text(
+                          '开造',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1A1A1A),
+                            letterSpacing: 8,
+                            height: 1.2,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 16),
                     Opacity(
                       opacity: _sloganOpacityAnim.value,
                       child: const Text(
                         '点亮每一个想法',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: FontWeight.w400,
                           color: Color(0xFF9CA3AF),
-                          letterSpacing: 4,
+                          letterSpacing: 6,
                         ),
                       ),
                     ),
