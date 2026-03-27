@@ -97,6 +97,9 @@ class ProjectModel {
     }
   }
 
+  /// 路由用唯一标识：优先 uuid，回退 id，确保后端仅返回 uuid 时也能正常跳转
+  String get routingId => uuid.isNotEmpty ? uuid : id;
+
   String get budgetDisplay {
     if (agreedPrice != null) return '\u00a5${agreedPrice!.toStringAsFixed(0)}';
     if (budgetMin != null && budgetMax != null) {

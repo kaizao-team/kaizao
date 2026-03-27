@@ -52,7 +52,7 @@ class HomeProjectSection extends StatelessWidget {
               amount: p.budgetDisplay,
               tags: p.techRequirements,
               footerInfo: '进度 ${p.progress}%',
-              onTap: () => context.push('/projects/${p.id}'),
+              onTap: () => context.push('/projects/${p.routingId}'),
             ),
           ),
         ),

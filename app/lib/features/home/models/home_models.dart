@@ -115,6 +115,7 @@ class RevenueData {
 
 class RecommendedDemand {
   final String id;
+  final String uuid;
   final String title;
   final String description;
   final String category;
@@ -125,6 +126,7 @@ class RecommendedDemand {
 
   const RecommendedDemand({
     required this.id,
+    this.uuid = '',
     required this.title,
     required this.description,
     required this.category,
@@ -134,9 +136,13 @@ class RecommendedDemand {
     required this.techRequirements,
   });
 
+  /// 路由用唯一标识：优先 uuid，回退 id
+  String get routingId => uuid.isNotEmpty ? uuid : id;
+
   factory RecommendedDemand.fromJson(Map<String, dynamic> json) {
     return RecommendedDemand(
       id: json['id']?.toString() ?? '',
+      uuid: json['uuid'] as String? ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       category: json['category'] as String? ?? '',

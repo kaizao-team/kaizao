@@ -78,9 +78,9 @@ class ProjectListPage extends ConsumerWidget {
                             onTap: () {
                               if (proj.status == 5) {
                                 context.push(
-                                    '/projects/${proj.id}/manage');
+                                    '/projects/${proj.routingId}/manage');
                               } else {
-                                context.push('/projects/${proj.id}');
+                                context.push('/projects/${proj.routingId}');
                               }
                             },
                             child: Column(

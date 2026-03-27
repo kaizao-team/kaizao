@@ -34,7 +34,7 @@ class ExpertHomeDemands extends StatelessWidget {
               amount: d.budgetDisplay,
               matchScore: d.matchScore,
               tags: d.techRequirements,
-              onTap: () => context.push('/projects/${d.id}'),
+              onTap: () => context.push('/projects/${d.routingId}'),
             ),
           ),
         ),
