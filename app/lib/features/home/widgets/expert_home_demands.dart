@@ -17,7 +17,7 @@ class ExpertHomeDemands extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.fromLTRB(20, 28, 20, 12),
           child: Text(
-            '推荐需求',
+            '推荐项目',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
