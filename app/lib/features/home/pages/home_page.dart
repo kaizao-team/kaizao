@@ -14,12 +14,36 @@ import '../widgets/expert_home_revenue.dart';
 import '../widgets/expert_home_demands.dart';
 import '../widgets/home_skill_heat.dart';
 import '../widgets/home_skeleton.dart';
+import '../../notification/providers/notification_provider.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final homeState = ref.watch(homeStateProvider);
     final isDemander = authState.userRole != 2;
@@ -27,21 +51,26 @@ class HomePage extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: homeState.isLoading
-            ? const CustomScrollView(
+            ? CustomScrollView(
                 slivers: [
-                  SliverToBoxAdapter(child: _HomeAppBar()),
-                  SliverToBoxAdapter(child: HomeSkeleton()),
+                  SliverToBoxAdapter(
+                    child: _HomeAppBar(onLogoTap: _scrollToTop),
+                  ),
+                  const SliverToBoxAdapter(child: HomeSkeleton()),
                 ],
               )
             : homeState.errorMessage != null
-            ? _buildError(ref, homeState.errorMessage!)
+            ? _buildError(homeState.errorMessage!)
             : RefreshIndicator(
                 color: AppColors.black,
                 onRefresh: () => ref.read(homeStateProvider.notifier).refresh(),
                 child: CustomScrollView(
+                  controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
-                    const SliverToBoxAdapter(child: _HomeAppBar()),
+                    SliverToBoxAdapter(
+                      child: _HomeAppBar(onLogoTap: _scrollToTop),
+                    ),
                     if (isDemander)
                       ..._buildDemanderSlices(context, homeState)
                     else
@@ -54,7 +83,7 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildError(WidgetRef ref, String message) {
+  Widget _buildError(String message) {
     return Center(
       child: VccEmptyState(
         icon: Icons.cloud_off_outlined,
@@ -122,45 +151,94 @@ class HomePage extends ConsumerWidget {
   }
 }
 
-class _HomeAppBar extends StatelessWidget {
-  const _HomeAppBar();
+class _HomeAppBar extends ConsumerWidget {
+  final VoidCallback? onLogoTap;
+
+  const _HomeAppBar({this.onLogoTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final _unreadCount = ref.watch(
+      notificationProvider.select((s) => s.unreadCount),
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: AppColors.black,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Icon(
-              Icons.rocket_launch,
-              color: Colors.white,
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            '开造',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.black,
+          GestureDetector(
+            onTap: onLogoTap,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppColors.black,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.rocket_launch,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  '开造',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.black,
+                  ),
+                ),
+              ],
             ),
           ),
           const Spacer(),
-          IconButton(
-            icon: const Icon(
-              Icons.notifications_outlined,
-              size: 24,
-              color: AppColors.gray500,
+          GestureDetector(
+            onTap: () => context.push(RoutePaths.notifications),
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Center(
+                    child: Icon(
+                      Icons.notifications_outlined,
+                      size: 24,
+                      color: AppColors.gray500,
+                    ),
+                  ),
+                  if (_unreadCount > 0)
+                    Positioned(
+                      right: 4,
+                      top: 4,
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEF4444),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            _unreadCount > 9 ? '9+' : '$_unreadCount',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-            onPressed: () {},
           ),
         ],
       ),
