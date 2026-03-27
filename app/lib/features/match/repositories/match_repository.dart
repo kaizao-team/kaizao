@@ -6,18 +6,22 @@ class MatchRepository {
   final ApiClient _client = ApiClient();
 
   Future<List<BidItem>> fetchBids(String projectId) async {
-    final response = await _client.get(ApiEndpoints.projectBids(projectId));
-    final list = response.data as List? ?? [];
-    return list
+    final response = await _client.get<List<dynamic>>(
+      ApiEndpoints.projectBids(projectId),
+      fromJson: (data) => data as List<dynamic>,
+    );
+    return (response.data ?? [])
         .whereType<Map<String, dynamic>>()
         .map((e) => BidItem.fromJson(e))
         .toList();
   }
 
   Future<AiSuggestion> fetchAiSuggestion(String projectId) async {
-    final response =
-        await _client.get(ApiEndpoints.projectAiSuggestion(projectId));
-    return AiSuggestion.fromJson(response.data as Map<String, dynamic>? ?? {});
+    final response = await _client.get<Map<String, dynamic>>(
+      ApiEndpoints.projectAiSuggestion(projectId),
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+    return AiSuggestion.fromJson(response.data ?? {});
   }
 
   Future<void> submitBid({

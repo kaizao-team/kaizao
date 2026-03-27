@@ -1,0 +1,59 @@
+name: AI Review
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to review
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number || inputs.pr_number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  ai-review:
+    name: OpenAI GPT-5.4 xhigh Review
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL || 'https://api-vip.codex-for.me/v1' }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.4' }}
+      OPENAI_REASONING_EFFORT: ${{ vars.OPENAI_REASONING_EFFORT || 'xhigh' }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      AI_REVIEW_PROMPT_FILE: .github/prompts/pr_review.md
+      AI_REVIEW_RESULT_FILE: .github/tmp/pr-review-result.json
+      AI_REVIEW_MAX_PATCH_CHARS: "12000"
+      AI_REVIEW_MAX_FILE_CONTEXT_CHARS: "6000"
+      AI_REVIEW_MAX_CHUNK_CHARS: "90000"
+      AI_REVIEW_MAX_FILES: "60"
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+
+    steps:
+      - name: Checkout base branch workflow files
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run AI review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python .github/scripts/pr_ai_review.py

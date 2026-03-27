@@ -65,12 +65,13 @@ class _SplashPageState extends ConsumerState<SplashPage>
     _buttonOpacityAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _buttonController, curve: Curves.easeOut),
     );
-    _buttonSlideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _buttonController, curve: Curves.easeOutCubic),
-    );
+    _buttonSlideAnim =
+        Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _buttonController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _runSequence();
   }

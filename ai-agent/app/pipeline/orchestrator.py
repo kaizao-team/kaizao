@@ -21,15 +21,26 @@ class PipelineOrchestrator:
         self.session = session_manager
         self.writer = doc_writer
 
-    async def create_project(self, project_id: str, title: str = "", session_id: Optional[str] = None) -> ProjectState:
-        """创建新项目"""
+    async def init_project(self, project_id: str, title: str = "", session_id: Optional[str] = None) -> ProjectState:
+        """
+        初始化 AI 流水线状态。
+
+        project_id 是 Go 后端 projects.uuid，项目行由 Go 后端创建。
+        此方法仅在 ai_project_stages 中初始化阶段状态。
+        """
+        # 先尝试恢复已有状态
+        existing = await self.get_project(project_id)
+        if existing:
+            logger.info("project_state_restored", project_id=project_id)
+            return existing
+
         state = ProjectState(
             project_id=project_id,
             title=title,
             session_id=session_id,
         )
         await self.session.save_project_state(project_id, state.model_dump())
-        logger.info("project_created", project_id=project_id)
+        logger.info("project_initialized", project_id=project_id)
         return state
 
     async def get_project(self, project_id: str) -> Optional[ProjectState]:

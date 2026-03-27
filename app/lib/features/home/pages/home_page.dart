@@ -7,6 +7,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../shared/models/project_model.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../notification/providers/notification_provider.dart';
 import '../../project/providers/project_list_provider.dart';
 import '../providers/home_provider.dart';
 import '../widgets/expert_home_demands.dart';
@@ -19,11 +20,34 @@ import '../widgets/home_project_section.dart';
 import '../widgets/home_skill_heat.dart';
 import '../widgets/home_skeleton.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final homeState = ref.watch(homeStateProvider);
     final isDemander = authState.userRole != 2;
@@ -38,42 +62,48 @@ class HomePage extends ConsumerWidget {
         bottom: false,
         child: homeState.isLoading
             ? CustomScrollView(
+                controller: _scrollController,
                 physics: homePhysics,
                 slivers: [
-                  const SliverToBoxAdapter(child: _HomeAppBar()),
+                  SliverToBoxAdapter(
+                    child: _HomeAppBar(onLogoTap: _scrollToTop),
+                  ),
                   const SliverToBoxAdapter(child: HomeSkeleton()),
                 ],
               )
             : homeState.errorMessage != null
-                ? _buildError(ref, homeState.errorMessage!)
-                : RefreshIndicator(
-                    color: AppColors.black,
-                    backgroundColor: AppColors.white,
-                    onRefresh: () => isDemander
-                        ? _refreshDemanderHome(ref)
-                        : ref.read(homeStateProvider.notifier).refresh(),
-                    child: CustomScrollView(
-                      physics: homePhysics,
-                      slivers: [
-                        const SliverToBoxAdapter(child: _HomeAppBar()),
-                        if (isDemander)
-                          ..._buildDemanderSlices(
-                            context,
-                            ref,
-                            homeState,
-                            projectListState?.projects ?? const [],
-                          )
-                        else
-                          ..._buildExpertSlices(context, ref, homeState),
-                        const SliverToBoxAdapter(child: SizedBox(height: 108)),
-                      ],
+            ? _buildError(homeState.errorMessage!)
+            : RefreshIndicator(
+                color: AppColors.black,
+                backgroundColor: AppColors.white,
+                onRefresh: () => isDemander
+                    ? _refreshDemanderHome(ref)
+                    : ref.read(homeStateProvider.notifier).refresh(),
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  physics: homePhysics,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _HomeAppBar(onLogoTap: _scrollToTop),
                     ),
-                  ),
+                    if (isDemander)
+                      ..._buildDemanderSlices(
+                        context,
+                        ref,
+                        homeState,
+                        projectListState?.projects ?? const [],
+                      )
+                    else
+                      ..._buildExpertSlices(context, ref, homeState),
+                    const SliverToBoxAdapter(child: SizedBox(height: 108)),
+                  ],
+                ),
+              ),
       ),
     );
   }
 
-  Widget _buildError(WidgetRef ref, String message) {
+  Widget _buildError(String message) {
     return Center(
       child: VccEmptyState(
         icon: Icons.cloud_off_outlined,
@@ -93,11 +123,13 @@ class HomePage extends ConsumerWidget {
   ) {
     final data = state.demanderData;
     final homeProjects = data?.myProjects ?? const <ProjectModel>[];
-    final allProjects =
-        homeProjects.isNotEmpty ? homeProjects : fallbackProjects;
+    final allProjects = homeProjects.isNotEmpty
+        ? homeProjects
+        : fallbackProjects;
     final ongoingProjects = allProjects.where(_isOngoingProject).toList();
-    final otherProjects =
-        allProjects.where((project) => !_isOngoingProject(project)).toList();
+    final otherProjects = allProjects
+        .where((project) => !_isOngoingProject(project))
+        .toList();
 
     return [
       SliverToBoxAdapter(
@@ -122,9 +154,7 @@ class HomePage extends ConsumerWidget {
         child: HomeOngoingProjectSection(projects: ongoingProjects),
       ),
       if (otherProjects.isNotEmpty)
-        SliverToBoxAdapter(
-          child: HomeProjectSection(projects: otherProjects),
-        ),
+        SliverToBoxAdapter(child: HomeProjectSection(projects: otherProjects)),
       if (data != null && data.recommendedExperts.isNotEmpty)
         SliverToBoxAdapter(
           child: HomeExpertSection(
@@ -154,9 +184,7 @@ class HomePage extends ConsumerWidget {
           child: ExpertHomeDemands(demands: data.recommendedDemands),
         ),
       if (data != null && data.skillHeat.isNotEmpty)
-        SliverToBoxAdapter(
-          child: HomeSkillHeat(skills: data.skillHeat),
-        ),
+        SliverToBoxAdapter(child: HomeSkillHeat(skills: data.skillHeat)),
     ];
   }
 }
@@ -172,63 +200,95 @@ Future<void> _refreshDemanderHome(WidgetRef ref) async {
   ]);
 }
 
-class _HomeAppBar extends StatelessWidget {
-  const _HomeAppBar();
+class _HomeAppBar extends ConsumerWidget {
+  final VoidCallback? onLogoTap;
+
+  const _HomeAppBar({this.onLogoTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(
+      notificationProvider.select((s) => s.unreadCount),
+    );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
       child: Row(
         children: [
-          Image.asset(
-            'assets/branding/app_launch_static_transparent_cropped.png',
-            width: 30,
-            height: 30,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(width: 10),
-          const Text(
-            '开造',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.black,
-              letterSpacing: -0.2,
-            ),
-          ),
-          const Spacer(),
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: AppColors.gray50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.gray200),
-            ),
-            child: Stack(
-              clipBehavior: Clip.none,
+          GestureDetector(
+            onTap: onLogoTap,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Center(
-                  child: Icon(
-                    Icons.notifications_none_rounded,
-                    size: 18,
-                    color: AppColors.gray700,
-                  ),
+                Image.asset(
+                  'assets/branding/app_launch_static_transparent_cropped.png',
+                  width: 30,
+                  height: 30,
+                  fit: BoxFit.contain,
                 ),
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF5A5F),
-                      shape: BoxShape.circle,
-                    ),
+                const SizedBox(width: 10),
+                const Text(
+                  '开造',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.black,
+                    letterSpacing: -0.2,
                   ),
                 ),
               ],
+            ),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: () => context.push(RoutePaths.notifications),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.gray50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.gray200),
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Center(
+                    child: Icon(
+                      Icons.notifications_none_rounded,
+                      size: 18,
+                      color: AppColors.gray700,
+                    ),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF5A5F),
+                          borderRadius: BorderRadius.all(Radius.circular(999)),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          unreadCount > 9 ? '9+' : '$unreadCount',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],

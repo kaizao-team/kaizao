@@ -39,6 +39,6 @@ class ChatRepository {
   }
 
   Future<void> deleteConversation(String conversationId) async {
-    await _client.delete('/api/v1/conversations/$conversationId');
+    await _client.delete(ApiEndpoints.conversationDetail(conversationId));
   }
 }

@@ -50,8 +50,9 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
                         height: index == _currentStep ? 10 : 8,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient:
-                              isActive ? AppGradients.primaryButton : null,
+                          gradient: isActive
+                              ? AppGradients.primaryButton
+                              : null,
                           border: isActive
                               ? null
                               : Border.all(color: AppColors.gray300, width: 1),
@@ -133,19 +134,22 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
                 color: isSelected ? const Color(0xFFF8F7FF) : AppColors.gray50,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color:
-                      isSelected ? AppColors.brandPurple : Colors.transparent,
+                  color: isSelected
+                      ? AppColors.brandPurple
+                      : Colors.transparent,
                   width: isSelected ? 2 : 0,
                 ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(cat['icon'] as IconData,
-                      size: 32,
-                      color: isSelected
-                          ? AppColors.brandPurple
-                          : AppColors.gray500),
+                  Icon(
+                    cat['icon'] as IconData,
+                    size: 32,
+                    color: isSelected
+                        ? AppColors.brandPurple
+                        : AppColors.gray500,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     cat['label'] as String,
@@ -172,14 +176,19 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('AI对话式需求录入',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.gray800)),
+          const Text(
+            'AI对话式需求录入',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gray800,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('请描��你想要实现的功能，AI会帮你梳理需求',
-              style: TextStyle(fontSize: 14, color: AppColors.gray500)),
+          const Text(
+            '请描��你想要实现的功能，AI会帮你梳理需求',
+            style: TextStyle(fontSize: 14, color: AppColors.gray500),
+          ),
           const SizedBox(height: 16),
           Expanded(
             child: Container(
@@ -188,8 +197,10 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
                 color: AppColors.gray50,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text('AI对话内容区域',
-                  style: TextStyle(fontSize: 14, color: AppColors.gray400)),
+              child: const Text(
+                'AI对话内容区域',
+                style: TextStyle(fontSize: 14, color: AppColors.gray400),
+              ),
             ),
           ),
         ],
@@ -203,14 +214,19 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('AI生成PRD预览',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.gray800)),
+          const Text(
+            'AI生成PRD预览',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gray800,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('以下是AI根据对话生成的项目需求文档',
-              style: TextStyle(fontSize: 14, color: AppColors.gray500)),
+          const Text(
+            '以下是AI根据对话生成的项目需求文档',
+            style: TextStyle(fontSize: 14, color: AppColors.gray500),
+          ),
           const SizedBox(height: 16),
           Expanded(
             child: Container(
@@ -220,8 +236,10 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: AppShadows.shadow2,
               ),
-              child: const Text('PRD文档预览内容',
-                  style: TextStyle(fontSize: 14, color: AppColors.gray400)),
+              child: const Text(
+                'PRD文档预览内容',
+                style: TextStyle(fontSize: 14, color: AppColors.gray400),
+              ),
             ),
           ),
         ],
@@ -235,14 +253,19 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('编辑/确认PRD',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.gray800)),
+          const Text(
+            '编辑/确认PRD',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gray800,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('你可以对生成的PRD进行修改和确认',
-              style: TextStyle(fontSize: 14, color: AppColors.gray500)),
+          const Text(
+            '你可以对生成的PRD进行修改和确认',
+            style: TextStyle(fontSize: 14, color: AppColors.gray500),
+          ),
           const SizedBox(height: 16),
           Expanded(
             child: Container(
@@ -252,8 +275,10 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.gray200),
               ),
-              child: const Text('可编辑的PRD内容',
-                  style: TextStyle(fontSize: 14, color: AppColors.gray400)),
+              child: const Text(
+                '可编辑的PRD内容',
+                style: TextStyle(fontSize: 14, color: AppColors.gray400),
+              ),
             ),
           ),
         ],
@@ -267,14 +292,19 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('设置预算与撮合偏好',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.gray800)),
+          const Text(
+            '设置预算与撮合偏好',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gray800,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('设置项目预算范围和匹配偏好',
-              style: TextStyle(fontSize: 14, color: AppColors.gray500)),
+          const Text(
+            '设置项目预算范围和匹配偏好',
+            style: TextStyle(fontSize: 14, color: AppColors.gray500),
+          ),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(16),
@@ -286,15 +316,19 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('预算范围',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.gray800)),
+                Text(
+                  '预算范围',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.gray800,
+                  ),
+                ),
                 SizedBox(height: 12),
-                Text('AI推荐预算：\u00a53,000 - \u00a55,000',
-                    style:
-                        TextStyle(fontSize: 14, color: AppColors.brandPurple)),
+                Text(
+                  'AI推荐预算：\u00a53,000 - \u00a55,000',
+                  style: TextStyle(fontSize: 14, color: AppColors.brandPurple),
+                ),
               ],
             ),
           ),

@@ -1,104 +1,183 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../app/app.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../profile/providers/profile_provider.dart';
+import '../../profile/widgets/role_switch_dialog.dart';
 import 'about_page.dart';
-import 'notification_settings_page.dart';
 
-class SettingsPage extends ConsumerWidget {
+String _formatMaskedPhone(String? phone) {
+  if (phone == null || phone.isEmpty) return '未设置';
+  if (phone.contains('*')) return phone;
+  final digits = phone.replaceAll(RegExp(r'\D'), '');
+  if (digits.length >= 7) {
+    return '${digits.substring(0, 3)}****${digits.substring(digits.length - 4)}';
+  }
+  return phone;
+}
+
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends ConsumerState<SettingsPage> {
+  bool _notificationsEnabled = true;
+
+  Future<void> _showRoleSwitchDialog() async {
+    final authState = ref.read(authStateProvider);
+    final currentRole = authState.userRole;
+
+    await showDialog(
+      context: context,
+      builder: (_) => RoleSwitchDialog(
+        currentRole: currentRole,
+        onConfirm: () async {
+          final targetRole = currentRole == 1 ? 2 : 1;
+          final success = await ref
+              .read(authStateProvider.notifier)
+              .selectRole(targetRole);
+          if (success) {
+            ref.invalidate(profileProvider('me'));
+          }
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authStateProvider);
+    final profileState = ref.watch(profileProvider('me'));
+    final profile = profileState.profile;
+
+    final currentRoleName = authState.userRole == 2 ? '团队方' : '项目方';
+    final phoneTrailing = profileState.isLoading && profile == null
+        ? '加载中...'
+        : _formatMaskedPhone(profile?.phone);
+    final wechatTrailing = profileState.isLoading && profile == null
+        ? '加载中...'
+        : profile == null
+        ? '--'
+        : (profile.wechatBound ? '已绑定' : '未绑定');
+    final verifyTrailing = profileState.isLoading && profile == null
+        ? '加载中...'
+        : profile == null
+        ? '--'
+        : (profile.isVerified ? '已认证' : '未认证');
+    final verifyColor = profile?.isVerified == true
+        ? AppColors.success
+        : AppColors.gray400;
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
+        backgroundColor: const Color(0xFFF9F9F9),
+        elevation: 0,
+        scrolledUnderElevation: 0,
         title: const Text(
           '设置',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1C1C),
+          ),
+        ),
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            size: 18,
+            color: Color(0xFF1A1C1C),
+          ),
         ),
       ),
       body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         children: [
-          _buildGroupTitle('账号'),
-          _buildSettingItem(
-            context,
-            '手机号',
-            trailing: '138****8888',
-            showArrow: false,
-          ),
-          _buildSettingItem(
-            context,
-            '微信绑定',
-            trailing: '已绑定',
-            showArrow: false,
-          ),
-          _buildSettingItem(
-            context,
-            '实名认证',
-            trailing: '已认证',
-            trailingColor: AppColors.success,
-            showArrow: false,
-          ),
+          const SizedBox(height: 8),
+          _buildGroupLabel('账号与安全'),
+          _buildCardGroup([
+            _buildIconItem(
+              Icons.swap_horiz_rounded,
+              '当前角色',
+              trailing: currentRoleName,
+              showArrow: true,
+              onTap: _showRoleSwitchDialog,
+            ),
+            _buildIconItem(
+              Icons.smartphone_outlined,
+              '手机号',
+              trailing: phoneTrailing,
+              showArrow: true,
+            ),
+            _buildIconItem(
+              Icons.chat_bubble_outline,
+              '微信绑定',
+              trailing: wechatTrailing,
+              trailingColor: AppColors.success,
+              showArrow: true,
+            ),
+            _buildIconItem(
+              Icons.verified_user_outlined,
+              '实名认证',
+              trailing: verifyTrailing,
+              trailingColor: verifyColor,
+              showArrow: true,
+            ),
+          ]),
           const SizedBox(height: 24),
-          _buildGroupTitle('偏好'),
-          _buildSwitchItem(
-            context,
-            '深色模式',
-            Theme.of(context).brightness == Brightness.dark,
-            (value) {
-              ref.read(themeModeProvider.notifier).state =
-                  value ? ThemeMode.dark : ThemeMode.light;
-            },
-          ),
-          _buildSettingItem(
-            context,
-            '通知设置',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const NotificationSettingsPage(),
+          _buildGroupLabel('通用'),
+          _buildCardGroup([
+            _buildSwitchItem(
+              Icons.notifications_outlined,
+              '消息通知',
+              value: _notificationsEnabled,
+              onChanged: (value) =>
+                  setState(() => _notificationsEnabled = value),
+            ),
+            _buildIconItem(
+              Icons.language_outlined,
+              '语言',
+              trailing: '简体中文',
+              showArrow: false,
+            ),
+            _buildIconItem(Icons.storage_outlined, '存储空间', showArrow: true),
+          ]),
+          const SizedBox(height: 24),
+          _buildGroupLabel('关于'),
+          _buildCardGroup([
+            _buildIconItem(Icons.help_outline, '帮助与反馈', showArrow: true),
+            _buildIconItem(
+              Icons.description_outlined,
+              '用户协议',
+              showArrow: true,
+              onTap: () => context.push(RoutePaths.userAgreement),
+            ),
+            _buildIconItem(
+              Icons.privacy_tip_outlined,
+              '隐私政策',
+              showArrow: true,
+              onTap: () => context.push(RoutePaths.privacyPolicy),
+            ),
+            _buildIconItem(
+              Icons.info_outline,
+              '关于 KAIZAO',
+              showArrow: true,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutPage()),
               ),
             ),
-          ),
-          _buildSettingItem(context, '语言', trailing: '简体中文', showArrow: false),
-          const SizedBox(height: 24),
-          _buildGroupTitle('关于'),
-          _buildSettingItem(
-            context,
-            '帮助与反馈',
-            onTap: () {},
-          ),
-          _buildSettingItem(
-            context,
-            '用户协议',
-            onTap: () => context.push(RoutePaths.userAgreement),
-          ),
-          _buildSettingItem(
-            context,
-            '隐私政策',
-            onTap: () => context.push(RoutePaths.privacyPolicy),
-          ),
-          _buildSettingItem(
-            context,
-            '关于 KAIZAO',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AboutPage()),
-            ),
-          ),
-          _buildSettingItem(
-            context,
-            '版本',
-            trailing: 'v1.0.0',
-            showArrow: false,
-          ),
-          const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+          ]),
+          const SizedBox(height: 40),
+          Center(
             child: TextButton(
               onPressed: () async {
                 final confirmed = await _showLogoutConfirm(context);
@@ -108,8 +187,25 @@ class SettingsPage extends ConsumerWidget {
               },
               child: const Text(
                 '退出登录',
-                style: TextStyle(fontSize: 16, color: AppColors.error),
+                style: TextStyle(fontSize: 14, color: AppColors.error),
               ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: GestureDetector(
+              onTap: () {},
+              child: const Text(
+                '注销账号',
+                style: TextStyle(fontSize: 12, color: AppColors.gray400),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Center(
+            child: Text(
+              'v1.0.0 (Build 42)',
+              style: TextStyle(fontSize: 11, color: AppColors.gray300),
             ),
           ),
           const SizedBox(height: 48),
@@ -119,77 +215,143 @@ class SettingsPage extends ConsumerWidget {
   }
 
   Future<bool?> _showLogoutConfirm(BuildContext context) {
-    return showDialog<bool>(
+    return showModalBottomSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text(
-          '确认退出',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-        ),
-        content: const Text(
-          '退出后需要重新登录',
-          style: TextStyle(fontSize: 14, color: AppColors.gray500),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              '取消',
-              style: TextStyle(color: AppColors.gray500),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              '退出',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
+      backgroundColor: AppColors.white,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      enableDrag: true,
+      showDragHandle: false,
+      builder: (ctx) {
+        final bottomPadding = MediaQuery.of(ctx).padding.bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 16 + bottomPadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '确认退出',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1C1C),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '退出后需要重新登录',
+                style: TextStyle(fontSize: 14, color: AppColors.gray400),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: AppColors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    '退出登录',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFF3F3F3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    '取消',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.gray600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildGroupTitle(String title) {
+  Widget _buildGroupLabel(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
-        title.toUpperCase(),
+        title,
         style: const TextStyle(
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: AppColors.gray400,
-          letterSpacing: 1,
+          letterSpacing: 0.3,
         ),
       ),
     );
   }
 
-  Widget _buildSettingItem(
-    BuildContext context,
+  Widget _buildCardGroup(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: List.generate(children.length, (index) {
+          return Column(
+            children: [
+              children[index],
+              if (index < children.length - 1)
+                Container(
+                  margin: const EdgeInsets.only(left: 52),
+                  height: 1,
+                  color: const Color(0xFFF3F3F3),
+                ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildIconItem(
+    IconData icon,
     String title, {
     String? trailing,
     Color? trailingColor,
-    bool showArrow = true,
+    bool showArrow = false,
     VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: AppColors.gray200, width: 0.5),
-          ),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
+            Icon(icon, size: 20, color: AppColors.gray500),
+            const SizedBox(width: 12),
             Text(
               title,
-              style: const TextStyle(fontSize: 16, color: AppColors.gray800),
+              style: const TextStyle(fontSize: 15, color: Color(0xFF1A1C1C)),
             ),
             const Spacer(),
             if (trailing != null)
@@ -201,10 +363,10 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ),
             if (showArrow) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               const Icon(
                 Icons.chevron_right,
-                size: 16,
+                size: 18,
                 color: AppColors.gray300,
               ),
             ],
@@ -215,27 +377,27 @@ class SettingsPage extends ConsumerWidget {
   }
 
   Widget _buildSwitchItem(
-    BuildContext context,
-    String title,
-    bool value,
-    ValueChanged<bool> onChanged,
-  ) {
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.gray200, width: 0.5),
-        ),
-      ),
+    IconData icon,
+    String title, {
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
+          Icon(icon, size: 20, color: AppColors.gray500),
+          const SizedBox(width: 12),
           Text(
             title,
-            style: const TextStyle(fontSize: 16, color: AppColors.gray800),
+            style: const TextStyle(fontSize: 15, color: Color(0xFF1A1C1C)),
           ),
           const Spacer(),
-          Switch(value: value, onChanged: onChanged),
+          CupertinoSwitch(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: AppColors.black,
+          ),
         ],
       ),
     );

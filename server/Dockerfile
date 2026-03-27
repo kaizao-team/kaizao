@@ -5,33 +5,26 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app
 
-# 先复制依赖文件，利用 Docker 缓存
 COPY go.mod go.sum ./
-RUN go mod download
+RUN GOPROXY=https://goproxy.cn,direct go mod download
 
-# 复制源代码
 COPY . .
 
-# 编译（静态链接，无 CGO 依赖）
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-w -s" -o /app/vibebuild-server ./cmd/server
+RUN GOPROXY=https://goproxy.cn,direct CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags="-w -s" -o /app/kaizao-server ./cmd/server
 
 # ============ 运行阶段 ============
 FROM alpine:3.19
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata wget
 
-# 设置时区
 ENV TZ=Asia/Shanghai
 
 WORKDIR /app
 
-# 从构建阶段复制二进制文件
-COPY --from=builder /app/vibebuild-server .
+COPY --from=builder /app/kaizao-server .
 COPY --from=builder /app/configs ./configs
 
-# 暴露端口
 EXPOSE 8080
 
-# 运行
-ENTRYPOINT ["./vibebuild-server"]
+ENTRYPOINT ["./kaizao-server"]

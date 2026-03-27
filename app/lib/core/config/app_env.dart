@@ -1,6 +1,6 @@
 /// 应用环境配置
 /// 通过 --dart-define=APP_ENV=dev|staging|prod 注入
-/// Mock 开关通过 --dart-define=USE_MOCK=true 控制（仅 dev 环境生效）
+/// Mock 开关通过 --dart-define=USE_MOCK=true 开启（默认关闭，仅 dev 环境生效）
 enum AppEnvironment { dev, staging, prod }
 
 class AppEnv {

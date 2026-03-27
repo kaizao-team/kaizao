@@ -10,11 +10,13 @@ server:
 
 database:
   host: localhost
-  port: 5432
-  user: vibebuild
-  password: vibebuild123
-  dbname: vibebuild
-  sslmode: disable
+  port: 3306
+  user: root
+  password: "123456"
+  dbname: kaizao
+  charset: utf8mb4
+  parse_time: true
+  loc: Local
   max_idle_conns: 10
   max_open_conns: 100
   conn_max_lifetime_min: 30
@@ -22,14 +24,14 @@ database:
 redis:
   host: localhost
   port: 6379
-  password: "redis123"
+  password: ""
   db: 0
 
 jwt:
-  secret: vibebuild-jwt-secret-change-in-prod
+  secret: kaizao-jwt-secret-change-in-prod
   access_expire_hour: 2
   refresh_expire_day: 30
-  issuer: vibebuild
+  issuer: kaizao
 
 log:
   level: info   # debug / info / warn / error
@@ -39,8 +41,8 @@ oss:
   endpoint: oss-cn-shenzhen.aliyuncs.com
   access_key_id: ""
   access_key_secret: ""
-  bucket_name: vibebuild-assets
-  base_url: https://vibebuild-assets.oss-cn-shenzhen.aliyuncs.com
+  bucket_name: kaizao-assets
+  base_url: https://kaizao-assets.oss-cn-shenzhen.aliyuncs.com
 
 sms:
   access_key_id: ""

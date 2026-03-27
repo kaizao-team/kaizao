@@ -1,9 +1,8 @@
-.PHONY: build run test lint clean docker-build docker-up docker-down migrate
+.PHONY: build run test lint clean docker-build docker-up docker-down docker-logs migrate
 
-# 变量
-APP_NAME=vibebuild-server
+APP_NAME=kaizao-server
 MAIN_PATH=./cmd/server
-DOCKER_COMPOSE=docker-compose
+DOCKER_COMPOSE=docker compose
 
 # 构建
 build:
@@ -28,25 +27,33 @@ clean:
 	rm -rf bin/
 	go clean
 
-# Docker 构建镜像
+# Docker Compose 构建镜像
 docker-build:
-	docker build -t $(APP_NAME):latest .
+	$(DOCKER_COMPOSE) build
 
-# Docker Compose 启动
+# Docker Compose 启动所有服务
 docker-up:
 	$(DOCKER_COMPOSE) up -d
 
-# Docker Compose 停止
+# Docker Compose 停止所有服务
 docker-down:
 	$(DOCKER_COMPOSE) down
 
-# 数据库迁移（使用 psql 直接执行 SQL）
+# Docker Compose 查看日志
+docker-logs:
+	$(DOCKER_COMPOSE) logs -f server
+
+# Docker Compose 重建并启动 server
+docker-restart:
+	$(DOCKER_COMPOSE) up -d --build server
+
+# 数据库迁移（使用 mysql 客户端执行 SQL）
 migrate:
 	@echo "Running database migrations..."
-	PGPASSWORD=vibebuild123 psql -h localhost -U vibebuild -d vibebuild -f migrations/001_init_schema.up.sql
+	mysql -h 127.0.0.1 -P 3306 -u kaizao -pkaizao123 kaizao < migrations/001_init_schema.up.sql
 	@echo "Migration complete."
 
-# 生成 Swagger 文档（如使用 swaggo）
+# 生成 Swagger 文档
 swagger:
 	swag init -g cmd/server/main.go -o docs
 

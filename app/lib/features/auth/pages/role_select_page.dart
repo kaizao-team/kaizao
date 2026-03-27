@@ -27,8 +27,9 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
       return;
     }
 
-    final success =
-        await ref.read(authStateProvider.notifier).selectRole(_selectedRole!);
+    final success = await ref
+        .read(authStateProvider.notifier)
+        .selectRole(_selectedRole!);
     if (success && mounted) {
       final onboardingNotifier = ref.read(onboardingProvider.notifier);
       if (_selectedRole == 1) {
@@ -72,9 +73,7 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
       body: Stack(
         children: [
           const Positioned.fill(
-            child: IgnorePointer(
-              child: _RoleSelectionBackdrop(),
-            ),
+            child: IgnorePointer(child: _RoleSelectionBackdrop()),
           ),
           SafeArea(
             child: SingleChildScrollView(
@@ -171,9 +170,7 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
 class _RolePageStatus extends StatelessWidget {
   final int? selectedRole;
 
-  const _RolePageStatus({
-    required this.selectedRole,
-  });
+  const _RolePageStatus({required this.selectedRole});
 
   @override
   Widget build(BuildContext context) {
@@ -409,17 +406,12 @@ class _PaperRoleBranch extends StatelessWidget {
                   Positioned(
                     left: isCompact ? -2 : 0,
                     top: isCompact ? 44 : 46,
-                    child: _MorphRoleChip(
-                      icon: icon,
-                      isSelected: isSelected,
-                    ),
+                    child: _MorphRoleChip(icon: icon, isSelected: isSelected),
                   ),
                   Positioned(
                     right: isCompact ? 12 : 16,
                     top: -8,
-                    child: _PaperSelectionSeal(
-                      isSelected: isSelected,
-                    ),
+                    child: _PaperSelectionSeal(isSelected: isSelected),
                   ),
                 ],
               ),
@@ -435,10 +427,7 @@ class _RoleTitleTag extends StatelessWidget {
   final String label;
   final bool isSelected;
 
-  const _RoleTitleTag({
-    required this.label,
-    required this.isSelected,
-  });
+  const _RoleTitleTag({required this.label, required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -467,10 +456,7 @@ class _PaperSerialTag extends StatelessWidget {
   final String serial;
   final bool isSelected;
 
-  const _PaperSerialTag({
-    required this.serial,
-    required this.isSelected,
-  });
+  const _PaperSerialTag({required this.serial, required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -487,9 +473,7 @@ class _PaperSerialTag extends StatelessWidget {
       ),
       child: Text(
         serial,
-        style: AppTextStyles.onboardingMeta.copyWith(
-          color: AppColors.gray400,
-        ),
+        style: AppTextStyles.onboardingMeta.copyWith(color: AppColors.gray400),
       ),
     );
   }
@@ -499,10 +483,7 @@ class _MorphRoleChip extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
 
-  const _MorphRoleChip({
-    required this.icon,
-    required this.isSelected,
-  });
+  const _MorphRoleChip({required this.icon, required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -541,11 +522,7 @@ class _MorphRoleChip extends StatelessWidget {
                       color: AppColors.black,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(
-                      icon,
-                      size: 20,
-                      color: AppColors.white,
-                    ),
+                    child: Icon(icon, size: 20, color: AppColors.white),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -577,11 +554,7 @@ class _MorphRoleChip extends StatelessWidget {
               )
             : Center(
                 key: const ValueKey('morph-collapsed'),
-                child: Icon(
-                  icon,
-                  size: 24,
-                  color: AppColors.black,
-                ),
+                child: Icon(icon, size: 24, color: AppColors.black),
               ),
       ),
     );
@@ -591,9 +564,7 @@ class _MorphRoleChip extends StatelessWidget {
 class _PaperSelectionSeal extends StatelessWidget {
   final bool isSelected;
 
-  const _PaperSelectionSeal({
-    required this.isSelected,
-  });
+  const _PaperSelectionSeal({required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -607,9 +578,7 @@ class _PaperSelectionSeal extends StatelessWidget {
       decoration: BoxDecoration(
         color: isSelected ? AppColors.white : Colors.transparent,
         borderRadius: BorderRadius.circular(AppRadius.full),
-        border: Border.all(
-          color: AppColors.onboardingHairline,
-        ),
+        border: Border.all(color: AppColors.onboardingHairline),
         boxShadow: isSelected ? AppShadows.shadow1 : const [],
       ),
       child: AnimatedSwitcher(
@@ -651,9 +620,7 @@ class _PaperSelectionSeal extends StatelessWidget {
                 height: 10,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.gray300,
-                  ),
+                  border: Border.all(color: AppColors.gray300),
                 ),
               ),
       ),
@@ -665,10 +632,7 @@ class _DetachedPathStrip extends StatelessWidget {
   final String pathLabel;
   final List<String> steps;
 
-  const _DetachedPathStrip({
-    required this.pathLabel,
-    required this.steps,
-  });
+  const _DetachedPathStrip({required this.pathLabel, required this.steps});
 
   @override
   Widget build(BuildContext context) {

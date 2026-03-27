@@ -282,7 +282,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                 ),
                               ],
-                              const Spacer(flex: 3),
+                              SizedBox(
+                                height:
+                                    compact ? AppSpacing.xl : AppSpacing.xxl,
+                              ),
+                              if (!compact) const Spacer(flex: 3),
                               VccButton(
                                 text: _mode == _AuthMode.password
                                     ? '登录'
@@ -438,7 +442,7 @@ class _LoginHero extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          mode == _AuthMode.phone ? '输入手机号，把想法推进到开造流程。' : '登录你的账号，继续造物之旅。',
+          mode == _AuthMode.phone ? '输入手机号，把想法推进到开造流程。' : '登录你的账号，继续开造之旅。',
           textAlign: TextAlign.center,
           style: AppTextStyles.body2.copyWith(color: AppColors.gray400),
         ),

@@ -1,99 +1,100 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working in this repository.
+本文件提供仓库级协作约束。默认面向 Claude Code、Codex、Cursor 等 AI 编码助手。
 
 ---
 
-## Project Overview
+## 项目概览
 
-**开造 (VCC — Vibe Coding Company)** — AI 驱动的 Vibe Coding 服务撮合平台。
+**开造（Kaizao / VCC）** 是一个 AI 驱动的软件需求撮合平台。
 
-Two-sided marketplace connecting:
-- **发起人 (Demand side)**: People with software ideas
-- **造物者 (Supply side)**: Vibe Coders (AI-assisted developers)
-
-Three AI Agents drive the workflow: 需求分析 Agent, 项目管理 Agent, 质量检查 Agent.
-
----
-
-## Repository Structure
-
-```
-kaizao/
-├── app/                    # Flutter mobile app (iOS + Android + Web)
-│   ├── lib/
-│   │   ├── app/            # App shell, theme, routes
-│   │   │   └── theme/      # Design tokens (MUST follow DESIGN_SPEC.md)
-│   │   ├── core/           # Network, storage, constants
-│   │   ├── features/       # Feature modules (auth, home, chat, project, profile, match)
-│   │   └── shared/         # Shared widgets (VccButton, VccCard, etc.), models
-│   ├── DESIGN_SPEC.md      # ⭐ Frontend design spec (source of truth for UI)
-│   └── pubspec.yaml
-├── server/                 # Go backend (Gin framework)
-├── ai-agent/               # Python AI services (FastAPI + LangGraph)
-├── deploy/                 # Docker Compose, Nginx, DB migrations
-├── docs/                   # Product documentation (PRD, design, business)
-│   ├── 01-产品/
-│   ├── 02-设计/
-│   ├── 04-运营/
-│   └── 06-商业/
-└── Makefile                # Project-wide commands
-```
+- `app/`：Flutter 前端
+- `server/`：Go 后端
+- `ai-agent/`：Python AI 服务
+- `deploy/`：部署相关文件
+- `docs/` / `app/doc/`：产品、设计、技术文档
 
 ---
 
-## Design System: "Quiet Craft"
+## 默认边界
 
-**CRITICAL**: All UI work MUST follow `app/DESIGN_SPEC.md`. Key rules:
-
-- **NO GRADIENTS** on any UI element. Only exceptions: Splash Screen bg + Logo.
-- **NO circular containers** for icons/categories. Use squircle (14px radius). Avatars are the only circular exception.
-- Primary CTA buttons: **solid dark `#1A1A1A`**, NOT purple gradient.
-- Purple `#7C3AED` used sparingly: selected states, text links, small accents.
-- Background: warm white `#F6F6F6`, never cold gray.
-- No 1px divider lines. Use tonal layering + spacing instead.
-- Shadows: subtle (`0 2px 8px rgba(0,0,0,0.04)`), never heavy.
+- 如果任务明确落在前端，默认只改 `app/`
+- 不要顺手修改 `server/` 或 `ai-agent/`，除非用户明确要求
+- 生成文件、缓存文件、临时脚本不要提交进 PR
 
 ---
 
-## Tech Stack
+## 前端规范优先级
 
-| Layer | Tech |
-|-------|------|
-| Mobile | Flutter 3.41+ / Dart, Riverpod, go_router |
-| Backend | Go (Gin), gRPC between services |
-| AI Agent | Python, FastAPI, LangGraph, LlamaIndex |
-| LLM | Claude API (complex) / DeepSeek (cost-sensitive) |
-| DB | PostgreSQL + Redis + Elasticsearch |
-| Infra | Docker + Nginx, planned: Aliyun K8s |
+前端相关工作按以下顺序收口，越靠前优先级越高：
 
----
+1. [app/AGENTS.md](/Users/dylanthomas/Desktop/projects/kaizao-repo/app/AGENTS.md)
+2. [app/DESIGN_SPEC.md](/Users/dylanthomas/Desktop/projects/kaizao-repo/app/DESIGN_SPEC.md)
+3. [.cursor/rules/design-tokens.mdc](/Users/dylanthomas/Desktop/projects/kaizao-repo/.cursor/rules/design-tokens.mdc)
+4. [.cursor/rules/forbidden.mdc](/Users/dylanthomas/Desktop/projects/kaizao-repo/.cursor/rules/forbidden.mdc)
+5. [.cursor/rules/ui-safety.mdc](/Users/dylanthomas/Desktop/projects/kaizao-repo/.cursor/rules/ui-safety.mdc)
+6. 各目录下局部 `CLAUDE.md`
 
-## Brand & Terminology
-
-| Term | Meaning |
-|------|---------|
-| 开造 | Product name (Chinese) |
-| VCC | Company symbol (Vibe Coding Company) |
-| 造物者 | Supply-side users (never "程序员" or "码农") |
-| 发起人 | Demand-side users |
-| 接造 | Supplier accepting a project (not "接单") |
-| EARS卡片 | AI-generated structured requirement cards |
-
-**Slogan**: 点亮每一个想法
-**Forbidden terms**: 外包, 程序员, 码农, 最好的/第一/唯一
+如果几份规范冲突，遵循“更具体的目录规范覆盖更上层规范”。
 
 ---
 
-## Development Commands
+## 前端设计语言
+
+当前前端统一采用：
+
+- **Architectural Minimalism / The Digital Atheneum**
+- 关键词：单色层级、编辑式留白、克制、安静、内容优先
+- 默认不要品牌渐变、重阴影、强彩色、线性分割
+- 允许极轻的黑到炭灰 tonal shift，但只用于 Hero 或主 CTA
+
+---
+
+## 前端产品语言
+
+前端界面、交互文案、说明文档统一使用以下说法：
+
+- `需求方`：有需求、发起项目的人
+- `专家`：承接需求、提供交付的人
+- `引导`：首次 onboarding 流程
+- `首页`：按角色切分为需求方首页 / 专家首页
+
+避免继续在前端规范中使用这些旧说法：
+
+- `发起人`
+- `造物者`
+- `甲方`
+- `码农`
+- `外包平台`
+
+---
+
+## 公共组件策略
+
+- 基础按钮、输入、卡片、空状态、toast、loading 优先复用 `app/lib/shared/widgets`
+- 复杂业务模块、页面级组合结构放在 `app/lib/features/*/widgets`
+- 如果共享组件不符合规范，先修共享组件，再决定是否复用
+- 不要为了“强行复用”把复杂业务块塞进 `shared/widgets`
+
+---
+
+## 常用命令
 
 ```bash
 # Flutter app
-cd app && flutter run -d chrome        # Web dev
-cd app && flutter run -d macos         # Desktop dev
-cd app && flutter analyze              # Lint check
+cd app && flutter analyze
+cd app && flutter run -d chrome
+cd app && flutter run -d macos
 
-# Full stack (Docker)
-make dev                               # Start all services
-make stop                              # Stop all
+# Git
+git fetch origin
+git status -sb
 ```
+
+---
+
+## 交付要求
+
+- 文档、代码、PR 描述口径必须一致
+- 提 PR 默认使用中文，写清楚“做了什么 / 怎么验证 / 不包含什么”
+- analyze 通过不等于完成，涉及 UI 的改动要实际看页面

@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     redis_session_ttl: int = 86400  # 会话过期时间 24 小时
 
     # MySQL 配置
-    mysql_url: str = "mysql+aiomysql://root:root@localhost:3306/vibebuild?charset=utf8mb4"
+    mysql_url: str = "mysql+aiomysql://root:root@localhost:3306/kaizao?charset=utf8mb4"
 
     # Agent 配置
     max_conversation_turns: int = 20

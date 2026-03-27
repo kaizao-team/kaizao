@@ -1,6 +1,7 @@
 """
 开造 VibeBuild — ORM 模型定义
-4 张表：projects / project_stages / documents / conversation_messages
+Project 表映射 Go 后端 kaizao.projects（只读/部分写）
+AI 独有表统一 ai_ 前缀
 """
 
 from datetime import datetime
@@ -8,10 +9,13 @@ from typing import Optional
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
+    Date,
     DateTime,
     DECIMAL,
     Index,
     Integer,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
@@ -25,27 +29,78 @@ class Base(DeclarativeBase):
     pass
 
 
+# ============================================================
+# Go 后端权威表 — AI Agent 只读/部分写
+# ============================================================
+
 class Project(Base):
-    """项目主表"""
+    """
+    映射 Go 后端 kaizao.projects 表。
+    AI Agent 只 UPDATE ai_prd / ai_estimate / confirmed_prd 等字段，
+    不 INSERT 也不 DELETE 此表的行。
+    """
     __tablename__ = "projects"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    title: Mapped[str] = mapped_column(String(255), default="")
-    current_stage: Mapped[str] = mapped_column(String(20), default="requirement")
-    version: Mapped[int] = mapped_column(Integer, default=1)
-    session_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    uuid: Mapped[str] = mapped_column(String(36), unique=True, nullable=False)
+    owner_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    provider_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    team_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    bid_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    category: Mapped[str] = mapped_column(String(50), nullable=False, default="")
+    template_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    # AI 生成内容 — Agent 主写字段
+    ai_prd: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    ai_estimate: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    confirmed_prd: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    # 预算与工期
+    budget_min: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), nullable=True)
+    budget_max: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), nullable=True)
+    agreed_price: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), nullable=True)
+    deadline: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
+    agreed_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    start_date: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
+    actual_end_date: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
+    # 分类属性
+    complexity: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    tech_requirements: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    attachments: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    # 撮合
+    match_mode: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)
+    # 进度
+    progress: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    current_milestone_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    # 状态
+    status: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)
+    close_reason: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    # 统计
+    view_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    bid_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    favorite_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # 时间戳
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    matched_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 告诉 SQLAlchemy 不要尝试 CREATE 这张表
+    __table_args__ = {"extend_existing": True}
 
 
-class ProjectStage(Base):
-    """阶段状态表"""
-    __tablename__ = "project_stages"
+# ============================================================
+# AI Agent 独有表 — 统一 ai_ 前缀
+# ============================================================
+
+class AIProjectStage(Base):
+    """AI 流水线阶段状态表"""
+    __tablename__ = "ai_project_stages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    project_id: Mapped[str] = mapped_column(String(36), index=True)
+    project_id: Mapped[str] = mapped_column(String(36), index=True)  # Go 后端 projects.uuid
     stage_name: Mapped[str] = mapped_column(String(20))
     status: Mapped[str] = mapped_column(String(30), default="pending")
     sub_stage: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
@@ -55,13 +110,13 @@ class ProjectStage(Base):
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     __table_args__ = (
-        UniqueConstraint("project_id", "stage_name", name="uq_project_stage"),
+        UniqueConstraint("project_id", "stage_name", name="uq_ai_project_stage"),
     )
 
 
-class Document(Base):
-    """文档记录表"""
-    __tablename__ = "documents"
+class AIDocument(Base):
+    """AI 文档记录表"""
+    __tablename__ = "ai_documents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     project_id: Mapped[str] = mapped_column(String(36), index=True)
@@ -73,13 +128,13 @@ class Document(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     __table_args__ = (
-        UniqueConstraint("project_id", "filename", "version", name="uq_doc_version"),
+        UniqueConstraint("project_id", "filename", "version", name="uq_ai_doc_version"),
     )
 
 
-class ConversationMessage(Base):
-    """对话消息表"""
-    __tablename__ = "conversation_messages"
+class AIConversationMessage(Base):
+    """AI 对话消息表"""
+    __tablename__ = "ai_conversation_messages"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     session_id: Mapped[str] = mapped_column(String(64))
@@ -90,13 +145,13 @@ class ConversationMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     __table_args__ = (
-        Index("idx_session", "session_id", "message_index"),
+        Index("idx_ai_session", "session_id", "message_index"),
     )
 
 
-class ProviderProfile(Base):
-    """供给方档案表"""
-    __tablename__ = "provider_profiles"
+class AIProviderProfile(Base):
+    """AI 供给方档案表"""
+    __tablename__ = "ai_provider_profiles"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), nullable=False)
@@ -105,20 +160,16 @@ class ProviderProfile(Base):
     vibe_power: Mapped[int] = mapped_column(Integer, default=0)
     vibe_level: Mapped[str] = mapped_column(String(20), default="vc-T1")
     level_weight: Mapped[float] = mapped_column(DECIMAL(3, 2), default=1.00)
-    # 评审标签 JSON（学历层次、大厂经历、工作年限等定级凭证）
     review_tags: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
-    # AI 解析结构化数据
     skills: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
     experience_years: Mapped[int] = mapped_column(Integer, default=0)
     ai_tools: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
     resume_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    # 五维度初始评分
     score_tech_depth: Mapped[int] = mapped_column(Integer, default=0)
     score_project_exp: Mapped[int] = mapped_column(Integer, default=0)
     score_ai_proficiency: Mapped[int] = mapped_column(Integer, default=0)
     score_portfolio: Mapped[int] = mapped_column(Integer, default=0)
     score_background: Mapped[int] = mapped_column(Integer, default=0)
-    # 统计数据
     total_projects: Mapped[int] = mapped_column(Integer, default=0)
     completed_projects: Mapped[int] = mapped_column(Integer, default=0)
     avg_rating: Mapped[float] = mapped_column(DECIMAL(3, 2), default=0)
@@ -129,14 +180,14 @@ class ProviderProfile(Base):
     )
 
     __table_args__ = (
-        Index("idx_user", "user_id"),
-        Index("idx_level", "vibe_level", "vibe_power"),
+        Index("idx_ai_user", "user_id"),
+        Index("idx_ai_level", "vibe_level", "vibe_power"),
     )
 
 
-class VibePowerLog(Base):
-    """积分变动记录表"""
-    __tablename__ = "vibe_power_logs"
+class AIVibePowerLog(Base):
+    """AI 积分变动记录表"""
+    __tablename__ = "ai_vibe_power_logs"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     provider_id: Mapped[str] = mapped_column(String(36), nullable=False)
@@ -147,5 +198,5 @@ class VibePowerLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     __table_args__ = (
-        Index("idx_provider", "provider_id", "created_at"),
+        Index("idx_ai_provider", "provider_id", "created_at"),
     )

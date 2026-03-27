@@ -78,8 +78,11 @@ class _MarketPageState extends ConsumerState<MarketPage>
                   const Spacer(),
                   GestureDetector(
                     onTap: () {},
-                    child: const Icon(Icons.search,
-                        size: 24, color: AppColors.gray500),
+                    child: const Icon(
+                      Icons.search,
+                      size: 24,
+                      color: AppColors.gray500,
+                    ),
                   ),
                 ],
               ),
@@ -131,10 +134,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
         indicatorSize: TabBarIndicatorSize.tab,
         labelColor: AppColors.white,
         unselectedLabelColor: AppColors.gray600,
-        labelStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
+        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w400,
@@ -174,40 +174,41 @@ class _MarketPageState extends ConsumerState<MarketPage>
           child: state.isLoading
               ? _buildSkeleton()
               : state.errorMessage != null && state.projects.isEmpty
-                  ? _buildError(state.errorMessage!)
-                  : state.projects.isEmpty
-                      ? _buildEmpty()
-                      : RefreshIndicator(
-                          color: AppColors.black,
-                          onRefresh: () =>
-                              ref.read(_marketProvider.notifier).refresh(),
-                          child: ListView.separated(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 4),
-                            itemCount: state.projects.length +
-                                (state.hasMore || state.isLoadingMore ? 1 : 0),
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              if (index == state.projects.length) {
-                                return _buildFooter(state);
-                              }
-                              final project = state.projects[index];
-                              return MarketProjectCard(
-                                project: project,
-                                isExpert: isExpert,
-                                aiTip: isExpert &&
-                                        project.matchScore != null &&
-                                        project.matchScore! >= 80
-                                    ? '技能高度匹配，推荐组队投标'
-                                    : null,
-                                onTap: () =>
-                                    context.push('/projects/${project.id}'),
-                              );
-                            },
-                          ),
-                        ),
+              ? _buildError(state.errorMessage!)
+              : state.projects.isEmpty
+              ? _buildEmpty()
+              : RefreshIndicator(
+                  color: AppColors.black,
+                  onRefresh: () => ref.read(_marketProvider.notifier).refresh(),
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 4,
+                    ),
+                    itemCount:
+                        state.projects.length +
+                        (state.hasMore || state.isLoadingMore ? 1 : 0),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      if (index == state.projects.length) {
+                        return _buildFooter(state);
+                      }
+                      final project = state.projects[index];
+                      return MarketProjectCard(
+                        project: project,
+                        isExpert: isExpert,
+                        aiTip:
+                            isExpert &&
+                                project.matchScore != null &&
+                                project.matchScore! >= 80
+                            ? '技能高度匹配，推荐组队投标'
+                            : null,
+                        onTap: () => context.push('/projects/${project.id}'),
+                      );
+                    },
+                  ),
+                ),
         ),
       ],
     );
@@ -267,18 +268,26 @@ class _MarketPageState extends ConsumerState<MarketPage>
               color: AppColors.gray100,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.inbox_outlined,
-                size: 32, color: AppColors.gray400),
+            child: const Icon(
+              Icons.inbox_outlined,
+              size: 32,
+              color: AppColors.gray400,
+            ),
           ),
           const SizedBox(height: 16),
-          const Text('暂无内容',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.gray500)),
+          const Text(
+            '暂无内容',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: AppColors.gray500,
+            ),
+          ),
           const SizedBox(height: 4),
-          const Text('调整筛选条件试试',
-              style: TextStyle(fontSize: 13, color: AppColors.gray400)),
+          const Text(
+            '调整筛选条件试试',
+            style: TextStyle(fontSize: 13, color: AppColors.gray400),
+          ),
         ],
       ),
     );
@@ -289,18 +298,26 @@ class _MarketPageState extends ConsumerState<MarketPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.cloud_off_outlined,
-              size: 48, color: AppColors.gray400),
+          const Icon(
+            Icons.cloud_off_outlined,
+            size: 48,
+            color: AppColors.gray400,
+          ),
           const SizedBox(height: 16),
-          const Text('加载失败',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.gray600)),
+          const Text(
+            '加载失败',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: AppColors.gray600,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(message,
-              style: const TextStyle(fontSize: 13, color: AppColors.gray400),
-              textAlign: TextAlign.center),
+          Text(
+            message,
+            style: const TextStyle(fontSize: 13, color: AppColors.gray400),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 20),
           GestureDetector(
             onTap: () => ref.read(_marketProvider.notifier).refresh(),
@@ -310,8 +327,10 @@ class _MarketPageState extends ConsumerState<MarketPage>
                 color: AppColors.black,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('重试',
-                  style: TextStyle(fontSize: 14, color: AppColors.white)),
+              child: const Text(
+                '重试',
+                style: TextStyle(fontSize: 14, color: AppColors.white),
+              ),
             ),
           ),
         ],

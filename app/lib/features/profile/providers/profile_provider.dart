@@ -52,17 +52,17 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       if (!mounted) return;
 
       final effectiveId = profile.id;
-      final skills = await _repository.fetchSkills(effectiveId);
-      if (!mounted) return;
-
-      final portfolios = await _repository.fetchPortfolios(effectiveId);
+      final results = await Future.wait([
+        _repository.fetchSkills(effectiveId),
+        _repository.fetchPortfolios(effectiveId),
+      ]);
       if (!mounted) return;
 
       state = state.copyWith(
         isLoading: false,
         profile: profile,
-        skills: skills,
-        portfolios: portfolios,
+        skills: results[0] as List<SkillTag>,
+        portfolios: results[1] as List<PortfolioItem>,
       );
     } catch (e) {
       if (!mounted) return;
@@ -109,6 +109,9 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 
 final profileProvider = StateNotifierProvider.autoDispose
     .family<ProfileNotifier, ProfileState, String>((ref, userId) {
+  if (userId == 'me') {
+    ref.keepAlive();
+  }
   final repository = ref.watch(profileRepositoryProvider);
   return ProfileNotifier(repository, userId);
 });

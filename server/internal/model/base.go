@@ -9,81 +9,87 @@ import (
 	"github.com/google/uuid"
 )
 
-// JSONB 自定义 JSONB 类型，用于 PostgreSQL JSONB 字段
-type JSONB json.RawMessage
+// JSON 自定义 JSON 类型，用于 MySQL JSON 字段（数组）
+type JSON json.RawMessage
 
-func (j JSONB) Value() (driver.Value, error) {
+func (j JSON) Value() (driver.Value, error) {
 	if len(j) == 0 {
 		return "[]", nil
 	}
 	return string(j), nil
 }
 
-func (j *JSONB) Scan(value interface{}) error {
+func (j *JSON) Scan(value interface{}) error {
 	if value == nil {
-		*j = JSONB("[]")
+		*j = JSON("[]")
 		return nil
 	}
 	switch v := value.(type) {
 	case []byte:
-		*j = JSONB(v)
+		*j = JSON(v)
 	case string:
-		*j = JSONB(v)
+		*j = JSON(v)
 	default:
-		return errors.New("unsupported type for JSONB")
+		return errors.New("unsupported type for JSON")
 	}
 	return nil
 }
 
-func (j JSONB) MarshalJSON() ([]byte, error) {
+func (j JSON) MarshalJSON() ([]byte, error) {
 	if len(j) == 0 {
 		return []byte("[]"), nil
 	}
 	return []byte(j), nil
 }
 
-func (j *JSONB) UnmarshalJSON(data []byte) error {
-	*j = JSONB(data)
+func (j *JSON) UnmarshalJSON(data []byte) error {
+	*j = JSON(data)
 	return nil
 }
 
-// JSONBMap JSONB object 类型
-type JSONBMap json.RawMessage
+// JSONMap 自定义 JSON 类型，用于 MySQL JSON 字段（对象）
+type JSONMap json.RawMessage
 
-func (j JSONBMap) Value() (driver.Value, error) {
+func (j JSONMap) Value() (driver.Value, error) {
 	if len(j) == 0 {
 		return "{}", nil
 	}
 	return string(j), nil
 }
 
-func (j *JSONBMap) Scan(value interface{}) error {
+func (j *JSONMap) Scan(value interface{}) error {
 	if value == nil {
-		*j = JSONBMap("{}")
+		*j = JSONMap("{}")
 		return nil
 	}
 	switch v := value.(type) {
 	case []byte:
-		*j = JSONBMap(v)
+		*j = JSONMap(v)
 	case string:
-		*j = JSONBMap(v)
+		*j = JSONMap(v)
 	default:
-		return errors.New("unsupported type for JSONBMap")
+		return errors.New("unsupported type for JSONMap")
 	}
 	return nil
 }
 
-func (j JSONBMap) MarshalJSON() ([]byte, error) {
+func (j JSONMap) MarshalJSON() ([]byte, error) {
 	if len(j) == 0 {
 		return []byte("{}"), nil
 	}
 	return []byte(j), nil
 }
 
-func (j *JSONBMap) UnmarshalJSON(data []byte) error {
-	*j = JSONBMap(data)
+func (j *JSONMap) UnmarshalJSON(data []byte) error {
+	*j = JSONMap(data)
 	return nil
 }
+
+// JSONB PostgreSQL 兼容别名，实际使用 JSON
+type JSONB = JSON
+
+// JSONBMap PostgreSQL 兼容别名，实际使用 JSONMap
+type JSONBMap = JSONMap
 
 // GenerateUUID 生成 UUID
 func GenerateUUID() string {

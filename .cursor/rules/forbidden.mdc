@@ -1,5 +1,5 @@
 ---
-description: 开造主设计系统负面清单。默认禁止渐变、彩色强调、分割线和重阴影。
+description: 开造主设计系统负面清单。默认禁止品牌渐变、彩色主层级、分割线和重阴影。
 globs: "**/*.dart"
 alwaysApply: true
 ---
@@ -49,11 +49,13 @@ alwaysApply: true
 - ❌ 禁止所有内容居中堆成一列
 - ❌ 禁止 bootstrap 式均匀卡片网格
 - ❌ 禁止信息密排
+- ❌ 禁止把首页直接做成通用 dashboard
 - ✅ 用非对称、错位、长留白做 editorial 构图
 
 ## 组件
 
-- ❌ 禁止自定义按钮替代 `VccButton`
+- ❌ 禁止在基础操作按钮和基础输入场景绕开 `VccButton` / `VccInput`
 - ❌ 禁止系统 `SnackBar`
 - ❌ 禁止裸用 `Card`
-- ✅ 优先修共享组件，再复用
+- ❌ 禁止在文案里继续混用 `发起人 / 造物者`
+- ✅ 基础件优先共享，复杂业务块放 `features/*/widgets`

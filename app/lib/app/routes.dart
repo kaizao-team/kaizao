@@ -38,6 +38,7 @@ import '../features/team/pages/team_hall_page.dart';
 import '../features/team/pages/create_team_post_page.dart';
 import '../features/team/pages/team_confirm_page.dart';
 import '../features/rate/pages/rate_page.dart';
+import '../features/notification/pages/notification_page.dart';
 import '../shared/widgets/vcc_bottom_nav.dart';
 
 class RoutePaths {
@@ -85,6 +86,7 @@ class RoutePaths {
   static const String createTeamPost = '/team/create';
   static const String teamConfirm = '/team/:teamId/confirm';
   static const String rate = '/rate';
+  static const String notifications = '/notifications';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -118,25 +120,21 @@ Page<void> _onboardingFlowPage(GoRouterState state, Widget child) {
     transitionDuration: const Duration(milliseconds: 360),
     reverseTransitionDuration: const Duration(milliseconds: 260),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final position = Tween<Offset>(
-        begin: const Offset(0.035, 0),
-        end: Offset.zero,
-      ).animate(
-        CurvedAnimation(
-          parent: animation,
-          curve: const Cubic(0.16, 1, 0.3, 1),
-          reverseCurve: Curves.easeOut,
-        ),
-      );
+      final position =
+          Tween<Offset>(
+            begin: const Offset(0.035, 0),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: const Cubic(0.16, 1, 0.3, 1),
+              reverseCurve: Curves.easeOut,
+            ),
+          );
 
       return FadeTransition(
-        opacity: animation.drive(
-          CurveTween(curve: Curves.easeOut),
-        ),
-        child: SlideTransition(
-          position: position,
-          child: child,
-        ),
+        opacity: animation.drive(CurveTween(curve: Curves.easeOut)),
+        child: SlideTransition(position: position, child: child),
       );
     },
   );
@@ -161,6 +159,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (location == RoutePaths.splash) {
+        if (authState.isLoggedIn) {
+          return RoutePaths.home;
+        }
         return null;
       }
 
@@ -179,18 +180,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: RoutePaths.splash,
-        builder: (_, __) => const SplashPage(),
-      ),
+      GoRoute(path: RoutePaths.splash, builder: (_, __) => const SplashPage()),
       GoRoute(
         path: RoutePaths.onboarding,
         builder: (_, __) => const OnboardingPage(),
       ),
-      GoRoute(
-        path: RoutePaths.login,
-        builder: (_, __) => const LoginPage(),
-      ),
+      GoRoute(path: RoutePaths.login, builder: (_, __) => const LoginPage()),
       GoRoute(
         path: RoutePaths.register,
         builder: (_, __) => const RegisterPage(),
@@ -211,52 +206,38 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.demanderOnboarding1,
-        pageBuilder: (_, state) => _onboardingFlowPage(
-          state,
-          const DemanderProfilePage(),
-        ),
+        pageBuilder: (_, state) =>
+            _onboardingFlowPage(state, const DemanderProfilePage()),
       ),
       GoRoute(
         path: RoutePaths.demanderOnboarding2,
-        pageBuilder: (_, state) => _onboardingFlowPage(
-          state,
-          const DemanderGuideCreatePage(),
-        ),
+        pageBuilder: (_, state) =>
+            _onboardingFlowPage(state, const DemanderGuideCreatePage()),
       ),
       GoRoute(
         path: RoutePaths.demanderOnboarding3,
-        pageBuilder: (_, state) => _onboardingFlowPage(
-          state,
-          const DemanderGuideFillPage(),
-        ),
+        pageBuilder: (_, state) =>
+            _onboardingFlowPage(state, const DemanderGuideFillPage()),
       ),
       GoRoute(
         path: RoutePaths.demanderOnboarding4,
-        pageBuilder: (_, state) => _onboardingFlowPage(
-          state,
-          const DemanderCompletePage(),
-        ),
+        pageBuilder: (_, state) =>
+            _onboardingFlowPage(state, const DemanderCompletePage()),
       ),
       GoRoute(
         path: RoutePaths.expertOnboarding1,
-        pageBuilder: (_, state) => _onboardingFlowPage(
-          state,
-          const ExpertProfilePage(),
-        ),
+        pageBuilder: (_, state) =>
+            _onboardingFlowPage(state, const ExpertProfilePage()),
       ),
       GoRoute(
         path: RoutePaths.expertOnboarding2,
-        pageBuilder: (_, state) => _onboardingFlowPage(
-          state,
-          const ExpertSupplementPage(),
-        ),
+        pageBuilder: (_, state) =>
+            _onboardingFlowPage(state, const ExpertSupplementPage()),
       ),
       GoRoute(
         path: RoutePaths.expertOnboarding3,
-        pageBuilder: (_, state) => _onboardingFlowPage(
-          state,
-          const ExpertLevelPage(),
-        ),
+        pageBuilder: (_, state) =>
+            _onboardingFlowPage(state, const ExpertLevelPage()),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -318,11 +299,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ),
       ),
+      // 静态路径须在 /profile/:userId 之前注册，否则 /profile/edit 会被当成 userId=edit
+      GoRoute(
+        path: RoutePaths.editProfile,
+        pageBuilder: (_, __) => _cupertinoPage(
+          const EditProfilePage(),
+        ),
+      ),
       GoRoute(
         path: RoutePaths.profileView,
-        pageBuilder: (_, state) => _cupertinoPage(
-          ProfilePage(userId: state.pathParameters['userId']),
-        ),
+        pageBuilder: (_, state) =>
+            _cupertinoPage(ProfilePage(userId: state.pathParameters['userId'])),
       ),
       GoRoute(
         path: RoutePaths.bidList,
@@ -339,9 +326,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.projectManage,
         pageBuilder: (_, state) => _cupertinoPage(
-          ProjectManagePage(
-            projectId: state.pathParameters['projectId'] ?? '',
-          ),
+          ProjectManagePage(projectId: state.pathParameters['projectId'] ?? ''),
         ),
       ),
       GoRoute(
@@ -366,45 +351,33 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.settings,
-        pageBuilder: (_, __) => _cupertinoPage(
-          const SettingsPage(),
-        ),
-      ),
-      GoRoute(
-        path: RoutePaths.editProfile,
-        pageBuilder: (_, __) => _cupertinoPage(
-          const EditProfilePage(),
-        ),
+        pageBuilder: (_, __) => _cupertinoPage(const SettingsPage()),
       ),
       GoRoute(
         path: RoutePaths.wallet,
-        pageBuilder: (_, __) => _cupertinoPage(
-          const WalletPage(),
-        ),
+        pageBuilder: (_, __) => _cupertinoPage(const WalletPage()),
       ),
       GoRoute(
         path: RoutePaths.income,
-        pageBuilder: (_, __) => _cupertinoPage(
-          const WalletPage(),
-        ),
+        pageBuilder: (_, __) => _cupertinoPage(const WalletPage()),
       ),
       GoRoute(
         path: RoutePaths.teamHall,
-        pageBuilder: (_, __) => _cupertinoPage(
-          const TeamHallPage(),
-        ),
+        pageBuilder: (_, __) => _cupertinoPage(const TeamHallPage()),
       ),
       GoRoute(
         path: RoutePaths.createTeamPost,
-        pageBuilder: (_, __) => _cupertinoPage(
-          const CreateTeamPostPage(),
-        ),
+        pageBuilder: (_, __) => _cupertinoPage(const CreateTeamPostPage()),
       ),
       GoRoute(
         path: RoutePaths.teamConfirm,
         pageBuilder: (_, state) => _cupertinoPage(
           TeamConfirmPage(teamId: state.pathParameters['teamId'] ?? ''),
         ),
+      ),
+      GoRoute(
+        path: RoutePaths.notifications,
+        pageBuilder: (_, __) => _cupertinoPage(const NotificationPage()),
       ),
       GoRoute(
         path: RoutePaths.rate,

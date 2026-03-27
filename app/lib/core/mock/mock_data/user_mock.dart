@@ -40,10 +40,33 @@ class UserMock {
   }
 
   static Map<String, dynamic> _getCurrentUser() {
+    final role = _currentUser['role'] as int? ?? 1;
     return {
       'code': 0,
       'message': 'ok',
-      'data': currentUserData,
+      'data': {
+        'id': _currentUser['uuid'] ?? 'user_001',
+        'nickname': _currentUser['nickname'] ?? '张恒',
+        'avatar': _currentUser['avatar_url'],
+        'tagline': '全栈 Vibe Coder',
+        'role': role,
+        'rating': 4.9,
+        'credit_score': _currentUser['credit_score'] ?? 920,
+        'is_verified': _currentUser['is_verified'] ?? true,
+        'phone': '138****8888',
+        'wechat_bound': true,
+        'stats': {
+          'completed_projects': role == 2 ? 12 : 0,
+          'approval_rate': 98,
+          'avg_delivery_days': 3.2,
+          'total_earnings': role == 2 ? 86500.0 : 0.0,
+          'published_projects': role == 1 ? 5 : 0,
+          'total_spent': role == 1 ? 42000.0 : 0.0,
+          'days_on_platform': 285,
+        },
+        'bio': _currentUser['bio'] ?? '5年全栈开发经验，擅长 Flutter 和 Go 后端开发。',
+        'created_at': '2025-06-15T10:00:00Z',
+      },
     };
   }
 

@@ -95,6 +95,12 @@ class ApiEndpoints {
       '/api/v1/milestones/$id/revision';
 
   // ============================================================
+  // 评论模块 /api/v1/projects/:id/comments
+  // ============================================================
+  static String projectComments(String projectId) =>
+      '/api/v1/projects/$projectId/comments';
+
+  // ============================================================
   // 投标/撮合模块 /api/v1/bids
   // ============================================================
   static String projectAiSuggestion(String projectId) =>
@@ -129,6 +135,7 @@ class ApiEndpoints {
   // 消息/沟通模块 /api/v1/conversations
   // ============================================================
   static const String conversations = '/api/v1/conversations';
+  static String conversationDetail(String id) => '/api/v1/conversations/$id';
   static String conversationMessages(String id) =>
       '/api/v1/conversations/$id/messages';
   static String conversationRead(String id) => '/api/v1/conversations/$id/read';

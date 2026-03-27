@@ -27,10 +27,7 @@ class HomeCategoryGrid extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const HomeSectionHeader(
-          title: '预设类型',
-          subtitle: '从类型进入项目广场。',
-        ),
+        const HomeSectionHeader(title: '预设类型', subtitle: '从类型进入项目广场。'),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: LayoutBuilder(
@@ -107,10 +104,7 @@ class _FeaturedCategoryTile extends StatelessWidget {
   final CategoryItem category;
   final VoidCallback onTap;
 
-  const _FeaturedCategoryTile({
-    required this.category,
-    required this.onTap,
-  });
+  const _FeaturedCategoryTile({required this.category, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -118,9 +112,7 @@ class _FeaturedCategoryTile extends StatelessWidget {
       color: AppColors.black,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
-        side: BorderSide(
-          color: AppColors.black.withValues(alpha: 0.04),
-        ),
+        side: BorderSide(color: AppColors.black.withValues(alpha: 0.04)),
       ),
       shadowColor: AppColors.black.withValues(alpha: 0.08),
       elevation: 1,
@@ -134,10 +126,7 @@ class _FeaturedCategoryTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const _CategoryEyebrow(
-                    label: '推荐入口',
-                    inverted: true,
-                  ),
+                  const _CategoryEyebrow(label: '推荐入口', inverted: true),
                   const Spacer(),
                   Container(
                     width: 36,
@@ -189,10 +178,7 @@ class _CategoryFocusTile extends StatelessWidget {
   final CategoryItem category;
   final VoidCallback onTap;
 
-  const _CategoryFocusTile({
-    required this.category,
-    required this.onTap,
-  });
+  const _CategoryFocusTile({required this.category, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -261,10 +247,7 @@ class _SideCategoryTile extends StatelessWidget {
   final CategoryItem category;
   final VoidCallback onTap;
 
-  const _SideCategoryTile({
-    required this.category,
-    required this.onTap,
-  });
+  const _SideCategoryTile({required this.category, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -334,10 +317,7 @@ class _CompactCategoryLink extends StatelessWidget {
   final CategoryItem category;
   final VoidCallback onTap;
 
-  const _CompactCategoryLink({
-    required this.category,
-    required this.onTap,
-  });
+  const _CompactCategoryLink({required this.category, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -402,10 +382,7 @@ class _CategoryEyebrow extends StatelessWidget {
   final String label;
   final bool inverted;
 
-  const _CategoryEyebrow({
-    required this.label,
-    this.inverted = false,
-  });
+  const _CategoryEyebrow({required this.label, this.inverted = false});
 
   @override
   Widget build(BuildContext context) {
