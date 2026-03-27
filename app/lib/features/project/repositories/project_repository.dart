@@ -6,7 +6,7 @@ import '../models/project_models.dart';
 class ProjectRepository {
   final ApiClient _client = ApiClient();
 
-  /// 获取"我的项目"列表，role: 1=需求方 (owner), 2=专家 (assignee)
+  /// 获取"我的项目"列表，role: 1=项目方 (owner), 2=团队方 (assignee)
   Future<List<ProjectModel>> fetchMyProjects({int role = 1}) async {
     final response = await _client.get(
       ApiEndpoints.projects,

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/pages/splash_page.dart';
 import '../features/auth/pages/onboarding_page.dart';
 import '../features/auth/pages/login_page.dart';
+import '../features/auth/pages/register_page.dart';
 import '../features/auth/pages/role_select_page.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/onboarding/pages/demander_profile_page.dart';
@@ -29,6 +30,7 @@ import '../features/project/pages/project_manage_page.dart';
 import '../features/acceptance/pages/acceptance_page.dart';
 import '../features/payment/pages/order_confirm_page.dart';
 import '../features/payment/pages/payment_result_page.dart';
+import '../features/settings/pages/legal_document_page.dart';
 import '../features/settings/pages/settings_page.dart';
 import '../features/profile/pages/edit_profile_page.dart';
 import '../features/wallet/pages/wallet_page.dart';
@@ -44,7 +46,10 @@ class RoutePaths {
   static const String splash = '/splash';
   static const String onboarding = '/onboarding';
   static const String login = '/login';
+  static const String register = '/register';
   static const String roleSelect = '/role-select';
+  static const String userAgreement = '/legal/user-agreement';
+  static const String privacyPolicy = '/legal/privacy-policy';
 
   static const String demanderOnboarding1 = '/onboard/demander/1';
   static const String demanderOnboarding2 = '/onboard/demander/2';
@@ -89,7 +94,10 @@ const _authExemptPaths = {
   RoutePaths.splash,
   RoutePaths.onboarding,
   RoutePaths.login,
+  RoutePaths.register,
   RoutePaths.roleSelect,
+  RoutePaths.userAgreement,
+  RoutePaths.privacyPolicy,
   RoutePaths.demanderOnboarding1,
   RoutePaths.demanderOnboarding2,
   RoutePaths.demanderOnboarding3,
@@ -159,7 +167,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authState.isLoggedIn;
       final isOnAuthPage = _authExemptPaths.contains(location);
 
-      if (isLoggedIn && location == RoutePaths.login) {
+      if (isLoggedIn &&
+          (location == RoutePaths.login || location == RoutePaths.register)) {
         return RoutePaths.home;
       }
 
@@ -183,8 +192,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const LoginPage(),
       ),
       GoRoute(
+        path: RoutePaths.register,
+        builder: (_, __) => const RegisterPage(),
+      ),
+      GoRoute(
         path: RoutePaths.roleSelect,
         builder: (_, __) => const RoleSelectPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.userAgreement,
+        pageBuilder: (_, __) =>
+            _cupertinoPage(const LegalDocumentPage.userAgreement()),
+      ),
+      GoRoute(
+        path: RoutePaths.privacyPolicy,
+        pageBuilder: (_, __) =>
+            _cupertinoPage(const LegalDocumentPage.privacyPolicy()),
       ),
       GoRoute(
         path: RoutePaths.demanderOnboarding1,
@@ -245,7 +268,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RoutePaths.square,
-            pageBuilder: (_, __) => const NoTransitionPage(child: MarketPage()),
+            pageBuilder: (_, state) => NoTransitionPage(
+              child: MarketPage(
+                initialCategory: state.uri.queryParameters['category'],
+              ),
+            ),
           ),
           GoRoute(
             path: RoutePaths.chatList,

@@ -127,13 +127,11 @@ class _SplashPageState extends ConsumerState<SplashPage>
                         child: SizedBox(
                           width: 212,
                           height: 212,
-                          child: ClipRect(
-                            child: Image.asset(
-                              'assets/branding/app_launch_motion_flat.webp',
-                              fit: BoxFit.cover,
-                              alignment: Alignment.center,
-                              filterQuality: FilterQuality.low,
-                            ),
+                          child: Image.asset(
+                            'assets/branding/app_launch_motion_flat.webp',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            filterQuality: FilterQuality.low,
                           ),
                         ),
                       ),
@@ -146,22 +144,12 @@ class _SplashPageState extends ConsumerState<SplashPage>
                         child: const Column(
                           children: [
                             Text(
-                              'VCC',
+                              'KAIZAO',
                               style: TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF1A1A1A),
                                 letterSpacing: 6,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              '开造',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF6B7280),
-                                letterSpacing: 3,
                               ),
                             ),
                           ],

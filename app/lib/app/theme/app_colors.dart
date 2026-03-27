@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 开造 VCC 颜色系统 — Notion/Linear 黑白风格 + 紫色强调色
+/// KAIZAO 颜色系统 — Notion/Linear 黑白风格 + 紫色强调色
 class AppColors {
   AppColors._();
 

@@ -32,7 +32,7 @@ class UserProfile {
   bool get isDemander => role == 1;
   bool get isExpert => role == 2;
 
-  String get roleName => isDemander ? '需求方' : '专家';
+  String get roleName => isDemander ? '项目方' : '团队方';
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(

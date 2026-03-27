@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../app/app.dart';
+import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
-import 'notification_settings_page.dart';
 import 'about_page.dart';
+import 'notification_settings_page.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -71,7 +74,17 @@ class SettingsPage extends ConsumerWidget {
           ),
           _buildSettingItem(
             context,
-            '关于开造',
+            '用户协议',
+            onTap: () => context.push(RoutePaths.userAgreement),
+          ),
+          _buildSettingItem(
+            context,
+            '隐私政策',
+            onTap: () => context.push(RoutePaths.privacyPolicy),
+          ),
+          _buildSettingItem(
+            context,
+            '关于 KAIZAO',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AboutPage()),

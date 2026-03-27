@@ -125,7 +125,7 @@ class MatchMock {
   static Map<String, dynamic> _acceptBid() {
     return {
       'code': 0,
-      'message': '已选定供给方',
+      'message': '已选定团队',
       'data': {'status': 'accepted'},
     };
   }

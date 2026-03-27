@@ -9,7 +9,7 @@ import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 
-/// ONBOARD-001: 需求方基础资料编辑
+/// ONBOARD-001: 项目方基础资料编辑
 class DemanderProfilePage extends ConsumerStatefulWidget {
   const DemanderProfilePage({super.key});
 
@@ -21,7 +21,11 @@ class DemanderProfilePage extends ConsumerStatefulWidget {
 class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
   final _nicknameController = TextEditingController();
   String? _avatarUrl;
-  final _nicknameSuggestions = const ['Dylan', '开造实验室', 'Aurora Studio'];
+  final _nicknameSuggestions = const [
+    'Dylan',
+    'KAIZAO Studio',
+    'Aurora Studio'
+  ];
 
   @override
   void initState() {
@@ -90,11 +94,11 @@ class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
     final nickname = _nicknameController.text.trim();
     final hasNickname = nickname.isNotEmpty;
     final state = ref.watch(onboardingProvider);
-    final nicknamePreview = hasNickname ? nickname : '等待命名的发起人';
+    final nicknamePreview = hasNickname ? nickname : '等待命名的项目方';
     final nicknameHelperText = !hasNickname
         ? '先定一个称呼，身份卡就会立起来。'
         : _isValid
-            ? '这个名字会一路跟着你的需求出现。'
+            ? '这个名字会一路跟着你的项目出现。'
             : '再收一下，2 到 16 个字符最利落。';
 
     return OnboardingScaffold(
@@ -116,7 +120,7 @@ class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
           const Text('先亮出你的身份', style: AppTextStyles.onboardingTitle),
           const SizedBox(height: 12),
           const Text(
-            '给自己一个会被记住的称呼。后面每一条需求、每一次沟通，都会带着它往前走。',
+            '给自己一个会被记住的称呼。后面每一个项目、每一次沟通，都会带着它往前走。',
             style: AppTextStyles.onboardingBody,
           ),
           const SizedBox(height: 24),
@@ -372,7 +376,7 @@ class _IdentityFocusCardState extends State<_IdentityFocusCard>
                         duration: const Duration(milliseconds: 220),
                         child: Text(
                           widget.isNamed
-                              ? '你的需求会带着这个身份出现，专家第一眼先看到的就是它。'
+                              ? '你的项目会带着这个身份出现，团队第一眼先看到的就是它。'
                               : '先起一个称呼，整张身份卡就会开始成形。',
                           key: ValueKey(widget.isNamed),
                           style: AppTextStyles.body2.copyWith(
@@ -394,7 +398,7 @@ class _IdentityFocusCardState extends State<_IdentityFocusCard>
             child: const Column(
               children: [
                 _IdentityTrack(
-                  label: '需求卡片会先展示这个身份',
+                  label: '项目卡片会先展示这个身份',
                   widthFactor: 1,
                 ),
                 SizedBox(height: 8),

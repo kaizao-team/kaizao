@@ -88,8 +88,7 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                           const Expanded(
                             child: Text('选择团队',
                                 style: TextStyle(
-                                    fontSize: 14,
-                                    color: AppColors.gray500)),
+                                    fontSize: 14, color: AppColors.gray500)),
                           ),
                           GestureDetector(
                             onTap: () {},
@@ -135,7 +134,7 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                               size: 14, color: AppColors.warning),
                           const SizedBox(width: 4),
                           Text(
-                            '报价低于需求方预算下限 ¥${widget.budgetMin?.toStringAsFixed(0) ?? ''}',
+                            '报价低于项目方预算下限 ¥${widget.budgetMin?.toStringAsFixed(0) ?? ''}',
                             style: const TextStyle(
                                 fontSize: 12, color: AppColors.warning),
                           ),
@@ -181,8 +180,7 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                             if (!context.mounted) return;
                             if (ok) {
                               VccToast.show(context,
-                                  message: '投标已提交',
-                                  type: VccToastType.success);
+                                  message: '投标已提交', type: VccToastType.success);
                               context.pop();
                             } else if (state.errorMessage != null) {
                               VccToast.show(context,

@@ -68,7 +68,7 @@ class _AcceptBidDialogState extends State<AcceptBidDialog> {
                 ),
               ),
               const SizedBox(height: 20),
-              _Row(label: '供给方', value: bid.userName),
+              _Row(label: '团队', value: bid.userName),
               const SizedBox(height: 10),
               _Row(label: '报价', value: '¥${bid.bidAmount.toStringAsFixed(0)}'),
               const SizedBox(height: 10),
