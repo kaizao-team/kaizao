@@ -9,7 +9,7 @@ import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 
-/// ONBOARD-002: 引导需求方点击"+"创建需求
+/// ONBOARD-002: 引导项目方点击"+"创建项目
 class DemanderGuideCreatePage extends ConsumerWidget {
   const DemanderGuideCreatePage({super.key});
 

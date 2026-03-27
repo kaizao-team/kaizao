@@ -44,7 +44,7 @@ class PaymentMock {
           {'title': '通信 & 支付模块', 'amount': 2000, 'status': 'pending'},
           {'title': '测试 & 上线', 'amount': 1500, 'status': 'pending'},
         ],
-        'guarantee_text': '资金由平台托管，验收通过后释放给供给方',
+        'guarantee_text': '资金由平台托管，验收通过后释放给团队',
         'status': 'pending',
       },
     };
@@ -79,9 +79,33 @@ class PaymentMock {
     return {
       'code': 0,
       'data': [
-        {'id': 'cpn_001', 'title': '新用户专享', 'discount_amount': 200, 'min_order_amount': 1000, 'expire_date': '2026-04-30', 'is_available': true, 'reason': null},
-        {'id': 'cpn_002', 'title': '平台回馈券', 'discount_amount': 100, 'min_order_amount': 500, 'expire_date': '2026-04-15', 'is_available': true, 'reason': null},
-        {'id': 'cpn_003', 'title': '限时折扣', 'discount_amount': 500, 'min_order_amount': 5000, 'expire_date': '2026-03-25', 'is_available': false, 'reason': '订单金额未达到使用门槛'},
+        {
+          'id': 'cpn_001',
+          'title': '新用户专享',
+          'discount_amount': 200,
+          'min_order_amount': 1000,
+          'expire_date': '2026-04-30',
+          'is_available': true,
+          'reason': null
+        },
+        {
+          'id': 'cpn_002',
+          'title': '平台回馈券',
+          'discount_amount': 100,
+          'min_order_amount': 500,
+          'expire_date': '2026-04-15',
+          'is_available': true,
+          'reason': null
+        },
+        {
+          'id': 'cpn_003',
+          'title': '限时折扣',
+          'discount_amount': 500,
+          'min_order_amount': 5000,
+          'expire_date': '2026-03-25',
+          'is_available': false,
+          'reason': '订单金额未达到使用门槛'
+        },
       ],
     };
   }

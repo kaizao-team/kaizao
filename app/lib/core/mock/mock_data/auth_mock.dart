@@ -51,7 +51,7 @@ class AuthMock {
         'expires_in': 7200,
         'user': {
           'uuid': 'user_001',
-          'nickname': isNewUser ? '新需求方' : '开造用户',
+          'nickname': isNewUser ? '新项目方' : 'KAIZAO 用户',
           'avatar_url': null,
           'role': isNewUser ? 0 : 1,
           'level': 1,

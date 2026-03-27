@@ -1,10 +1,14 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../profile/widgets/role_switch_dialog.dart';
+import 'about_page.dart';
 
 String _formatMaskedPhone(String? phone) {
   if (phone == null || phone.isEmpty) return '未设置';
@@ -54,24 +58,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final profile = profileState.profile;
 
     final currentRoleName = authState.userRole == 2 ? '团队方' : '项目方';
-
     final phoneTrailing = profileState.isLoading && profile == null
         ? '加载中...'
         : _formatMaskedPhone(profile?.phone);
-
     final wechatTrailing = profileState.isLoading && profile == null
         ? '加载中...'
         : profile == null
-            ? '--'
-            : (profile.wechatBound ? '已绑定' : '未绑定');
-
+        ? '--'
+        : (profile.wechatBound ? '已绑定' : '未绑定');
     final verifyTrailing = profileState.isLoading && profile == null
         ? '加载中...'
         : profile == null
-            ? '--'
-            : (profile.isVerified ? '已认证' : '未认证');
-    final verifyColor =
-        profile?.isVerified == true ? AppColors.success : AppColors.gray400;
+        ? '--'
+        : (profile.isVerified ? '已认证' : '未认证');
+    final verifyColor = profile?.isVerified == true
+        ? AppColors.success
+        : AppColors.gray400;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
@@ -89,15 +91,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_ios, size: 18,
-              color: Color(0xFF1A1C1C)),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            size: 18,
+            color: Color(0xFF1A1C1C),
+          ),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         children: [
           const SizedBox(height: 8),
-
           _buildGroupLabel('账号与安全'),
           _buildCardGroup([
             _buildIconItem(
@@ -128,7 +132,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               showArrow: true,
             ),
           ]),
-
           const SizedBox(height: 24),
           _buildGroupLabel('通用'),
           _buildCardGroup([
@@ -136,48 +139,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               Icons.notifications_outlined,
               '消息通知',
               value: _notificationsEnabled,
-              onChanged: (v) => setState(() => _notificationsEnabled = v),
+              onChanged: (value) =>
+                  setState(() => _notificationsEnabled = value),
             ),
             _buildIconItem(
               Icons.language_outlined,
               '语言',
               trailing: '简体中文',
-              showArrow: true,
+              showArrow: false,
             ),
-            _buildIconItem(
-              Icons.storage_outlined,
-              '存储空间',
-              showArrow: true,
-            ),
+            _buildIconItem(Icons.storage_outlined, '存储空间', showArrow: true),
           ]),
-
           const SizedBox(height: 24),
           _buildGroupLabel('关于'),
           _buildCardGroup([
-            _buildIconItem(
-              Icons.help_outline,
-              '帮助与反馈',
-              showArrow: true,
-            ),
+            _buildIconItem(Icons.help_outline, '帮助与反馈', showArrow: true),
             _buildIconItem(
               Icons.description_outlined,
               '用户协议',
               showArrow: true,
+              onTap: () => context.push(RoutePaths.userAgreement),
             ),
             _buildIconItem(
               Icons.privacy_tip_outlined,
               '隐私政策',
               showArrow: true,
+              onTap: () => context.push(RoutePaths.privacyPolicy),
             ),
             _buildIconItem(
-              Icons.code_outlined,
-              '开源许可',
+              Icons.info_outline,
+              '关于 KAIZAO',
               showArrow: true,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutPage()),
+              ),
             ),
           ]),
-
           const SizedBox(height: 40),
-
           Center(
             child: TextButton(
               onPressed: () async {
@@ -192,7 +191,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 8),
           Center(
             child: GestureDetector(
@@ -203,7 +201,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 16),
           const Center(
             child: Text(
@@ -211,7 +208,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               style: TextStyle(fontSize: 11, color: AppColors.gray300),
             ),
           ),
-
           const SizedBox(height: 48),
         ],
       ),
@@ -319,11 +315,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        children: List.generate(children.length, (i) {
+        children: List.generate(children.length, (index) {
           return Column(
             children: [
-              children[i],
-              if (i < children.length - 1)
+              children[index],
+              if (index < children.length - 1)
                 Container(
                   margin: const EdgeInsets.only(left: 52),
                   height: 1,
@@ -355,10 +351,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(width: 12),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Color(0xFF1A1C1C),
-              ),
+              style: const TextStyle(fontSize: 15, color: Color(0xFF1A1C1C)),
             ),
             const Spacer(),
             if (trailing != null)
@@ -397,10 +390,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const SizedBox(width: 12),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF1A1C1C),
-            ),
+            style: const TextStyle(fontSize: 15, color: Color(0xFF1A1C1C)),
           ),
           const Spacer(),
           CupertinoSwitch(

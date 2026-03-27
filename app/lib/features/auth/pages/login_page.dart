@@ -11,7 +11,6 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_input.dart';
 import '../../../shared/widgets/vcc_toast.dart';
-import '../../onboarding/providers/onboarding_provider.dart';
 import '../providers/auth_provider.dart';
 
 enum _AuthMode { password, phone }
@@ -177,13 +176,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
     context.go(RoutePaths.home);
   }
 
-  Future<void> _restartOnboardingFlow() async {
-    await ref.read(authStateProvider.notifier).resetForFreshStart();
-    await ref.read(onboardingProvider.notifier).reset();
-    if (!mounted) return;
-    context.go(RoutePaths.onboarding);
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
@@ -305,6 +297,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
                               const SizedBox(height: AppSpacing.base),
                               _AgreementRow(
                                 isChecked: _agreedToTerms,
+                                onUserAgreementTap: () {
+                                  context.push(RoutePaths.userAgreement);
+                                },
+                                onPrivacyPolicyTap: () {
+                                  context.push(RoutePaths.privacyPolicy);
+                                },
                                 onToggle: () {
                                   setState(
                                     () => _agreedToTerms = !_agreedToTerms,
@@ -313,7 +311,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               _LoginFooter(
-                                onRegisterTap: _restartOnboardingFlow,
+                                onRegisterTap: () {
+                                  context.push(RoutePaths.register);
+                                },
                               ),
                               const SizedBox(height: AppSpacing.sm),
                             ],
@@ -425,24 +425,13 @@ class _LoginHero extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xxs),
         Text(
-          'VCC',
+          'KAIZAO',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: compact ? 20 : 22,
             fontWeight: FontWeight.w700,
             color: AppColors.black,
             letterSpacing: 5,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xxs),
-        Text(
-          '开造',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: compact ? 13 : 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.gray500,
-            letterSpacing: 2,
           ),
         ),
         SizedBox(height: compact ? AppSpacing.lg : AppSpacing.xl),
@@ -774,10 +763,14 @@ class _FieldShell extends StatelessWidget {
 class _AgreementRow extends StatelessWidget {
   final bool isChecked;
   final VoidCallback onToggle;
+  final VoidCallback onUserAgreementTap;
+  final VoidCallback onPrivacyPolicyTap;
 
   const _AgreementRow({
     required this.isChecked,
     required this.onToggle,
+    required this.onUserAgreementTap,
+    required this.onPrivacyPolicyTap,
   });
 
   @override
@@ -805,31 +798,58 @@ class _AgreementRow extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text.rich(
-              TextSpan(
-                style: AppTextStyles.caption.copyWith(color: AppColors.gray500),
-                children: [
-                  const TextSpan(text: '登录即代表同意 '),
-                  TextSpan(
-                    text: '《用户协议》',
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.black,
-                      fontWeight: FontWeight.w600,
-                    ),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  '登录即代表同意 ',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.gray500,
                   ),
-                  const TextSpan(text: ' 与 '),
-                  TextSpan(
-                    text: '《隐私政策》',
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.black,
-                      fontWeight: FontWeight.w600,
-                    ),
+                ),
+                _InlineLegalLink(
+                  text: '《用户协议》',
+                  onTap: onUserAgreementTap,
+                ),
+                Text(
+                  ' 与 ',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.gray500,
                   ),
-                ],
-              ),
+                ),
+                _InlineLegalLink(
+                  text: '《隐私政策》',
+                  onTap: onPrivacyPolicyTap,
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _InlineLegalLink extends StatelessWidget {
+  final String text;
+  final VoidCallback onTap;
+
+  const _InlineLegalLink({
+    required this.text,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Text(
+        text,
+        style: AppTextStyles.caption.copyWith(
+          color: AppColors.black,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -846,7 +866,7 @@ class _LoginFooter extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          '第一次使用开造？',
+          '第一次使用 KAIZAO？',
           style: AppTextStyles.body2.copyWith(color: AppColors.gray500),
         ),
         TextButton(

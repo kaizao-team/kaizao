@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../app/theme/app_colors.dart';
+
 import '../../../app/routes.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../shared/models/project_model.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../notification/providers/notification_provider.dart';
+import '../../project/providers/project_list_provider.dart';
 import '../providers/home_provider.dart';
+import '../widgets/expert_home_demands.dart';
+import '../widgets/expert_home_revenue.dart';
 import '../widgets/home_ai_card.dart';
 import '../widgets/home_category_grid.dart';
-import '../widgets/home_project_section.dart';
 import '../widgets/home_expert_section.dart';
-import '../widgets/expert_home_revenue.dart';
-import '../widgets/expert_home_demands.dart';
+import '../widgets/home_ongoing_project_section.dart';
+import '../widgets/home_project_section.dart';
 import '../widgets/home_skill_heat.dart';
 import '../widgets/home_skeleton.dart';
-import '../../notification/providers/notification_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -47,11 +51,19 @@ class _HomePageState extends ConsumerState<HomePage> {
     final authState = ref.watch(authStateProvider);
     final homeState = ref.watch(homeStateProvider);
     final isDemander = authState.userRole != 2;
+    final projectListState = isDemander ? ref.watch(projectListProvider) : null;
+    const homePhysics = AlwaysScrollableScrollPhysics(
+      parent: BouncingScrollPhysics(),
+    );
 
     return Scaffold(
+      backgroundColor: AppColors.onboardingBackground,
       body: SafeArea(
+        bottom: false,
         child: homeState.isLoading
             ? CustomScrollView(
+                controller: _scrollController,
+                physics: homePhysics,
                 slivers: [
                   SliverToBoxAdapter(
                     child: _HomeAppBar(onLogoTap: _scrollToTop),
@@ -63,19 +75,27 @@ class _HomePageState extends ConsumerState<HomePage> {
             ? _buildError(homeState.errorMessage!)
             : RefreshIndicator(
                 color: AppColors.black,
-                onRefresh: () => ref.read(homeStateProvider.notifier).refresh(),
+                backgroundColor: AppColors.white,
+                onRefresh: () => isDemander
+                    ? _refreshDemanderHome(ref)
+                    : ref.read(homeStateProvider.notifier).refresh(),
                 child: CustomScrollView(
                   controller: _scrollController,
-                  physics: const AlwaysScrollableScrollPhysics(),
+                  physics: homePhysics,
                   slivers: [
                     SliverToBoxAdapter(
                       child: _HomeAppBar(onLogoTap: _scrollToTop),
                     ),
                     if (isDemander)
-                      ..._buildDemanderSlices(context, homeState)
+                      ..._buildDemanderSlices(
+                        context,
+                        ref,
+                        homeState,
+                        projectListState?.projects ?? const [],
+                      )
                     else
                       ..._buildExpertSlices(context, ref, homeState),
-                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 108)),
                   ],
                 ),
               ),
@@ -95,12 +115,26 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  List<Widget> _buildDemanderSlices(BuildContext context, HomeState state) {
+  List<Widget> _buildDemanderSlices(
+    BuildContext context,
+    WidgetRef ref,
+    HomeState state,
+    List<ProjectModel> fallbackProjects,
+  ) {
     final data = state.demanderData;
+    final homeProjects = data?.myProjects ?? const <ProjectModel>[];
+    final allProjects = homeProjects.isNotEmpty
+        ? homeProjects
+        : fallbackProjects;
+    final ongoingProjects = allProjects.where(_isOngoingProject).toList();
+    final otherProjects = allProjects
+        .where((project) => !_isOngoingProject(project))
+        .toList();
+
     return [
       SliverToBoxAdapter(
         child: HomeAiCard(
-          prompt: data?.aiPrompt ?? '把你的想法告诉我，AI 帮你变成现实',
+          prompt: data?.aiPrompt ?? '一句话开始，AI 帮你整理结构。',
           onTap: () => context.push(RoutePaths.publishProject),
         ),
       ),
@@ -116,13 +150,17 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
         ),
-      if (data != null && data.myProjects.isNotEmpty)
-        SliverToBoxAdapter(
-          child: HomeProjectSection(projects: data.myProjects),
-        ),
+      SliverToBoxAdapter(
+        child: HomeOngoingProjectSection(projects: ongoingProjects),
+      ),
+      if (otherProjects.isNotEmpty)
+        SliverToBoxAdapter(child: HomeProjectSection(projects: otherProjects)),
       if (data != null && data.recommendedExperts.isNotEmpty)
         SliverToBoxAdapter(
-          child: HomeExpertSection(experts: data.recommendedExperts),
+          child: HomeExpertSection(
+            experts: data.recommendedExperts,
+            onRefresh: () => ref.read(homeStateProvider.notifier).refresh(),
+          ),
         ),
     ];
   }
@@ -151,6 +189,17 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
+bool _isOngoingProject(ProjectModel project) {
+  return project.status == 4 || project.status == 5 || project.status == 6;
+}
+
+Future<void> _refreshDemanderHome(WidgetRef ref) async {
+  await Future.wait([
+    ref.read(homeStateProvider.notifier).refresh(),
+    ref.read(projectListProvider.notifier).refresh(),
+  ]);
+}
+
 class _HomeAppBar extends ConsumerWidget {
   final VoidCallback? onLogoTap;
 
@@ -158,11 +207,12 @@ class _HomeAppBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final _unreadCount = ref.watch(
+    final unreadCount = ref.watch(
       notificationProvider.select((s) => s.unreadCount),
     );
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
       child: Row(
         children: [
           GestureDetector(
@@ -171,26 +221,20 @@ class _HomeAppBar extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.black,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Icon(
-                    Icons.rocket_launch,
-                    color: Colors.white,
-                    size: 16,
-                  ),
+                Image.asset(
+                  'assets/branding/app_launch_static_transparent_cropped.png',
+                  width: 30,
+                  height: 30,
+                  fit: BoxFit.contain,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 const Text(
                   '开造',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.black,
+                    letterSpacing: -0.2,
                   ),
                 ),
               ],
@@ -199,39 +243,46 @@ class _HomeAppBar extends ConsumerWidget {
           const Spacer(),
           GestureDetector(
             onTap: () => context.push(RoutePaths.notifications),
-            child: SizedBox(
-              width: 40,
-              height: 40,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.gray50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.gray200),
+              ),
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   const Center(
                     child: Icon(
-                      Icons.notifications_outlined,
-                      size: 24,
-                      color: AppColors.gray500,
+                      Icons.notifications_none_rounded,
+                      size: 18,
+                      color: AppColors.gray700,
                     ),
                   ),
-                  if (_unreadCount > 0)
+                  if (unreadCount > 0)
                     Positioned(
-                      right: 4,
-                      top: 4,
+                      right: -4,
+                      top: -4,
                       child: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFEF4444),
-                          shape: BoxShape.circle,
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
                         ),
-                        child: Center(
-                          child: Text(
-                            _unreadCount > 9 ? '9+' : '$_unreadCount',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                              height: 1,
-                            ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF5A5F),
+                          borderRadius: BorderRadius.all(Radius.circular(999)),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          unreadCount > 9 ? '9+' : '$unreadCount',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.1,
                           ),
                         ),
                       ),
