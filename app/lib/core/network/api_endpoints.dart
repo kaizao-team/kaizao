@@ -95,11 +95,6 @@ class ApiEndpoints {
       '/api/v1/milestones/$id/revision';
 
   // ============================================================
-  // 通知模块
-  // ============================================================
-  static const String notifications = '/api/v1/notifications';
-
-  // ============================================================
   // 评论模块 /api/v1/projects/:id/comments
   // ============================================================
   static String projectComments(String projectId) =>
