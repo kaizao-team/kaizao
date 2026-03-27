@@ -13,6 +13,11 @@ class MarketCategory {
     MarketCategory(key: 'data', name: '数据分析'),
     MarketCategory(key: 'consult', name: '技术指导'),
   ];
+
+  static bool supports(String? key) {
+    if (key == null || key.isEmpty) return false;
+    return all.any((category) => category.key == key);
+  }
 }
 
 class MarketSortOption {
@@ -95,4 +100,11 @@ class MarketProjectItem {
     }
     return '其他';
   }
+}
+
+String normalizeMarketCategory(String? category) {
+  if (MarketCategory.supports(category)) {
+    return category!;
+  }
+  return 'all';
 }
