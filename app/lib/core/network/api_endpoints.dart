@@ -95,6 +95,12 @@ class ApiEndpoints {
       '/api/v1/milestones/$id/revision';
 
   // ============================================================
+  // 评论模块 /api/v1/projects/:id/comments
+  // ============================================================
+  static String projectComments(String projectId) =>
+      '/api/v1/projects/$projectId/comments';
+
+  // ============================================================
   // 投标/撮合模块 /api/v1/bids
   // ============================================================
   static String projectAiSuggestion(String projectId) =>

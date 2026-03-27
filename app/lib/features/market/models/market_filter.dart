@@ -6,12 +6,10 @@ class MarketCategory {
 
   static const List<MarketCategory> all = [
     MarketCategory(key: 'all', name: '全部'),
-    MarketCategory(key: 'app', name: 'APP开发'),
-    MarketCategory(key: 'web', name: '网站开发'),
-    MarketCategory(key: 'miniprogram', name: '小程序'),
-    MarketCategory(key: 'design', name: 'UI设计'),
-    MarketCategory(key: 'data', name: '数据分析'),
-    MarketCategory(key: 'consult', name: '技术指导'),
+    MarketCategory(key: 'data', name: '数据'),
+    MarketCategory(key: 'dev', name: '研发'),
+    MarketCategory(key: 'design', name: '视觉设计'),
+    MarketCategory(key: 'solution', name: '解决方案'),
   ];
 
   static bool supports(String? key) {

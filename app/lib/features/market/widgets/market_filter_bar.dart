@@ -40,14 +40,19 @@ class MarketFilterBar extends StatelessWidget {
                 onTap: () => onCategoryChanged(cat.key),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.black : AppColors.gray100,
+                    color: isSelected ? AppColors.black : AppColors.gray50,
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? AppColors.black : AppColors.gray200,
+                      width: 1,
+                    ),
                   ),
-                  child: Text(
-                    cat.name,
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight:
@@ -55,6 +60,7 @@ class MarketFilterBar extends StatelessWidget {
                       color:
                           isSelected ? AppColors.white : AppColors.gray600,
                     ),
+                    child: Text(cat.name),
                   ),
                 ),
               );

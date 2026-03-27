@@ -55,7 +55,7 @@ class VccCard extends StatelessWidget {
   }
 }
 
-/// 项目卡片 — 白底细边框风格
+/// 项目卡片 — 白底 + 微妙阴影，Notion 风格
 class VccProjectCard extends StatelessWidget {
   final String title;
   final String description;
@@ -82,76 +82,78 @@ class VccProjectCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return VccCard(
       onTap: onTap,
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x08000000),
+          blurRadius: 12,
+          offset: Offset(0, 2),
+        ),
+      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (matchScore != null)
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.black,
+                    height: 1.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (matchScore != null) ...[
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: AppColors.accentLight,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     '匹配 $matchScore%',
                     style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.accent,
                     ),
                   ),
                 ),
-              if (amount != null)
-                Text(
-                  amount!,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.black,
-                  ),
-                ),
+              ],
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.black,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             description,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w400,
               color: AppColors.gray500,
+              height: 1.5,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           if (tags.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Wrap(
-              spacing: 8,
+              spacing: 6,
               runSpacing: 4,
               children: tags.map((tag) => VccTag(label: tag)).toList(),
             ),
           ],
           if (aiTip != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: AppColors.accentLight,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 aiTip!,
@@ -163,17 +165,30 @@ class VccProjectCard extends StatelessWidget {
               ),
             ),
           ],
-          if (footerInfo != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              footerInfo!,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: AppColors.gray400,
-              ),
-            ),
-          ],
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (amount != null)
+                Text(
+                  amount!,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.black,
+                  ),
+                ),
+              const Spacer(),
+              if (footerInfo != null)
+                Text(
+                  footerInfo!,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.gray400,
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );

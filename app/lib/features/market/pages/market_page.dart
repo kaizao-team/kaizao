@@ -72,17 +72,23 @@ class _MarketPageState extends ConsumerState<MarketPage>
                   const Text(
                     '广场',
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.black,
+                      letterSpacing: 1,
                     ),
                   ),
                   const Spacer(),
-                  GestureDetector(
-                    onTap: () {},
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.gray50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: const Icon(
-                      Icons.search,
-                      size: 24,
+                      Icons.search_rounded,
+                      size: 20,
                       color: AppColors.gray500,
                     ),
                   ),
@@ -293,37 +299,40 @@ class _MarketPageState extends ConsumerState<MarketPage>
 
   Widget _buildEmpty() {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: AppColors.gray100,
-              borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 60),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.gray50,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.explore_outlined,
+                size: 36,
+                color: AppColors.gray300,
+              ),
             ),
-            child: const Icon(
-              Icons.inbox_outlined,
-              size: 32,
-              color: AppColors.gray400,
+            const SizedBox(height: 20),
+            const Text(
+              '暂无内容',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.gray500,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '暂无内容',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: AppColors.gray500,
+            const SizedBox(height: 6),
+            const Text(
+              '试试切换分类或调整筛选条件',
+              style: TextStyle(fontSize: 13, color: AppColors.gray400),
             ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            '调整筛选条件试试',
-            style: TextStyle(fontSize: 13, color: AppColors.gray400),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

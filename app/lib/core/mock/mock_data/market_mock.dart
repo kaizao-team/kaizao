@@ -119,7 +119,7 @@ class MarketMock {
       'owner_name': '张明',
       'title': '在线教育平台',
       'description': '开发一款支持直播、录播、互动课堂的教育平台，包含学生端和教师端',
-      'category': 'app',
+      'category': 'dev',
       'budget_min': 8000,
       'budget_max': 15000,
       'match_score': 92,
@@ -136,7 +136,7 @@ class MarketMock {
       'owner_name': '李华',
       'title': 'SaaS 管理后台',
       'description': '企业级SaaS后台管理系统，包含权限管理、数据看板、工单系统',
-      'category': 'web',
+      'category': 'dev',
       'budget_min': 5000,
       'budget_max': 12000,
       'match_score': 87,
@@ -153,7 +153,7 @@ class MarketMock {
       'owner_name': '王芳',
       'title': '智能家居控制App',
       'description': '物联网智能家居手机控制端，支持蓝牙和WiFi连接',
-      'category': 'app',
+      'category': 'dev',
       'budget_min': 6000,
       'budget_max': 10000,
       'match_score': 78,
@@ -170,7 +170,7 @@ class MarketMock {
       'owner_name': '陈强',
       'title': '社区团购小程序',
       'description': '社区团购微信小程序，含团长端、用户端和后台管理',
-      'category': 'miniprogram',
+      'category': 'solution',
       'budget_min': 3000,
       'budget_max': 6000,
       'match_score': 71,
@@ -190,6 +190,7 @@ class MarketMock {
       'category': 'design',
       'budget_min': 4000,
       'budget_max': 8000,
+
       'match_score': 65,
       'status': 2,
       'tech_requirements': ['Figma', 'Three.js', 'Framer Motion'],
@@ -221,7 +222,7 @@ class MarketMock {
       'owner_name': '孙伟',
       'title': '健身打卡App',
       'description': '运动健身社交App，含课程跟练、打卡、社区功能',
-      'category': 'app',
+      'category': 'dev',
       'budget_min': 7000,
       'budget_max': 13000,
       'match_score': 89,
@@ -238,7 +239,7 @@ class MarketMock {
       'owner_name': '周敏',
       'title': 'AI 写作助手',
       'description': '基于大语言模型的AI写作辅助工具，支持多种文体',
-      'category': 'app',
+      'category': 'data',
       'budget_min': 10000,
       'budget_max': 20000,
       'match_score': 95,
@@ -255,7 +256,7 @@ class MarketMock {
       'owner_name': '吴磊',
       'title': '企业内训平台',
       'description': '企业内部培训学习平台，支持视频课程、考试、证书生成',
-      'category': 'web',
+      'category': 'solution',
       'budget_min': 6000,
       'budget_max': 11000,
       'match_score': 74,
@@ -272,7 +273,7 @@ class MarketMock {
       'owner_name': '郑琳',
       'title': '宠物社区App',
       'description': '宠物爱好者社区，含宠物档案、医疗记录、社交功能',
-      'category': 'app',
+      'category': 'dev',
       'budget_min': 5000,
       'budget_max': 9000,
       'match_score': 68,
@@ -289,7 +290,7 @@ class MarketMock {
       'owner_name': '冯涛',
       'title': '餐饮点单系统',
       'description': '餐厅自助点单系统，含扫码点单、后厨打印、会员管理',
-      'category': 'miniprogram',
+      'category': 'solution',
       'budget_min': 4000,
       'budget_max': 7000,
       'match_score': 72,
@@ -306,7 +307,7 @@ class MarketMock {
       'owner_name': '黄雯',
       'title': '知识库问答系统',
       'description': '企业知识库RAG问答系统，支持文档上传和智能检索',
-      'category': 'app',
+      'category': 'data',
       'budget_min': 12000,
       'budget_max': 25000,
       'match_score': 91,
@@ -323,7 +324,7 @@ class MarketMock {
       'owner_name': '何超',
       'title': '物流追踪平台',
       'description': '物流配送全链路追踪系统，含司机端、客户端和调度后台',
-      'category': 'web',
+      'category': 'dev',
       'budget_min': 8000,
       'budget_max': 16000,
       'match_score': 76,
@@ -340,7 +341,7 @@ class MarketMock {
       'owner_name': '谢婷',
       'title': '心理健康App',
       'description': '心理健康自助平台，含情绪记录、冥想引导、在线咨询',
-      'category': 'app',
+      'category': 'dev',
       'budget_min': 6000,
       'budget_max': 11000,
       'match_score': 81,
@@ -357,7 +358,7 @@ class MarketMock {
       'owner_name': '马飞',
       'title': '汽车维修预约',
       'description': '汽车维修保养预约平台，含门店管理和技师排班',
-      'category': 'miniprogram',
+      'category': 'solution',
       'budget_min': 3500,
       'budget_max': 6500,
       'match_score': 63,
@@ -464,8 +465,16 @@ class MarketMock {
     final path = options.path;
     final id = path.split('/').last;
 
+    final index = _allProjects.indexWhere(
+      (p) => p['id'] == id || p['uuid'] == id,
+    );
+    if (index >= 0) {
+      _allProjects[index]['view_count'] =
+          (_allProjects[index]['view_count'] as int? ?? 0) + 1;
+    }
+
     final project =
-        findProject(id) ?? Map<String, dynamic>.from(_allProjects.first);
+        index >= 0 ? _allProjects[index] : Map<String, dynamic>.from(_allProjects.first);
 
     final detail = Map<String, dynamic>.from(project);
     detail['milestones'] = [
