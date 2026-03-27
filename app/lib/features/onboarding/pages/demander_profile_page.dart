@@ -90,7 +90,7 @@ class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
     final nickname = _nicknameController.text.trim();
     final hasNickname = nickname.isNotEmpty;
     final state = ref.watch(onboardingProvider);
-    final nicknamePreview = hasNickname ? nickname : '等待命名的发起人';
+    final nicknamePreview = hasNickname ? nickname : '等待命名的需求方';
     final nicknameHelperText = !hasNickname
         ? '先定一个称呼，身份卡就会立起来。'
         : _isValid

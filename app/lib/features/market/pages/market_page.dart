@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_loading.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../team/providers/team_provider.dart';
+import '../../team/widgets/team_post_card.dart';
 import '../providers/market_provider.dart';
 import '../widgets/market_filter_bar.dart';
 import '../widgets/market_filter_sheet.dart';
@@ -68,7 +70,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
               child: Row(
                 children: [
                   const Text(
-                    '需求广场',
+                    '广场',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -93,12 +95,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildProjectList(
-                      state: state,
-                      isExpert: isExpert,
-                      hasActiveFilter: hasActiveFilter,
-                      userRole: authState.userRole,
-                    ),
+                    _buildTeamList(),
                     _buildExpertList(),
                   ],
                 ),
@@ -142,7 +139,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
         dividerHeight: 0,
         padding: const EdgeInsets.all(3),
         tabs: const [
-          Tab(text: '需求', height: 36),
+          Tab(text: '找团队', height: 36),
           Tab(text: '找专家', height: 36),
         ],
       ),
@@ -241,6 +238,44 @@ class _MarketPageState extends ConsumerState<MarketPage>
           return MarketExpertCard(
             expert: expert,
             onTap: () => context.push('/profile/${expert.id}'),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTeamList() {
+    final teamState = ref.watch(teamHallProvider);
+
+    if (teamState.isLoading) {
+      return _buildSkeleton();
+    }
+
+    if (teamState.errorMessage != null && teamState.posts.isEmpty) {
+      return _buildError(teamState.errorMessage!);
+    }
+
+    final allPosts = [
+      ...teamState.aiRecommended,
+      ...teamState.posts,
+    ];
+
+    if (allPosts.isEmpty) {
+      return _buildEmpty();
+    }
+
+    return RefreshIndicator(
+      color: AppColors.black,
+      onRefresh: () => ref.read(teamHallProvider.notifier).loadPosts(),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        itemCount: allPosts.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 4),
+        itemBuilder: (context, index) {
+          final post = allPosts[index];
+          return TeamPostCard(
+            post: post,
+            onTap: () => context.push('/projects/${post.projectId}'),
           );
         },
       ),
@@ -360,7 +395,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
         padding: EdgeInsets.symmetric(vertical: 20),
         child: Center(
           child: Text(
-            '已加载全部需求',
+            '已加载全部项目',
             style: TextStyle(fontSize: 13, color: AppColors.gray400),
           ),
         ),

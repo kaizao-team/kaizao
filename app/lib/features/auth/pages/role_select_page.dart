@@ -132,7 +132,7 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
                     expandedDescription: '先定方向，再收 brief，系统会把需求推到更合适的专家面前。',
                     icon: Icons.wb_incandescent_outlined,
                     pathLabel: '需求方路径',
-                    steps: const ['发起需求', '整理 brief', '匹配专家'],
+                    steps: const ['发布项目', '整理 brief', '匹配专家'],
                     isSelected: _selectedRole == 1,
                     onTap: () => setState(() => _selectedRole = 1),
                   ),
