@@ -14,6 +14,7 @@ import '../widgets/expert_home_revenue.dart';
 import '../widgets/expert_home_demands.dart';
 import '../widgets/home_skill_heat.dart';
 import '../widgets/home_skeleton.dart';
+import '../../notification/providers/notification_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -150,16 +151,16 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-class _HomeAppBar extends StatelessWidget {
+class _HomeAppBar extends ConsumerWidget {
   final VoidCallback? onLogoTap;
-
-  /// Mock 未读通知数
-  static const int _unreadCount = 3;
 
   const _HomeAppBar({this.onLogoTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final _unreadCount = ref.watch(
+      notificationProvider.select((s) => s.unreadCount),
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
