@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   ai-review:
-    name: OpenAI GPT-5.4 xhigh Review
+    name: OpenAI GPT-5.4 PR 审查
     if: >
       github.event_name == 'workflow_dispatch' ||
       github.event.pull_request.draft == false
