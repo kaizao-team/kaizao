@@ -6,7 +6,7 @@ import "time"
 type CreateProjectReq struct {
 	Title            string           `json:"title" binding:"required,min=5,max=200"`
 	Description      string           `json:"description" binding:"required,min=20"`
-	Category         string           `json:"category" binding:"required,oneof=app web miniprogram design data consult"`
+	Category         string           `json:"category" binding:"required,oneof=data dev visual solution"`
 	TemplateType     string           `json:"template_type" binding:"omitempty"`
 	BudgetMin        *float64         `json:"budget_min" binding:"omitempty,min=0"`
 	BudgetMax        *float64         `json:"budget_max" binding:"omitempty,min=0"`
@@ -29,7 +29,7 @@ type AttachmentItem struct {
 type UpdateProjectReq struct {
 	Title            *string  `json:"title" binding:"omitempty,min=5,max=200"`
 	Description      *string  `json:"description" binding:"omitempty,min=20"`
-	Category         *string  `json:"category" binding:"omitempty,oneof=app web miniprogram design data consult"`
+	Category         *string  `json:"category" binding:"omitempty,oneof=data dev visual solution"`
 	BudgetMin        *float64 `json:"budget_min" binding:"omitempty,min=0"`
 	BudgetMax        *float64 `json:"budget_max" binding:"omitempty,min=0"`
 	Deadline         *string  `json:"deadline" binding:"omitempty"`

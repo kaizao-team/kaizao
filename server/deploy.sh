@@ -60,14 +60,14 @@ do_push() {
         echo "    启动服务..."
         docker compose -f docker-compose.prod.yml up -d
 
-        echo "    等待 MySQL 就绪后补跑 002–004（旧卷可忽略 Duplicate）..."
+        echo "    等待 MySQL 就绪后补跑 002–005（旧卷可忽略 Duplicate）..."
         for i in $(seq 1 45); do
             if docker exec kaizao-mysql mysqladmin ping -h localhost -ukaizao -p"${MYSQL_PWD}" --silent 2>/dev/null; then
                 break
             fi
             sleep 2
         done
-        for f in 002_invite_onboarding.up.sql 003_team_invite_onboarding.up.sql 004_team_static_assets.up.sql; do
+        for f in 002_invite_onboarding.up.sql 003_team_invite_onboarding.up.sql 004_team_static_assets.up.sql 005_project_category_normalize.up.sql; do
             mf="$HOME/kaizao-server/migrations/$f"
             if [ -f "$mf" ]; then
                 docker exec -i kaizao-mysql mysql -ukaizao -p"${MYSQL_PWD}" kaizao <"$mf" 2>/dev/null || true

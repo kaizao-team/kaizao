@@ -456,12 +456,10 @@ var categoryMeta = []struct {
 	Name string
 	Icon string
 }{
-	{"app", "App 开发", "phone_android"},
-	{"web", "Web 开发", "web"},
-	{"miniprogram", "小程序", "qr_code"},
-	{"design", "UI/UX 设计", "brush"},
-	{"data", "数据分析", "bar_chart"},
-	{"consult", "技术咨询", "support_agent"},
+	{"data", "数据", "bar_chart"},
+	{"dev", "研发", "code"},
+	{"visual", "视觉设计", "brush"},
+	{"solution", "解决方案", "lightbulb"},
 }
 
 // GetDemanderHome 获取需求方首页数据
