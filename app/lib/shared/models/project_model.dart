@@ -177,7 +177,12 @@ class ProjectModel {
   }
 
   bool get hasMatchedProvider {
-    return providerId != null && providerId!.isNotEmpty || status >= 4;
+    final hasProviderIdentity =
+        (providerId?.isNotEmpty ?? false) ||
+        (providerName?.isNotEmpty ?? false);
+
+    if (hasProviderIdentity) return true;
+    return status >= 4 && status <= 7;
   }
 }
 

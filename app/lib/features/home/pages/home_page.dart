@@ -123,9 +123,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   ) {
     final data = state.demanderData;
     final homeProjects = data?.myProjects ?? const <ProjectModel>[];
-    final allProjects = homeProjects.isNotEmpty
-        ? homeProjects
-        : fallbackProjects;
+    final allProjects = _prioritizeHomeProjects(
+      homeProjects.isNotEmpty ? homeProjects : fallbackProjects,
+    );
 
     return [
       SliverToBoxAdapter(
@@ -193,6 +193,58 @@ Future<void> _refreshDemanderHome(WidgetRef ref) async {
     ref.read(homeStateProvider.notifier).refresh(),
     ref.read(projectListProvider.notifier).refresh(),
   ]);
+}
+
+List<ProjectModel> _prioritizeHomeProjects(List<ProjectModel> projects) {
+  final sortedProjects = [...projects];
+
+  sortedProjects.sort((left, right) {
+    final rankCompare = _homeProjectRank(left).compareTo(
+      _homeProjectRank(right),
+    );
+    if (rankCompare != 0) return rankCompare;
+
+    final leftDeadline = left.deadlineAt;
+    final rightDeadline = right.deadlineAt;
+    if (leftDeadline != null && rightDeadline != null) {
+      final deadlineCompare = leftDeadline.compareTo(rightDeadline);
+      if (deadlineCompare != 0) return deadlineCompare;
+    } else if (leftDeadline != null || rightDeadline != null) {
+      return leftDeadline == null ? 1 : -1;
+    }
+
+    final createdCompare = right.createdAt.compareTo(left.createdAt);
+    if (createdCompare != 0) return createdCompare;
+
+    return right.progress.compareTo(left.progress);
+  });
+
+  return sortedProjects;
+}
+
+int _homeProjectRank(ProjectModel project) {
+  switch (project.status) {
+    case 9:
+      return 0;
+    case 6:
+      return 1;
+    case 5:
+      return 2;
+    case 4:
+      return 3;
+    case 3:
+      return 4;
+    case 2:
+      return 5;
+    case 1:
+      return 6;
+    case 7:
+      return 7;
+    case 8:
+      return 8;
+    default:
+      return 9;
+  }
 }
 
 class _HomeAppBar extends ConsumerWidget {
