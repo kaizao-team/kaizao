@@ -99,9 +99,8 @@
 
 ### PR 规则
 
-- 前端 PR 默认从最新 `frontend/dylan` 发起，并合并到 `main`
-- 提交前先同步最新 `main`，再更新 `frontend/dylan`，然后再开发
 - PR 描述统一中文，commit message 按上面的统一格式
+- 不要把个人分支名、临时协作流转写进通用 AI 规范
 
 ---
 
