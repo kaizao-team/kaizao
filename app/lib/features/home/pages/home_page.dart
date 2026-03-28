@@ -158,7 +158,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         SliverToBoxAdapter(
           child: HomeExpertSection(
             experts: data.recommendedExperts,
-            onRefresh: () => ref.read(homeStateProvider.notifier).refresh(),
+            onViewMore: () => context.go(
+              Uri(
+                path: RoutePaths.square,
+                queryParameters: const {'tab': 'experts'},
+              ).toString(),
+            ),
           ),
         ),
     ];

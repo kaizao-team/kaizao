@@ -71,6 +71,7 @@ class RoutePaths {
   static const String prd = '/projects/:projectId/prd';
   static const String profile = '/profile';
   static const String profileView = '/profile/:userId';
+  static const String expertProfileView = '/expert/:userId';
   static const String bidList = '/projects/:projectId/bids';
   static const String bidForm = '/projects/:projectId/bid';
   static const String projectManage = '/projects/:projectId/manage';
@@ -252,6 +253,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (_, state) => NoTransitionPage(
               child: MarketPage(
                 initialCategory: state.uri.queryParameters['category'],
+                initialTab: state.uri.queryParameters['tab'],
               ),
             ),
           ),
@@ -308,6 +310,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.profileView,
+        pageBuilder: (_, state) =>
+            _cupertinoPage(ProfilePage(userId: state.pathParameters['userId'])),
+      ),
+      GoRoute(
+        path: RoutePaths.expertProfileView,
         pageBuilder: (_, state) =>
             _cupertinoPage(ProfilePage(userId: state.pathParameters['userId'])),
       ),
