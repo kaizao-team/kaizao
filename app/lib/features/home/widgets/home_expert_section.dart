@@ -31,7 +31,7 @@ class HomeExpertSection extends StatelessWidget {
           onAction: onViewMore,
         ),
         SizedBox(
-          height: 228,
+          height: 236,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -58,7 +58,7 @@ class _ExpertCard extends StatelessWidget {
       width: 216,
       child: VccCard(
         onTap: expert.id.isEmpty ? null : () => context.push('/expert/${expert.id}'),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+        padding: const EdgeInsets.fromLTRB(16, 15, 16, 12),
         borderRadius: 18,
         backgroundColor: AppColors.white,
         border: Border.all(
@@ -99,7 +99,7 @@ class _ExpertCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Text(
               expert.nickname,
               maxLines: 1,
@@ -110,7 +110,7 @@ class _ExpertCard extends StatelessWidget {
                 color: AppColors.black,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             _SkillTag(label: _primarySkill(expert)),
             const Spacer(),
             Row(
@@ -143,7 +143,7 @@ class _ExpertCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               _rateText(expert),
               style: const TextStyle(
