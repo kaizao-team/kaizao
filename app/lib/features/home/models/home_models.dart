@@ -1,5 +1,13 @@
 import '../../../shared/models/project_model.dart';
 
+String _formatWholeAmount(num amount) {
+  final normalized = amount.toStringAsFixed(0);
+  return normalized.replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (_) => ',',
+  );
+}
+
 class CategoryItem {
   final String key;
   final String name;
@@ -149,7 +157,7 @@ class RecommendedDemand {
   }
 
   String get budgetDisplay =>
-      '¥${budgetMin.toStringAsFixed(0)}-${budgetMax.toStringAsFixed(0)}';
+      '¥${_formatWholeAmount(budgetMin)}-${_formatWholeAmount(budgetMax)}';
 }
 
 class SkillHeatItem {
@@ -190,6 +198,10 @@ class TeamOpportunity {
       budget: json['budget'] as int? ?? 0,
     );
   }
+
+  String get budgetDisplay => '¥${_formatWholeAmount(budget)}';
+
+  String get teamSizeDisplay => '$teamSize 人团队';
 }
 
 class ExpertHomeData {
@@ -207,8 +219,8 @@ class ExpertHomeData {
 
   factory ExpertHomeData.fromJson(Map<String, dynamic> json) {
     return ExpertHomeData(
-      revenue: RevenueData.fromJson(
-          json['revenue'] as Map<String, dynamic>? ?? {}),
+      revenue:
+          RevenueData.fromJson(json['revenue'] as Map<String, dynamic>? ?? {}),
       recommendedDemands: (json['recommended_demands'] as List?)
               ?.whereType<Map<String, dynamic>>()
               .map((e) => RecommendedDemand.fromJson(e))

@@ -1,0 +1,302 @@
+import 'package:flutter/material.dart';
+
+import '../../../app/theme/app_colors.dart';
+import '../models/home_models.dart';
+import 'home_section_header.dart';
+
+class ExpertHomeTeamOpportunities extends StatelessWidget {
+  final List<TeamOpportunity> opportunities;
+  final VoidCallback onOpenHall;
+
+  const ExpertHomeTeamOpportunities({
+    super.key,
+    required this.opportunities,
+    required this.onOpenHall,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleOpportunities = opportunities.take(3).toList();
+    if (visibleOpportunities.isEmpty) return const SizedBox.shrink();
+
+    final featured = visibleOpportunities.first;
+    final supporting = visibleOpportunities.skip(1).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        HomeSectionHeader(
+          title: '组队机会',
+          subtitle: '适合你补位或联手拿下的项目。',
+          actionLabel: '组队大厅',
+          onAction: onOpenHall,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.gray100,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              children: [
+                _FeaturedOpportunityCard(
+                  opportunity: featured,
+                  onTap: onOpenHall,
+                ),
+                if (supporting.isNotEmpty) const SizedBox(height: 12),
+                for (var index = 0; index < supporting.length; index++) ...[
+                  _OpportunityRow(
+                    opportunity: supporting[index],
+                    onTap: onOpenHall,
+                  ),
+                  if (index != supporting.length - 1)
+                    const SizedBox(height: 10),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FeaturedOpportunityCard extends StatelessWidget {
+  final TeamOpportunity opportunity;
+  final VoidCallback onTap;
+
+  const _FeaturedOpportunityCard({
+    required this.opportunity,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.black,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const _OpportunityEyebrow(label: '优先招募', inverted: true),
+                  const Spacer(),
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.north_east_rounded,
+                      size: 18,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text(
+                opportunity.projectTitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 24,
+                  height: 1.12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.white,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '当前在找 ${opportunity.neededRole}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color.fromRGBO(255, 255, 255, 0.72),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _OpportunityMetaChip(
+                    label: opportunity.teamSizeDisplay,
+                    inverted: true,
+                  ),
+                  _OpportunityMetaChip(
+                    label: opportunity.budgetDisplay,
+                    inverted: true,
+                  ),
+                  _OpportunityMetaChip(
+                    label: opportunity.neededRole,
+                    inverted: true,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OpportunityRow extends StatelessWidget {
+  final TeamOpportunity opportunity;
+  final VoidCallback onTap;
+
+  const _OpportunityRow({
+    required this.opportunity,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      opportunity.projectTitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        height: 1.25,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '需要 ${opportunity.neededRole}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.gray600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _OpportunityMetaChip(
+                          label: opportunity.teamSizeDisplay,
+                        ),
+                        _OpportunityMetaChip(label: opportunity.budgetDisplay),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.gray100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: AppColors.gray600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OpportunityEyebrow extends StatelessWidget {
+  final String label;
+  final bool inverted;
+
+  const _OpportunityEyebrow({
+    required this.label,
+    this.inverted = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: inverted
+            ? Colors.white.withValues(alpha: 0.12)
+            : AppColors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          letterSpacing: 0.2,
+          fontWeight: FontWeight.w700,
+          color: inverted ? AppColors.white : AppColors.gray700,
+        ),
+      ),
+    );
+  }
+}
+
+class _OpportunityMetaChip extends StatelessWidget {
+  final String label;
+  final bool inverted;
+
+  const _OpportunityMetaChip({
+    required this.label,
+    this.inverted = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color:
+            inverted ? Colors.white.withValues(alpha: 0.1) : AppColors.gray100,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: inverted ? AppColors.white : AppColors.gray700,
+        ),
+      ),
+    );
+  }
+}
