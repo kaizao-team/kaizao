@@ -67,7 +67,7 @@ func (r *userRepository) UpdateFields(id int64, fields map[string]interface{}) e
 func (r *userRepository) ListExperts(offset, limit int) ([]*model.User, int64, error) {
 	var users []*model.User
 	var total int64
-	query := r.db.Model(&model.User{}).Where("role IN (2,3) AND status = 1 AND available_status = 1")
+	query := r.db.Model(&model.User{}).Where("role IN (2,3) AND status = 1 AND available_status = 1 AND onboarding_status = ?", model.OnboardingApproved)
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -137,4 +137,15 @@ func (r *userRepository) ListUserPortfolios(userID int64) ([]*model.Portfolio, e
 	var portfolios []*model.Portfolio
 	err := r.db.Where("user_id = ? AND status = 1", userID).Order("sort_order ASC, created_at DESC").Find(&portfolios).Error
 	return portfolios, err
+}
+
+func (r *userRepository) CountPortfoliosByUserAndUUIDs(userID int64, uuids []string) (int64, error) {
+	if len(uuids) == 0 {
+		return 0, nil
+	}
+	var n int64
+	err := r.db.Model(&model.Portfolio{}).
+		Where("user_id = ? AND status = 1 AND uuid IN ?", userID, uuids).
+		Count(&n).Error
+	return n, err
 }

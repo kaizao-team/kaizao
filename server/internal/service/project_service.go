@@ -2,11 +2,16 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/vibebuild/server/internal/model"
+	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/repository"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // UserService 用户服务
@@ -86,6 +91,117 @@ func (s *UserService) GetUserStats(user *model.User) *UserStats {
 func (s *UserService) ListExperts(page, pageSize int) ([]*model.User, int64, error) {
 	offset := (page - 1) * pageSize
 	return s.repos.User.ListExperts(offset, pageSize)
+}
+
+// SetOnboarding 管理端更新用户入驻状态
+func (s *UserService) SetOnboarding(userUUID string, status int16, reason *string, reviewerUserID int64) error {
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return err
+	}
+	fields := map[string]interface{}{
+		"onboarding_status": status,
+	}
+	now := time.Now()
+	fields["onboarding_reviewed_at"] = &now
+	fields["onboarding_reviewer_id"] = reviewerUserID
+	if status == model.OnboardingRejected && reason != nil {
+		fields["onboarding_reject_reason"] = *reason
+	}
+	if status == model.OnboardingApproved {
+		fields["onboarding_reject_reason"] = nil
+	}
+	return s.repos.User.UpdateFields(user.ID, fields)
+}
+
+// SubmitOnboardingApplication 专家提交简历/作品集进入人工审核
+func (s *UserService) SubmitOnboardingApplication(userUUID string, resumeURL *string, note *string, portfolioUUIDs []string) error {
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return err
+	}
+	if user.Role != 2 && user.Role != 3 {
+		return fmt.Errorf("%d", errcode.ErrOnboardingNeedExpertRole)
+	}
+	if user.OnboardingStatus == model.OnboardingApproved {
+		return fmt.Errorf("%d", errcode.ErrOnboardingAlreadyApproved)
+	}
+	resume := ""
+	if resumeURL != nil {
+		resume = strings.TrimSpace(*resumeURL)
+	}
+	noteText := ""
+	if note != nil {
+		noteText = strings.TrimSpace(*note)
+	}
+	var portfolioOK bool
+	if len(portfolioUUIDs) > 0 {
+		cnt, err := s.repos.User.CountPortfoliosByUserAndUUIDs(user.ID, portfolioUUIDs)
+		if err != nil {
+			return err
+		}
+		if cnt != int64(len(portfolioUUIDs)) {
+			return fmt.Errorf("%d", errcode.ErrOnboardingApplicationInvalid)
+		}
+		portfolioOK = true
+	}
+	if resume == "" && !portfolioOK {
+		return fmt.Errorf("%d", errcode.ErrOnboardingApplicationInvalid)
+	}
+	now := time.Now()
+	fields := map[string]interface{}{
+		"onboarding_status":       model.OnboardingPending,
+		"onboarding_submitted_at": &now,
+	}
+	if resume != "" {
+		fields["resume_url"] = resume
+	} else {
+		fields["resume_url"] = nil
+	}
+	if noteText != "" {
+		fields["onboarding_application_note"] = noteText
+	} else {
+		fields["onboarding_application_note"] = nil
+	}
+	return s.repos.User.UpdateFields(user.ID, fields)
+}
+
+// RedeemTeamInviteForOnboarding 兑换团队邀请码：直接通过入驻、加入团队；码作废并轮换新码
+func (s *UserService) RedeemTeamInviteForOnboarding(userUUID, plain string) error {
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return err
+	}
+	if user.Role != 2 && user.Role != 3 {
+		return fmt.Errorf("%d", errcode.ErrOnboardingNeedExpertRole)
+	}
+	if user.OnboardingStatus == model.OnboardingApproved {
+		return fmt.Errorf("%d", errcode.ErrOnboardingAlreadyApproved)
+	}
+	consumed, _, err := s.repos.InviteCode.ConsumeTeamInviteAndRotate(strings.TrimSpace(plain))
+	if err != nil {
+		return err
+	}
+	teamID := *consumed.TeamID
+	if _, err := s.repos.Team.FindMember(teamID, user.ID); errors.Is(err, gorm.ErrRecordNotFound) {
+		member := &model.TeamMember{
+			TeamID:     teamID,
+			UserID:     user.ID,
+			RoleInTeam: "member",
+			SplitRatio: 0,
+			Status:     1,
+		}
+		if err := s.repos.Team.CreateMember(member); err != nil {
+			return err
+		}
+	}
+	fields := map[string]interface{}{
+		"onboarding_status":        model.OnboardingApproved,
+		"invite_code_id":           consumed.ID,
+		"onboarding_submitted_at":  nil,
+		"onboarding_reject_reason": nil,
+	}
+	return s.repos.User.UpdateFields(user.ID, fields)
 }
 
 // ProjectService 项目服务

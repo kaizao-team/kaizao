@@ -186,6 +186,60 @@ func (h *UserHandler) GetPortfolios(c *gin.Context) {
 	response.Success(c, list)
 }
 
+// SubmitOnboardingApplication POST /api/v1/users/me/onboarding/application
+func (h *UserHandler) SubmitOnboardingApplication(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	var req struct {
+		ResumeURL       string   `json:"resume_url"`
+		Note            string   `json:"note"`
+		PortfolioUUIDs  []string `json:"portfolio_uuids"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	var resumePtr *string
+	if t := strings.TrimSpace(req.ResumeURL); t != "" {
+		resumePtr = &t
+	}
+	var notePtr *string
+	if t := strings.TrimSpace(req.Note); t != "" {
+		notePtr = &t
+	}
+	if err := h.userService.SubmitOnboardingApplication(userUUID, resumePtr, notePtr, req.PortfolioUUIDs); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "提交失败")
+		return
+	}
+	response.SuccessMsg(c, "已提交审核", nil)
+}
+
+// RedeemOnboardingInvite POST /api/v1/users/me/onboarding/redeem-invite
+func (h *UserHandler) RedeemOnboardingInvite(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	var req struct {
+		InviteCode string `json:"invite_code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	if err := h.userService.RedeemTeamInviteForOnboarding(userUUID, req.InviteCode); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "兑换失败")
+		return
+	}
+	response.SuccessMsg(c, "已通过团队邀请完成入驻", nil)
+}
+
 // ListExperts 专家列表
 // GET /api/v1/market/experts
 func (h *UserHandler) ListExperts(c *gin.Context) {

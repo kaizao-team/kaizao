@@ -5,6 +5,21 @@ import (
 	"gorm.io/gorm"
 )
 
+// InviteCodeRepository 团队邀请码
+type InviteCodeRepository interface {
+	Create(ic *model.InviteCode) error
+	DisableActiveUnusedForTeam(teamID int64) error
+	List(offset, limit int, teamID *int64) ([]*model.InviteCode, int64, error)
+	FindActiveByTeamID(teamID int64) (*model.InviteCode, error)
+	ConsumeTeamInviteAndRotate(plain string) (consumed *model.InviteCode, newRow *model.InviteCode, err error)
+}
+
+// TeamStaticAssetRepository 团队静态文件元数据
+type TeamStaticAssetRepository interface {
+	Create(a *model.TeamStaticAsset) error
+	ListByTeamID(teamID int64, offset, limit int) ([]*model.TeamStaticAsset, int64, error)
+}
+
 // Repositories 所有 Repository 的集合
 type Repositories struct {
 	User         UserRepository
@@ -20,6 +35,8 @@ type Repositories struct {
 	Team         TeamRepository
 	Notification NotificationRepository
 	Coupon       CouponRepository
+	InviteCode       InviteCodeRepository
+	TeamStaticAsset  TeamStaticAssetRepository
 }
 
 // NewRepositories 创建所有 Repository
@@ -38,6 +55,8 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Team:         NewTeamRepository(db),
 		Notification: NewNotificationRepository(db),
 		Coupon:       NewCouponRepository(db),
+		InviteCode:      NewInviteCodeRepository(db),
+		TeamStaticAsset: NewTeamStaticAssetRepository(db),
 	}
 }
 
@@ -51,6 +70,7 @@ type UserRepository interface {
 	Update(user *model.User) error
 	UpdateFields(id int64, fields map[string]interface{}) error
 	ListExperts(offset, limit int) ([]*model.User, int64, error)
+	CountPortfoliosByUserAndUUIDs(userID int64, uuids []string) (int64, error)
 	ListUserSkills(userID int64) ([]*model.UserSkill, error)
 	ReplaceUserSkills(userID int64, skills []*model.UserSkill) error
 	FindSkillByID(id int64) (*model.Skill, error)
@@ -168,6 +188,7 @@ type TeamRepository interface {
 	FindByUUID(uuid string) (*model.Team, error)
 	Update(team *model.Team) error
 	CreateMember(member *model.TeamMember) error
+	FindMember(teamID, userID int64) (*model.TeamMember, error)
 	UpdateMemberRatio(teamID, userID int64, ratio float64) error
 	ListMembers(teamID int64) ([]*model.TeamMember, error)
 	CreateInvite(invite *model.TeamInvite) error

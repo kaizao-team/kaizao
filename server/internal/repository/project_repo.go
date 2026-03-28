@@ -573,6 +573,15 @@ func (r *teamRepository) CreateMember(member *model.TeamMember) error {
 	return r.db.Create(member).Error
 }
 
+func (r *teamRepository) FindMember(teamID, userID int64) (*model.TeamMember, error) {
+	var m model.TeamMember
+	err := r.db.Where("team_id = ? AND user_id = ? AND status = 1", teamID, userID).First(&m).Error
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
 func (r *teamRepository) UpdateMemberRatio(teamID, userID int64, ratio float64) error {
 	return r.db.Model(&model.TeamMember{}).Where("team_id = ? AND user_id = ?", teamID, userID).Update("split_ratio", ratio).Error
 }

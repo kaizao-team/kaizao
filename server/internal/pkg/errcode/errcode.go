@@ -12,7 +12,15 @@ const (
 	ErrTokenInvalid        = 10008
 	ErrRefreshTokenExpired = 10009
 	ErrAccountFrozen       = 10010
-	ErrDeviceLimitReached  = 10011
+	ErrDeviceLimitReached   = 10011
+	ErrInviteRequired       = 10012
+	ErrInviteInvalid        = 10013
+	ErrInviteExhausted      = 10014
+	ErrOnboardingPending    = 10015
+	ErrOnboardingRejected   = 10016
+	ErrRegisterRequired            = 10017
+	ErrOnboardingAlreadyApproved = 10018
+	ErrOnboardingNeedExpertRole  = 10019
 )
 
 // 用户模块 11001-11999
@@ -26,7 +34,14 @@ const (
 	ErrAvatarSizeExceed       = 11007
 	ErrBioTooLong             = 11008
 	ErrPortfolioExceedLimit   = 11009
-	ErrUserDeactivated        = 11010
+	ErrUserDeactivated              = 11010
+	ErrOnboardingApplicationInvalid = 11011
+	ErrTeamNotFound                 = 11012
+	ErrObjectStorageDisabled        = 11013
+	ErrUploadFileTooLarge           = 11014
+	ErrTeamFileForbidden            = 11015
+	ErrObjectUploadFailed           = 11016
+	ErrUploadEmptyFile              = 11017
 )
 
 // 项目模块（需求） 20001-20999
@@ -146,6 +161,21 @@ var ErrorMessages = map[int]string{
 	ErrRefreshTokenExpired:  "Refresh Token已过期，请重新登录",
 	ErrAccountFrozen:        "账号已被冻结",
 	ErrDeviceLimitReached:   "登录设备数已达上限",
+	ErrInviteRequired:       "该角色注册需要邀请码",
+	ErrInviteInvalid:        "邀请码无效或已过期",
+	ErrInviteExhausted:      "邀请码使用次数已用尽",
+	ErrOnboardingPending:    "账号审核中，请稍后再试",
+	ErrOnboardingRejected:   "注册申请未通过审核",
+	ErrRegisterRequired:            "请先完成注册后再登录",
+	ErrOnboardingAlreadyApproved:   "已完成入驻审核",
+	ErrOnboardingNeedExpertRole:    "仅专家角色可提交入驻或兑换团队邀请码",
+	ErrOnboardingApplicationInvalid: "请至少提供简历链接或有效作品集",
+	ErrTeamNotFound:                "团队不存在",
+	ErrObjectStorageDisabled:       "对象存储未启用或配置不完整",
+	ErrUploadFileTooLarge:          "上传文件超过大小限制",
+	ErrTeamFileForbidden:         "仅团队成员可操作团队文件",
+	ErrObjectUploadFailed:        "文件上传失败",
+	ErrUploadEmptyFile:           "上传文件不能为空",
 	ErrUserNotFound:         "用户不存在",
 	ErrNicknameUsed:         "昵称已被使用",
 	ErrSkillsExceedLimit:    "技能标签数量超过上限",

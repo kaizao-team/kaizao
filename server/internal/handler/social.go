@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vibebuild/server/internal/pkg/errcode"
@@ -215,6 +216,89 @@ func (h *TeamHandler) RespondInvite(c *gin.Context) {
 		msg = "已接受邀请"
 	}
 	response.SuccessMsg(c, msg, nil)
+}
+
+// UploadStaticAsset POST /api/v1/teams/:uuid/static-assets multipart field "file"
+func (h *TeamHandler) UploadStaticAsset(c *gin.Context) {
+	teamUUID := c.Param("uuid")
+	fh, err := c.FormFile("file")
+	if err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "请选择文件字段 file")
+		return
+	}
+	src, err := fh.Open()
+	if err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "无法读取文件")
+		return
+	}
+	defer src.Close()
+
+	purpose := c.PostForm("purpose")
+	rec, err := h.teamService.UploadTeamStaticAsset(
+		c.Request.Context(),
+		teamUUID,
+		c.GetString("user_uuid"),
+		purpose,
+		fh.Filename,
+		fh.Size,
+		fh.Header.Get("Content-Type"),
+		src,
+	)
+	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "上传失败")
+		return
+	}
+	response.Success(c, gin.H{
+		"id":            rec.UUID,
+		"url":           h.teamService.StaticAssetPublicURL(rec.ObjectKey),
+		"object_key":    rec.ObjectKey,
+		"original_name": rec.OriginalName,
+		"content_type":  rec.ContentType,
+		"size_bytes":    rec.SizeBytes,
+		"purpose":       rec.Purpose,
+		"created_at":    rec.CreatedAt,
+	})
+}
+
+// ListStaticAssets GET /api/v1/teams/:uuid/static-assets
+func (h *TeamHandler) ListStaticAssets(c *gin.Context) {
+	teamUUID := c.Param("uuid")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	list, total, err := h.teamService.ListTeamStaticAssets(teamUUID, c.GetString("user_uuid"), page, pageSize)
+	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			if code == errcode.ErrTeamNotFound {
+				response.ErrorNotFound(c, code, errcode.GetMessage(code))
+				return
+			}
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "查询失败")
+		return
+	}
+	out := make([]gin.H, 0, len(list))
+	for _, a := range list {
+		out = append(out, gin.H{
+			"id":             a.UUID,
+			"url":            h.teamService.StaticAssetPublicURL(a.ObjectKey),
+			"object_key":     a.ObjectKey,
+			"original_name":  a.OriginalName,
+			"content_type":   a.ContentType,
+			"size_bytes":     a.SizeBytes,
+			"purpose":        a.Purpose,
+			"uploaded_by_id": a.UploadedByUserID,
+			"created_at":     a.CreatedAt,
+		})
+	}
+	response.SuccessWithMeta(c, out, response.BuildMeta(page, pageSize, total))
 }
 
 // suppress unused import warning
