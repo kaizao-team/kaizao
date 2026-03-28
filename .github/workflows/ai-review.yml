@@ -40,7 +40,9 @@ jobs:
       AI_REVIEW_MAX_PATCH_CHARS: "12000"
       AI_REVIEW_MAX_FILE_CONTEXT_CHARS: "6000"
       AI_REVIEW_MAX_CHUNK_CHARS: "90000"
+      AI_REVIEW_MAX_CHUNKS: "4"
       AI_REVIEW_MAX_FILES: "60"
+      AI_REVIEW_MAX_COMMENTS: "4"
       PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
 
     steps:
