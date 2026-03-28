@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../app/theme/app_colors.dart';
 import '../models/home_models.dart';
 
@@ -14,96 +15,84 @@ class ExpertHomeRevenue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final heroAmount =
+        revenue.monthIncome > 0 ? revenue.monthIncome : revenue.totalIncome;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.black,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 340) {
+            return _CompactRevenueBoard(
+              revenue: revenue,
+              heroAmount: heroAmount,
+              onViewDetail: onViewDetail,
+            );
+          }
+
+          return _SplitRevenueBoard(
+            revenue: revenue,
+            heroAmount: heroAmount,
+            onViewDetail: onViewDetail,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SplitRevenueBoard extends StatelessWidget {
+  final RevenueData revenue;
+  final double heroAmount;
+  final VoidCallback? onViewDetail;
+
+  const _SplitRevenueBoard({
+    required this.revenue,
+    required this.heroAmount,
+    this.onViewDetail,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: SizedBox(
+        height: 164,
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '收入概览',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.white,
-                  ),
-                ),
-                if (onViewDetail != null)
-                  GestureDetector(
-                    onTap: onViewDetail,
-                    child: const Row(
-                      children: [
-                        Text(
-                          '查看',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color.fromRGBO(255, 255, 255, 0.7),
-                          ),
-                        ),
-                        Icon(Icons.chevron_right, size: 16,
-                            color: Color.fromRGBO(255, 255, 255, 0.7)),
-                      ],
+            Expanded(
+              flex: 8,
+              child: _RevenueHeroPanel(
+                revenue: revenue,
+                heroAmount: heroAmount,
+                onViewDetail: onViewDetail,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: _RevenueSnapshot(
+                      label: '累计收入',
+                      value: _formatCurrency(revenue.totalIncome),
                     ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _RevenueAmount(
-              label: '累计收入',
-              amount: revenue.totalIncome,
-              large: true,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _RevenueAmount(
-                    label: '本月收入',
-                    amount: revenue.monthIncome,
-                  ),
-                ),
-                Expanded(
-                  child: _RevenueAmount(
-                    label: '待结算',
-                    amount: revenue.pendingIncome,
-                  ),
-                ),
-              ],
-            ),
-            if (revenue.trend != 0) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(
-                    revenue.trend > 0
-                        ? Icons.trending_up
-                        : Icons.trending_down,
-                    size: 16,
-                    color: revenue.trend > 0
-                        ? AppColors.success
-                        : AppColors.error,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${revenue.trend > 0 ? '+' : ''}${revenue.trend.toStringAsFixed(1)}% 较上月',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: revenue.trend > 0
-                          ? AppColors.success
-                          : AppColors.error,
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: _RevenueSnapshot(
+                      label: '待结算',
+                      value: _formatCurrency(revenue.pendingIncome),
                     ),
                   ),
                 ],
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -111,44 +100,356 @@ class ExpertHomeRevenue extends StatelessWidget {
   }
 }
 
-class _RevenueAmount extends StatelessWidget {
+class _CompactRevenueBoard extends StatelessWidget {
+  final RevenueData revenue;
+  final double heroAmount;
+  final VoidCallback? onViewDetail;
+
+  const _CompactRevenueBoard({
+    required this.revenue,
+    required this.heroAmount,
+    this.onViewDetail,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 148,
+            child: _RevenueHeroPanel(
+              revenue: revenue,
+              heroAmount: heroAmount,
+              onViewDetail: onViewDetail,
+              compact: true,
+            ),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tileWidth = (constraints.maxWidth - 8) / 2;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  SizedBox(
+                    width: tileWidth,
+                    child: _RevenueSnapshot(
+                      label: '累计收入',
+                      value: _formatCurrency(revenue.totalIncome),
+                    ),
+                  ),
+                  SizedBox(
+                    width: tileWidth,
+                    child: _RevenueSnapshot(
+                      label: '待结算',
+                      value: _formatCurrency(revenue.pendingIncome),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RevenueHeroPanel extends StatelessWidget {
+  final RevenueData revenue;
+  final double heroAmount;
+  final VoidCallback? onViewDetail;
+  final bool compact;
+
+  const _RevenueHeroPanel({
+    required this.revenue,
+    required this.heroAmount,
+    this.onViewDetail,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F0F10), Color(0xFF303032)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const _HeroPill(label: '工作台'),
+              const Spacer(),
+              if (onViewDetail != null)
+                _HeroAction(
+                  label: '钱包',
+                  onTap: onViewDetail!,
+                ),
+            ],
+          ),
+          const Spacer(),
+          const Text(
+            '本月收入',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color.fromRGBO(255, 255, 255, 0.68),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Flexible(
+                child: _RevenueAmount(
+                  amount: heroAmount,
+                  large: !compact,
+                ),
+              ),
+              if (revenue.trend != 0) ...[
+                const SizedBox(width: 10),
+                _TrendBadge(trend: revenue.trend),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _summaryText(revenue),
+            maxLines: compact ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.45,
+              color: Color.fromRGBO(255, 255, 255, 0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroPill extends StatelessWidget {
   final String label;
+
+  const _HeroPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: AppColors.white,
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroAction extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _HeroAction({
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.white,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: AppColors.white,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TrendBadge extends StatelessWidget {
+  final double trend;
+
+  const _TrendBadge({required this.trend});
+
+  @override
+  Widget build(BuildContext context) {
+    final isPositive = trend >= 0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPositive ? Icons.north_east_rounded : Icons.south_east_rounded,
+            size: 14,
+            color: isPositive ? AppColors.successDark : AppColors.errorDark,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _trendText(trend),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isPositive ? AppColors.successDark : AppColors.errorDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RevenueSnapshot extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _RevenueSnapshot({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: AppColors.gray100,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gray500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.black,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RevenueAmount extends StatelessWidget {
   final double amount;
   final bool large;
 
   const _RevenueAmount({
-    required this.label,
     required this.amount,
     this.large = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color.fromRGBO(255, 255, 255, 0.6),
-          ),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: amount),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.easeOut,
+      builder: (context, value, _) => Text(
+        _formatCurrency(value),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: large ? 31 : 28,
+          fontWeight: FontWeight.w700,
+          color: AppColors.white,
+          height: 1.02,
         ),
-        const SizedBox(height: 4),
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: amount),
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeOut,
-          builder: (context, value, _) => Text(
-            '¥${value.toStringAsFixed(0)}',
-            style: TextStyle(
-              fontSize: large ? 28 : 20,
-              fontWeight: FontWeight.w700,
-              color: AppColors.white,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
+}
+
+String _formatCurrency(num value) {
+  final normalized = value.toStringAsFixed(0);
+  final grouped = normalized.replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (_) => ',',
+  );
+  return '¥$grouped';
+}
+
+String _trendText(double trend) {
+  return '${trend > 0 ? '+' : ''}${trend.toStringAsFixed(1)}%';
+}
+
+String _summaryText(RevenueData revenue) {
+  if (revenue.trend > 0) {
+    return '回款在提速，优先继续响应高匹配项目。';
+  }
+  if (revenue.trend < 0) {
+    return '回款偏慢，先把待结算项目往前推。';
+  }
+  return '节奏稳定，适合补充下一批高质量项目。';
 }

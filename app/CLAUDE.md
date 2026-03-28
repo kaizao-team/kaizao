@@ -9,6 +9,7 @@
 - 设计语言：`Architectural Minimalism / The Digital Atheneum`
 - 产品语言：`需求方 / 专家`
 - 公共组件策略：基础件优先 `shared/widgets`，复杂业务块留在 `features/*/widgets`
+- commit message 统一使用：`type(scope): summary`
 
 <claude-mem-context>
 # Recent Activity

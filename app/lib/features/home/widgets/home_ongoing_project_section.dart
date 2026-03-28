@@ -44,7 +44,8 @@ class HomeOngoingProjectSection extends StatelessWidget {
                         index < previewProjects.length;
                         index++) ...[
                       _CompactOngoingProjectRow(
-                          project: previewProjects[index]),
+                        project: previewProjects[index],
+                      ),
                       if (index != previewProjects.length - 1)
                         const SizedBox(height: 10),
                     ],

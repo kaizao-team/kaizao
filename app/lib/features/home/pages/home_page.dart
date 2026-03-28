@@ -12,6 +12,7 @@ import '../../project/providers/project_list_provider.dart';
 import '../providers/home_provider.dart';
 import '../widgets/expert_home_demands.dart';
 import '../widgets/expert_home_revenue.dart';
+import '../widgets/expert_home_team_opportunities.dart';
 import '../widgets/home_ai_card.dart';
 import '../widgets/home_category_grid.dart';
 import '../widgets/home_expert_section.dart';
@@ -72,33 +73,33 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ],
               )
             : homeState.errorMessage != null
-            ? _buildError(homeState.errorMessage!)
-            : RefreshIndicator(
-                color: AppColors.black,
-                backgroundColor: AppColors.white,
-                onRefresh: () => isDemander
-                    ? _refreshDemanderHome(ref)
-                    : ref.read(homeStateProvider.notifier).refresh(),
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  physics: homePhysics,
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: _HomeAppBar(onLogoTap: _scrollToTop),
+                ? _buildError(homeState.errorMessage!)
+                : RefreshIndicator(
+                    color: AppColors.black,
+                    backgroundColor: AppColors.white,
+                    onRefresh: () => isDemander
+                        ? _refreshDemanderHome(ref)
+                        : ref.read(homeStateProvider.notifier).refresh(),
+                    child: CustomScrollView(
+                      controller: _scrollController,
+                      physics: homePhysics,
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: _HomeAppBar(onLogoTap: _scrollToTop),
+                        ),
+                        if (isDemander)
+                          ..._buildDemanderSlices(
+                            context,
+                            ref,
+                            homeState,
+                            projectListState?.projects ?? const [],
+                          )
+                        else
+                          ..._buildExpertSlices(context, ref, homeState),
+                        const SliverToBoxAdapter(child: SizedBox(height: 108)),
+                      ],
                     ),
-                    if (isDemander)
-                      ..._buildDemanderSlices(
-                        context,
-                        ref,
-                        homeState,
-                        projectListState?.projects ?? const [],
-                      )
-                    else
-                      ..._buildExpertSlices(context, ref, homeState),
-                    const SliverToBoxAdapter(child: SizedBox(height: 108)),
-                  ],
-                ),
-              ),
+                  ),
       ),
     );
   }
@@ -123,13 +124,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   ) {
     final data = state.demanderData;
     final homeProjects = data?.myProjects ?? const <ProjectModel>[];
-    final allProjects = homeProjects.isNotEmpty
-        ? homeProjects
-        : fallbackProjects;
+    final allProjects =
+        homeProjects.isNotEmpty ? homeProjects : fallbackProjects;
     final ongoingProjects = allProjects.where(_isOngoingProject).toList();
-    final otherProjects = allProjects
-        .where((project) => !_isOngoingProject(project))
-        .toList();
+    final otherProjects =
+        allProjects.where((project) => !_isOngoingProject(project)).toList();
 
     return [
       SliverToBoxAdapter(
@@ -182,6 +181,13 @@ class _HomePageState extends ConsumerState<HomePage> {
       if (data != null && data.recommendedDemands.isNotEmpty)
         SliverToBoxAdapter(
           child: ExpertHomeDemands(demands: data.recommendedDemands),
+        ),
+      if (data != null && data.teamOpportunities.isNotEmpty)
+        SliverToBoxAdapter(
+          child: ExpertHomeTeamOpportunities(
+            opportunities: data.teamOpportunities,
+            onOpenHall: () => context.push(RoutePaths.teamHall),
+          ),
         ),
       if (data != null && data.skillHeat.isNotEmpty)
         SliverToBoxAdapter(child: HomeSkillHeat(skills: data.skillHeat)),

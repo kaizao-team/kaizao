@@ -56,6 +56,54 @@
 
 ---
 
+## 提交与 PR 规范
+
+适用于 Claude Code、Codex、Cursor 及其他 AI 编码助手。
+
+### Commit Message 风格
+
+统一使用：
+
+`type(scope): summary`
+
+硬性规则：
+
+- `type` 必须使用英文小写：`feat`、`fix`、`refactor`、`docs`、`chore`、`ci`、`test`
+- `scope` 必须明确，优先写功能域或改动层：`home`、`market`、`auth`、`project`、`shared`、`ci`
+- `summary` 默认使用英文短语，保持单行、简洁、可扫描，不写空话，不堆砌并列动作
+- 同一仓库内默认保持同一风格：`英文 type + 英文 scope + 英文 summary`
+- 不要混用 `update`、`modify`、`adjust` 这类信息量很低的词
+- 不要在 commit message 里写大段背景、测试过程、情绪化描述
+
+推荐示例：
+
+- `feat(home): add team opportunities section`
+- `fix(auth): handle expired token redirect`
+- `refactor(shared): simplify empty state layout`
+- `docs(app): define AI commit message convention`
+- `ci(review): localize AI review comments`
+
+不推荐示例：
+
+- `update`
+- `fix bug`
+- `首页又改了一下`
+- `feat: do many things`
+- `chore(misc): tweak stuff`
+
+### 提交粒度
+
+- 一个 commit 只做一类事情，不要把功能、视觉、接口、CI、文档揉在一起
+- 规范文档改动单独提交，避免和业务代码混在同一个 commit
+- CI / bot / workflow 改动单独提交
+
+### PR 规则
+
+- PR 描述统一中文，commit message 按上面的统一格式
+- 不要把个人分支名、临时协作流转写进通用 AI 规范
+
+---
+
 ## 颜色与层级
 
 ### Foundation
