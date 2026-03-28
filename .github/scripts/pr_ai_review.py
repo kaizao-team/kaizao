@@ -665,13 +665,47 @@ def run_openai_review(
         },
     }
 
+    try:
+        body = send_openai_request(
+            base_url=base_url,
+            api_key=api_key,
+            path="/responses",
+            accept="application/json",
+            payload=payload,
+        )
+        return parse_responses_review(body)
+    except RuntimeError as responses_error:
+        try:
+            return run_openai_chat_completions_review(
+                base_url=base_url,
+                api_key=api_key,
+                model=model,
+                developer_prompt=developer_prompt,
+                user_input=user_input,
+                schema=schema,
+            )
+        except RuntimeError as fallback_error:
+            raise RuntimeError(
+                f"OpenAI responses request failed or returned invalid data: {responses_error}; "
+                f"chat completions fallback failed: {fallback_error}"
+            ) from fallback_error
+
+
+def send_openai_request(
+    *,
+    base_url: str,
+    api_key: str,
+    path: str,
+    accept: str,
+    payload: dict[str, Any],
+) -> str:
     request = urllib.request.Request(
-        url=f"{base_url}/responses",
+        url=f"{base_url}{path}",
         data=json.dumps(payload).encode("utf-8"),
         method="POST",
         headers={
             "Authorization": f"Bearer {api_key}",
-            "Accept": "application/json",
+            "Accept": accept,
             "Content-Type": "application/json",
             "User-Agent": OPENAI_REVIEW_USER_AGENT,
         },
@@ -679,22 +713,96 @@ def run_openai_review(
 
     try:
         with urllib.request.urlopen(request, timeout=180) as response:
-            body = response.read().decode("utf-8")
+            return response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         error_body = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"OpenAI review request failed with {exc.code}: {error_body}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"OpenAI review request failed: {exc}") from exc
 
-    raw = json.loads(body)
+
+def parse_responses_review(body: str) -> dict[str, Any]:
+    if not body.strip():
+        raise RuntimeError("OpenAI responses API returned an empty body.")
+
+    try:
+        raw = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Failed to decode OpenAI responses API JSON: {clip_text(body, 500)}") from exc
+
     output_text = extract_output_text(raw)
     if not output_text:
-        raise RuntimeError(f"OpenAI review response did not include output text: {body}")
+        raise RuntimeError(f"OpenAI review response did not include output text: {clip_text(body, 500)}")
+    return parse_review_json_output(output_text)
 
+
+def run_openai_chat_completions_review(
+    *,
+    base_url: str,
+    api_key: str,
+    model: str,
+    developer_prompt: str,
+    user_input: str,
+    schema: dict[str, Any],
+) -> dict[str, Any]:
+    stream_body = send_openai_request(
+        base_url=base_url,
+        api_key=api_key,
+        path="/chat/completions",
+        accept="text/event-stream",
+        payload={
+            "model": model,
+            "stream": True,
+            "messages": [
+                {"role": "system", "content": developer_prompt},
+                {"role": "user", "content": user_input},
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "pr_review_result",
+                    "strict": True,
+                    "schema": schema,
+                },
+            },
+        },
+    )
+    output_text = extract_chat_completions_stream_text(stream_body)
+    if not output_text:
+        raise RuntimeError(f"Chat completions fallback returned no text output: {clip_text(stream_body, 500)}")
+    return parse_review_json_output(output_text)
+
+
+def extract_chat_completions_stream_text(stream_body: str) -> str:
+    parts: list[str] = []
+    for raw_line in stream_body.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("data:"):
+            continue
+
+        payload = line[5:].strip()
+        if not payload or payload == "[DONE]":
+            continue
+
+        try:
+            event = json.loads(payload)
+        except json.JSONDecodeError:
+            continue
+
+        for choice in event.get("choices", []):
+            delta = choice.get("delta") or {}
+            content = delta.get("content")
+            if isinstance(content, str):
+                parts.append(content)
+
+    return "".join(parts).strip()
+
+
+def parse_review_json_output(output_text: str) -> dict[str, Any]:
     try:
         return json.loads(output_text)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(f"Failed to parse model JSON output: {output_text}") from exc
+        raise RuntimeError(f"Failed to parse model JSON output: {clip_text(output_text, 500)}") from exc
 
 
 def extract_output_text(response_body: dict[str, Any]) -> str:
