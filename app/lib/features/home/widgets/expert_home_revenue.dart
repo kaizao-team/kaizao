@@ -20,133 +20,78 @@ class ExpertHomeRevenue extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0F0F10), Color(0xFF303032)],
-          ),
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    '工作台',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.white,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                if (onViewDetail != null)
-                  InkWell(
-                    onTap: onViewDetail,
-                    borderRadius: BorderRadius.circular(999),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '钱包',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.white,
-                            ),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 16,
-                            color: AppColors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 22),
-            const Text(
-              '本月收入',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Color.fromRGBO(255, 255, 255, 0.68),
-              ),
-            ),
-            const SizedBox(height: 8),
-            _RevenueAmount(
-              label: '',
-              amount: heroAmount,
-              large: true,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              _summaryText(revenue),
-              style: const TextStyle(
-                fontSize: 13,
-                height: 1.45,
-                color: Color.fromRGBO(255, 255, 255, 0.72),
-              ),
-            ),
-            const SizedBox(height: 18),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final tileWidth = (constraints.maxWidth - 16) / 3;
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 340) {
+            return _CompactRevenueBoard(
+              revenue: revenue,
+              heroAmount: heroAmount,
+              onViewDetail: onViewDetail,
+            );
+          }
 
-                return Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    SizedBox(
-                      width: tileWidth,
-                      child: _RevenueSnapshot(
-                        label: '累计收入',
-                        value: _formatCurrency(revenue.totalIncome),
-                      ),
+          return _SplitRevenueBoard(
+            revenue: revenue,
+            heroAmount: heroAmount,
+            onViewDetail: onViewDetail,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SplitRevenueBoard extends StatelessWidget {
+  final RevenueData revenue;
+  final double heroAmount;
+  final VoidCallback? onViewDetail;
+
+  const _SplitRevenueBoard({
+    required this.revenue,
+    required this.heroAmount,
+    this.onViewDetail,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: SizedBox(
+        height: 164,
+        child: Row(
+          children: [
+            Expanded(
+              flex: 8,
+              child: _RevenueHeroPanel(
+                revenue: revenue,
+                heroAmount: heroAmount,
+                onViewDetail: onViewDetail,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: _RevenueSnapshot(
+                      label: '累计收入',
+                      value: _formatCurrency(revenue.totalIncome),
                     ),
-                    SizedBox(
-                      width: tileWidth,
-                      child: _RevenueSnapshot(
-                        label: '待结算',
-                        value: _formatCurrency(revenue.pendingIncome),
-                      ),
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: _RevenueSnapshot(
+                      label: '待结算',
+                      value: _formatCurrency(revenue.pendingIncome),
                     ),
-                    SizedBox(
-                      width: tileWidth,
-                      child: _RevenueSnapshot(
-                        label: '较上月',
-                        value:
-                            '${revenue.trend > 0 ? '+' : ''}${revenue.trend.toStringAsFixed(1)}%',
-                        valueColor: _trendColor(revenue.trend),
-                      ),
-                    ),
-                  ],
-                );
-              },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -155,44 +100,299 @@ class ExpertHomeRevenue extends StatelessWidget {
   }
 }
 
-class _RevenueSnapshot extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? valueColor;
+class _CompactRevenueBoard extends StatelessWidget {
+  final RevenueData revenue;
+  final double heroAmount;
+  final VoidCallback? onViewDetail;
 
-  const _RevenueSnapshot({
-    required this.label,
-    required this.value,
-    this.valueColor,
+  const _CompactRevenueBoard({
+    required this.revenue,
+    required this.heroAmount,
+    this.onViewDetail,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 11),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 148,
+            child: _RevenueHeroPanel(
+              revenue: revenue,
+              heroAmount: heroAmount,
+              onViewDetail: onViewDetail,
+              compact: true,
+            ),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tileWidth = (constraints.maxWidth - 8) / 2;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  SizedBox(
+                    width: tileWidth,
+                    child: _RevenueSnapshot(
+                      label: '累计收入',
+                      value: _formatCurrency(revenue.totalIncome),
+                    ),
+                  ),
+                  SizedBox(
+                    width: tileWidth,
+                    child: _RevenueSnapshot(
+                      label: '待结算',
+                      value: _formatCurrency(revenue.pendingIncome),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RevenueHeroPanel extends StatelessWidget {
+  final RevenueData revenue;
+  final double heroAmount;
+  final VoidCallback? onViewDetail;
+  final bool compact;
+
+  const _RevenueHeroPanel({
+    required this.revenue,
+    required this.heroAmount,
+    this.onViewDetail,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F0F10), Color(0xFF303032)],
+        ),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Color.fromRGBO(255, 255, 255, 0.6),
+          Row(
+            children: [
+              const _HeroPill(label: '工作台'),
+              const Spacer(),
+              if (onViewDetail != null)
+                _HeroAction(
+                  label: '钱包',
+                  onTap: onViewDetail!,
+                ),
+            ],
+          ),
+          const Spacer(),
+          const Text(
+            '本月收入',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color.fromRGBO(255, 255, 255, 0.68),
             ),
           ),
           const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Flexible(
+                child: _RevenueAmount(
+                  amount: heroAmount,
+                  large: !compact,
+                ),
+              ),
+              if (revenue.trend != 0) ...[
+                const SizedBox(width: 10),
+                _TrendBadge(trend: revenue.trend),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
           Text(
-            value,
+            _summaryText(revenue),
+            maxLines: compact ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.45,
+              color: Color.fromRGBO(255, 255, 255, 0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroPill extends StatelessWidget {
+  final String label;
+
+  const _HeroPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: AppColors.white,
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroAction extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _HeroAction({
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.white,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: AppColors.white,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TrendBadge extends StatelessWidget {
+  final double trend;
+
+  const _TrendBadge({required this.trend});
+
+  @override
+  Widget build(BuildContext context) {
+    final isPositive = trend >= 0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPositive ? Icons.north_east_rounded : Icons.south_east_rounded,
+            size: 14,
+            color: isPositive ? AppColors.successDark : AppColors.errorDark,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _trendText(trend),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isPositive ? AppColors.successDark : AppColors.errorDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RevenueSnapshot extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _RevenueSnapshot({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: AppColors.gray100,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: valueColor ?? AppColors.white,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gray500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.black,
+              ),
             ),
           ),
         ],
@@ -202,46 +402,31 @@ class _RevenueSnapshot extends StatelessWidget {
 }
 
 class _RevenueAmount extends StatelessWidget {
-  final String label;
   final double amount;
   final bool large;
 
   const _RevenueAmount({
-    required this.label,
     required this.amount,
     this.large = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (label.isNotEmpty) ...[
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color.fromRGBO(255, 255, 255, 0.6),
-            ),
-          ),
-          const SizedBox(height: 4),
-        ],
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: amount),
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeOut,
-          builder: (context, value, _) => Text(
-            _formatCurrency(value),
-            style: TextStyle(
-              fontSize: large ? 34 : 20,
-              fontWeight: FontWeight.w700,
-              color: AppColors.white,
-              height: 1.05,
-            ),
-          ),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: amount),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.easeOut,
+      builder: (context, value, _) => Text(
+        _formatCurrency(value),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: large ? 31 : 28,
+          fontWeight: FontWeight.w700,
+          color: AppColors.white,
+          height: 1.02,
         ),
-      ],
+      ),
     );
   }
 }
@@ -255,18 +440,16 @@ String _formatCurrency(num value) {
   return '¥$grouped';
 }
 
-String _summaryText(RevenueData revenue) {
-  if (revenue.trend > 0) {
-    return '回款节奏比上月更稳，继续优先响应高匹配项目。';
-  }
-  if (revenue.trend < 0) {
-    return '本月回款稍慢，先把待结算项目往前推进。';
-  }
-  return '本月节奏稳定，适合继续补充高质量项目储备。';
+String _trendText(double trend) {
+  return '${trend > 0 ? '+' : ''}${trend.toStringAsFixed(1)}%';
 }
 
-Color _trendColor(double trend) {
-  if (trend > 0) return AppColors.successDark;
-  if (trend < 0) return AppColors.errorDark;
-  return AppColors.white;
+String _summaryText(RevenueData revenue) {
+  if (revenue.trend > 0) {
+    return '回款在提速，优先继续响应高匹配项目。';
+  }
+  if (revenue.trend < 0) {
+    return '回款偏慢，先把待结算项目往前推。';
+  }
+  return '节奏稳定，适合补充下一批高质量项目。';
 }

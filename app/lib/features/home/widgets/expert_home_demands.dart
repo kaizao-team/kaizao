@@ -62,8 +62,6 @@ class _FeaturedDemandCard extends StatelessWidget {
     return Material(
       color: AppColors.white,
       borderRadius: BorderRadius.circular(26),
-      shadowColor: AppColors.black.withValues(alpha: 0.04),
-      elevation: 1,
       child: InkWell(
         borderRadius: BorderRadius.circular(26),
         onTap: projectRoute == null ? null : () => context.push(projectRoute),
@@ -93,7 +91,7 @@ class _FeaturedDemandCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 24,
+                  fontSize: 22,
                   height: 1.12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.black,
@@ -136,7 +134,7 @@ class _DemandRow extends StatelessWidget {
     final projectRoute = _projectRoute(demand);
 
     return Material(
-      color: AppColors.white.withValues(alpha: 0.74),
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
