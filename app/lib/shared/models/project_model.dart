@@ -3,6 +3,8 @@ class ProjectModel {
   final String uuid;
   final String ownerId;
   final String? providerId;
+  final String? providerName;
+  final String? providerAvatarUrl;
   final String? teamId;
   final String title;
   final String description;
@@ -17,6 +19,7 @@ class ProjectModel {
   final int viewCount;
   final int bidCount;
   final List<String> techRequirements;
+  final DateTime? deadlineAt;
   final DateTime? publishedAt;
   final DateTime createdAt;
 
@@ -25,6 +28,8 @@ class ProjectModel {
     required this.uuid,
     required this.ownerId,
     this.providerId,
+    this.providerName,
+    this.providerAvatarUrl,
     this.teamId,
     required this.title,
     required this.description,
@@ -39,6 +44,7 @@ class ProjectModel {
     this.viewCount = 0,
     this.bidCount = 0,
     this.techRequirements = const [],
+    this.deadlineAt,
     this.publishedAt,
     required this.createdAt,
   });
@@ -49,6 +55,12 @@ class ProjectModel {
       uuid: json['uuid'] as String? ?? '',
       ownerId: json['owner_id']?.toString() ?? '',
       providerId: json['provider_id']?.toString(),
+      providerName:
+          json['provider_name'] as String? ??
+          json['provider_nickname'] as String?,
+      providerAvatarUrl:
+          json['provider_avatar_url'] as String? ??
+          json['avatar_url'] as String?,
       teamId: json['team_id']?.toString(),
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
@@ -62,7 +74,14 @@ class ProjectModel {
       matchMode: json['match_mode'] as int? ?? 1,
       viewCount: json['view_count'] as int? ?? 0,
       bidCount: json['bid_count'] as int? ?? 0,
-      techRequirements: (json['tech_requirements'] as List?)?.cast<String>() ?? [],
+      techRequirements:
+          (json['tech_requirements'] as List?)?.cast<String>() ?? [],
+      deadlineAt: _parseDateTime(
+        json['deadline_at'] ??
+            json['deadline'] ??
+            json['due_date'] ??
+            json['end_date'],
+      ),
       publishedAt: json['published_at'] != null
           ? DateTime.parse(json['published_at'])
           : null,
@@ -74,26 +93,59 @@ class ProjectModel {
 
   String get statusName {
     switch (status) {
-      case 1: return '草稿';
-      case 2: return '已发布';
-      case 3: return '匹配中';
-      case 4: return '已匹配';
-      case 5: return '进行中';
-      case 6: return '验收中';
-      case 7: return '已完成';
-      case 8: return '已关闭';
-      case 9: return '争议中';
-      default: return '未知';
+      case 1:
+        return '草稿';
+      case 2:
+        return '已发布';
+      case 3:
+        return '匹配中';
+      case 4:
+        return '已匹配';
+      case 5:
+        return '进行中';
+      case 6:
+        return '验收中';
+      case 7:
+        return '已完成';
+      case 8:
+        return '已关闭';
+      case 9:
+        return '争议中';
+      default:
+        return '未知';
+    }
+  }
+
+  String get homeStatusName {
+    switch (status) {
+      case 1:
+      case 2:
+      case 3:
+        return '招募中';
+      case 4:
+      case 5:
+        return '进行中';
+      case 6:
+        return '待验收';
+      case 7:
+        return '已完成';
+      default:
+        return statusName;
     }
   }
 
   String get statusTagType {
     switch (status) {
-      case 5: return 'in_progress';
-      case 6: return 'pending';
-      case 7: return 'completed';
-      case 9: return 'at_risk';
-      default: return 'not_started';
+      case 5:
+        return 'in_progress';
+      case 6:
+        return 'pending';
+      case 7:
+        return 'completed';
+      case 9:
+        return 'at_risk';
+      default:
+        return 'not_started';
     }
   }
 
@@ -107,13 +159,33 @@ class ProjectModel {
 
   String get categoryName {
     switch (category) {
-      case 'app': return 'APP开发';
-      case 'web': return '网站开发';
-      case 'miniprogram': return '小程序';
-      case 'design': return 'UI设计';
-      case 'data': return '数据分析';
-      case 'consult': return '技术指导';
-      default: return '其他';
+      case 'app':
+        return 'APP开发';
+      case 'web':
+        return '网站开发';
+      case 'miniprogram':
+        return '小程序';
+      case 'design':
+        return 'UI设计';
+      case 'data':
+        return '数据分析';
+      case 'consult':
+        return '技术指导';
+      default:
+        return '其他';
     }
   }
+
+  bool get hasMatchedProvider {
+    return providerId != null && providerId!.isNotEmpty || status >= 4;
+  }
+}
+
+DateTime? _parseDateTime(dynamic value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  if (value is String && value.isNotEmpty) {
+    return DateTime.tryParse(value);
+  }
+  return null;
 }

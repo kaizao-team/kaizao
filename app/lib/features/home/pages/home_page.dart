@@ -16,7 +16,6 @@ import '../widgets/expert_home_team_opportunities.dart';
 import '../widgets/home_ai_card.dart';
 import '../widgets/home_category_grid.dart';
 import '../widgets/home_expert_section.dart';
-import '../widgets/home_ongoing_project_section.dart';
 import '../widgets/home_project_section.dart';
 import '../widgets/home_skill_heat.dart';
 import '../widgets/home_skeleton.dart';
@@ -73,33 +72,33 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ],
               )
             : homeState.errorMessage != null
-                ? _buildError(homeState.errorMessage!)
-                : RefreshIndicator(
-                    color: AppColors.black,
-                    backgroundColor: AppColors.white,
-                    onRefresh: () => isDemander
-                        ? _refreshDemanderHome(ref)
-                        : ref.read(homeStateProvider.notifier).refresh(),
-                    child: CustomScrollView(
-                      controller: _scrollController,
-                      physics: homePhysics,
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: _HomeAppBar(onLogoTap: _scrollToTop),
-                        ),
-                        if (isDemander)
-                          ..._buildDemanderSlices(
-                            context,
-                            ref,
-                            homeState,
-                            projectListState?.projects ?? const [],
-                          )
-                        else
-                          ..._buildExpertSlices(context, ref, homeState),
-                        const SliverToBoxAdapter(child: SizedBox(height: 108)),
-                      ],
+            ? _buildError(homeState.errorMessage!)
+            : RefreshIndicator(
+                color: AppColors.black,
+                backgroundColor: AppColors.white,
+                onRefresh: () => isDemander
+                    ? _refreshDemanderHome(ref)
+                    : ref.read(homeStateProvider.notifier).refresh(),
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  physics: homePhysics,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _HomeAppBar(onLogoTap: _scrollToTop),
                     ),
-                  ),
+                    if (isDemander)
+                      ..._buildDemanderSlices(
+                        context,
+                        ref,
+                        homeState,
+                        projectListState?.projects ?? const [],
+                      )
+                    else
+                      ..._buildExpertSlices(context, ref, homeState),
+                    const SliverToBoxAdapter(child: SizedBox(height: 108)),
+                  ],
+                ),
+              ),
       ),
     );
   }
@@ -124,11 +123,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   ) {
     final data = state.demanderData;
     final homeProjects = data?.myProjects ?? const <ProjectModel>[];
-    final allProjects =
-        homeProjects.isNotEmpty ? homeProjects : fallbackProjects;
-    final ongoingProjects = allProjects.where(_isOngoingProject).toList();
-    final otherProjects =
-        allProjects.where((project) => !_isOngoingProject(project)).toList();
+    final allProjects = homeProjects.isNotEmpty
+        ? homeProjects
+        : fallbackProjects;
 
     return [
       SliverToBoxAdapter(
@@ -149,11 +146,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
         ),
-      SliverToBoxAdapter(
-        child: HomeOngoingProjectSection(projects: ongoingProjects),
-      ),
-      if (otherProjects.isNotEmpty)
-        SliverToBoxAdapter(child: HomeProjectSection(projects: otherProjects)),
+      SliverToBoxAdapter(child: HomeProjectSection(projects: allProjects)),
       if (data != null && data.recommendedExperts.isNotEmpty)
         SliverToBoxAdapter(
           child: HomeExpertSection(
@@ -193,10 +186,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         SliverToBoxAdapter(child: HomeSkillHeat(skills: data.skillHeat)),
     ];
   }
-}
-
-bool _isOngoingProject(ProjectModel project) {
-  return project.status == 4 || project.status == 5 || project.status == 6;
 }
 
 Future<void> _refreshDemanderHome(WidgetRef ref) async {
