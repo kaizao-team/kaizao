@@ -97,7 +97,7 @@ func (h *PRDHandler) SaveDraft(c *gin.Context) {
 	desc := "需求草稿，待完善"
 	cat := req.Category
 	if cat == "" {
-		cat = "app"
+		cat = "dev"
 	}
 	project, err := h.projectService.Create(userUUID, title, desc, cat, req.BudgetMin, req.BudgetMax, nil, 0, true)
 	if err != nil {

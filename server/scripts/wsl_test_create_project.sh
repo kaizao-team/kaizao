@@ -28,7 +28,7 @@ curl -sS -X POST "$BASE/api/v1/projects" \
   -d '{
     "title": "WSL集成测试项目创建",
     "description": "在WSL Docker环境下验证 POST /api/v1/projects 创建需求接口是否正常工作。",
-    "category": "app",
+    "category": "dev",
     "budget_min": 3000,
     "budget_max": 12000,
     "tech_requirements": ["Flutter", "Go"],

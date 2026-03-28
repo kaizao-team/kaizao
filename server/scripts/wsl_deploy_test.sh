@@ -13,15 +13,15 @@ echo "=== compose build & up (API -> ${BASE}) ==="
 docker compose build server
 docker compose up -d
 
-# 旧数据卷若早于 002/003/004 迁移，需补跑 DDL（重复执行可能报 Duplicate column，可忽略）
+# 旧数据卷若早于 002/003/004 迁移，需补跑 DDL（重复执行可能报 Duplicate column，可忽略）；005 为分类数据清洗可重复执行
 if [ "${APPLY_SQL_MIGRATIONS:-1}" = "1" ]; then
   echo "=== wait mysql ==="
   for i in $(seq 1 45); do
     docker exec kaizao-mysql mysqladmin ping -h localhost -ukaizao -pkaizao123 --silent 2>/dev/null && break
     sleep 2
   done
-  echo "=== apply migrations 002–004 (best-effort) ==="
-  for f in "$ROOT/migrations/002_invite_onboarding.up.sql" "$ROOT/migrations/003_team_invite_onboarding.up.sql" "$ROOT/migrations/004_team_static_assets.up.sql"; do
+  echo "=== apply migrations 002–005 (best-effort) ==="
+  for f in "$ROOT/migrations/002_invite_onboarding.up.sql" "$ROOT/migrations/003_team_invite_onboarding.up.sql" "$ROOT/migrations/004_team_static_assets.up.sql" "$ROOT/migrations/005_project_category_normalize.up.sql"; do
     [ -f "$f" ] || continue
     docker exec -i kaizao-mysql mysql -ukaizao -pkaizao123 kaizao <"$f" 2>/dev/null || true
   done
