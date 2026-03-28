@@ -37,15 +37,27 @@ log:
   level: info   # debug / info / warn / error
   format: json  # json / console
 
+# 对象存储：MinIO / S3 兼容（团队静态文件等）；enabled=false 时上传接口返回 11013
 oss:
-  endpoint: oss-cn-shenzhen.aliyuncs.com
+  enabled: false
+  endpoint: localhost:9000
+  use_ssl: false
+  region: ""
   access_key_id: ""
   access_key_secret: ""
-  bucket_name: kaizao-assets
-  base_url: https://kaizao-assets.oss-cn-shenzhen.aliyuncs.com
+  bucket_name: kaizao
+  base_url: http://localhost:9000/kaizao
+  max_upload_mb: 32
 
 sms:
   access_key_id: ""
   access_key_secret: ""
   sign_name: 开造
   template_code: SMS_123456
+
+# 注册策略：空列表表示不限制（与历史行为一致）
+# 示例：专家 role=2、3 需邀请码且审核通过后才能登录
+registration:
+  disable_auto_register: false
+  require_invite_roles: []
+  require_approval_roles: []

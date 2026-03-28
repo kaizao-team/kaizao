@@ -17,7 +17,7 @@ type RegisterReq struct {
 	Phone      string `json:"phone" binding:"required,len=11"`
 	SMSCode    string `json:"sms_code" binding:"required,len=6"`
 	Nickname   string `json:"nickname" binding:"required,min=2,max=20"`
-	Role       int    `json:"role" binding:"omitempty,oneof=0 1 2"`
+	Role       int    `json:"role" binding:"omitempty,oneof=0 1 2 3"`
 	InviteCode string `json:"invite_code" binding:"omitempty"`
 }
 

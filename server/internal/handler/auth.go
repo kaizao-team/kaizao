@@ -27,12 +27,14 @@ type Handlers struct {
 	Wallet       *WalletHandler
 	Review       *ReviewHandler
 	Team         *TeamHandler
+	Admin        *AdminHandler
 }
 
 // NewHandlers 创建所有 Handler
 func NewHandlers(services *service.Services, log *zap.Logger) *Handlers {
 	return &Handlers{
 		Auth:         NewAuthHandler(services.Auth, log),
+		Admin:        NewAdminHandler(services.Auth, services.User, log),
 		User:         NewUserHandler(services.User, log),
 		Project:      NewProjectHandler(services.Project, log),
 		Home:         NewHomeHandler(services.Home, log),
@@ -151,16 +153,17 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	userBrief := dto.UserBriefResp{
+		UUID:        user.UUID,
+		Nickname:    user.Nickname,
+		AvatarURL:   user.AvatarURL,
+		Role:        user.Role,
+		Level:       user.Level,
+		CreditScore: user.CreditScore,
+		IsVerified:  user.IsVerified,
+	}
 	response.Success(c, dto.AuthResp{
-		User: dto.UserBriefResp{
-			UUID:        user.UUID,
-			Nickname:    user.Nickname,
-			AvatarURL:   user.AvatarURL,
-			Role:        user.Role,
-			Level:       user.Level,
-			CreditScore: user.CreditScore,
-			IsVerified:  user.IsVerified,
-		},
+		User:         userBrief,
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
 		ExpiresIn:    tokenPair.ExpiresIn,
@@ -242,6 +245,10 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 		"nickname":         user.Nickname,
 		"avatar_url":       user.AvatarURL,
 		"role":             user.Role,
+		"onboarding_status":        user.OnboardingStatus,
+		"onboarding_submitted_at":  user.OnboardingSubmittedAt,
+		"resume_url":               user.ResumeURL,
+		"onboarding_application_note": user.OnboardingApplicationNote,
 		"bio":              user.Bio,
 		"city":             user.City,
 		"is_verified":      user.IsVerified,

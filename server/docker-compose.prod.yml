@@ -41,6 +41,22 @@ services:
       timeout: 5s
       retries: 5
 
+  # 对象存储：仅绑定本机端口；公网访问请前置 Nginx/CDN，并改写 VB_OSS_BASE_URL
+  minio:
+    image: minio/minio:RELEASE.2024-05-10T01-41-38Z
+    container_name: kaizao-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: kaizao_oss
+      MINIO_ROOT_PASSWORD: kaizao_minio_prod_oss_2026
+    ports:
+      - "127.0.0.1:39000:9000"
+      - "127.0.0.1:39001:9001"
+    volumes:
+      - minio_data:/data
+    # 官方镜像多为 scratch，无 curl/sh；server 启动后会对 MinIO 建桶/上传重试
+
   server:
     image: kaizao-server:latest
     container_name: kaizao-server
@@ -60,6 +76,15 @@ services:
       VB_REDIS_PORT: "6379"
       VB_REDIS_PASSWORD: redis_prod_2026
       VB_JWT_SECRET: kaizao-prod-jwt-secret-change-me
+      VB_OSS_ENABLED: "true"
+      VB_OSS_ENDPOINT: minio:9000
+      VB_OSS_USE_SSL: "false"
+      VB_OSS_ACCESS_KEY_ID: kaizao_oss
+      VB_OSS_ACCESS_KEY_SECRET: kaizao_minio_prod_oss_2026
+      VB_OSS_BUCKET_NAME: kaizao
+      # 与宿主机映射 127.0.0.1:39000 一致；外网域名/CDN 请改此值
+      VB_OSS_BASE_URL: http://127.0.0.1:39000/kaizao
+      VB_OSS_MAX_UPLOAD_MB: "32"
     ports:
       - "0.0.0.0:39527:8080"
     depends_on:
@@ -67,6 +92,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://localhost:8080/health"]
       interval: 10s
@@ -77,3 +104,4 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  minio_data:
