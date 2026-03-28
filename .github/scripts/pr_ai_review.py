@@ -11,9 +11,11 @@ from pathlib import Path
 from typing import Any
 
 
-COMMENT_MARKER = "<!-- openai-gpt54-xhigh-pr-review -->"
+SUMMARY_COMMENT_MARKER = "<!-- openai-gpt54-xhigh-pr-review-summary -->"
+REVIEW_MARKER = "<!-- openai-gpt54-xhigh-pr-review -->"
 COMMENT_TITLE = "OpenAI GPT-5.4 xhigh PR Review"
 GITHUB_API_VERSION = "2022-11-28"
+GITHUB_ACTIONS_BOT_LOGIN = "github-actions[bot]"
 
 TEXT_FILE_EXTENSIONS = {
     ".c",
@@ -134,6 +136,7 @@ def main() -> int:
     prompt = Path(required_env("AI_REVIEW_PROMPT_FILE")).read_text(encoding="utf-8")
     result_path = Path(required_env("AI_REVIEW_RESULT_FILE"))
     scope = build_review_scope(repo=repo, pr=pr, github_token=github_token)
+    max_comments = env_int("AI_REVIEW_MAX_COMMENTS", 4)
 
     chunk_reviews = []
     for chunk_index, chunk in enumerate(scope["chunks"], start=1):
@@ -155,7 +158,23 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    comment_body = render_comment(merged_review, model=model, reasoning_effort=reasoning_effort)
+    review_publication = publish_pull_request_review(
+        repo=repo,
+        pr_number=pr_number,
+        head_sha=scope["head_sha"],
+        file_index=scope["file_index"],
+        review=merged_review,
+        max_comments=max_comments,
+        github_token=github_token,
+        model=model,
+        reasoning_effort=reasoning_effort,
+    )
+    comment_body = render_summary_comment(
+        merged_review,
+        model=model,
+        reasoning_effort=reasoning_effort,
+        review_publication=review_publication,
+    )
     upsert_issue_comment(
         repo=repo,
         issue_number=pr_number,
@@ -213,6 +232,7 @@ def build_review_scope(*, repo: str, pr: dict[str, Any], github_token: str) -> d
     max_patch_chars = env_int("AI_REVIEW_MAX_PATCH_CHARS", 12000)
     max_file_context_chars = env_int("AI_REVIEW_MAX_FILE_CONTEXT_CHARS", 6000)
     max_chunk_chars = env_int("AI_REVIEW_MAX_CHUNK_CHARS", 90000)
+    max_chunks = env_int("AI_REVIEW_MAX_CHUNKS", 4)
     head_sha = pr.get("head", {}).get("sha", "")
 
     change_summaries = []
@@ -242,20 +262,37 @@ def build_review_scope(*, repo: str, pr: dict[str, Any], github_token: str) -> d
                 {
                     "filename": filename,
                     "text": payload,
+                    "file_info": file_info,
                 }
             )
         else:
             omitted_files.append(f"{filename} ({payload})")
 
-    chunks = pack_review_sections(review_sections=review_sections, max_chunk_chars=max_chunk_chars)
+    pack_result = pack_review_sections(
+        review_sections=review_sections,
+        max_chunk_chars=max_chunk_chars,
+        max_chunks=max_chunks,
+    )
+    omitted_files.extend(f"{filename} (review chunk cap reached)" for filename in pack_result["omitted_files"])
+    included_sections = pack_result["included_sections"]
     return {
         "changed_files_count": len(change_summaries),
         "change_summaries": change_summaries,
-        "included_files": [item["filename"] for item in review_sections],
-        "included_files_count": len(review_sections),
+        "head_sha": head_sha,
+        "included_files": [item["filename"] for item in included_sections],
+        "included_files_count": len(included_sections),
         "omitted_files": omitted_files,
-        "chunk_count": len(chunks),
-        "chunks": chunks,
+        "chunk_count": len(pack_result["chunks"]),
+        "chunks": pack_result["chunks"],
+        "max_chunks": max_chunks,
+        "file_index": {
+            item["filename"]: {
+                "filename": item["filename"],
+                "status": str(item["file_info"].get("status", "modified")).strip(),
+                "patch": str(item["file_info"].get("patch", "") or ""),
+            }
+            for item in included_sections
+        },
     }
 
 
@@ -401,18 +438,49 @@ def guess_code_fence(filename: str) -> str:
     }.get(suffix, "")
 
 
-def pack_review_sections(*, review_sections: list[dict[str, str]], max_chunk_chars: int) -> list[dict[str, Any]]:
+def pack_review_sections(
+    *,
+    review_sections: list[dict[str, Any]],
+    max_chunk_chars: int,
+    max_chunks: int,
+) -> dict[str, Any]:
     if not review_sections:
-        return [{"files": [], "text": "No reviewable changed files were included in scope."}]
+        return {
+            "chunks": [{"files": [], "text": "No reviewable changed files were included in scope."}],
+            "included_sections": [],
+            "omitted_files": [],
+        }
 
     chunks = []
-    current_sections: list[dict[str, str]] = []
+    current_sections: list[dict[str, Any]] = []
     current_length = 0
 
-    for section in review_sections:
+    for index, section in enumerate(review_sections):
         section_text = section["text"]
         section_length = len(section_text) + 2
         if current_sections and current_length + section_length > max_chunk_chars:
+            if len(chunks) + 1 >= max_chunks:
+                chunks.append(
+                    {
+                        "files": [item["filename"] for item in current_sections],
+                        "text": "\n\n".join(item["text"] for item in current_sections),
+                    }
+                )
+                included_filenames = {
+                    filename
+                    for chunk in chunks
+                    for filename in chunk["files"]
+                }
+                included_sections = [
+                    item for item in review_sections if item["filename"] in included_filenames
+                ]
+                return {
+                    "chunks": chunks,
+                    "included_sections": included_sections,
+                    "omitted_files": [
+                        item["filename"] for item in review_sections[index:]
+                    ],
+                }
             chunks.append(
                 {
                     "files": [item["filename"] for item in current_sections],
@@ -427,6 +495,20 @@ def pack_review_sections(*, review_sections: list[dict[str, str]], max_chunk_cha
         current_length += section_length
 
     if current_sections:
+        if len(chunks) >= max_chunks:
+            included_filenames = {
+                filename
+                for chunk in chunks
+                for filename in chunk["files"]
+            }
+            included_sections = [
+                item for item in review_sections if item["filename"] in included_filenames
+            ]
+            return {
+                "chunks": chunks,
+                "included_sections": included_sections,
+                "omitted_files": [item["filename"] for item in current_sections],
+            }
         chunks.append(
             {
                 "files": [item["filename"] for item in current_sections],
@@ -434,7 +516,19 @@ def pack_review_sections(*, review_sections: list[dict[str, str]], max_chunk_cha
             }
         )
 
-    return chunks
+    included_filenames = {
+        filename
+        for chunk in chunks
+        for filename in chunk["files"]
+    }
+    included_sections = [
+        item for item in review_sections if item["filename"] in included_filenames
+    ]
+    return {
+        "chunks": chunks,
+        "included_sections": included_sections,
+        "omitted_files": [],
+    }
 
 
 def build_user_input(
@@ -652,10 +746,13 @@ def normalize_review(review: dict[str, Any]) -> dict[str, Any]:
 
 
 def merge_reviews(*, scope: dict[str, Any], chunk_reviews: list[dict[str, Any]]) -> dict[str, Any]:
+    allowed_files = set(scope.get("included_files", []))
     deduped_findings = []
     seen = set()
     for review in chunk_reviews:
         for item in review["findings"]:
+            if item["file"] not in allowed_files:
+                continue
             key = (item["file"], item["line"], item["title"], item["body"])
             if key in seen:
                 continue
@@ -675,10 +772,12 @@ def merge_reviews(*, scope: dict[str, Any], chunk_reviews: list[dict[str, Any]])
         "summary": summary,
         "findings": deduped_findings,
         "scope": {
+            "head_sha": scope["head_sha"],
             "changed_files_count": scope["changed_files_count"],
             "included_files_count": scope["included_files_count"],
             "omitted_files": scope["omitted_files"],
             "chunk_count": scope["chunk_count"],
+            "max_chunks": scope["max_chunks"],
         },
     }
 
@@ -710,29 +809,45 @@ def severity_rank(value: str) -> int:
     return {"low": 1, "medium": 2, "high": 3}.get(value, 0)
 
 
-def render_comment(review: dict[str, Any], *, model: str, reasoning_effort: str) -> str:
+def render_summary_comment(
+    review: dict[str, Any],
+    *,
+    model: str,
+    reasoning_effort: str,
+    review_publication: dict[str, Any],
+) -> str:
     verdict = review["verdict"].upper()
     scope = review.get("scope", {})
     omitted_files = scope.get("omitted_files", [])
 
     lines = [
-        COMMENT_MARKER,
+        SUMMARY_COMMENT_MARKER,
         f"## {COMMENT_TITLE}",
         "",
         f"- Verdict: `{verdict}`",
         f"- Model label: `{model}` / `{reasoning_effort}`",
         "- Review scope: `changed files only`",
         "- Context strategy: `patch-first`, with same-file content added only when patch context was thin",
-        "- Comment transport: `github-actions[bot]` via workflow token",
+        "- Comment identity: `github-actions[bot]` via workflow `GITHUB_TOKEN`",
     ]
 
     if scope:
+        head_sha = str(scope.get("head_sha", ""))
+        if head_sha:
+            lines.append(f"- Reviewed head SHA: `{head_sha[:12]}`")
         lines.append(
             f"- Files deeply reviewed: `{scope.get('included_files_count', 0)}/{scope.get('changed_files_count', 0)}`"
         )
-        lines.append(f"- Review chunks: `{scope.get('chunk_count', 0)}`")
+        lines.append(
+            f"- Model review chunks: `{scope.get('chunk_count', 0)}/{scope.get('max_chunks', scope.get('chunk_count', 0))}`"
+        )
         if omitted_files:
             lines.append(f"- Files skipped from deep review: `{len(omitted_files)}`")
+    lines.append(f"- Inline review comments posted: `{review_publication['published_count']}/{review_publication['total_findings']}`")
+    if review_publication["omitted_count"] > 0:
+        lines.append(f"- Findings not posted inline: `{review_publication['omitted_count']}`")
+    if review_publication["status"] == "skipped_duplicate":
+        lines.append("- Inline review submission: `skipped for same head SHA`")
 
     lines.extend(["", review["summary"]])
 
@@ -745,17 +860,17 @@ def render_comment(review: dict[str, Any], *, model: str, reasoning_effort: str)
 
     findings = review["findings"]
     if findings:
+        display_findings = review_publication["published_findings"] or findings[: min(len(findings), 4)]
         lines.extend(["", "### Findings"])
-        for item in findings:
+        for item in display_findings:
             location = item["file"] or "(file not provided)"
             if item["line"] > 0:
                 location = f"{location}:{item['line']}"
-            lines.extend(
-                [
-                    f"- [{item['severity']}] `{location}` {item['title']}",
-                    f"  {item['body']}",
-                ]
-            )
+            lines.append(f"- [{item['severity']}] `{location}` {item['title']}")
+        if review_publication["omitted_count"] > 0 or len(display_findings) < len(findings):
+            remaining = max(len(findings) - len(display_findings), 0)
+            if remaining > 0:
+                lines.append(f"- ... and {remaining} more finding(s) not posted inline")
     else:
         lines.extend(["", "No actionable findings in the reviewed file scope."])
 
@@ -767,10 +882,23 @@ def write_step_summary(review: dict[str, Any]) -> None:
     if not summary_path:
         return
 
-    body = render_comment(
+    body = render_summary_comment(
         review,
         model=os.getenv("OPENAI_MODEL", "unknown"),
         reasoning_effort=os.getenv("OPENAI_REASONING_EFFORT", "unknown"),
+        review_publication={
+            "status": "step_summary",
+            "published_count": min(
+                len(review.get("findings", [])),
+                env_int("AI_REVIEW_MAX_COMMENTS", 4),
+            ),
+            "total_findings": len(review.get("findings", [])),
+            "omitted_count": max(
+                len(review.get("findings", [])) - env_int("AI_REVIEW_MAX_COMMENTS", 4),
+                0,
+            ),
+            "published_findings": review.get("findings", [])[: env_int("AI_REVIEW_MAX_COMMENTS", 4)],
+        },
     )
     Path(summary_path).write_text(body, encoding="utf-8")
 
@@ -783,7 +911,7 @@ def upsert_issue_comment(*, repo: str, issue_number: int, github_token: str, bod
     )
 
     existing_comment = next(
-        (item for item in comments if COMMENT_MARKER in (item.get("body") or "")),
+        (item for item in comments if SUMMARY_COMMENT_MARKER in (item.get("body") or "")),
         None,
     )
 
@@ -802,6 +930,215 @@ def upsert_issue_comment(*, repo: str, issue_number: int, github_token: str, bod
         path=f"/repos/{repo}/issues/{issue_number}/comments",
         payload={"body": body},
     )
+
+
+def publish_pull_request_review(
+    *,
+    repo: str,
+    pr_number: int,
+    head_sha: str,
+    file_index: dict[str, dict[str, str]],
+    review: dict[str, Any],
+    max_comments: int,
+    github_token: str,
+    model: str,
+    reasoning_effort: str,
+) -> dict[str, Any]:
+    findings = review.get("findings", [])
+    publication = {
+        "status": "skipped_no_findings",
+        "published_count": 0,
+        "total_findings": len(findings),
+        "omitted_count": len(findings),
+        "published_findings": [],
+    }
+    if not findings or not head_sha:
+        return publication
+
+    existing_review = find_existing_review_for_head(
+        repo=repo,
+        pr_number=pr_number,
+        head_sha=head_sha,
+        github_token=github_token,
+    )
+    if existing_review:
+        publication["status"] = "skipped_duplicate"
+        return publication
+
+    comments = []
+    published_findings = []
+    for finding in findings:
+        if len(comments) >= max_comments:
+            break
+        location = build_review_comment_location(
+            file_info=file_index.get(finding["file"]),
+            preferred_line=finding["line"],
+        )
+        if not location:
+            continue
+        comments.append(
+            {
+                "path": finding["file"],
+                "line": location["line"],
+                "side": "RIGHT",
+                "body": render_inline_comment(finding),
+            }
+        )
+        published_findings.append(finding)
+
+    if not comments:
+        publication["status"] = "skipped_unanchorable"
+        return publication
+
+    create_pull_request_review(
+        repo=repo,
+        pr_number=pr_number,
+        github_token=github_token,
+        payload={
+            "commit_id": head_sha,
+            "event": "COMMENT",
+            "body": render_pull_request_review_body(
+                review=review,
+                model=model,
+                reasoning_effort=reasoning_effort,
+                published_count=len(comments),
+                total_findings=len(findings),
+            ),
+            "comments": comments,
+        },
+    )
+    publication["status"] = "created"
+    publication["published_count"] = len(comments)
+    publication["published_findings"] = published_findings
+    publication["omitted_count"] = max(len(findings) - len(published_findings), 0)
+    return publication
+
+
+def render_pull_request_review_body(
+    *,
+    review: dict[str, Any],
+    model: str,
+    reasoning_effort: str,
+    published_count: int,
+    total_findings: int,
+) -> str:
+    scope = review.get("scope", {})
+    lines = [
+        REVIEW_MARKER,
+        f"## {COMMENT_TITLE}",
+        "",
+        f"- Verdict: `{review['verdict'].upper()}`",
+        f"- Model label: `{model}` / `{reasoning_effort}`",
+        "- Review mode: `inline PR review comments`",
+        f"- Reviewed head SHA: `{str(scope.get('head_sha', ''))[:12]}`",
+        f"- Inline comments in this review: `{published_count}/{total_findings}`",
+        "",
+        review["summary"],
+    ]
+    if total_findings > published_count:
+        lines.append("")
+        lines.append(f"Additional findings omitted by cap or anchoring limits: `{total_findings - published_count}`")
+    return "\n".join(lines).strip() + "\n"
+
+
+def render_inline_comment(finding: dict[str, Any]) -> str:
+    return f"[{finding['severity']}] {finding['title']}\n\n{finding['body']}"
+
+
+def find_existing_review_for_head(
+    *,
+    repo: str,
+    pr_number: int,
+    head_sha: str,
+    github_token: str,
+) -> dict[str, Any] | None:
+    reviews = github_api_request(
+        github_token=github_token,
+        method="GET",
+        path=f"/repos/{repo}/pulls/{pr_number}/reviews?per_page=100",
+    )
+    return next(
+        (
+            item
+            for item in reviews
+            if item.get("commit_id") == head_sha
+            and REVIEW_MARKER in (item.get("body") or "")
+            and (item.get("user", {}) or {}).get("login") == GITHUB_ACTIONS_BOT_LOGIN
+        ),
+        None,
+    )
+
+
+def create_pull_request_review(
+    *,
+    repo: str,
+    pr_number: int,
+    github_token: str,
+    payload: dict[str, Any],
+) -> Any:
+    return github_api_request(
+        github_token=github_token,
+        method="POST",
+        path=f"/repos/{repo}/pulls/{pr_number}/reviews",
+        payload=payload,
+    )
+
+
+def build_review_comment_location(
+    *,
+    file_info: dict[str, str] | None,
+    preferred_line: int,
+) -> dict[str, int] | None:
+    if not file_info:
+        return None
+
+    reviewable_lines = extract_reviewable_right_side_lines(file_info.get("patch", ""))
+    if not reviewable_lines:
+        return None
+    if preferred_line in reviewable_lines:
+        return {"line": preferred_line}
+
+    nearest_line = min(reviewable_lines, key=lambda value: abs(value - preferred_line))
+    if preferred_line > 0 and abs(nearest_line - preferred_line) <= 10:
+        return {"line": nearest_line}
+    if preferred_line <= 0:
+        return {"line": min(reviewable_lines)}
+    return None
+
+
+def extract_reviewable_right_side_lines(patch: str) -> set[int]:
+    reviewable_lines: set[int] = set()
+    old_line = 0
+    new_line = 0
+
+    for raw_line in patch.splitlines():
+        if raw_line.startswith("@@"):
+            old_line, new_line = parse_hunk_header(raw_line)
+            continue
+        if raw_line.startswith("+") and not raw_line.startswith("+++"):
+            reviewable_lines.add(new_line)
+            new_line += 1
+            continue
+        if raw_line.startswith("-") and not raw_line.startswith("---"):
+            old_line += 1
+            continue
+        if raw_line.startswith(" "):
+            reviewable_lines.add(new_line)
+            old_line += 1
+            new_line += 1
+
+    return reviewable_lines
+
+
+def parse_hunk_header(line: str) -> tuple[int, int]:
+    header = line.split("@@", maxsplit=2)[1].strip()
+    old_part, new_part = header.split(" ")
+    return parse_hunk_start(old_part), parse_hunk_start(new_part)
+
+
+def parse_hunk_start(part: str) -> int:
+    raw_value = part[1:].split(",", maxsplit=1)[0]
+    return coerce_int(raw_value)
 
 
 def github_api_request(
