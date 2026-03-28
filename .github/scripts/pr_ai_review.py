@@ -13,10 +13,11 @@ from typing import Any
 
 SUMMARY_COMMENT_MARKER = "<!-- openai-gpt54-xhigh-pr-review-summary -->"
 REVIEW_MARKER = "<!-- openai-gpt54-xhigh-pr-review -->"
-COMMENT_TITLE = "OpenAI GPT-5.4 xhigh PR Review"
+COMMENT_TITLE = "OpenAI GPT-5.4 PR 审查"
 GITHUB_API_VERSION = "2022-11-28"
 GITHUB_ACTIONS_BOT_LOGIN = "github-actions[bot]"
 OPENAI_REVIEW_USER_AGENT = os.getenv("OPENAI_REVIEW_USER_AGENT", "kaizao-ai-review/1.0")
+OPENAI_BRAND_MARK = '<img src="https://avatars.githubusercontent.com/u/14957082?s=40&v=4" alt="OpenAI" width="18" height="18" />'
 
 TEXT_FILE_EXTENSIONS = {
     ".c",
@@ -247,7 +248,7 @@ def build_review_scope(*, repo: str, pr: dict[str, Any], github_token: str) -> d
 
         change_summaries.append(summarize_file_change(file_info))
         if len(review_sections) >= max_files:
-            omitted_files.append(f"{filename} (review file cap reached)")
+            omitted_files.append(f"{filename}（超过深度审查文件上限）")
             continue
 
         included, payload = build_file_review_section(
@@ -274,7 +275,7 @@ def build_review_scope(*, repo: str, pr: dict[str, Any], github_token: str) -> d
         max_chunk_chars=max_chunk_chars,
         max_chunks=max_chunks,
     )
-    omitted_files.extend(f"{filename} (review chunk cap reached)" for filename in pack_result["omitted_files"])
+    omitted_files.extend(f"{filename}（超过审查分块上限）" for filename in pack_result["omitted_files"])
     included_sections = pack_result["included_sections"]
     return {
         "changed_files_count": len(change_summaries),
@@ -447,7 +448,7 @@ def pack_review_sections(
 ) -> dict[str, Any]:
     if not review_sections:
         return {
-            "chunks": [{"files": [], "text": "No reviewable changed files were included in scope."}],
+            "chunks": [{"files": [], "text": "当前审查范围内没有可审查的变更文件。"}],
             "included_sections": [],
             "omitted_files": [],
         }
@@ -847,7 +848,7 @@ def normalize_review(review: dict[str, Any]) -> dict[str, Any]:
     elif not findings and verdict == "fail":
         verdict = "warn"
 
-    summary = str(review.get("summary", "")).strip() or "No summary provided."
+    summary = str(review.get("summary", "")).strip() or "未提供摘要。"
     findings.sort(key=lambda item: (-severity_rank(item["severity"]), item["file"], item["line"]))
     return {
         "verdict": verdict,
@@ -902,22 +903,38 @@ def build_scope_summary(*, scope: dict[str, Any], findings: list[dict[str, Any]]
 
     if findings_count == 0:
         summary = (
-            f"Reviewed {included}/{changed} changed files with file-scoped context "
-            f"across {chunks} chunk(s). No actionable findings."
+            f"已基于文件级上下文审查 {included}/{changed} 个变更文件，"
+            f"共拆分为 {chunks} 个审查分块。未发现需要处理的问题。"
         )
     else:
         summary = (
-            f"Reviewed {included}/{changed} changed files with file-scoped context "
-            f"across {chunks} chunk(s). Found {findings_count} actionable issue(s)."
+            f"已基于文件级上下文审查 {included}/{changed} 个变更文件，"
+            f"共拆分为 {chunks} 个审查分块。发现 {findings_count} 个需要处理的问题。"
         )
 
     if omitted > 0:
-        summary += f" Skipped {omitted} non-text, generated, or over-cap file(s)."
+        summary += f" 跳过了 {omitted} 个非文本、生成产物或超出上限的文件。"
     return summary
 
 
 def severity_rank(value: str) -> int:
     return {"low": 1, "medium": 2, "high": 3}.get(value, 0)
+
+
+def display_verdict(value: str) -> str:
+    return {
+        "pass": "通过",
+        "warn": "警告",
+        "fail": "阻塞",
+    }.get(value.lower(), value.upper())
+
+
+def display_severity(value: str) -> str:
+    return {
+        "low": "低",
+        "medium": "中",
+        "high": "高",
+    }.get(value, value)
 
 
 def render_summary_comment(
@@ -927,63 +944,63 @@ def render_summary_comment(
     reasoning_effort: str,
     review_publication: dict[str, Any],
 ) -> str:
-    verdict = review["verdict"].upper()
+    verdict = display_verdict(review["verdict"])
     scope = review.get("scope", {})
     omitted_files = scope.get("omitted_files", [])
 
     lines = [
         SUMMARY_COMMENT_MARKER,
-        f"## {COMMENT_TITLE}",
+        f"## {OPENAI_BRAND_MARK} {COMMENT_TITLE}",
         "",
-        f"- Verdict: `{verdict}`",
-        f"- Model label: `{model}` / `{reasoning_effort}`",
-        "- Review scope: `changed files only`",
-        "- Context strategy: `patch-first`, with same-file content added only when patch context was thin",
-        "- Comment identity: `github-actions[bot]` via workflow `GITHUB_TOKEN`",
+        f"- 结论：`{verdict}`",
+        f"- 模型：`{model}`",
+        "- 审查范围：`仅本次变更文件`",
+        "- 上下文策略：`patch-first`，仅在补丁上下文不足时补充同文件内容",
+        "- 评论身份：`github-actions[bot]`，通过 workflow `GITHUB_TOKEN` 发布",
     ]
 
     if scope:
         head_sha = str(scope.get("head_sha", ""))
         if head_sha:
-            lines.append(f"- Reviewed head SHA: `{head_sha[:12]}`")
+            lines.append(f"- 审查的 head SHA：`{head_sha[:12]}`")
         lines.append(
-            f"- Files deeply reviewed: `{scope.get('included_files_count', 0)}/{scope.get('changed_files_count', 0)}`"
+            f"- 深度审查文件：`{scope.get('included_files_count', 0)}/{scope.get('changed_files_count', 0)}`"
         )
         lines.append(
-            f"- Model review chunks: `{scope.get('chunk_count', 0)}/{scope.get('max_chunks', scope.get('chunk_count', 0))}`"
+            f"- 模型审查分块：`{scope.get('chunk_count', 0)}/{scope.get('max_chunks', scope.get('chunk_count', 0))}`"
         )
         if omitted_files:
-            lines.append(f"- Files skipped from deep review: `{len(omitted_files)}`")
-    lines.append(f"- Inline review comments posted: `{review_publication['published_count']}/{review_publication['total_findings']}`")
+            lines.append(f"- 跳过深度审查的文件：`{len(omitted_files)}`")
+    lines.append(f"- 已发布行内评论：`{review_publication['published_count']}/{review_publication['total_findings']}`")
     if review_publication["omitted_count"] > 0:
-        lines.append(f"- Findings not posted inline: `{review_publication['omitted_count']}`")
+        lines.append(f"- 未以内联形式发布的问题：`{review_publication['omitted_count']}`")
     if review_publication["status"] == "skipped_duplicate":
-        lines.append("- Inline review submission: `skipped for same head SHA`")
+        lines.append("- 行内审查提交：`相同 head SHA，已跳过重复提交`")
 
     lines.extend(["", review["summary"]])
 
     if omitted_files:
-        lines.extend(["", "### Skipped Files"])
+        lines.extend(["", "### 已跳过文件"])
         for item in omitted_files[:8]:
             lines.append(f"- {item}")
         if len(omitted_files) > 8:
-            lines.append(f"- ... and {len(omitted_files) - 8} more")
+            lines.append(f"- 其余还有 {len(omitted_files) - 8} 个")
 
     findings = review["findings"]
     if findings:
         display_findings = review_publication["published_findings"] or findings[: min(len(findings), 4)]
-        lines.extend(["", "### Findings"])
+        lines.extend(["", "### 问题"])
         for item in display_findings:
-            location = item["file"] or "(file not provided)"
+            location = item["file"] or "（未提供文件）"
             if item["line"] > 0:
                 location = f"{location}:{item['line']}"
-            lines.append(f"- [{item['severity']}] `{location}` {item['title']}")
+            lines.append(f"- [{display_severity(item['severity'])}] `{location}` {item['title']}")
         if review_publication["omitted_count"] > 0 or len(display_findings) < len(findings):
             remaining = max(len(findings) - len(display_findings), 0)
             if remaining > 0:
-                lines.append(f"- ... and {remaining} more finding(s) not posted inline")
+                lines.append(f"- 另外还有 {remaining} 个问题未以内联形式发布")
     else:
-        lines.extend(["", "No actionable findings in the reviewed file scope."])
+        lines.extend(["", "在本次审查范围内未发现需要处理的问题。"])
 
     return "\n".join(lines).strip() + "\n"
 
@@ -1136,24 +1153,24 @@ def render_pull_request_review_body(
     scope = review.get("scope", {})
     lines = [
         REVIEW_MARKER,
-        f"## {COMMENT_TITLE}",
+        f"## {OPENAI_BRAND_MARK} {COMMENT_TITLE}",
         "",
-        f"- Verdict: `{review['verdict'].upper()}`",
-        f"- Model label: `{model}` / `{reasoning_effort}`",
-        "- Review mode: `inline PR review comments`",
-        f"- Reviewed head SHA: `{str(scope.get('head_sha', ''))[:12]}`",
-        f"- Inline comments in this review: `{published_count}/{total_findings}`",
+        f"- 结论：`{display_verdict(review['verdict'])}`",
+        f"- 模型：`{model}`",
+        "- 审查方式：`PR 行内评论`",
+        f"- 审查的 head SHA：`{str(scope.get('head_sha', ''))[:12]}`",
+        f"- 本次已发布行内评论：`{published_count}/{total_findings}`",
         "",
         review["summary"],
     ]
     if total_findings > published_count:
         lines.append("")
-        lines.append(f"Additional findings omitted by cap or anchoring limits: `{total_findings - published_count}`")
+        lines.append(f"还有 `{total_findings - published_count}` 个问题因数量上限或锚点限制未发布。")
     return "\n".join(lines).strip() + "\n"
 
 
 def render_inline_comment(finding: dict[str, Any]) -> str:
-    return f"[{finding['severity']}] {finding['title']}\n\n{finding['body']}"
+    return f"[{display_severity(finding['severity'])}] {finding['title']}\n\n{finding['body']}"
 
 
 def find_existing_review_for_head(
