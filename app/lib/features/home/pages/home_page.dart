@@ -16,7 +16,6 @@ import '../widgets/expert_home_team_opportunities.dart';
 import '../widgets/home_ai_card.dart';
 import '../widgets/home_category_grid.dart';
 import '../widgets/home_expert_section.dart';
-import '../widgets/home_ongoing_project_section.dart';
 import '../widgets/home_project_section.dart';
 import '../widgets/home_skill_heat.dart';
 import '../widgets/home_skeleton.dart';
@@ -73,33 +72,33 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ],
               )
             : homeState.errorMessage != null
-                ? _buildError(homeState.errorMessage!)
-                : RefreshIndicator(
-                    color: AppColors.black,
-                    backgroundColor: AppColors.white,
-                    onRefresh: () => isDemander
-                        ? _refreshDemanderHome(ref)
-                        : ref.read(homeStateProvider.notifier).refresh(),
-                    child: CustomScrollView(
-                      controller: _scrollController,
-                      physics: homePhysics,
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: _HomeAppBar(onLogoTap: _scrollToTop),
-                        ),
-                        if (isDemander)
-                          ..._buildDemanderSlices(
-                            context,
-                            ref,
-                            homeState,
-                            projectListState?.projects ?? const [],
-                          )
-                        else
-                          ..._buildExpertSlices(context, ref, homeState),
-                        const SliverToBoxAdapter(child: SizedBox(height: 108)),
-                      ],
+            ? _buildError(homeState.errorMessage!)
+            : RefreshIndicator(
+                color: AppColors.black,
+                backgroundColor: AppColors.white,
+                onRefresh: () => isDemander
+                    ? _refreshDemanderHome(ref)
+                    : ref.read(homeStateProvider.notifier).refresh(),
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  physics: homePhysics,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _HomeAppBar(onLogoTap: _scrollToTop),
                     ),
-                  ),
+                    if (isDemander)
+                      ..._buildDemanderSlices(
+                        context,
+                        ref,
+                        homeState,
+                        projectListState?.projects ?? const [],
+                      )
+                    else
+                      ..._buildExpertSlices(context, ref, homeState),
+                    const SliverToBoxAdapter(child: SizedBox(height: 108)),
+                  ],
+                ),
+              ),
       ),
     );
   }
@@ -124,11 +123,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   ) {
     final data = state.demanderData;
     final homeProjects = data?.myProjects ?? const <ProjectModel>[];
-    final allProjects =
-        homeProjects.isNotEmpty ? homeProjects : fallbackProjects;
-    final ongoingProjects = allProjects.where(_isOngoingProject).toList();
-    final otherProjects =
-        allProjects.where((project) => !_isOngoingProject(project)).toList();
+    final allProjects = _prioritizeHomeProjects(
+      homeProjects.isNotEmpty ? homeProjects : fallbackProjects,
+    );
 
     return [
       SliverToBoxAdapter(
@@ -149,11 +146,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
         ),
-      SliverToBoxAdapter(
-        child: HomeOngoingProjectSection(projects: ongoingProjects),
-      ),
-      if (otherProjects.isNotEmpty)
-        SliverToBoxAdapter(child: HomeProjectSection(projects: otherProjects)),
+      SliverToBoxAdapter(child: HomeProjectSection(projects: allProjects)),
       if (data != null && data.recommendedExperts.isNotEmpty)
         SliverToBoxAdapter(
           child: HomeExpertSection(
@@ -195,15 +188,63 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-bool _isOngoingProject(ProjectModel project) {
-  return project.status == 4 || project.status == 5 || project.status == 6;
-}
-
 Future<void> _refreshDemanderHome(WidgetRef ref) async {
   await Future.wait([
     ref.read(homeStateProvider.notifier).refresh(),
     ref.read(projectListProvider.notifier).refresh(),
   ]);
+}
+
+List<ProjectModel> _prioritizeHomeProjects(List<ProjectModel> projects) {
+  final sortedProjects = [...projects];
+
+  sortedProjects.sort((left, right) {
+    final rankCompare = _homeProjectRank(left).compareTo(
+      _homeProjectRank(right),
+    );
+    if (rankCompare != 0) return rankCompare;
+
+    final leftDeadline = left.deadlineAt;
+    final rightDeadline = right.deadlineAt;
+    if (leftDeadline != null && rightDeadline != null) {
+      final deadlineCompare = leftDeadline.compareTo(rightDeadline);
+      if (deadlineCompare != 0) return deadlineCompare;
+    } else if (leftDeadline != null || rightDeadline != null) {
+      return leftDeadline == null ? 1 : -1;
+    }
+
+    final createdCompare = right.createdAt.compareTo(left.createdAt);
+    if (createdCompare != 0) return createdCompare;
+
+    return right.progress.compareTo(left.progress);
+  });
+
+  return sortedProjects;
+}
+
+int _homeProjectRank(ProjectModel project) {
+  switch (project.status) {
+    case 9:
+      return 0;
+    case 6:
+      return 1;
+    case 5:
+      return 2;
+    case 4:
+      return 3;
+    case 3:
+      return 4;
+    case 2:
+      return 5;
+    case 1:
+      return 6;
+    case 7:
+      return 7;
+    case 8:
+      return 8;
+    default:
+      return 9;
+  }
 }
 
 class _HomeAppBar extends ConsumerWidget {

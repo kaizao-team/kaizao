@@ -206,7 +206,7 @@ class RatingAgent(ToolUseBaseAgent):
         self._report = {}
         self._review_tags = {}
 
-        messages = [{"role": "user", "content": f"请评估以下造物者的简历并进行 VibeBuild 定级：\n\n{resume_text}"}]
+        messages = [{"role": "user", "content": f"请评估以下团队方的简历并进行 VibeBuild 定级：\n\n{resume_text}"}]
 
         updated_messages, last_tool = await self.run(
             messages=messages,
@@ -239,7 +239,7 @@ class RatingAgent(ToolUseBaseAgent):
         self._report = {}
         self._review_tags = {}
 
-        messages = [{"role": "user", "content": f"请评估以下造物者的简历并进行 VibeBuild 定级：\n\n{resume_text}"}]
+        messages = [{"role": "user", "content": f"请评估以下团队方的简历并进行 VibeBuild 定级：\n\n{resume_text}"}]
 
         async for event in self.run_stream(
             messages=messages,

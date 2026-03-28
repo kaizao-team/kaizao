@@ -7,7 +7,7 @@ Anthropic tool use 格式 — vc-T 序列 10 级体系
 
 PARSE_RESUME_TOOL = {
     "name": "parse_resume",
-    "description": "解析造物者的简历/履历文本，提取结构化信息（技能树、项目经历、AI 工具经验、教育背景、评审标签等）。",
+    "description": "解析团队方的简历/履历文本，提取结构化信息（技能树、项目经历、AI 工具经验、教育背景、评审标签等）。",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -214,7 +214,7 @@ PARSE_RESUME_TOOL = {
 
 EVALUATE_SKILLS_TOOL = {
     "name": "evaluate_skills",
-    "description": "对造物者进行五维度能力评分（0-100 每维度），计算 VibePower 总积分（满分 750）。",
+    "description": "对团队方进行五维度能力评分（0-100 每维度），计算 VibePower 总积分（满分 750）。",
     "input_schema": {
         "type": "object",
         "properties": {

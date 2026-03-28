@@ -43,16 +43,16 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  造物者评级（vc-T 序列 10 级）                                     │
+│  团队方评级（vc-T 序列 10 级）                                     │
 │    POST /rating/evaluate/file    ← 上传简历文件 → AI 定级          │
 │    POST /rating/evaluate/text    ← 纯文本简历 → AI 定级            │
 │    POST /rating/evaluate/stream/* ← SSE 流式定级                  │
-│    GET  /rating/{id}/profile     ← 查看造物者档案                  │
+│    GET  /rating/{id}/profile     ← 查看团队方档案                  │
 │    GET  /rating/{id}/history     ← 积分变动流水                    │
 │    POST /rating/{id}/adjust      ← 平台内部积分调整                │
 │                                                                   │
 │  智能匹配                                                         │
-│    POST /match/recommend         ← 为需求推荐造物者                │
+│    POST /match/recommend         ← 为需求推荐团队方                │
 │                                                                   │
 │  对话助手                                                         │
 │    POST /chat/message            ← 意图识别 + 多轮对话             │
@@ -419,9 +419,9 @@ GET /api/v2/pm/{project_id}/document
 
 ---
 
-## 六、造物者评分定级接口
+## 六、团队方评分定级接口
 
-造物者（供给方）的 AI 能力评估与 VibeBuild 等级定级系统。通过 AI 解析简历进行初始化定级，后续根据平台行为动态积分升降级。
+团队方（供给方）的 AI 能力评估与 VibeBuild 等级定级系统。通过 AI 解析简历进行初始化定级，后续根据平台行为动态积分升降级。
 
 ### VibeBuild vc-T 序列等级体系
 
@@ -491,7 +491,7 @@ GET /api/v2/pm/{project_id}/document
 
 ### 6.1 AI 初始化定级 — 文件上传版（推荐）
 
-> **Swagger 测试方式:** 打开 `/docs`，在 `v2-造物者评分定级` 分组中找到此接口，可直接上传文件。
+> **Swagger 测试方式:** 打开 `/docs`，在 `v2-团队方评分定级` 分组中找到此接口，可直接上传文件。
 
 ```
 POST /api/v2/rating/evaluate/file
@@ -673,9 +673,9 @@ curl -N -X POST http://localhost:8000/api/v2/rating/evaluate/stream/file \
   -F "display_name=张三"
 ```
 
-### 6.4 查看造物者档案
+### 6.4 查看团队方档案
 
-获取指定造物者的完整档案，包含等级、五维度评分、技能树、统计数据、距离下一级的差距。
+获取指定团队方的完整档案，包含等级、五维度评分、技能树、统计数据、距离下一级的差距。
 
 ```
 GET /api/v2/rating/{provider_id}/profile
@@ -731,7 +731,7 @@ GET /api/v2/rating/{provider_id}/profile
 
 ### 6.5 查看积分变动历史
 
-获取造物者的 VibePower 积分变动流水记录，支持分页。
+获取团队方的 VibePower 积分变动流水记录，支持分页。
 
 ```
 GET /api/v2/rating/{provider_id}/history?limit=50&offset=0
@@ -776,7 +776,7 @@ GET /api/v2/rating/{provider_id}/history?limit=50&offset=0
 
 ### 6.6 积分调整（平台内部调用）
 
-根据造物者在平台上的行为进行积分加减，系统自动计算等级升降。
+根据团队方在平台上的行为进行积分加减，系统自动计算等级升降。
 
 ```
 POST /api/v2/rating/{provider_id}/adjust
@@ -848,7 +848,7 @@ Content-Type: application/json
 
 ### 7.1 智能匹配推荐
 
-为需求方推荐合适的造物者，基于向量检索 + 多维评分 + LLM 推荐理由。
+为需求方推荐合适的团队方，基于向量检索 + 多维评分 + LLM 推荐理由。
 
 ```
 POST /api/v2/match/recommend
@@ -1040,8 +1040,8 @@ const confirmRes = await fetch(`/api/v2/requirement/${projectId}/confirm`, {
 | `POST /api/v2/design/{id}/start` | `POST /api/v2/design/{id}/start/stream` | 架构设计 |
 | `POST /api/v2/task/{id}/start` | `POST /api/v2/task/{id}/start/stream` | 任务分解 |
 | `POST /api/v2/pm/{id}/start` | `POST /api/v2/pm/{id}/start/stream` | 项目管理 |
-| `POST /api/v2/rating/evaluate/file` | `POST /api/v2/rating/evaluate/stream/file` | 造物者定级（文件） |
-| `POST /api/v2/rating/evaluate/text` | `POST /api/v2/rating/evaluate/stream/text` | 造物者定级（文本） |
+| `POST /api/v2/rating/evaluate/file` | `POST /api/v2/rating/evaluate/stream/file` | 团队方定级（文件） |
+| `POST /api/v2/rating/evaluate/text` | `POST /api/v2/rating/evaluate/stream/text` | 团队方定级（文本） |
 
 ### SSE 事件类型
 

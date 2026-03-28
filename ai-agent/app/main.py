@@ -189,7 +189,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="VibeBuild AI Agent Service",
-    description="开造平台 AI Agent 微服务 — 项目流水线 / 智能匹配 / 对话助手 / 造物者评级",
+    description="开造平台 AI Agent 微服务 — 项目流水线 / 智能匹配 / 对话助手 / 团队方评级",
     version=settings.app_version,
     lifespan=lifespan,
 )
