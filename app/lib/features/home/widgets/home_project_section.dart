@@ -134,7 +134,7 @@ class _MatchedProviderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final providerName = project.providerName ?? '已匹配造物者';
+    final providerName = project.providerName ?? '已匹配团队方';
 
     return Row(
       children: [
@@ -149,7 +149,7 @@ class _MatchedProviderRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                '造物者',
+                '团队方',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -203,7 +203,7 @@ class _PendingProviderRow extends StatelessWidget {
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              '正在匹配合适的造物者',
+              '正在匹配合适的团队方',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -355,7 +355,7 @@ Color _statusColor(ProjectModel project) {
 String _statusSummary(ProjectModel project) {
   switch (project.homeStatusName) {
     case '招募中':
-      return '需求已发布，正在等待合适的造物者响应。';
+      return '需求已发布，正在等待合适的团队方响应。';
     case '进行中':
       return '项目已经启动，当前交付正在稳步推进。';
     case '待验收':
