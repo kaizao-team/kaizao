@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS ai_provider_profiles (
     INDEX idx_ai_user (user_id),
     INDEX idx_ai_level (vibe_level, vibe_power)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='AI 造物者档案';
+  COMMENT='AI 团队方档案';
 
 -- 5. AI 积分变动记录表
 CREATE TABLE IF NOT EXISTS ai_vibe_power_logs (

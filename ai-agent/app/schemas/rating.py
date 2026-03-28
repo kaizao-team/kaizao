@@ -21,7 +21,7 @@ class EvaluateTextRequest(BaseModel):
 class AdjustPointsRequest(BaseModel):
     """积分调整请求
 
-    平台内部调用，用于根据造物者的行为进行加分或扣分。
+    平台内部调用，用于根据团队方的行为进行加分或扣分。
     """
     action: str = Field(
         ...,

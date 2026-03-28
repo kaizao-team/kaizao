@@ -1,7 +1,7 @@
 """
-开造 VibeBuild — 造物者评分定级 API 路由 (v2)
+开造 VibeBuild — 团队方评分定级 API 路由 (v2)
 
-提供造物者（供给方）的 AI 能力评估、VibeBuild 等级定级、积分管理等功能。
+提供团队方（供给方）的 AI 能力评估、VibeBuild 等级定级、积分管理等功能。
 支持简历文件上传（PDF / Word / Markdown）和纯文本两种方式。
 """
 
@@ -21,7 +21,7 @@ from app.utils.resume_parser import SUPPORTED_EXTENSIONS, parse_resume_file
 
 logger = structlog.get_logger()
 
-router = APIRouter(prefix="/api/v2/rating", tags=["v2-造物者评分定级"])
+router = APIRouter(prefix="/api/v2/rating", tags=["v2-团队方评分定级"])
 
 rating_repo = RatingRepository()
 
@@ -385,9 +385,9 @@ async def evaluate_provider_stream_text(
 @router.get(
     "/{provider_id}/profile",
     response_model=APIResponse,
-    summary="查看造物者档案",
+    summary="查看团队方档案",
     description="""
-获取指定造物者的完整档案信息，包括：
+获取指定团队方的完整档案信息，包括：
 - VibePower 积分 & 当前等级
 - 五维度评分详情
 - 技能树 & AI 工具经验
@@ -396,7 +396,7 @@ async def evaluate_provider_stream_text(
 """,
 )
 async def get_provider_profile(provider_id: str, request: Request):
-    """根据 provider_id 查询造物者的档案详情和等级信息"""
+    """根据 provider_id 查询团队方的档案详情和等级信息"""
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
 
     try:
@@ -425,7 +425,7 @@ async def get_provider_profile(provider_id: str, request: Request):
     response_model=APIResponse,
     summary="查看积分变动历史",
     description="""
-获取造物者的 VibePower 积分变动流水记录。
+获取团队方的 VibePower 积分变动流水记录。
 
 支持分页查询：
 - `limit`: 每页条数（默认 50）
@@ -438,7 +438,7 @@ async def get_power_history(
     limit: int = 50,
     offset: int = 0,
 ):
-    """查询造物者积分变动记录，支持分页"""
+    """查询团队方积分变动记录，支持分页"""
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
 
     try:
@@ -462,7 +462,7 @@ async def get_power_history(
     response_model=APIResponse,
     summary="积分调整（平台内部）",
     description="""
-根据造物者的平台行为进行积分加减，自动触发等级升降。
+根据团队方的平台行为进行积分加减，自动触发等级升降。
 
 ### 加分行为
 | action | 积分 | 说明 |
@@ -485,7 +485,7 @@ async def get_power_history(
 """,
 )
 async def adjust_points(provider_id: str, req: AdjustPointsRequest, request: Request):
-    """对造物者进行积分加减调整，自动计算等级变化"""
+    """对团队方进行积分加减调整，自动计算等级变化"""
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
 
     try:
