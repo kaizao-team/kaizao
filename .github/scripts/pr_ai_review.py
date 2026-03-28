@@ -16,6 +16,7 @@ REVIEW_MARKER = "<!-- openai-gpt54-xhigh-pr-review -->"
 COMMENT_TITLE = "OpenAI GPT-5.4 xhigh PR Review"
 GITHUB_API_VERSION = "2022-11-28"
 GITHUB_ACTIONS_BOT_LOGIN = "github-actions[bot]"
+OPENAI_REVIEW_USER_AGENT = os.getenv("OPENAI_REVIEW_USER_AGENT", "kaizao-ai-review/1.0")
 
 TEXT_FILE_EXTENSIONS = {
     ".c",
@@ -670,7 +671,9 @@ def run_openai_review(
         method="POST",
         headers={
             "Authorization": f"Bearer {api_key}",
+            "Accept": "application/json",
             "Content-Type": "application/json",
+            "User-Agent": OPENAI_REVIEW_USER_AGENT,
         },
     )
 
