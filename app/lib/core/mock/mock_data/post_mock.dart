@@ -102,7 +102,7 @@ class PostMock {
                   {
                     'id': 'ac_001',
                     'content': '手机号格式校验（11位数字）',
-                    'checked': false
+                    'checked': false,
                   },
                   {'id': 'ac_002', 'content': '验证码60秒倒计时', 'checked': false},
                   {'id': 'ac_003', 'content': '3次错误后锁定5分钟', 'checked': false},
@@ -259,7 +259,7 @@ class PostMock {
       'owner_name': 'KAIZAO 用户',
       'title': '未命名需求草稿',
       'description': '项目方正在完善项目描述，发布后会补充完整的业务背景、目标与交付要求。',
-      'category': data['category']?.toString() ?? 'web',
+      'category': _normalizeCategory(data['category']?.toString()),
       'budget_min': (data['budget_min'] as num?)?.toDouble() ?? 1000,
       'budget_max': (data['budget_max'] as num?)?.toDouble() ?? 5000,
       'match_mode': data['match_mode'] as int? ?? 1,
@@ -304,6 +304,9 @@ class PostMock {
       ...data,
       'id': current['id'] ?? projectId,
       'uuid': current['uuid'] ?? projectId,
+      'category': _normalizeCategory(
+        (data['category'] ?? current['category'])?.toString(),
+      ),
       'status': current['status'] ?? 1,
       'status_text': '草稿',
     };
@@ -327,7 +330,7 @@ class PostMock {
           'owner_name': 'KAIZAO 用户',
           'title': '未命名需求',
           'description': '项目方正在完善项目描述，发布后会补充完整的业务背景、目标与交付要求。',
-          'category': 'web',
+          'category': 'dev',
           'budget_min': 1000,
           'budget_max': 5000,
           'match_mode': 1,
@@ -363,7 +366,7 @@ class PostMock {
       'owner_name': 'KAIZAO 用户',
       'title': data['title'] ?? 'AI 生成需求',
       'description': data['description'] ?? '来自发布流的需求描述',
-      'category': data['category']?.toString() ?? 'web',
+      'category': _normalizeCategory(data['category']?.toString()),
       'budget_min': (data['budget_min'] as num?)?.toDouble() ?? 5000,
       'budget_max': (data['budget_max'] as num?)?.toDouble() ?? 15000,
       'match_mode': data['match_mode'] as int? ?? 1,
@@ -382,5 +385,28 @@ class PostMock {
       'message': '项目发布成功',
       'data': project,
     };
+  }
+
+  static String _normalizeCategory(String? category) {
+    switch (category) {
+      case 'data':
+      case 'dev':
+      case 'visual':
+      case 'solution':
+        return category!;
+      case 'app':
+      case 'web':
+      case 'miniprogram':
+      case 'backend':
+        return 'dev';
+      case 'consult':
+        return 'solution';
+      case 'design':
+        return 'visual';
+      case 'ai':
+        return 'data';
+      default:
+        return 'dev';
+    }
   }
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/models/project_category.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 
@@ -13,21 +14,32 @@ class DemanderCompletePage extends ConsumerWidget {
   const DemanderCompletePage({super.key});
 
   String _displayCategoryLabel(String? value) {
-    switch (value) {
+    switch (value?.trim() ?? '') {
+      case 'APP开发':
+      case '网站开发':
+      case '小程序':
+      case 'dev':
       case 'app':
-        return 'APP开发';
       case 'web':
-        return '网站开发';
-      case 'miniprogram':
-        return '小程序';
+      case 'backend':
+        return '研发';
+      case 'UI设计':
+      case '品牌设计':
+      case 'visual':
       case 'design':
-        return '设计需求';
-      case 'consult':
-        return '技术指导';
+        return '视觉设计';
+      case '数据分析':
       case 'data':
-        return '数据分析';
+      case 'ai':
+        return '数据';
+      case '技术指导':
+      case '解决方案':
+      case 'solution':
+      case 'consult':
+      case 'other':
+        return '解决方案';
       default:
-        return '网站开发';
+        return projectCategoryLabel(value, fallback: '研发');
     }
   }
 
@@ -90,8 +102,9 @@ class DemanderCompletePage extends ConsumerWidget {
     final title = (draft['project_title'] as String?)?.trim().isNotEmpty == true
         ? draft['project_title'] as String
         : '需求已准备好，等待你推进下一步';
-    final category = draft['category_label'] as String? ??
-        _displayCategoryLabel(draft['category'] as String?);
+    final category = _displayCategoryLabel(
+      draft['category_label'] as String? ?? draft['category'] as String?,
+    );
     final budgetMin = draft['budget_min'] as num?;
     final budgetMax = draft['budget_max'] as num?;
     final projectId = draft['project_uuid'] as String?;

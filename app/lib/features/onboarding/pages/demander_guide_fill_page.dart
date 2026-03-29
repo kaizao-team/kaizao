@@ -23,12 +23,17 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   static const Map<String, String> _categoryValueMap = {
-    'APP开发': 'app',
-    '网站开发': 'web',
-    '小程序': 'miniprogram',
-    'UI设计': 'design',
-    '品牌设计': 'design',
-    '技术指导': 'consult',
+    '研发': 'dev',
+    '视觉设计': 'visual',
+    '数据': 'data',
+    '解决方案': 'solution',
+    // Legacy labels
+    'APP开发': 'dev',
+    '网站开发': 'dev',
+    '小程序': 'dev',
+    'UI设计': 'visual',
+    '品牌设计': 'visual',
+    '技术指导': 'solution',
   };
 
   late final AnimationController _controller = AnimationController(
@@ -40,14 +45,12 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
   double _budgetMin = 1000;
   double _budgetMax = 5000;
 
-  final _categories = const ['APP开发', '网站开发', '小程序', 'UI设计', '品牌设计', '技术指导'];
+  final _categories = const ['研发', '视觉设计', '数据', '解决方案'];
   final _categoryDescriptions = const {
-    'APP开发': '适合移动端产品、会员体系和完整功能交付。',
-    '网站开发': '适合官网、品牌页、活动页这类对外展示项目。',
-    '小程序': '适合微信场景里的轻服务、轻交互和快速验证。',
-    'UI设计': '适合把界面体验、交互节奏和视觉统一梳顺。',
-    '品牌设计': '适合把品牌气质、包装物料和视觉基调定下来。',
-    '技术指导': '适合先拆方案、定路线，再啃关键难点。',
+    '研发': '适合 App、网站、小程序与定制系统开发。',
+    '视觉设计': '适合 UI、品牌与视觉体验设计。',
+    '数据': '适合数据分析、数据产品与 AI 数据应用。',
+    '解决方案': '适合咨询、方案梳理、流程设计与技术路线规划。',
   };
 
   String? _labelForCategoryValue(String? value) {
@@ -60,15 +63,29 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
     return null;
   }
 
+  String _canonicalCategoryLabel(String? label, String? value) {
+    final fromValue = _labelForCategoryValue(value);
+    if (fromValue != null) return fromValue;
+
+    if (label != null && label.isNotEmpty) {
+      final mappedValue = _categoryValueMap[label];
+      final normalized = _labelForCategoryValue(mappedValue);
+      if (normalized != null) return normalized;
+    }
+
+    return '';
+  }
+
   @override
   void initState() {
     super.initState();
     final draft = ref.read(onboardingProvider).draft;
     _titleController.text = draft['project_title'] as String? ?? '';
     _descController.text = draft['project_desc'] as String? ?? '';
-    _selectedCategoryLabel = draft['category_label'] as String? ??
-        _labelForCategoryValue(draft['category'] as String?) ??
-        '';
+    _selectedCategoryLabel = _canonicalCategoryLabel(
+      draft['category_label'] as String?,
+      draft['category'] as String?,
+    );
     _budgetMin = (draft['budget_min'] as num?)?.toDouble() ?? 1000;
     _budgetMax = (draft['budget_max'] as num?)?.toDouble() ?? 5000;
     _controller.forward();
@@ -218,7 +235,7 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
         '¥${_formatBudget(_budgetMin)} - ¥${_formatBudget(_budgetMax)}';
     final categoryHint = _selectedCategoryLabel.isEmpty
         ? '先点亮一个方向，后面的匹配才有抓手。'
-        : _categoryDescriptions[_selectedCategoryLabel]!;
+        : (_categoryDescriptions[_selectedCategoryLabel] ?? '继续补充项目细节。');
     final briefStatusText = _selectedCategoryLabel.isEmpty
         ? '等待起笔'
         : _isValid

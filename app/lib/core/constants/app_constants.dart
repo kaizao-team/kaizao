@@ -52,12 +52,17 @@ class AppConstants {
   static const String complexityXL = 'XL';
 
   // 项目分类
-  static const String categoryApp = 'app';
-  static const String categoryWeb = 'web';
-  static const String categoryMiniprogram = 'miniprogram';
-  static const String categoryDesign = 'design';
+  static const String categoryDev = 'dev';
+  static const String categoryVisual = 'visual';
   static const String categoryData = 'data';
-  static const String categoryConsult = 'consult';
+  static const String categorySolution = 'solution';
+
+  // Legacy aliases
+  static const String categoryApp = categoryDev;
+  static const String categoryWeb = categoryDev;
+  static const String categoryMiniprogram = categoryDev;
+  static const String categoryDesign = categoryVisual;
+  static const String categoryConsult = categorySolution;
 
   // EARS类型
   static const String earsUbiquitous = 'ubiquitous';
