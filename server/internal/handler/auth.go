@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vibebuild/server/internal/dto"
@@ -244,6 +245,7 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 		"uuid":             user.UUID,
 		"nickname":         user.Nickname,
 		"avatar_url":       user.AvatarURL,
+		"contact_phone":    user.ContactPhone,
 		"role":             user.Role,
 		"onboarding_status":        user.OnboardingStatus,
 		"onboarding_submitted_at":  user.OnboardingSubmittedAt,
@@ -292,6 +294,14 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 	}
 	if req.City != nil {
 		fields["city"] = *req.City
+	}
+	if req.ContactPhone != nil {
+		cp := strings.TrimSpace(*req.ContactPhone)
+		if cp == "" {
+			fields["contact_phone"] = nil
+		} else {
+			fields["contact_phone"] = cp
+		}
 	}
 	if req.Role != nil {
 		fields["role"] = *req.Role

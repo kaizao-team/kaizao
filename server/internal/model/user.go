@@ -21,6 +21,7 @@ type User struct {
 	Gender          int16      `gorm:"default:0" json:"gender"`
 	Bio             *string    `gorm:"type:text" json:"bio"`
 	City            *string    `gorm:"type:varchar(50)" json:"city"`
+	ContactPhone    *string    `gorm:"column:contact_phone;type:varchar(20)" json:"contact_phone"`
 	RealName        *string    `gorm:"type:varchar(50)" json:"-"`
 	IDCardNo        *string    `gorm:"type:varchar(255)" json:"-"`
 	IsVerified      bool       `gorm:"not null;default:false" json:"is_verified"`

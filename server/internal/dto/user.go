@@ -7,6 +7,7 @@ type UpdateUserReq struct {
 	Gender          *int     `json:"gender" binding:"omitempty,oneof=0 1 2"`
 	Bio             *string  `json:"bio" binding:"omitempty,max=500"`
 	City            *string  `json:"city" binding:"omitempty"`
+	ContactPhone    *string  `json:"contact_phone" binding:"omitempty,max=20"`
 	Role            *int     `json:"role" binding:"omitempty,oneof=1 2 3"`
 	HourlyRate      *float64 `json:"hourly_rate" binding:"omitempty,min=0"`
 	AvailableStatus *int     `json:"available_status" binding:"omitempty,oneof=1 2 3"`

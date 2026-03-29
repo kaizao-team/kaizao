@@ -46,16 +46,17 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	}
 	stats := h.userService.GetUserStats(user)
 	response.Success(c, gin.H{
-		"id":           user.UUID,
-		"nickname":     user.Nickname,
-		"avatar":       user.AvatarURL,
-		"tagline":      user.Bio,
-		"role":         user.Role,
-		"rating":       user.AvgRating,
-		"credit_score": user.CreditScore,
-		"is_verified":  user.IsVerified,
-		"phone":        phone,
-		"wechat_bound": user.WechatOpenID != nil,
+		"id":             user.UUID,
+		"nickname":       user.Nickname,
+		"avatar":         user.AvatarURL,
+		"tagline":        user.Bio,
+		"role":           user.Role,
+		"rating":         user.AvgRating,
+		"credit_score":   user.CreditScore,
+		"is_verified":    user.IsVerified,
+		"phone":          phone,
+		"contact_phone":  user.ContactPhone,
+		"wechat_bound":   user.WechatOpenID != nil,
 		"stats":        stats,
 		"bio":          user.Bio,
 		"created_at":   user.CreatedAt,
@@ -65,9 +66,10 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	targetUUID := c.Param("id")
 	var req struct {
-		Nickname *string `json:"nickname"`
-		Tagline  *string `json:"tagline"`
-		Bio      *string `json:"bio"`
+		Nickname     *string `json:"nickname"`
+		Tagline      *string `json:"tagline"`
+		Bio          *string `json:"bio"`
+		ContactPhone *string `json:"contact_phone"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
@@ -82,6 +84,14 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 	if req.Bio != nil {
 		fields["bio"] = *req.Bio
+	}
+	if req.ContactPhone != nil {
+		cp := strings.TrimSpace(*req.ContactPhone)
+		if cp == "" {
+			fields["contact_phone"] = nil
+		} else {
+			fields["contact_phone"] = cp
+		}
 	}
 	if len(fields) == 0 {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "无可更新字段")
