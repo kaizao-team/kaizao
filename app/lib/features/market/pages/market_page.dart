@@ -12,8 +12,9 @@ import '../widgets/market_expert_card.dart';
 
 class MarketPage extends ConsumerStatefulWidget {
   final String? initialCategory;
+  final String? initialTab;
 
-  const MarketPage({super.key, this.initialCategory});
+  const MarketPage({super.key, this.initialCategory, this.initialTab});
 
   @override
   ConsumerState<MarketPage> createState() => _MarketPageState();
@@ -31,8 +32,23 @@ class _MarketPageState extends ConsumerState<MarketPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: _tabIndexFor(widget.initialTab),
+    );
     _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant MarketPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab != widget.initialTab) {
+      final targetIndex = _tabIndexFor(widget.initialTab);
+      if (_tabController.index != targetIndex) {
+        _tabController.index = targetIndex;
+      }
+    }
   }
 
   @override
@@ -48,6 +64,10 @@ class _MarketPageState extends ConsumerState<MarketPage>
         _scrollController.position.maxScrollExtent - 100) {
       ref.read(_marketProvider.notifier).loadMore();
     }
+  }
+
+  int _tabIndexFor(String? value) {
+    return value == 'experts' ? 1 : 0;
   }
 
   @override
