@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import re
 import sys
 import textwrap
 import urllib.error
@@ -13,9 +15,10 @@ from typing import Any
 
 SUMMARY_COMMENT_MARKER = "<!-- openai-gpt54-xhigh-pr-review-summary -->"
 REVIEW_MARKER = "<!-- openai-gpt54-xhigh-pr-review -->"
+FINDING_MARKER_PREFIX = "<!-- openai-gpt54-xhigh-pr-review-finding-key:"
 COMMENT_TITLE = "OpenAI GPT-5.4 PR 审查"
 GITHUB_API_VERSION = "2022-11-28"
-GITHUB_ACTIONS_BOT_LOGIN = "github-actions[bot]"
+GITHUB_ACTIONS_BOT_LOGINS = {"github-actions", "github-actions[bot]"}
 OPENAI_REVIEW_USER_AGENT = os.getenv("OPENAI_REVIEW_USER_AGENT", "kaizao-ai-review/1.0")
 OPENAI_BRAND_MARK = '<img src="https://avatars.githubusercontent.com/u/14957082?s=40&v=4" alt="OpenAI" width="18" height="18" />'
 
@@ -279,6 +282,7 @@ def build_review_scope(*, repo: str, pr: dict[str, Any], github_token: str) -> d
     included_sections = pack_result["included_sections"]
     return {
         "changed_files_count": len(change_summaries),
+        "changed_files": [str(item.get("filename", "")).strip() for item in files if str(item.get("filename", "")).strip()],
         "change_summaries": change_summaries,
         "head_sha": head_sha,
         "included_files": [item["filename"] for item in included_sections],
@@ -840,6 +844,8 @@ def normalize_review(review: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
+    findings = [attach_finding_key(item) for item in findings]
+
     highest = max((severity_rank(item["severity"]) for item in findings), default=0)
     if highest >= severity_rank("high"):
         verdict = "fail"
@@ -865,7 +871,7 @@ def merge_reviews(*, scope: dict[str, Any], chunk_reviews: list[dict[str, Any]])
         for item in review["findings"]:
             if item["file"] not in allowed_files:
                 continue
-            key = (item["file"], item["line"], item["title"], item["body"])
+            key = item["key"]
             if key in seen:
                 continue
             seen.add(key)
@@ -885,6 +891,8 @@ def merge_reviews(*, scope: dict[str, Any], chunk_reviews: list[dict[str, Any]])
         "findings": deduped_findings,
         "scope": {
             "head_sha": scope["head_sha"],
+            "changed_files": scope["changed_files"],
+            "included_files": scope["included_files"],
             "changed_files_count": scope["changed_files_count"],
             "included_files_count": scope["included_files_count"],
             "omitted_files": scope["omitted_files"],
@@ -915,6 +923,37 @@ def build_scope_summary(*, scope: dict[str, Any], findings: list[dict[str, Any]]
     if omitted > 0:
         summary += f" 跳过了 {omitted} 个非文本、生成产物或超出上限的文件。"
     return summary
+
+
+def attach_finding_key(finding: dict[str, Any]) -> dict[str, Any]:
+    normalized = {
+        "severity": str(finding.get("severity", "medium")).strip(),
+        "file": str(finding.get("file", "")).strip(),
+        "line": coerce_int(finding.get("line", 0)),
+        "title": str(finding.get("title", "")).strip(),
+        "body": str(finding.get("body", "")).strip(),
+    }
+    normalized["key"] = build_finding_key(
+        file=normalized["file"],
+        severity=normalized["severity"],
+        title=normalized["title"],
+    )
+    return normalized
+
+
+def build_finding_key(*, file: str, severity: str, title: str) -> str:
+    payload = "\n".join(
+        [
+            normalize_identity_text(file),
+            normalize_identity_text(severity),
+            normalize_identity_text(title),
+        ]
+    )
+    return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def normalize_identity_text(value: str) -> str:
+    return " ".join(value.strip().lower().split())
 
 
 def severity_rank(value: str) -> int:
@@ -972,6 +1011,12 @@ def render_summary_comment(
         if omitted_files:
             lines.append(f"- 跳过深度审查的文件：`{len(omitted_files)}`")
     lines.append(f"- 已发布行内评论：`{review_publication['published_count']}/{review_publication['total_findings']}`")
+    if review_publication.get("reused_count", 0) > 0:
+        lines.append(f"- 复用已有问题线程：`{review_publication['reused_count']}`")
+    if review_publication.get("resolved_count", 0) > 0:
+        lines.append(f"- 自动关闭已修复线程：`{review_publication['resolved_count']}`")
+    if review_publication.get("reopened_count", 0) > 0:
+        lines.append(f"- 自动重新打开回归线程：`{review_publication['reopened_count']}`")
     if review_publication["omitted_count"] > 0:
         lines.append(f"- 未以内联形式发布的问题：`{review_publication['omitted_count']}`")
     if review_publication["status"] == "skipped_duplicate":
@@ -1079,8 +1124,11 @@ def publish_pull_request_review(
         "total_findings": len(findings),
         "omitted_count": len(findings),
         "published_findings": [],
+        "reused_count": 0,
+        "resolved_count": 0,
+        "reopened_count": 0,
     }
-    if not findings or not head_sha:
+    if not head_sha:
         return publication
 
     existing_review = find_existing_review_for_head(
@@ -1093,9 +1141,29 @@ def publish_pull_request_review(
         publication["status"] = "skipped_duplicate"
         return publication
 
+    existing_threads = list_pull_request_review_threads(
+        repo=repo,
+        pr_number=pr_number,
+        github_token=github_token,
+    )
+    thread_actions = sync_review_threads(
+        github_token=github_token,
+        findings=findings,
+        existing_threads=existing_threads,
+        reviewed_files=set(review.get("scope", {}).get("included_files", [])),
+        changed_files=set(review.get("scope", {}).get("changed_files", [])),
+    )
+    publication["resolved_count"] = thread_actions["resolved_count"]
+    publication["reopened_count"] = thread_actions["reopened_count"]
+
     comments = []
     published_findings = []
+    publication["status"] = "skipped_no_new_comments" if findings else "skipped_no_findings"
     for finding in findings:
+        tracked_thread = thread_actions["threads_by_key"].get(finding["key"])
+        if tracked_thread:
+            publication["reused_count"] += 1
+            continue
         if len(comments) >= max_comments:
             break
         location = build_review_comment_location(
@@ -1115,7 +1183,13 @@ def publish_pull_request_review(
         published_findings.append(finding)
 
     if not comments:
-        publication["status"] = "skipped_unanchorable"
+        if not findings and publication["resolved_count"] == 0:
+            publication["status"] = "skipped_no_findings"
+        elif publication["reused_count"] > 0 or publication["resolved_count"] > 0 or publication["reopened_count"] > 0:
+            publication["status"] = "updated_existing_threads"
+            publication["omitted_count"] = 0
+        else:
+            publication["status"] = "skipped_unanchorable"
         return publication
 
     create_pull_request_review(
@@ -1138,8 +1212,63 @@ def publish_pull_request_review(
     publication["status"] = "created"
     publication["published_count"] = len(comments)
     publication["published_findings"] = published_findings
-    publication["omitted_count"] = max(len(findings) - len(published_findings), 0)
+    publication["omitted_count"] = max(
+        len(findings) - len(published_findings) - publication["reused_count"],
+        0,
+    )
     return publication
+
+
+def sync_review_threads(
+    *,
+    github_token: str,
+    findings: list[dict[str, Any]],
+    existing_threads: list[dict[str, Any]],
+    reviewed_files: set[str],
+    changed_files: set[str],
+) -> dict[str, Any]:
+    desired_keys = {item["key"] for item in findings}
+    threads_by_key: dict[str, dict[str, Any]] = {}
+    resolved_count = 0
+    reopened_count = 0
+
+    for thread in sorted(
+        existing_threads,
+        key=lambda item: item.get("created_at", ""),
+        reverse=True,
+    ):
+        key = str(thread.get("key") or "").strip()
+        if not key:
+            continue
+        if key in desired_keys:
+            if key in threads_by_key:
+                if not thread.get("is_resolved"):
+                    resolve_review_thread(thread_id=thread["id"], github_token=github_token)
+                    resolved_count += 1
+                    thread["is_resolved"] = True
+                continue
+
+            if thread.get("is_resolved"):
+                unresolve_review_thread(thread_id=thread["id"], github_token=github_token)
+                reopened_count += 1
+                thread["is_resolved"] = False
+            threads_by_key[key] = thread
+            continue
+
+        thread_path = str(thread.get("path") or "")
+        if thread_path and thread_path in changed_files and thread_path not in reviewed_files:
+            continue
+
+        if not thread.get("is_resolved"):
+            resolve_review_thread(thread_id=thread["id"], github_token=github_token)
+            resolved_count += 1
+            thread["is_resolved"] = True
+
+    return {
+        "threads_by_key": threads_by_key,
+        "resolved_count": resolved_count,
+        "reopened_count": reopened_count,
+    }
 
 
 def render_pull_request_review_body(
@@ -1170,7 +1299,168 @@ def render_pull_request_review_body(
 
 
 def render_inline_comment(finding: dict[str, Any]) -> str:
-    return f"[{display_severity(finding['severity'])}] {finding['title']}\n\n{finding['body']}"
+    return (
+        f"[{display_severity(finding['severity'])}] {finding['title']}\n\n"
+        f"{finding['body']}\n\n"
+        f"{FINDING_MARKER_PREFIX}{finding['key']} -->"
+    )
+
+
+def list_pull_request_review_threads(
+    *,
+    repo: str,
+    pr_number: int,
+    github_token: str,
+) -> list[dict[str, Any]]:
+    owner, name = split_repo_name(repo)
+    query = """
+    query($owner:String!, $name:String!, $number:Int!, $cursor:String) {
+      repository(owner:$owner, name:$name) {
+        pullRequest(number:$number) {
+          reviewThreads(first:100, after:$cursor) {
+            nodes {
+              id
+              isResolved
+              isOutdated
+              path
+              comments(first:20) {
+                nodes {
+                  body
+                  createdAt
+                  author {
+                    login
+                  }
+                }
+              }
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+          }
+        }
+      }
+    }
+    """
+
+    threads: list[dict[str, Any]] = []
+    cursor: str | None = None
+    while True:
+        payload = github_graphql_request(
+            github_token=github_token,
+            query=query,
+            variables={
+                "owner": owner,
+                "name": name,
+                "number": pr_number,
+                "cursor": cursor,
+            },
+        )
+        data = (((payload or {}).get("data") or {}).get("repository") or {}).get("pullRequest") or {}
+        review_threads = data.get("reviewThreads") or {}
+        for node in review_threads.get("nodes") or []:
+            parsed = parse_review_thread(node)
+            if parsed:
+                threads.append(parsed)
+        page_info = review_threads.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            break
+        cursor = page_info.get("endCursor")
+
+    return threads
+
+
+def parse_review_thread(thread: dict[str, Any]) -> dict[str, Any] | None:
+    comments = ((thread.get("comments") or {}).get("nodes") or [])
+    if not comments:
+        return None
+
+    first_comment = comments[0] or {}
+    author_login = ((first_comment.get("author") or {}).get("login") or "").strip()
+    if author_login not in GITHUB_ACTIONS_BOT_LOGINS:
+        return None
+
+    key = extract_finding_key(
+        body=str(first_comment.get("body") or ""),
+        path=str(thread.get("path") or ""),
+    )
+    if not key:
+        return None
+
+    return {
+        "id": str(thread.get("id") or ""),
+        "key": key,
+        "path": str(thread.get("path") or ""),
+        "is_resolved": bool(thread.get("isResolved")),
+        "is_outdated": bool(thread.get("isOutdated")),
+        "created_at": str(first_comment.get("createdAt") or ""),
+    }
+
+
+def extract_finding_key(*, body: str, path: str) -> str:
+    marker_match = re.search(
+        rf"{re.escape(FINDING_MARKER_PREFIX)}([0-9a-f]{{16,40}})\s*-->",
+        body,
+    )
+    if marker_match:
+        return marker_match.group(1)
+
+    first_line = next((line.strip() for line in body.splitlines() if line.strip()), "")
+    title_match = re.match(r"^\[[^\]]+\]\s+(.+)$", first_line)
+    if not title_match:
+        return ""
+    return build_finding_key(
+        file=path,
+        severity=extract_severity_from_body(first_line),
+        title=title_match.group(1),
+    )
+
+
+def extract_severity_from_body(first_line: str) -> str:
+    severity_match = re.match(r"^\[([^\]]+)\]", first_line.strip())
+    label = (severity_match.group(1) if severity_match else "").strip()
+    return {
+        "高": "high",
+        "中": "medium",
+        "低": "low",
+        "high": "high",
+        "medium": "medium",
+        "low": "low",
+    }.get(label.lower() if label.isascii() else label, "medium")
+
+
+def resolve_review_thread(*, thread_id: str, github_token: str) -> None:
+    github_graphql_request(
+        github_token=github_token,
+        query="""
+        mutation($threadId:ID!) {
+          resolveReviewThread(input:{threadId:$threadId}) {
+            thread {
+              id
+              isResolved
+            }
+          }
+        }
+        """,
+        variables={"threadId": thread_id},
+    )
+
+
+def unresolve_review_thread(*, thread_id: str, github_token: str) -> None:
+    github_graphql_request(
+        github_token=github_token,
+        query="""
+        mutation($threadId:ID!) {
+          unresolveReviewThread(input:{threadId:$threadId}) {
+            thread {
+              id
+              isResolved
+            }
+          }
+        }
+        """,
+        variables={"threadId": thread_id},
+    )
 
 
 def find_existing_review_for_head(
@@ -1191,7 +1481,7 @@ def find_existing_review_for_head(
             for item in reviews
             if item.get("commit_id") == head_sha
             and REVIEW_MARKER in (item.get("body") or "")
-            and (item.get("user", {}) or {}).get("login") == GITHUB_ACTIONS_BOT_LOGIN
+            and ((item.get("user", {}) or {}).get("login") or "") in GITHUB_ACTIONS_BOT_LOGINS
         ),
         None,
     )
@@ -1269,6 +1559,13 @@ def parse_hunk_start(part: str) -> int:
     return coerce_int(raw_value)
 
 
+def split_repo_name(repo: str) -> tuple[str, str]:
+    owner, _, name = repo.partition("/")
+    if not owner or not name:
+        raise RuntimeError(f"Invalid repository name: {repo}")
+    return owner, name
+
+
 def github_api_request(
     *,
     github_token: str,
@@ -1301,6 +1598,45 @@ def github_api_request(
     if not response_body:
         return None
     return json.loads(response_body)
+
+
+def github_graphql_request(
+    *,
+    github_token: str,
+    query: str,
+    variables: dict[str, Any] | None = None,
+) -> Any:
+    request = urllib.request.Request(
+        url="https://api.github.com/graphql",
+        data=json.dumps(
+            {
+                "query": query,
+                "variables": variables or {},
+            }
+        ).encode("utf-8"),
+        method="POST",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {github_token}",
+            "Content-Type": "application/json",
+            "X-GitHub-Api-Version": GITHUB_API_VERSION,
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            response_body = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"GitHub GraphQL request failed with {exc.code}: {error_body}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"GitHub GraphQL request failed: {exc}") from exc
+
+    payload = json.loads(response_body) if response_body else {}
+    errors = payload.get("errors") or []
+    if errors:
+        raise RuntimeError(f"GitHub GraphQL request failed: {json.dumps(errors, ensure_ascii=False)}")
+    return payload
 
 
 def github_api_text_request(*, github_token: str, path: str, accept: str) -> str:
