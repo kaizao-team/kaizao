@@ -211,10 +211,10 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	// ==================== 通知模块 ====================
 	notifications := v1.Group("/notifications", middleware.JWTAuth(services.JWT))
 	{
-		notifications.GET("", placeholder)
-		notifications.PUT("/:uuid/read", placeholder)
-		notifications.PUT("/read-all", placeholder)
-		notifications.GET("/unread-count", placeholder)
+		notifications.GET("", handlers.Notification.List)
+		notifications.GET("/unread-count", handlers.Notification.UnreadCount)
+		notifications.PUT("/read-all", handlers.Notification.MarkAllRead)
+		notifications.PUT("/:uuid/read", handlers.Notification.MarkRead)
 	}
 
 	v1.POST("/devices", middleware.JWTAuth(services.JWT), placeholder)

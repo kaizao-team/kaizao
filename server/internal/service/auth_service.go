@@ -33,6 +33,7 @@ type Services struct {
 	Wallet       *WalletService
 	Review       *ReviewService
 	Team         *TeamService
+	Notification *NotificationService
 	JWT          *jwtpkg.Manager
 }
 
@@ -64,6 +65,7 @@ func NewServices(repos *repository.Repositories, rdb *redis.Client, cfg *config.
 		Wallet:       NewWalletService(repos, log),
 		Review:       NewReviewService(repos, log),
 		Team:         NewTeamService(repos, objClient, log),
+		Notification: NewNotificationService(repos, log),
 		JWT:          jwtManager,
 	}
 }
