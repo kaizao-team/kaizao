@@ -210,4 +210,5 @@ type NotificationRepository interface {
 	ListByUserID(userID int64, offset, limit int, conditions map[string]interface{}) ([]*model.Notification, int64, error)
 	CountUnread(userID int64) (int64, error)
 	MarkAllRead(userID int64) error
+	MarkReadByUserAndUUID(userID int64, uuid string) error
 }

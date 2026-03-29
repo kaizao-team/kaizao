@@ -201,6 +201,8 @@ var ErrorMessages = map[int]string{
 	ErrAIServiceUnavailable: "AI服务暂不可用",
 	ErrNoAdminPermission:    "无管理员权限",
 	ErrParamInvalid:         "参数错误",
+	ErrNotificationNotFound: "通知不存在",
+	ErrNotificationAlreadyRead: "通知已读",
 }
 
 // GetMessage 获取错误码对应的消息

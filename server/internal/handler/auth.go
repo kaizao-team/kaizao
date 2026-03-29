@@ -28,6 +28,7 @@ type Handlers struct {
 	Wallet       *WalletHandler
 	Review       *ReviewHandler
 	Team         *TeamHandler
+	Notification *NotificationHandler
 	Admin        *AdminHandler
 }
 
@@ -47,6 +48,7 @@ func NewHandlers(services *service.Services, log *zap.Logger) *Handlers {
 		Wallet:       NewWalletHandler(services.Wallet, log),
 		Review:       NewReviewHandler(services.Review, log),
 		Team:         NewTeamHandler(services.Team, log),
+		Notification: NewNotificationHandler(services.Notification, log),
 	}
 }
 
