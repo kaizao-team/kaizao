@@ -72,6 +72,10 @@ type UserRepository interface {
 	ListExperts(offset, limit int) ([]*model.User, int64, error)
 	CountPortfoliosByUserAndUUIDs(userID int64, uuids []string) (int64, error)
 	ListUserSkills(userID int64) ([]*model.UserSkill, error)
+	// ListUserSkillsForUsers 一次查询多名用户的技能关联，Preload Skill；按 user_id、主技能优先排序。
+	ListUserSkillsForUsers(userIDs []int64) ([]*model.UserSkill, error)
+	// FindSkillNamesByIDs 按技能 ID 批量取展示名（仅 status=1），用于预加载缺失时的兜底。
+	FindSkillNamesByIDs(skillIDs []int64) (map[int64]string, error)
 	ReplaceUserSkills(userID int64, skills []*model.UserSkill) error
 	FindSkillByID(id int64) (*model.Skill, error)
 	EnsureSkill(name, category string) (*model.Skill, error)

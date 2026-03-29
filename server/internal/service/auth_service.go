@@ -55,7 +55,7 @@ func NewServices(repos *repository.Repositories, rdb *redis.Client, cfg *config.
 		Auth:         NewAuthService(repos, rdb, jwtManager, cfg, log),
 		User:         userSvc,
 		Project:      NewProjectService(repos, log),
-		Home:         NewHomeService(repos, userSvc, log),
+		Home:         NewHomeService(repos, log),
 		Bid:          NewBidService(repos, log),
 		Task:         NewTaskService(repos, log),
 		Milestone:    NewMilestoneService(repos, log),
