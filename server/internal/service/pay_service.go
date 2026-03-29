@@ -29,17 +29,20 @@ func NewOrderService(repos *repository.Repositories, log *zap.Logger) *OrderServ
 	return &OrderService{repos: repos, log: log}
 }
 
-// CreatePendingProjectOrder 创建待支付订单（platform_fee = amount * platform_fee_rate）；同项目已存在待支付订单则失败。
-func (s *OrderService) CreatePendingProjectOrder(projectID, payerID, payeeID int64, amount float64) (*model.Order, error) {
+// createPendingProjectOrderWithRepos 在同一 *gorm.DB（事务）内：锁项目行、查待支付单、插入订单，避免并发双单及与撮合状态不一致。
+func (s *OrderService) createPendingProjectOrderWithRepos(repos *repository.Repositories, projectID, payerID, payeeID int64, amount float64) (*model.Order, error) {
 	if amount <= 0 {
 		return nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
 	}
-	existing, err := s.repos.Order.FindByProjectID(projectID)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := repos.Project.LockByIDForUpdate(projectID); err != nil {
 		return nil, err
 	}
-	if err == nil && existing.Status == 1 {
+	_, err := repos.Order.FindPendingByProjectID(projectID)
+	if err == nil {
 		return nil, fmt.Errorf("%d", errcode.ErrOrderAlreadyExists)
+	}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
 	}
 	orderNo := strings.ReplaceAll(model.GenerateUUID(), "-", "")
 	if len(orderNo) > 32 {
@@ -58,10 +61,22 @@ func (s *OrderService) CreatePendingProjectOrder(projectID, payerID, payeeID int
 		PlatformFee:     platFee,
 		Status:          1,
 	}
-	if err := s.repos.Order.Create(ord); err != nil {
+	if err := repos.Order.Create(ord); err != nil {
 		return nil, err
 	}
 	return ord, nil
+}
+
+// CreatePendingProjectOrder 创建待支付订单（platform_fee = amount * platform_fee_rate）；同项目已存在待支付订单则失败。
+func (s *OrderService) CreatePendingProjectOrder(projectID, payerID, payeeID int64, amount float64) (*model.Order, error) {
+	var out *model.Order
+	err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		txRepos := repository.NewRepositories(tx)
+		var err error
+		out, err = s.createPendingProjectOrderWithRepos(txRepos, projectID, payerID, payeeID, amount)
+		return err
+	})
+	return out, err
 }
 
 // NotifyPayerPendingOrder 通知需求方支付（撮合自动建单或手动建单后可调用）
@@ -116,8 +131,7 @@ func (s *OrderService) CreateOrderByOwner(ownerUUID, projectUUID string, amount 
 		return nil, err
 	}
 	if err := s.NotifyPayerPendingOrder(project.OwnerID, ord, project.Title); err != nil {
-		s.log.Error("CreateOrderByOwner: notify", zap.Error(err))
-		return nil, err
+		s.log.Error("CreateOrderByOwner: notify failed after order created", zap.Error(err), zap.String("order_uuid", ord.UUID))
 	}
 	return ord, nil
 }

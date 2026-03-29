@@ -22,6 +22,7 @@ type TeamStaticAssetRepository interface {
 
 // Repositories 所有 Repository 的集合
 type Repositories struct {
+	db *gorm.DB
 	User         UserRepository
 	Project      ProjectRepository
 	Bid          BidRepository
@@ -39,9 +40,18 @@ type Repositories struct {
 	TeamStaticAsset  TeamStaticAssetRepository
 }
 
+// DB 返回构造时使用的 *gorm.DB（用于开启事务等）
+func (r *Repositories) DB() *gorm.DB {
+	if r == nil {
+		return nil
+	}
+	return r.db
+}
+
 // NewRepositories 创建所有 Repository
 func NewRepositories(db *gorm.DB) *Repositories {
 	return &Repositories{
+		db:           db,
 		User:         NewUserRepository(db),
 		Project:      NewProjectRepository(db),
 		Bid:          NewBidRepository(db),
@@ -99,6 +109,8 @@ type ProjectRepository interface {
 	FindByUUID(uuid string) (*model.Project, error)
 	Update(project *model.Project) error
 	UpdateFields(id int64, fields map[string]interface{}) error
+	// LockByIDForUpdate 对项目行加悲观锁，用于与订单创建等同事务内串行化
+	LockByIDForUpdate(id int64) error
 	List(offset, limit int, conditions map[string]interface{}, sortBy, sortOrder string) ([]*model.Project, int64, error)
 	ListByOwnerID(ownerID int64, offset, limit int) ([]*model.Project, int64, error)
 	ListByProviderID(providerID int64, offset, limit int) ([]*model.Project, int64, error)
@@ -144,6 +156,8 @@ type OrderRepository interface {
 	FindByOrderNo(orderNo string) (*model.Order, error)
 	Update(order *model.Order) error
 	FindByProjectID(projectID int64) (*model.Order, error)
+	// FindPendingByProjectID 待支付(status=1)订单，用于判重（非「最新一条任意状态」）
+	FindPendingByProjectID(projectID int64) (*model.Order, error)
 	SumPaidByPayerID(payerID int64) (float64, error)
 }
 
