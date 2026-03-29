@@ -42,6 +42,7 @@ const (
 	ErrTeamFileForbidden            = 11015
 	ErrObjectUploadFailed           = 11016
 	ErrUploadEmptyFile              = 11017
+	ErrUploadInvalidFileType        = 11018
 )
 
 // 项目模块（需求） 20001-20999
@@ -177,6 +178,7 @@ var ErrorMessages = map[int]string{
 	ErrTeamFileForbidden:         "仅团队成员可操作团队文件",
 	ErrObjectUploadFailed:        "文件上传失败",
 	ErrUploadEmptyFile:           "上传文件不能为空",
+	ErrUploadInvalidFileType:     "不支持的文件类型，仅支持常见图片格式",
 	ErrUserNotFound:         "用户不存在",
 	ErrNicknameUsed:         "昵称已被使用",
 	ErrSkillsExceedLimit:    "技能标签数量超过上限",

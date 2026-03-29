@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vibebuild/server/internal/config"
 	"github.com/vibebuild/server/internal/dto"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
@@ -29,11 +30,16 @@ type Handlers struct {
 	Review       *ReviewHandler
 	Team         *TeamHandler
 	Notification *NotificationHandler
+	Upload       *UploadHandler
 	Admin        *AdminHandler
 }
 
 // NewHandlers 创建所有 Handler
-func NewHandlers(services *service.Services, log *zap.Logger) *Handlers {
+func NewHandlers(services *service.Services, cfg *config.Config, log *zap.Logger) *Handlers {
+	publicBase := ""
+	if cfg != nil {
+		publicBase = strings.TrimSpace(cfg.Server.PublicBaseURL)
+	}
 	return &Handlers{
 		Auth:         NewAuthHandler(services.Auth, log),
 		Admin:        NewAdminHandler(services.Auth, services.User, log),
@@ -49,6 +55,7 @@ func NewHandlers(services *service.Services, log *zap.Logger) *Handlers {
 		Review:       NewReviewHandler(services.Review, log),
 		Team:         NewTeamHandler(services.Team, log),
 		Notification: NewNotificationHandler(services.Notification, log),
+		Upload:       NewUploadHandler(services.Upload, publicBase, log),
 	}
 }
 
