@@ -462,6 +462,70 @@ var categoryMeta = []struct {
 	{"solution", "解决方案", "lightbulb"},
 }
 
+// expertSkillDisplayName 单条关联的展示名：优先预加载的 Skill.Name，否则用 namesBySkillID 兜底（避免仓储未 Preload 时静默为空）。
+func expertSkillDisplayName(us *model.UserSkill, namesBySkillID map[int64]string) string {
+	if us == nil {
+		return ""
+	}
+	if n := strings.TrimSpace(us.Skill.Name); n != "" {
+		return n
+	}
+	if us.SkillID > 0 && namesBySkillID != nil {
+		if n := strings.TrimSpace(namesBySkillID[us.SkillID]); n != "" {
+			return n
+		}
+	}
+	return ""
+}
+
+// expertPrimarySkillName 取专家展示用主技能名：优先 is_primary，否则取首条有效技能名。
+func expertPrimarySkillName(skills []*model.UserSkill, namesBySkillID map[int64]string) string {
+	for _, us := range skills {
+		if us != nil && us.IsPrimary {
+			if n := expertSkillDisplayName(us, namesBySkillID); n != "" {
+				return n
+			}
+		}
+	}
+	for _, us := range skills {
+		if n := expertSkillDisplayName(us, namesBySkillID); n != "" {
+			return n
+		}
+	}
+	return ""
+}
+
+func groupUserSkillsByUserID(skills []*model.UserSkill) map[int64][]*model.UserSkill {
+	by := make(map[int64][]*model.UserSkill)
+	for _, us := range skills {
+		if us == nil {
+			continue
+		}
+		by[us.UserID] = append(by[us.UserID], us)
+	}
+	return by
+}
+
+// skillIDsMissingPreloadedName 收集「关联行存在但 Skill 未预加载出名称」的技能 ID，用于批量补全。
+func skillIDsMissingPreloadedName(skills []*model.UserSkill) []int64 {
+	seen := make(map[int64]struct{})
+	var ids []int64
+	for _, us := range skills {
+		if us == nil || us.SkillID == 0 {
+			continue
+		}
+		if strings.TrimSpace(us.Skill.Name) != "" {
+			continue
+		}
+		if _, ok := seen[us.SkillID]; ok {
+			continue
+		}
+		seen[us.SkillID] = struct{}{}
+		ids = append(ids, us.SkillID)
+	}
+	return ids
+}
+
 // GetDemanderHome 获取需求方首页数据
 func (s *HomeService) GetDemanderHome(userUUID string) (*DemanderHomeData, error) {
 	counts, _ := s.repos.Project.CountByCategory()
@@ -486,13 +550,32 @@ func (s *HomeService) GetDemanderHome(userUUID string) (*DemanderHomeData, error
 	}
 
 	experts, _, _ := s.repos.User.ListExperts(0, 5)
+	expertIDs := make([]int64, 0, len(experts))
+	for _, e := range experts {
+		expertIDs = append(expertIDs, e.ID)
+	}
+	var namesBySkillID map[int64]string
+	skillsByUser := make(map[int64][]*model.UserSkill)
+	if len(expertIDs) > 0 {
+		if allSkills, err := s.repos.User.ListUserSkillsForUsers(expertIDs); err == nil {
+			if missing := skillIDsMissingPreloadedName(allSkills); len(missing) > 0 {
+				if m, err := s.repos.User.FindSkillNamesByIDs(missing); err == nil {
+					namesBySkillID = m
+				}
+			}
+			skillsByUser = groupUserSkillsByUserID(allSkills)
+		}
+	}
+
 	expertBriefs := make([]ExpertBrief, 0, len(experts))
 	for _, e := range experts {
+		skillName := expertPrimarySkillName(skillsByUser[e.ID], namesBySkillID)
 		eb := ExpertBrief{
 			ID:              e.UUID,
 			Nickname:        e.Nickname,
 			AvatarURL:       e.AvatarURL,
 			Rating:          e.AvgRating,
+			Skill:           skillName,
 			HourlyRate:      e.HourlyRate,
 			CompletedOrders: e.CompletedOrders,
 		}

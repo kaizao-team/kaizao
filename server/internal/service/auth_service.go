@@ -50,9 +50,10 @@ func NewServices(repos *repository.Repositories, rdb *redis.Client, cfg *config.
 		log.Fatal("object storage init failed", zap.Error(err))
 	}
 
+	userSvc := NewUserService(repos, log)
 	return &Services{
 		Auth:         NewAuthService(repos, rdb, jwtManager, cfg, log),
-		User:         NewUserService(repos, log),
+		User:         userSvc,
 		Project:      NewProjectService(repos, log),
 		Home:         NewHomeService(repos, log),
 		Bid:          NewBidService(repos, log),
