@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,26 @@ import (
 	"github.com/vibebuild/server/internal/service"
 	"gorm.io/gorm"
 )
+
+var cnMobilePattern = regexp.MustCompile(`^1[3-9]\d{9}$`)
+
+// maskContactPhonePublic 公开资料中的联系电话脱敏（与登录手机号展示规则一致；非 11 位做保守遮挡）
+func maskContactPhonePublic(p *string) string {
+	if p == nil {
+		return ""
+	}
+	s := strings.TrimSpace(*p)
+	if s == "" {
+		return ""
+	}
+	if len(s) >= 11 {
+		return s[:3] + "****" + s[7:]
+	}
+	if len(s) >= 7 {
+		return s[:2] + "****" + s[len(s)-2:]
+	}
+	return "****"
+}
 
 // userSkillsToResponse 用户技能列表（GET /users/me 与 GET /users/:id/skills 共用）
 func userSkillsToResponse(skills []*model.UserSkill) []gin.H {
@@ -55,7 +76,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		"credit_score":   user.CreditScore,
 		"is_verified":    user.IsVerified,
 		"phone":          phone,
-		"contact_phone":  user.ContactPhone,
+		"contact_phone":  maskContactPhonePublic(user.ContactPhone),
 		"wechat_bound":   user.WechatOpenID != nil,
 		"stats":        stats,
 		"bio":          user.Bio,
@@ -90,6 +111,14 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		if cp == "" {
 			fields["contact_phone"] = nil
 		} else {
+			if len(cp) > 20 {
+				response.ErrorBadRequest(c, errcode.ErrParamInvalid, "联系电话过长")
+				return
+			}
+			if !cnMobilePattern.MatchString(cp) {
+				response.ErrorBadRequest(c, errcode.ErrPhoneFormat, errcode.GetMessage(errcode.ErrPhoneFormat))
+				return
+			}
 			fields["contact_phone"] = cp
 		}
 	}
