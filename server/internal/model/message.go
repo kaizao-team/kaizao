@@ -149,6 +149,11 @@ func (Notification) TableName() string {
 	return "notifications"
 }
 
+// 通知类型（notification_type，与业务约定枚举）
+const (
+	NotificationTypeMatchSuccess int16 = 20 // 撮合成功
+)
+
 func (n *Notification) BeforeCreate(tx *gorm.DB) error {
 	if n.UUID == "" {
 		n.UUID = GenerateUUID()

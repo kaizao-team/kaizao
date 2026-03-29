@@ -192,6 +192,7 @@ var ErrorMessages = map[int]string{
 	ErrBidNotFound:          "投标不存在",
 	ErrBidOwnProject:        "不能对自己的需求投标",
 	ErrBidDuplicate:         "已对该需求投标，不可重复",
+	ErrBidClosed:            "投标已关闭或已处理",
 	ErrOrderNotFound:        "订单不存在",
 	ErrOrderStatusInvalid:   "订单状态不允许当前操作",
 	ErrConversationNotFound: "会话不存在",
