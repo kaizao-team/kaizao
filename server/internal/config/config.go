@@ -67,6 +67,8 @@ type ServerConfig struct {
 	Mode            string `mapstructure:"mode"`
 	ReadTimeoutSec  int    `mapstructure:"read_timeout_sec"`
 	WriteTimeoutSec int    `mapstructure:"write_timeout_sec"`
+	// PublicBaseURL 对外访问本服务的根 URL（无尾斜杠），如 https://api.example.com；用于拼接上传返回的相对资源路径，避免使用 Host 头（防主机头注入）。为空则只返回相对 path。
+	PublicBaseURL string `mapstructure:"public_base_url"`
 }
 
 // DatabaseConfig MySQL 配置
@@ -140,6 +142,7 @@ func Load() (*Config, error) {
 	v.SetDefault("server.mode", "debug")
 	v.SetDefault("server.read_timeout_sec", 10)
 	v.SetDefault("server.write_timeout_sec", 10)
+	v.SetDefault("server.public_base_url", "")
 	v.SetDefault("database.host", "localhost")
 	v.SetDefault("database.port", 3306)
 	v.SetDefault("database.user", "root")

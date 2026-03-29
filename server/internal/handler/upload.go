@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -13,13 +14,14 @@ import (
 
 // UploadHandler 通用上传
 type UploadHandler struct {
-	uploadService *service.UploadService
-	log           *zap.Logger
+	uploadService  *service.UploadService
+	publicBaseURL  string // 配置项，用于拼接相对资源 URL，禁止用请求 Host
+	log            *zap.Logger
 }
 
-// NewUploadHandler 创建上传处理器
-func NewUploadHandler(uploadService *service.UploadService, log *zap.Logger) *UploadHandler {
-	return &UploadHandler{uploadService: uploadService, log: log}
+// NewUploadHandler 创建上传处理器；publicBaseURL 为 server.public_base_url（无尾斜杠）
+func NewUploadHandler(uploadService *service.UploadService, publicBaseURL string, log *zap.Logger) *UploadHandler {
+	return &UploadHandler{uploadService: uploadService, publicBaseURL: strings.TrimRight(strings.TrimSpace(publicBaseURL), "/"), log: log}
 }
 
 // Post POST /api/v1/upload multipart form field "file"，可选 purpose（avatar|portfolio|attachment 等，仅回显）
@@ -47,6 +49,10 @@ func (h *UploadHandler) Post(c *gin.Context) {
 	)
 	if err != nil {
 		code, _ := strconv.Atoi(err.Error())
+		if code == errcode.ErrObjectUploadFailed {
+			response.Error(c, http.StatusInternalServerError, code, errcode.GetMessage(code))
+			return
+		}
 		if code > 0 {
 			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
 			return
@@ -58,15 +64,8 @@ func (h *UploadHandler) Post(c *gin.Context) {
 
 	url := rec.URL
 	if url != "" && !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-		scheme := "http"
-		if c.Request.TLS != nil {
-			scheme = "https"
-		}
-		if xf := c.GetHeader("X-Forwarded-Proto"); xf == "https" {
-			scheme = "https"
-		}
-		if strings.HasPrefix(url, "/") {
-			url = scheme + "://" + c.Request.Host + url
+		if h.publicBaseURL != "" && strings.HasPrefix(url, "/") {
+			url = h.publicBaseURL + url
 		}
 	}
 

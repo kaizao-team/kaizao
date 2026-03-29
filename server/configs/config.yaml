@@ -7,6 +7,8 @@ server:
   mode: debug  # debug / release / test
   read_timeout_sec: 10
   write_timeout_sec: 10
+  # 对外 API 根 URL（无尾斜杠）；配置后 POST /upload 可将相对资源路径拼成绝对 URL（勿用请求 Host，防主机头注入）
+  public_base_url: ""
 
 database:
   host: localhost
