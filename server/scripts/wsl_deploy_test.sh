@@ -20,8 +20,8 @@ if [ "${APPLY_SQL_MIGRATIONS:-1}" = "1" ]; then
     docker exec kaizao-mysql mysqladmin ping -h localhost -ukaizao -pkaizao123 --silent 2>/dev/null && break
     sleep 2
   done
-  echo "=== apply migrations 002–005 (best-effort) ==="
-  for f in "$ROOT/migrations/002_invite_onboarding.up.sql" "$ROOT/migrations/003_team_invite_onboarding.up.sql" "$ROOT/migrations/004_team_static_assets.up.sql" "$ROOT/migrations/005_project_category_normalize.up.sql"; do
+  echo "=== apply migrations 002–006 (best-effort) ==="
+  for f in "$ROOT/migrations/002_invite_onboarding.up.sql" "$ROOT/migrations/003_team_invite_onboarding.up.sql" "$ROOT/migrations/004_team_static_assets.up.sql" "$ROOT/migrations/005_project_category_normalize.up.sql" "$ROOT/migrations/006_user_contact_phone.up.sql"; do
     [ -f "$f" ] || continue
     docker exec -i kaizao-mysql mysql -ukaizao -pkaizao123 kaizao <"$f" 2>/dev/null || true
   done
