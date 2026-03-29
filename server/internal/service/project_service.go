@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -364,6 +365,45 @@ type ExpertBrief struct {
 	CompletedOrders int      `json:"completed_orders"`
 }
 
+func pickPrimarySkill(skills []*model.UserSkill) string {
+	if len(skills) == 0 {
+		return ""
+	}
+
+	candidates := make([]*model.UserSkill, 0, len(skills))
+	for _, skill := range skills {
+		if skill == nil {
+			continue
+		}
+		name := strings.TrimSpace(skill.Skill.Name)
+		if name == "" {
+			continue
+		}
+		candidates = append(candidates, skill)
+	}
+	if len(candidates) == 0 {
+		return ""
+	}
+
+	sort.SliceStable(candidates, func(i, j int) bool {
+		left := candidates[i]
+		right := candidates[j]
+
+		if left.IsPrimary != right.IsPrimary {
+			return left.IsPrimary
+		}
+		if left.Proficiency != right.Proficiency {
+			return left.Proficiency > right.Proficiency
+		}
+		if left.YearsOfExperience != right.YearsOfExperience {
+			return left.YearsOfExperience > right.YearsOfExperience
+		}
+		return left.CreatedAt.Before(right.CreatedAt)
+	})
+
+	return strings.TrimSpace(candidates[0].Skill.Name)
+}
+
 // ProjectBrief 项目简要信息（用于首页/广场等聚合接口）
 type ProjectBrief struct {
 	ID               string    `json:"id"`
@@ -488,11 +528,17 @@ func (s *HomeService) GetDemanderHome(userUUID string) (*DemanderHomeData, error
 	experts, _, _ := s.repos.User.ListExperts(0, 5)
 	expertBriefs := make([]ExpertBrief, 0, len(experts))
 	for _, e := range experts {
+		skills, err := s.repos.User.ListUserSkills(e.ID)
+		if err != nil {
+			s.log.Warn("list expert skills failed", zap.Int64("user_id", e.ID), zap.Error(err))
+		}
+
 		eb := ExpertBrief{
 			ID:              e.UUID,
 			Nickname:        e.Nickname,
 			AvatarURL:       e.AvatarURL,
 			Rating:          e.AvgRating,
+			Skill:           pickPrimarySkill(skills),
 			HourlyRate:      e.HourlyRate,
 			CompletedOrders: e.CompletedOrders,
 		}
