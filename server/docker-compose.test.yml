@@ -1,0 +1,16 @@
+# 在容器内执行 go test，无需本机安装 Go（适合 WSL + Docker）
+# 用法（在 kaizao/server 目录）:
+#   docker compose -f docker-compose.test.yml run --rm go-test
+
+services:
+  go-test:
+    image: golang:1.22-alpine
+    working_dir: /src
+    environment:
+      GOPROXY: https://goproxy.cn,direct
+    volumes:
+      - .:/src
+    command:
+      - sh
+      - -c
+      - apk add --no-cache git ca-certificates >/dev/null && go test ./... -count=1

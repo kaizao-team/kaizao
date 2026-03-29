@@ -337,12 +337,13 @@ func (s *ProjectService) Close(uuid, reason string) error {
 // HomeService 首页数据服务
 type HomeService struct {
 	repos *repository.Repositories
+	user  *UserService
 	log   *zap.Logger
 }
 
 // NewHomeService 创建首页服务
-func NewHomeService(repos *repository.Repositories, log *zap.Logger) *HomeService {
-	return &HomeService{repos: repos, log: log}
+func NewHomeService(repos *repository.Repositories, user *UserService, log *zap.Logger) *HomeService {
+	return &HomeService{repos: repos, user: user, log: log}
 }
 
 // CategoryInfo 分类信息
@@ -462,6 +463,29 @@ var categoryMeta = []struct {
 	{"solution", "解决方案", "lightbulb"},
 }
 
+// expertPrimarySkillName 取专家展示用主技能名：优先 is_primary，否则取首条有效技能名（依赖 ListUserSkills Preload Skill）。
+func expertPrimarySkillName(skills []*model.UserSkill) string {
+	skillName := func(us *model.UserSkill) string {
+		if us == nil {
+			return ""
+		}
+		return strings.TrimSpace(us.Skill.Name)
+	}
+	for _, us := range skills {
+		if us != nil && us.IsPrimary {
+			if n := skillName(us); n != "" {
+				return n
+			}
+		}
+	}
+	for _, us := range skills {
+		if n := skillName(us); n != "" {
+			return n
+		}
+	}
+	return ""
+}
+
 // GetDemanderHome 获取需求方首页数据
 func (s *HomeService) GetDemanderHome(userUUID string) (*DemanderHomeData, error) {
 	counts, _ := s.repos.Project.CountByCategory()
@@ -488,11 +512,16 @@ func (s *HomeService) GetDemanderHome(userUUID string) (*DemanderHomeData, error
 	experts, _, _ := s.repos.User.ListExperts(0, 5)
 	expertBriefs := make([]ExpertBrief, 0, len(experts))
 	for _, e := range experts {
+		skillName := ""
+		if userSkills, err := s.user.ListUserSkills(e.ID); err == nil {
+			skillName = expertPrimarySkillName(userSkills)
+		}
 		eb := ExpertBrief{
 			ID:              e.UUID,
 			Nickname:        e.Nickname,
 			AvatarURL:       e.AvatarURL,
 			Rating:          e.AvgRating,
+			Skill:           skillName,
 			HourlyRate:      e.HourlyRate,
 			CompletedOrders: e.CompletedOrders,
 		}
