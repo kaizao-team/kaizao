@@ -183,7 +183,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	// ==================== 支付模块 ====================
 	orders := v1.Group("/orders")
 	{
-		orders.POST("", middleware.JWTAuth(services.JWT), placeholder)
+		orders.POST("", middleware.JWTAuth(services.JWT), handlers.Order.Create)
 		orders.GET("/:id", middleware.JWTAuth(services.JWT), handlers.Order.GetDetail)
 		orders.POST("/:id/prepay", middleware.JWTAuth(services.JWT), handlers.Order.Prepay)
 		orders.GET("/:id/status", middleware.JWTAuth(services.JWT), handlers.Order.GetStatus)

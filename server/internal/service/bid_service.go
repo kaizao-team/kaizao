@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,12 +15,13 @@ import (
 )
 
 type BidService struct {
-	repos *repository.Repositories
-	log   *zap.Logger
+	repos    *repository.Repositories
+	orderSvc *OrderService
+	log      *zap.Logger
 }
 
-func NewBidService(repos *repository.Repositories, log *zap.Logger) *BidService {
-	return &BidService{repos: repos, log: log}
+func NewBidService(repos *repository.Repositories, orderSvc *OrderService, log *zap.Logger) *BidService {
+	return &BidService{repos: repos, orderSvc: orderSvc, log: log}
 }
 
 func (s *BidService) ListByProject(projectUUID string) ([]*model.Bid, error) {
@@ -108,36 +110,19 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		return nil, fmt.Errorf("%d", errcode.ErrProjectOwnerOnly)
 	}
 
-	now := time.Now()
-	bid.Status = 2
-	bid.AcceptedAt = &now
-	if err := s.repos.Bid.Update(bid); err != nil {
-		return nil, err
-	}
-
 	providerID := *bid.BidderID
-	if err := s.repos.Project.UpdateFields(bid.ProjectID, map[string]interface{}{
-		"provider_id":  providerID,
-		"bid_id":       bid.ID,
-		"status":       3,
-		"agreed_price": bid.Price,
-		"matched_at":   &now,
-	}); err != nil {
-		return nil, err
-	}
-
 	providerUser, err := s.repos.User.FindByID(providerID)
 	if err != nil {
 		s.log.Error("AcceptBid: load provider", zap.Error(err))
 		return nil, err
 	}
 
+	now := time.Now()
 	projectTitle := project.Title
 	demanderPhone := displayPhoneForNotify(ownerUser)
 	expertPhone := displayPhoneForNotify(providerUser)
 	targetType := "project"
 	tid := project.ID
-
 	contentDemander := fmt.Sprintf(
 		"已有团队/专家撮合成功，我们将尽快接洽。项目「%s」。对方联系电话：%s",
 		projectTitle, expertPhone,
@@ -150,11 +135,6 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		TargetType:       &targetType,
 		TargetID:         &tid,
 	}
-	if err := s.repos.Notification.Create(nDemander); err != nil {
-		s.log.Error("AcceptBid: notify demander", zap.Error(err))
-		return nil, err
-	}
-
 	contentExpert := fmt.Sprintf(
 		"您已被选定为「%s」的服务方，请尽快联系需求方沟通详情。需求方联系电话：%s",
 		projectTitle, demanderPhone,
@@ -167,65 +147,107 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		TargetType:       &targetType,
 		TargetID:         &tid,
 	}
-	if err := s.repos.Notification.Create(nExpert); err != nil {
-		s.log.Error("AcceptBid: notify expert", zap.Error(err))
-		return nil, err
-	}
 
-	aID, bID := project.OwnerID, providerID
-	if aID > bID {
-		aID, bID = bID, aID
-	}
-	pid := project.ID
+	var createdPayOrd *model.Order
+	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		txRepos := repository.NewRepositories(tx)
+		bid.Status = 2
+		bid.AcceptedAt = &now
+		if err := txRepos.Bid.Update(bid); err != nil {
+			return err
+		}
+		if err := txRepos.Project.UpdateFields(bid.ProjectID, map[string]interface{}{
+			"provider_id":  providerID,
+			"bid_id":       bid.ID,
+			"status":       3,
+			"agreed_price": bid.Price,
+			"matched_at":   &now,
+		}); err != nil {
+			return err
+		}
+		if err := txRepos.Notification.Create(nDemander); err != nil {
+			s.log.Error("AcceptBid: notify demander", zap.Error(err))
+			return err
+		}
+		if err := txRepos.Notification.Create(nExpert); err != nil {
+			s.log.Error("AcceptBid: notify expert", zap.Error(err))
+			return err
+		}
 
-	var conv *model.Conversation
-	existing, errConv := s.repos.Conversation.FindPrivateConversation(project.OwnerID, providerID)
-	if errConv == nil {
-		conv = existing
-		if conv.ProjectID == nil || *conv.ProjectID != project.ID {
-			conv.ProjectID = &pid
-			if err := s.repos.Conversation.Update(conv); err != nil {
-				s.log.Error("AcceptBid: update conversation project_id", zap.Error(err))
-				return nil, err
+		aID, bID := project.OwnerID, providerID
+		if aID > bID {
+			aID, bID = bID, aID
+		}
+		pid := project.ID
+		var conv *model.Conversation
+		existing, errConv := txRepos.Conversation.FindPrivateConversation(project.OwnerID, providerID)
+		if errConv == nil {
+			conv = existing
+			if conv.ProjectID == nil || *conv.ProjectID != project.ID {
+				conv.ProjectID = &pid
+				if err := txRepos.Conversation.Update(conv); err != nil {
+					s.log.Error("AcceptBid: update conversation project_id", zap.Error(err))
+					return err
+				}
 			}
+		} else if errors.Is(errConv, gorm.ErrRecordNotFound) {
+			conv = &model.Conversation{
+				ProjectID:        &pid,
+				ConversationType: 1,
+				UserAID:          &aID,
+				UserBID:          &bID,
+				Status:           1,
+			}
+			if err := txRepos.Conversation.Create(conv); err != nil {
+				s.log.Error("AcceptBid: create conversation", zap.Error(err))
+				return err
+			}
+		} else {
+			return errConv
 		}
-	} else if errors.Is(errConv, gorm.ErrRecordNotFound) {
-		conv = &model.Conversation{
-			ProjectID:        &pid,
-			ConversationType: 1,
-			UserAID:          &aID,
-			UserBID:          &bID,
-			Status:           1,
+
+		sysText := "撮合成功！你们已经可以开始沟通了"
+		sysType := "system"
+		msg := &model.Message{
+			ConversationID: conv.ID,
+			SenderID:       project.OwnerID,
+			ContentType:    sysType,
+			Content:        &sysText,
+			Status:         1,
 		}
-		if err := s.repos.Conversation.Create(conv); err != nil {
-			s.log.Error("AcceptBid: create conversation", zap.Error(err))
-			return nil, err
+		if err := txRepos.Message.Create(msg); err != nil {
+			s.log.Error("AcceptBid: system message", zap.Error(err))
+			return err
 		}
-	} else {
-		return nil, errConv
+		conv.LastMessageContent = &sysText
+		conv.LastMessageType = &sysType
+		conv.LastMessageAt = &now
+		ownerID := project.OwnerID
+		conv.LastMessageUserID = &ownerID
+		if err := txRepos.Conversation.Update(conv); err != nil {
+			s.log.Error("AcceptBid: update conversation last message", zap.Error(err))
+			return err
+		}
+
+		payOrd, errOrd := s.orderSvc.createPendingProjectOrderWithRepos(txRepos, project.ID, project.OwnerID, providerID, bid.Price)
+		if errOrd != nil {
+			code, _ := strconv.Atoi(errOrd.Error())
+			if code != errcode.ErrOrderAlreadyExists {
+				s.log.Error("AcceptBid: create order", zap.Error(errOrd))
+				return errOrd
+			}
+			payOrd = nil
+		}
+		createdPayOrd = payOrd
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
-	sysText := "撮合成功！你们已经可以开始沟通了"
-	sysType := "system"
-	msg := &model.Message{
-		ConversationID: conv.ID,
-		SenderID:       project.OwnerID,
-		ContentType:    sysType,
-		Content:        &sysText,
-		Status:         1,
-	}
-	if err := s.repos.Message.Create(msg); err != nil {
-		s.log.Error("AcceptBid: system message", zap.Error(err))
-		return nil, err
-	}
-	conv.LastMessageContent = &sysText
-	conv.LastMessageType = &sysType
-	conv.LastMessageAt = &now
-	ownerID := project.OwnerID
-	conv.LastMessageUserID = &ownerID
-	if err := s.repos.Conversation.Update(conv); err != nil {
-		s.log.Error("AcceptBid: update conversation last message", zap.Error(err))
-		return nil, err
+	if createdPayOrd != nil {
+		if err := s.orderSvc.NotifyPayerPendingOrder(project.OwnerID, createdPayOrd, projectTitle); err != nil {
+			s.log.Error("AcceptBid: payment notify", zap.Error(err))
+		}
 	}
 
 	return bid, nil

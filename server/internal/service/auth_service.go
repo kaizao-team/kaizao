@@ -52,16 +52,17 @@ func NewServices(repos *repository.Repositories, rdb *redis.Client, cfg *config.
 	}
 
 	userSvc := NewUserService(repos, log)
+	orderSvc := NewOrderService(repos, log)
 	return &Services{
 		Auth:         NewAuthService(repos, rdb, jwtManager, cfg, log),
 		User:         userSvc,
 		Project:      NewProjectService(repos, log),
 		Home:         NewHomeService(repos, log),
-		Bid:          NewBidService(repos, log),
+		Bid:          NewBidService(repos, orderSvc, log),
 		Task:         NewTaskService(repos, log),
 		Milestone:    NewMilestoneService(repos, log),
 		Conversation: NewConversationService(repos, log),
-		Order:        NewOrderService(repos, log),
+		Order:        orderSvc,
 		Wallet:       NewWalletService(repos, log),
 		Review:       NewReviewService(repos, log),
 		Team:         NewTeamService(repos, objClient, log),

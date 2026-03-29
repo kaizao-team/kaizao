@@ -3,6 +3,7 @@ package repository
 import (
 	"github.com/vibebuild/server/internal/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type projectRepository struct {
@@ -41,6 +42,10 @@ func (r *projectRepository) Update(project *model.Project) error {
 
 func (r *projectRepository) UpdateFields(id int64, fields map[string]interface{}) error {
 	return r.db.Model(&model.Project{}).Where("id = ?", id).Updates(fields).Error
+}
+
+func (r *projectRepository) LockByIDForUpdate(id int64) error {
+	return r.db.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", id).First(&model.Project{}).Error
 }
 
 func (r *projectRepository) List(offset, limit int, conditions map[string]interface{}, sortBy, sortOrder string) ([]*model.Project, int64, error) {
@@ -310,6 +315,15 @@ func (r *orderRepository) FindByID(id int64) (*model.Order, error) {
 func (r *orderRepository) FindByProjectID(projectID int64) (*model.Order, error) {
 	var order model.Order
 	err := r.db.Where("project_id = ?", projectID).Order("created_at DESC").First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+func (r *orderRepository) FindPendingByProjectID(projectID int64) (*model.Order, error) {
+	var order model.Order
+	err := r.db.Where("project_id = ? AND status = ?", projectID, 1).Order("id DESC").First(&order).Error
 	if err != nil {
 		return nil, err
 	}
