@@ -106,10 +106,10 @@ type LogConfig struct {
 	Format string `mapstructure:"format"`
 }
 
-// OSSConfig 对象存储（MinIO / S3 兼容；团队静态文件等）
+// OSSConfig 对象存储（MinIO / S3 兼容，含阿里云 OSS 的 S3 接入；团队静态文件、通用上传等）
 type OSSConfig struct {
 	Enabled         bool   `mapstructure:"enabled"`
-	Endpoint        string `mapstructure:"endpoint"` // host:port，不含协议
+	Endpoint        string `mapstructure:"endpoint"` // host:port，不含协议；阿里云填 OSS 外网 Endpoint（不含 https://）
 	UseSSL          bool   `mapstructure:"use_ssl"`
 	Region          string `mapstructure:"region"`
 	AccessKeyID     string `mapstructure:"access_key_id"`
@@ -117,6 +117,10 @@ type OSSConfig struct {
 	BucketName      string `mapstructure:"bucket_name"`
 	BaseURL         string `mapstructure:"base_url"` // 对外访问 URL 前缀，如 https://cdn.example.com/bucket
 	MaxUploadMB     int    `mapstructure:"max_upload_mb"`
+	// LocalUploadDir 非空且对象存储未就绪时，通用上传落本地磁盘（开发/内网）；需配合 LocalURLPath 暴露静态访问
+	LocalUploadDir string `mapstructure:"local_upload_dir"`
+	// LocalURLPath 本地文件 HTTP 路径前缀，如 /api/v1/upload-files（与 router.Static 一致）
+	LocalURLPath string `mapstructure:"local_url_path"`
 }
 
 // SMSConfig 短信配置
@@ -161,6 +165,8 @@ func Load() (*Config, error) {
 	v.SetDefault("oss.enabled", false)
 	v.SetDefault("oss.use_ssl", false)
 	v.SetDefault("oss.max_upload_mb", 32)
+	v.SetDefault("oss.local_upload_dir", "")
+	v.SetDefault("oss.local_url_path", "/api/v1/upload-files")
 
 	// 配置文件
 	v.SetConfigName("config")
