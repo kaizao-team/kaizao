@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,12 +15,13 @@ import (
 )
 
 type BidService struct {
-	repos *repository.Repositories
-	log   *zap.Logger
+	repos    *repository.Repositories
+	orderSvc *OrderService
+	log      *zap.Logger
 }
 
-func NewBidService(repos *repository.Repositories, log *zap.Logger) *BidService {
-	return &BidService{repos: repos, log: log}
+func NewBidService(repos *repository.Repositories, orderSvc *OrderService, log *zap.Logger) *BidService {
+	return &BidService{repos: repos, orderSvc: orderSvc, log: log}
 }
 
 func (s *BidService) ListByProject(projectUUID string) ([]*model.Bid, error) {
@@ -225,6 +227,18 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 	conv.LastMessageUserID = &ownerID
 	if err := s.repos.Conversation.Update(conv); err != nil {
 		s.log.Error("AcceptBid: update conversation last message", zap.Error(err))
+		return nil, err
+	}
+
+	ord, errOrd := s.orderSvc.CreatePendingProjectOrder(project.ID, project.OwnerID, providerID, bid.Price)
+	if errOrd != nil {
+		code, _ := strconv.Atoi(errOrd.Error())
+		if code != errcode.ErrOrderAlreadyExists {
+			s.log.Error("AcceptBid: create order", zap.Error(errOrd))
+			return nil, errOrd
+		}
+	} else if err := s.orderSvc.NotifyPayerPendingOrder(project.OwnerID, ord, projectTitle); err != nil {
+		s.log.Error("AcceptBid: payment notify", zap.Error(err))
 		return nil, err
 	}
 

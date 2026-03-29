@@ -20,10 +20,44 @@ func NewOrderHandler(orderService *service.OrderService, walletService *service.
 	return &OrderHandler{orderService: orderService, walletService: walletService, log: log}
 }
 
+// Create POST /orders — 需求方为已撮合项目创建待支付订单
+func (h *OrderHandler) Create(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	var req struct {
+		ProjectID string  `json:"project_id" binding:"required"`
+		Amount    float64 `json:"amount"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	ord, err := h.orderService.CreateOrderByOwner(userUUID, req.ProjectID, req.Amount)
+	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, err.Error())
+		return
+	}
+	response.SuccessMsg(c, "订单已创建", gin.H{
+		"order_id": ord.UUID,
+		"order_no": ord.OrderNo,
+		"status":   "pending",
+	})
+}
+
 func (h *OrderHandler) GetDetail(c *gin.Context) {
 	id := c.Param("id")
-	detail, err := h.orderService.GetDetail(id)
+	userUUID := c.GetString("user_uuid")
+	detail, err := h.orderService.GetDetail(id, userUUID)
 	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code == errcode.ErrUserNotFound {
+			response.ErrorNotFound(c, errcode.ErrUserNotFound, errcode.GetMessage(errcode.ErrUserNotFound))
+			return
+		}
 		response.ErrorNotFound(c, errcode.ErrOrderNotFound, "订单不存在")
 		return
 	}

@@ -1,14 +1,24 @@
 package service
 
 import (
+	"errors"
 	"fmt"
+	"math"
+	"strings"
 	"time"
 
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/repository"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
+
+const defaultPlatformFeeRate = 0.12
+
+func roundMoney2(v float64) float64 {
+	return math.Round(v*100) / 100
+}
 
 type OrderService struct {
 	repos *repository.Repositories
@@ -17,6 +27,99 @@ type OrderService struct {
 
 func NewOrderService(repos *repository.Repositories, log *zap.Logger) *OrderService {
 	return &OrderService{repos: repos, log: log}
+}
+
+// CreatePendingProjectOrder 创建待支付订单（platform_fee = amount * platform_fee_rate）；同项目已存在待支付订单则失败。
+func (s *OrderService) CreatePendingProjectOrder(projectID, payerID, payeeID int64, amount float64) (*model.Order, error) {
+	if amount <= 0 {
+		return nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
+	}
+	existing, err := s.repos.Order.FindByProjectID(projectID)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	if err == nil && existing.Status == 1 {
+		return nil, fmt.Errorf("%d", errcode.ErrOrderAlreadyExists)
+	}
+	orderNo := strings.ReplaceAll(model.GenerateUUID(), "-", "")
+	if len(orderNo) > 32 {
+		orderNo = orderNo[:32]
+	}
+	feeRate := defaultPlatformFeeRate
+	platFee := roundMoney2(amount * feeRate)
+	payee := payeeID
+	ord := &model.Order{
+		OrderNo:         orderNo,
+		ProjectID:       projectID,
+		PayerID:         payerID,
+		PayeeID:         &payee,
+		Amount:          amount,
+		PlatformFeeRate: feeRate,
+		PlatformFee:     platFee,
+		Status:          1,
+	}
+	if err := s.repos.Order.Create(ord); err != nil {
+		return nil, err
+	}
+	return ord, nil
+}
+
+// NotifyPayerPendingOrder 通知需求方支付（撮合自动建单或手动建单后可调用）
+func (s *OrderService) NotifyPayerPendingOrder(payerID int64, ord *model.Order, projectTitle string) error {
+	if ord == nil {
+		return nil
+	}
+	tt := "order"
+	oid := ord.ID
+	total := roundMoney2(ord.Amount + ord.PlatformFee)
+	content := fmt.Sprintf(
+		"请支付项目款项。项目「%s」应付金额 %.2f 元（项目款 %.2f 元 + 平台服务费 %.2f 元）。",
+		projectTitle, total, ord.Amount, ord.PlatformFee,
+	)
+	n := &model.Notification{
+		UserID:           payerID,
+		Title:            "请支付项目款项",
+		Content:          content,
+		NotificationType: model.NotificationTypePayReminder,
+		TargetType:       &tt,
+		TargetID:         &oid,
+	}
+	return s.repos.Notification.Create(n)
+}
+
+// CreateOrderByOwner 当前用户作为需求方为已撮合项目手动创建待支付订单（金额默认项目 agreed_price）
+func (s *OrderService) CreateOrderByOwner(ownerUUID, projectUUID string, amount float64) (*model.Order, error) {
+	owner, err := s.repos.User.FindByUUID(ownerUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	project, err := s.repos.Project.FindByUUID(projectUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if project.OwnerID != owner.ID {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectOwnerOnly)
+	}
+	if project.ProviderID == nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
+	}
+	amt := amount
+	if amt <= 0 {
+		if project.AgreedPrice != nil && *project.AgreedPrice > 0 {
+			amt = *project.AgreedPrice
+		} else {
+			return nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
+		}
+	}
+	ord, err := s.CreatePendingProjectOrder(project.ID, project.OwnerID, *project.ProviderID, amt)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.NotifyPayerPendingOrder(project.OwnerID, ord, project.Title); err != nil {
+		s.log.Error("CreateOrderByOwner: notify", zap.Error(err))
+		return nil, err
+	}
+	return ord, nil
 }
 
 func (s *OrderService) GetByUUID(uuid string) (*model.Order, error) {
@@ -41,9 +144,16 @@ type OrderDetail struct {
 	Status         string                   `json:"status"`
 }
 
-func (s *OrderService) GetDetail(uuid string) (*OrderDetail, error) {
-	order, err := s.repos.Order.FindByUUID(uuid)
+func (s *OrderService) GetDetail(orderUUID, viewerUUID string) (*OrderDetail, error) {
+	viewer, err := s.repos.User.FindByUUID(viewerUUID)
 	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	order, err := s.repos.Order.FindByUUID(orderUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrOrderNotFound)
+	}
+	if order.PayerID != viewer.ID && (order.PayeeID == nil || *order.PayeeID != viewer.ID) {
 		return nil, fmt.Errorf("%d", errcode.ErrOrderNotFound)
 	}
 	projectTitle := ""

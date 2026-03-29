@@ -98,6 +98,7 @@ const (
 	ErrSplitRatioInvalid     = 40010
 	ErrOrderAmountExceed     = 40011
 	ErrNewUserOrderLimit     = 40012
+	ErrOrderAlreadyExists    = 40013
 )
 
 // AI服务模块 50001-50999
@@ -195,6 +196,7 @@ var ErrorMessages = map[int]string{
 	ErrBidClosed:            "投标已关闭或已处理",
 	ErrOrderNotFound:        "订单不存在",
 	ErrOrderStatusInvalid:   "订单状态不允许当前操作",
+	ErrOrderAlreadyExists:   "该项目已有待支付订单",
 	ErrConversationNotFound: "会话不存在",
 	ErrMessageContentEmpty:  "消息内容不能为空",
 	ErrReviewDuplicate:      "重复评价",
