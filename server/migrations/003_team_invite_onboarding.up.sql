@@ -1,4 +1,6 @@
 -- 团队邀请码：team 维度、核销后轮换；用户入驻材料字段
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 ALTER TABLE invite_codes
     ADD COLUMN team_id BIGINT NULL COMMENT '所属团队，核销后新码仍属同一团队' AFTER uuid,
     ADD COLUMN code_plain VARCHAR(32) NULL COMMENT '当前有效码明文，供管理端查看' AFTER code_hash;

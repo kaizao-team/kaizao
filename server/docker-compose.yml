@@ -19,6 +19,7 @@ services:
       - ./migrations/004_team_static_assets.up.sql:/docker-entrypoint-initdb.d/004_team_static_assets.sql:ro
       - ./migrations/005_project_category_normalize.up.sql:/docker-entrypoint-initdb.d/005_project_category_normalize.sql:ro
       - ./migrations/006_user_contact_phone.up.sql:/docker-entrypoint-initdb.d/006_user_contact_phone.sql:ro
+      - ./migrations/007_table_column_comments.up.sql:/docker-entrypoint-initdb.d/007_table_column_comments.sql:ro
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
