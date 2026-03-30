@@ -27,6 +27,7 @@ class ExpertOnboardingRepository {
     double? hourlyRate,
     int? availableStatus,
     int? role,
+    String? contactPhone,
   }) async {
     final response = await _client.put<Map<String, dynamic>>(
       ApiEndpoints.currentUser,
@@ -36,6 +37,8 @@ class ExpertOnboardingRepository {
         if (hourlyRate != null) 'hourly_rate': hourlyRate,
         if (availableStatus != null) 'available_status': availableStatus,
         if (role != null) 'role': role,
+        if (contactPhone != null && contactPhone.isNotEmpty)
+          'contact_phone': contactPhone,
       },
       fromJson: (data) => data as Map<String, dynamic>,
     );

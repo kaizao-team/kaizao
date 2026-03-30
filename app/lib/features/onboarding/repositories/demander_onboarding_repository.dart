@@ -12,12 +12,15 @@ class DemanderOnboardingRepository {
   Future<Map<String, dynamic>> updateProfile({
     required String nickname,
     String? avatarUrl,
+    String? contactPhone,
   }) async {
     final response = await _client.put<Map<String, dynamic>>(
       ApiEndpoints.currentUser,
       data: {
         'nickname': nickname,
         'avatar_url': avatarUrl,
+        if (contactPhone != null && contactPhone.isNotEmpty)
+          'contact_phone': contactPhone,
       },
       fromJson: (data) => data as Map<String, dynamic>,
     );

@@ -20,6 +20,7 @@ class DemanderProfilePage extends ConsumerStatefulWidget {
 
 class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
   final _nicknameController = TextEditingController();
+  final _phoneController = TextEditingController();
   String? _avatarUrl;
   final _nicknameSuggestions = const [
     'Dylan',
@@ -32,12 +33,14 @@ class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
     super.initState();
     final draft = ref.read(onboardingProvider).draft;
     _nicknameController.text = draft['nickname'] as String? ?? '';
+    _phoneController.text = draft['contact_phone'] as String? ?? '';
     _avatarUrl = draft['avatar_url'] as String?;
   }
 
   @override
   void dispose() {
     _nicknameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -54,6 +57,7 @@ class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
     final success = await notifier.submitDemanderProfile(
       nickname: _nicknameController.text.trim(),
       avatarUrl: _avatarUrl,
+      contactPhone: _phoneController.text.trim(),
     );
     if (!mounted) return;
 
@@ -190,6 +194,64 @@ class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
                 ),
               );
             }).toList(),
+          ),
+          const SizedBox(height: 28),
+          Text(
+            '联系手机号',
+            style: AppTextStyles.onboardingSectionLabel.copyWith(
+              color: AppColors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            maxLength: 11,
+            onChanged: (_) => setState(() {}),
+            style: AppTextStyles.h2.copyWith(fontSize: 22),
+            decoration: InputDecoration(
+              hintText: '请输入手机号',
+              hintStyle: AppTextStyles.inputHint
+                  .copyWith(color: AppColors.gray300),
+              counterText: '',
+              enabledBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(
+                  color: AppColors.onboardingHairline,
+                  width: 1,
+                ),
+              ),
+              focusedBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(
+                  color: AppColors.onboardingPrimary,
+                  width: 1.5,
+                ),
+              ),
+              border: const UnderlineInputBorder(
+                borderSide: BorderSide(
+                  color: AppColors.onboardingHairline,
+                  width: 1,
+                ),
+              ),
+              prefixIcon: const Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: Icon(
+                  Icons.phone_outlined,
+                  size: 20,
+                  color: AppColors.gray400,
+                ),
+              ),
+              prefixIconConstraints: const BoxConstraints(
+                minWidth: 28,
+                minHeight: 0,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '便于撮合后第一时间联系你，仅对匹配方可见。',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.onboardingMutedText,
+            ),
           ),
           const SizedBox(height: 22),
           _AvatarInlinePrompt(
