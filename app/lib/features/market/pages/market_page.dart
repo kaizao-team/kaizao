@@ -224,7 +224,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
                                 project.matchScore! >= 80
                             ? '技能高度匹配，推荐组队投标'
                             : null,
-                        onTap: () => context.push('/projects/${project.id}'),
+                        onTap: () => context.push('/projects/${project.routingId}'),
                       );
                     },
                   ),
