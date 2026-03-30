@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vibebuild/server/internal/config"
 	"github.com/vibebuild/server/internal/dto"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
@@ -27,11 +29,17 @@ type Handlers struct {
 	Wallet       *WalletHandler
 	Review       *ReviewHandler
 	Team         *TeamHandler
+	Notification *NotificationHandler
+	Upload       *UploadHandler
 	Admin        *AdminHandler
 }
 
 // NewHandlers 创建所有 Handler
-func NewHandlers(services *service.Services, log *zap.Logger) *Handlers {
+func NewHandlers(services *service.Services, cfg *config.Config, log *zap.Logger) *Handlers {
+	publicBase := ""
+	if cfg != nil {
+		publicBase = strings.TrimSpace(cfg.Server.PublicBaseURL)
+	}
 	return &Handlers{
 		Auth:         NewAuthHandler(services.Auth, log),
 		Admin:        NewAdminHandler(services.Auth, services.User, log),
@@ -46,6 +54,8 @@ func NewHandlers(services *service.Services, log *zap.Logger) *Handlers {
 		Wallet:       NewWalletHandler(services.Wallet, log),
 		Review:       NewReviewHandler(services.Review, log),
 		Team:         NewTeamHandler(services.Team, log),
+		Notification: NewNotificationHandler(services.Notification, log),
+		Upload:       NewUploadHandler(services.Upload, publicBase, log),
 	}
 }
 
@@ -244,6 +254,7 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 		"uuid":             user.UUID,
 		"nickname":         user.Nickname,
 		"avatar_url":       user.AvatarURL,
+		"contact_phone":    user.ContactPhone,
 		"role":             user.Role,
 		"onboarding_status":        user.OnboardingStatus,
 		"onboarding_submitted_at":  user.OnboardingSubmittedAt,
@@ -292,6 +303,14 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 	}
 	if req.City != nil {
 		fields["city"] = *req.City
+	}
+	if req.ContactPhone != nil {
+		cp := strings.TrimSpace(*req.ContactPhone)
+		if cp == "" {
+			fields["contact_phone"] = nil
+		} else {
+			fields["contact_phone"] = cp
+		}
 	}
 	if req.Role != nil {
 		fields["role"] = *req.Role

@@ -235,10 +235,7 @@ class _MetaLine extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _MetaLine({
-    required this.icon,
-    required this.text,
-  });
+  const _MetaLine({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {

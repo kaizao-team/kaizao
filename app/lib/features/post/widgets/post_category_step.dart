@@ -7,11 +7,7 @@ class PostCategoryStep extends StatelessWidget {
   final String? selected;
   final ValueChanged<String> onSelect;
 
-  const PostCategoryStep({
-    super.key,
-    this.selected,
-    required this.onSelect,
-  });
+  const PostCategoryStep({super.key, this.selected, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -71,8 +67,9 @@ class PostCategoryStep extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color:
-                              isSelected ? AppColors.white : AppColors.gray700,
+                          color: isSelected
+                              ? AppColors.white
+                              : AppColors.gray700,
                         ),
                       ),
                     ],

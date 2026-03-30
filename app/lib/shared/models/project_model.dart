@@ -57,9 +57,11 @@ class ProjectModel {
       uuid: json['uuid'] as String? ?? '',
       ownerId: json['owner_id']?.toString() ?? '',
       providerId: json['provider_id']?.toString(),
-      providerName: json['provider_name'] as String? ??
+      providerName:
+          json['provider_name'] as String? ??
           json['provider_nickname'] as String?,
-      providerAvatarUrl: json['provider_avatar_url'] as String? ??
+      providerAvatarUrl:
+          json['provider_avatar_url'] as String? ??
           json['avatar_url'] as String?,
       teamId: json['team_id']?.toString(),
       title: json['title'] as String? ?? '',
@@ -149,6 +151,9 @@ class ProjectModel {
     }
   }
 
+  /// 路由用唯一标识：优先 uuid，回退 id，确保后端仅返回 uuid 时也能正常跳转
+  String get routingId => uuid.isNotEmpty ? uuid : id;
+
   String get budgetDisplay {
     if (agreedPrice != null) return '\u00a5${agreedPrice!.toStringAsFixed(0)}';
     if (budgetMin != null && budgetMax != null) {
@@ -162,7 +167,8 @@ class ProjectModel {
   }
 
   bool get hasMatchedProvider {
-    final hasProviderIdentity = (providerId?.isNotEmpty ?? false) ||
+    final hasProviderIdentity =
+        (providerId?.isNotEmpty ?? false) ||
         (providerName?.isNotEmpty ?? false);
 
     if (hasProviderIdentity) return true;

@@ -268,6 +268,7 @@ String _supportingSubtitle(RecommendedDemand demand) {
 }
 
 String? _projectRoute(RecommendedDemand demand) {
-  if (demand.id.isEmpty) return null;
-  return RoutePaths.projectDetail.replaceFirst(':projectId', demand.id);
+  final id = demand.routingId;
+  if (id.isEmpty) return null;
+  return RoutePaths.projectDetail.replaceFirst(':projectId', id);
 }

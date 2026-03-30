@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/routes.dart';
 import '../../features/chat/providers/chat_provider.dart';
+import '../../features/notification/providers/notification_provider.dart';
 
 /// 底部导航栏 — Notion/Linear 黑白风格
 class VccBottomNav extends ConsumerWidget {
@@ -40,7 +41,11 @@ class VccBottomNav extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final chatState = ref.watch(conversationListProvider);
-    final unreadCount = chatState.totalUnread;
+    final chatUnread = chatState.totalUnread;
+    final notifUnread = ref.watch(
+      notificationProvider.select((s) => s.unreadCount),
+    );
+    final unreadCount = chatUnread + notifUnread;
 
     return Scaffold(
       body: child,

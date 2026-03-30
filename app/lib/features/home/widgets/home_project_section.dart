@@ -60,7 +60,7 @@ class _ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final routeId = project.uuid.isNotEmpty ? project.uuid : project.id;
+    final routeId = project.routingId;
 
     return VccCard(
       onTap: routeId.isEmpty ? null : () => context.push('/projects/$routeId'),

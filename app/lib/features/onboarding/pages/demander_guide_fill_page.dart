@@ -154,10 +154,7 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
         borderSide: BorderSide(color: AppColors.onboardingHairline),
       ),
       focusedBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(
-          color: AppColors.onboardingPrimary,
-          width: 1.4,
-        ),
+        borderSide: BorderSide(color: AppColors.onboardingPrimary, width: 1.4),
       ),
       border: const UnderlineInputBorder(
         borderSide: BorderSide(color: AppColors.onboardingHairline),
@@ -239,18 +236,18 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
     final briefStatusText = _selectedCategoryLabel.isEmpty
         ? '等待起笔'
         : _isValid
-            ? '可直接发布'
-            : (hasTitle ? '继续完善' : '方向已点亮');
+        ? '可直接发布'
+        : (hasTitle ? '继续完善' : '方向已点亮');
     final titleHelperText = !hasTitle
         ? '标题至少 5 个字，接口才会接收。'
         : title.length >= 5
-            ? '这一行已经够清楚了。'
-            : '再补 ${5 - title.length} 个字，至少 5 个字。';
+        ? '这一行已经够清楚了。'
+        : '再补 ${5 - title.length} 个字，至少 5 个字。';
     final descriptionHelperText = !hasDescription
         ? '项目语境至少 20 个字，目标和范围要写出来。'
         : description.length >= 20
-            ? '这段信息已经够团队快速判断。'
-            : '再补 ${20 - description.length} 个字，接口才会接收。';
+        ? '这段信息已经够团队快速判断。'
+        : '再补 ${20 - description.length} 个字，接口才会接收。';
     final footnoteText = _isValid
         ? '骨架已经立住了，再补两句语境，系统会更快把你推到合适的人面前。'
         : '标题至少 5 个字，描述至少 20 个字，分类也要选定。';

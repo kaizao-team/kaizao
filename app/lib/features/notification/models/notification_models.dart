@@ -5,6 +5,8 @@ class NotificationItem {
   final String type;
   final bool isRead;
   final DateTime createdAt;
+  final String? targetType;
+  final String? targetId;
 
   const NotificationItem({
     required this.id,
@@ -13,6 +15,8 @@ class NotificationItem {
     required this.type,
     required this.isRead,
     required this.createdAt,
+    this.targetType,
+    this.targetId,
   });
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
@@ -25,8 +29,12 @@ class NotificationItem {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),
+      targetType: json['target_type'] as String?,
+      targetId: json['target_id'] as String?,
     );
   }
+
+  bool get hasTarget => targetType != null && targetId != null;
 
   NotificationItem copyWith({bool? isRead}) {
     return NotificationItem(
@@ -36,6 +44,8 @@ class NotificationItem {
       type: type,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt,
+      targetType: targetType,
+      targetId: targetId,
     );
   }
 

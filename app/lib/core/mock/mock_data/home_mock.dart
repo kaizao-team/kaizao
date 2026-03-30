@@ -22,12 +22,7 @@ class HomeMock {
       'data': {
         'ai_prompt': '把你的想法告诉我，AI 帮你变成现实',
         'categories': [
-          {
-            'key': 'dev',
-            'name': '研发',
-            'icon': 'code',
-            'count': 128,
-          },
+          {'key': 'dev', 'name': '研发', 'icon': 'code', 'count': 128},
           {'key': 'visual', 'name': '视觉设计', 'icon': 'brush', 'count': 53},
           {'key': 'data', 'name': '数据', 'icon': 'bar_chart', 'count': 31},
           {'key': 'solution', 'name': '解决方案', 'icon': 'lightbulb', 'count': 22},

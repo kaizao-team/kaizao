@@ -42,6 +42,7 @@ const (
 	ErrTeamFileForbidden            = 11015
 	ErrObjectUploadFailed           = 11016
 	ErrUploadEmptyFile              = 11017
+	ErrUploadInvalidFileType        = 11018
 )
 
 // 项目模块（需求） 20001-20999
@@ -98,6 +99,7 @@ const (
 	ErrSplitRatioInvalid     = 40010
 	ErrOrderAmountExceed     = 40011
 	ErrNewUserOrderLimit     = 40012
+	ErrOrderAlreadyExists    = 40013
 )
 
 // AI服务模块 50001-50999
@@ -176,6 +178,7 @@ var ErrorMessages = map[int]string{
 	ErrTeamFileForbidden:         "仅团队成员可操作团队文件",
 	ErrObjectUploadFailed:        "文件上传失败",
 	ErrUploadEmptyFile:           "上传文件不能为空",
+	ErrUploadInvalidFileType:     "不支持的文件类型，仅支持常见图片格式",
 	ErrUserNotFound:         "用户不存在",
 	ErrNicknameUsed:         "昵称已被使用",
 	ErrSkillsExceedLimit:    "技能标签数量超过上限",
@@ -192,8 +195,10 @@ var ErrorMessages = map[int]string{
 	ErrBidNotFound:          "投标不存在",
 	ErrBidOwnProject:        "不能对自己的需求投标",
 	ErrBidDuplicate:         "已对该需求投标，不可重复",
+	ErrBidClosed:            "投标已关闭或已处理",
 	ErrOrderNotFound:        "订单不存在",
 	ErrOrderStatusInvalid:   "订单状态不允许当前操作",
+	ErrOrderAlreadyExists:   "该项目已有待支付订单",
 	ErrConversationNotFound: "会话不存在",
 	ErrMessageContentEmpty:  "消息内容不能为空",
 	ErrReviewDuplicate:      "重复评价",
@@ -201,6 +206,8 @@ var ErrorMessages = map[int]string{
 	ErrAIServiceUnavailable: "AI服务暂不可用",
 	ErrNoAdminPermission:    "无管理员权限",
 	ErrParamInvalid:         "参数错误",
+	ErrNotificationNotFound: "通知不存在",
+	ErrNotificationAlreadyRead: "通知已读",
 }
 
 // GetMessage 获取错误码对应的消息

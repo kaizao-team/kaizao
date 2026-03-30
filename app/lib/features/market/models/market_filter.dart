@@ -42,6 +42,7 @@ class MarketSortOption {
 
 class MarketProjectItem {
   final String id;
+  final String uuid;
   final String title;
   final String description;
   final String category;
@@ -57,6 +58,7 @@ class MarketProjectItem {
 
   const MarketProjectItem({
     required this.id,
+    this.uuid = '',
     required this.title,
     required this.description,
     required this.category,
@@ -71,9 +73,13 @@ class MarketProjectItem {
     required this.createdAt,
   });
 
+  /// 路由用唯一标识：优先 uuid，回退 id
+  String get routingId => uuid.isNotEmpty ? uuid : id;
+
   factory MarketProjectItem.fromJson(Map<String, dynamic> json) {
     return MarketProjectItem(
       id: json['id']?.toString() ?? '',
+      uuid: json['uuid'] as String? ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       category: normalizeProjectCategoryKey(json['category'] as String? ?? ''),

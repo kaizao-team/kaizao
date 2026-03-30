@@ -67,11 +67,11 @@ class _SplashPageState extends ConsumerState<SplashPage>
     );
     _buttonSlideAnim =
         Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _buttonController,
-            curve: Curves.easeOutCubic,
-          ),
-        );
+      CurvedAnimation(
+        parent: _buttonController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
     _runSequence();
   }
@@ -106,6 +106,11 @@ class _SplashPageState extends ConsumerState<SplashPage>
   @override
   Widget build(BuildContext context) {
     final padding = MediaQuery.of(context).padding;
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    const logoViewportSize = 212.0;
+    const logoZoomScale = 1.45;
+    final logoCacheSize =
+        (logoViewportSize * logoZoomScale * devicePixelRatio).round();
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
       body: AnimatedBuilder(
@@ -126,13 +131,22 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       child: Transform.scale(
                         scale: _scaleAnim.value,
                         child: SizedBox(
-                          width: 212,
-                          height: 212,
-                          child: Image.asset(
-                            'assets/branding/app_launch_motion_flat.webp',
-                            fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                            filterQuality: FilterQuality.low,
+                          width: logoViewportSize,
+                          height: logoViewportSize,
+                          child: ClipRect(
+                            child: Transform.scale(
+                              scale: logoZoomScale,
+                              child: Image.asset(
+                                'assets/branding/app_launch_motion_flat.webp',
+                                fit: BoxFit.cover,
+                                alignment: Alignment.center,
+                                filterQuality: FilterQuality.high,
+                                isAntiAlias: true,
+                                gaplessPlayback: true,
+                                cacheWidth: logoCacheSize,
+                                cacheHeight: logoCacheSize,
+                              ),
+                            ),
                           ),
                         ),
                       ),
