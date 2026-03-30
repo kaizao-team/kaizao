@@ -350,7 +350,7 @@ class _LoginMetaBar extends StatelessWidget {
                 color: AppColors.gray400,
               ),
               children: [
-                const TextSpan(text: 'KAIZAO'),
+                const TextSpan(text: 'KAIZO'),
                 const TextSpan(text: '  /  '),
                 TextSpan(
                   text: 'AUTHENTICATION',
@@ -425,7 +425,7 @@ class _LoginHero extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xxs),
         Text(
-          'KAIZAO',
+          'KAIZO',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: compact ? 20 : 22,
@@ -442,7 +442,7 @@ class _LoginHero extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          mode == _AuthMode.phone ? '输入手机号，把想法推进到开造流程。' : '登录你的账号，继续开造之旅。',
+          mode == _AuthMode.phone ? '输入手机号，把想法推进到 Kaizo 流程。' : '登录你的账号，继续 Kaizo 之旅。',
           textAlign: TextAlign.center,
           style: AppTextStyles.body2.copyWith(color: AppColors.gray400),
         ),
@@ -866,7 +866,7 @@ class _LoginFooter extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          '第一次使用 KAIZAO？',
+          '第一次使用 Kaizo？',
           style: AppTextStyles.body2.copyWith(color: AppColors.gray500),
         ),
         TextButton(
