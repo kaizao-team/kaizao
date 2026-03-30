@@ -145,7 +145,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                         child: const Column(
                           children: [
                             Text(
-                              'KAIZAO',
+                              'Kaizo',
                               style: TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w700,

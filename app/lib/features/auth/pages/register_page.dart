@@ -197,7 +197,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                             const Text('新用户注册', style: AppTextStyles.h2),
                             const SizedBox(height: AppSpacing.xs),
                             Text(
-                              '使用手机号验证码完成注册，首次登录后选择你的身份即可开始使用 KAIZAO。',
+                              '使用手机号验证码完成注册，首次登录后选择你的身份即可开始使用 Kaizo。',
                               style: AppTextStyles.body2.copyWith(
                                 color: AppColors.gray500,
                               ),

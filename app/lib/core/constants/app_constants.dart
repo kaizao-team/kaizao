@@ -3,8 +3,8 @@ class AppConstants {
   AppConstants._();
 
   // 应用信息
-  static const String appName = 'KAIZAO';
-  static const String appNameEn = 'KAIZAO';
+  static const String appName = 'Kaizo';
+  static const String appNameEn = 'Kaizo';
   static const String appVersion = '1.0.0';
   static const String slogan = '点亮每一个想法';
 

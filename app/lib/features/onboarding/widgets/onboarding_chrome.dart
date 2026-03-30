@@ -133,7 +133,7 @@ class OnboardingHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              const Text('KAIZAO', style: AppTextStyles.onboardingWordmark),
+              const Text('Kaizo', style: AppTextStyles.onboardingWordmark),
             ],
           ),
         ),

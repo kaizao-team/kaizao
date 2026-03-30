@@ -168,7 +168,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             _buildIconItem(
               Icons.info_outline,
-              '关于 KAIZAO',
+              '关于 Kaizo',
               showArrow: true,
               onTap: () => Navigator.push(
                 context,

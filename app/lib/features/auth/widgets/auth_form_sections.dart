@@ -13,7 +13,7 @@ class AuthMetaBar extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Text(
-        'KAIZAO',
+        'Kaizo',
         style: AppTextStyles.overline.copyWith(
           fontWeight: FontWeight.w700,
           letterSpacing: 1.8,
@@ -66,7 +66,7 @@ class AuthBrandHero extends StatelessWidget {
         animatedLogo,
         SizedBox(height: compact ? AppSpacing.sm : AppSpacing.md),
         Text(
-          'KAIZAO，连接新的生产力',
+          'Kaizo，连接新的生产力',
           textAlign: TextAlign.center,
           style: AppTextStyles.body2.copyWith(
             color: AppColors.gray500,
