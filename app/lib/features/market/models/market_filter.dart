@@ -8,7 +8,7 @@ class MarketCategory {
     MarketCategory(key: 'all', name: '全部'),
     MarketCategory(key: 'data', name: '数据'),
     MarketCategory(key: 'dev', name: '研发'),
-    MarketCategory(key: 'design', name: '视觉设计'),
+    MarketCategory(key: 'visual', name: '视觉设计'),
     MarketCategory(key: 'solution', name: '解决方案'),
   ];
 

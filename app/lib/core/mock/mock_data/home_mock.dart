@@ -30,7 +30,7 @@ class HomeMock {
           },
           {'key': 'web', 'name': '网站开发', 'icon': 'language', 'count': 96},
           {'key': 'miniprogram', 'name': '小程序', 'icon': 'widgets', 'count': 64},
-          {'key': 'design', 'name': 'UI设计', 'icon': 'palette', 'count': 53},
+          {'key': 'visual', 'name': '视觉设计', 'icon': 'palette', 'count': 53},
           {'key': 'data', 'name': '数据分析', 'icon': 'analytics', 'count': 31},
           {'key': 'consult', 'name': '技术指导', 'icon': 'school', 'count': 22},
         ],

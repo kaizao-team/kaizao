@@ -20,6 +20,7 @@ class DemanderCompletePage extends ConsumerWidget {
         return '网站开发';
       case 'miniprogram':
         return '小程序';
+      case 'visual':
       case 'design':
         return '设计需求';
       case 'consult':

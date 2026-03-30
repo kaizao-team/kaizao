@@ -15,7 +15,7 @@ class PostCategoryStep extends StatelessWidget {
     {'key': 'app', 'icon': Icons.phone_iphone, 'label': 'App 开发'},
     {'key': 'web', 'icon': Icons.web, 'label': 'Web 开发'},
     {'key': 'miniprogram', 'icon': Icons.widgets_outlined, 'label': '小程序'},
-    {'key': 'design', 'icon': Icons.palette_outlined, 'label': 'UI 设计'},
+    {'key': 'visual', 'icon': Icons.palette_outlined, 'label': '视觉设计'},
     {'key': 'data', 'icon': Icons.bar_chart, 'label': '数据分析'},
     {'key': 'ai', 'icon': Icons.auto_awesome, 'label': 'AI / ML'},
     {'key': 'backend', 'icon': Icons.dns_outlined, 'label': '后端开发'},

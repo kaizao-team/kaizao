@@ -26,8 +26,8 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
     'APP开发': 'app',
     '网站开发': 'web',
     '小程序': 'miniprogram',
-    'UI设计': 'design',
-    '品牌设计': 'design',
+    'UI设计': 'visual',
+    '品牌设计': 'visual',
     '技术指导': 'consult',
   };
 
