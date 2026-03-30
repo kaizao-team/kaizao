@@ -219,7 +219,7 @@ class _OnboardingPageState extends State<OnboardingPage>
 
                 // Description cross-fade
                 SizedBox(
-                  height: 62,
+                  height: 72,
                   child: Stack(
                     children: List.generate(_pages.length, (i) {
                       final rel = (_pageOffset - i).abs();
@@ -516,53 +516,135 @@ class _ContinuousMorphPainter extends CustomPainter {
     final h = size.height;
     final paint = Paint()..style = PaintingStyle.fill;
 
-    // Three column header groups
     final cols = [
-      [nodes[0], const Color(0xFF1A1A1A)],
-      [nodes[1], const Color(0xFF7C3AED)],
-      [nodes[2], const Color(0xFF9CA3AF)],
+      [nodes[0], const Color(0xFF1A1A1A), '待办'],
+      [nodes[1], const Color(0xFF7C3AED), '进行中'],
+      [nodes[2], const Color(0xFF22C55E), '已完成'],
     ];
 
-    final cardYStarts = [h * 0.28, h * 0.46, h * 0.62];
-    final cardHeights = [h * 0.14, h * 0.12, h * 0.10];
+    final cardYStarts = [h * 0.28, h * 0.44, h * 0.58];
+    final cardHeights = [h * 0.13, h * 0.11, h * 0.09];
+    final progressFills = [
+      [0.0, 0.0, 0.0],
+      [0.45, 0.72, 0.30],
+      [1.0, 1.0, 1.0],
+    ];
 
     for (int i = 0; i < cols.length; i++) {
       final node = cols[i][0] as _Node;
       final color = cols[i][1] as Color;
       final nx = node.nx(t0, t1);
+      final colW = w * 0.26;
 
-      // Column bg strip
-      paint.color = const Color(0xFF1A1A1A).withValues(alpha: alpha * 0.03);
+      // Column bg strip with subtle gradient
+      paint.color = const Color(0xFF1A1A1A).withValues(alpha: alpha * 0.025);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(nx - 4, h * 0.18, w * 0.26, h * 0.58),
-          const Radius.circular(12),
+          Rect.fromLTWH(nx - 4, h * 0.18, colW, h * 0.56),
+          const Radius.circular(14),
         ),
         paint,
       );
 
-      // Cards
+      // Column header label skeleton
+      paint.color = color.withValues(alpha: alpha * 0.18);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(nx + 2, h * 0.20, colW * 0.55, 8),
+          const Radius.circular(4),
+        ),
+        paint,
+      );
+
+      // Column count badge
+      paint.color = color.withValues(alpha: alpha * 0.12);
+      canvas.drawCircle(
+        Offset(nx + colW - 14, h * 0.204),
+        7,
+        paint,
+      );
+
       for (int j = 0; j < 3; j++) {
         final cy = cardYStarts[j];
         final ch = cardHeights[j];
-        paint.color = const Color(0xFFFFFFFF)
-            .withValues(alpha: alpha * (j == 0 ? 0.85 : 0.55));
+        final stagger = alpha * (1.0 - j * 0.15).clamp(0.3, 1.0);
+
+        // Card shadow
+        paint.color = const Color(0xFF000000).withValues(alpha: stagger * 0.04);
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromLTWH(nx - 4, cy, w * 0.24, ch),
-            const Radius.circular(8),
+            Rect.fromLTWH(nx - 3, cy + 2, colW - 2, ch),
+            const Radius.circular(10),
           ),
           paint,
         );
-        // Accent line
-        paint.color = color.withValues(alpha: alpha * 0.7);
+
+        // Card body
+        paint.color = const Color(0xFFFFFFFF)
+            .withValues(alpha: stagger * (j == 0 ? 0.92 : 0.65));
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromLTWH(nx - 4, cy, 3, ch),
+            Rect.fromLTWH(nx - 4, cy, colW - 2, ch),
+            const Radius.circular(10),
+          ),
+          paint,
+        );
+
+        // Left accent stripe
+        paint.color = color.withValues(alpha: stagger * 0.75);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(nx - 4, cy + 6, 3, ch - 12),
             const Radius.circular(2),
           ),
           paint,
         );
+
+        // Title skeleton line
+        paint.color =
+            const Color(0xFF1A1A1A).withValues(alpha: stagger * 0.12);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(nx + 6, cy + 10, colW * 0.56, 6),
+            const Radius.circular(3),
+          ),
+          paint,
+        );
+
+        // Subtitle skeleton line
+        paint.color =
+            const Color(0xFF1A1A1A).withValues(alpha: stagger * 0.06);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(nx + 6, cy + 22, colW * 0.40, 5),
+            const Radius.circular(3),
+          ),
+          paint,
+        );
+
+        // Mini progress bar
+        if (ch > 40) {
+          final barY = cy + ch - 16;
+          final barW = colW * 0.6;
+          paint.color =
+              const Color(0xFF1A1A1A).withValues(alpha: stagger * 0.05);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(nx + 6, barY, barW, 4),
+              const Radius.circular(2),
+            ),
+            paint,
+          );
+          paint.color = color.withValues(alpha: stagger * 0.45);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(
+                  nx + 6, barY, barW * progressFills[i][j], 4),
+              const Radius.circular(2),
+            ),
+            paint,
+          );
+        }
       }
     }
   }
