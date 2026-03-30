@@ -55,7 +55,7 @@ class AppConstants {
   static const String categoryApp = 'app';
   static const String categoryWeb = 'web';
   static const String categoryMiniprogram = 'miniprogram';
-  static const String categoryDesign = 'design';
+  static const String categoryDesign = 'visual';
   static const String categoryData = 'data';
   static const String categoryConsult = 'consult';
 

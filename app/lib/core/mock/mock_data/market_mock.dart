@@ -187,7 +187,7 @@ class MarketMock {
       'owner_name': '刘洋',
       'title': '品牌官网视觉升级',
       'description': '科技公司品牌官网全面视觉升级，含动效和3D展示',
-      'category': 'design',
+      'category': 'visual',
       'budget_min': 4000,
       'budget_max': 8000,
 

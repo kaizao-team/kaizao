@@ -168,8 +168,9 @@ class ProjectModel {
         return '网站开发';
       case 'miniprogram':
         return '小程序';
+      case 'visual':
       case 'design':
-        return 'UI设计';
+        return '视觉设计';
       case 'data':
         return '数据分析';
       case 'consult':
