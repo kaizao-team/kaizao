@@ -1,4 +1,6 @@
 -- 团队静态文件元数据（实体文件在 MinIO / S3 兼容存储）
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS team_static_assets (
     id                 BIGINT AUTO_INCREMENT PRIMARY KEY,
     uuid               VARCHAR(36) NOT NULL UNIQUE,
