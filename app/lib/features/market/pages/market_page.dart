@@ -4,8 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_loading.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../team/providers/team_provider.dart';
-import '../../team/widgets/team_post_card.dart';
 import '../providers/market_provider.dart';
 import '../widgets/market_filter_bar.dart';
 import '../widgets/market_filter_sheet.dart';
@@ -14,8 +12,9 @@ import '../widgets/market_expert_card.dart';
 
 class MarketPage extends ConsumerStatefulWidget {
   final String? initialCategory;
+  final String? initialTab;
 
-  const MarketPage({super.key, this.initialCategory});
+  const MarketPage({super.key, this.initialCategory, this.initialTab});
 
   @override
   ConsumerState<MarketPage> createState() => _MarketPageState();
@@ -33,8 +32,23 @@ class _MarketPageState extends ConsumerState<MarketPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: _tabIndexFor(widget.initialTab),
+    );
     _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant MarketPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab != widget.initialTab) {
+      final targetIndex = _tabIndexFor(widget.initialTab);
+      if (_tabController.index != targetIndex) {
+        _tabController.index = targetIndex;
+      }
+    }
   }
 
   @override
@@ -50,6 +64,10 @@ class _MarketPageState extends ConsumerState<MarketPage>
         _scrollController.position.maxScrollExtent - 100) {
       ref.read(_marketProvider.notifier).loadMore();
     }
+  }
+
+  int _tabIndexFor(String? value) {
+    return value == 'experts' ? 1 : 0;
   }
 
   @override
@@ -70,25 +88,19 @@ class _MarketPageState extends ConsumerState<MarketPage>
               child: Row(
                 children: [
                   const Text(
-                    '广场',
+                    '项目广场',
                     style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.black,
-                      letterSpacing: 1,
                     ),
                   ),
                   const Spacer(),
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.gray50,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                  GestureDetector(
+                    onTap: () {},
                     child: const Icon(
-                      Icons.search_rounded,
-                      size: 20,
+                      Icons.search,
+                      size: 24,
                       color: AppColors.gray500,
                     ),
                   ),
@@ -101,7 +113,12 @@ class _MarketPageState extends ConsumerState<MarketPage>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildTeamList(),
+                    _buildProjectList(
+                      state: state,
+                      isExpert: isExpert,
+                      hasActiveFilter: hasActiveFilter,
+                      userRole: authState.userRole,
+                    ),
                     _buildExpertList(),
                   ],
                 ),
@@ -145,8 +162,8 @@ class _MarketPageState extends ConsumerState<MarketPage>
         dividerHeight: 0,
         padding: const EdgeInsets.all(3),
         tabs: const [
+          Tab(text: '项目', height: 36),
           Tab(text: '找团队', height: 36),
-          Tab(text: '找专家', height: 36),
         ],
       ),
     );
@@ -250,44 +267,6 @@ class _MarketPageState extends ConsumerState<MarketPage>
     );
   }
 
-  Widget _buildTeamList() {
-    final teamState = ref.watch(teamHallProvider);
-
-    if (teamState.isLoading) {
-      return _buildSkeleton();
-    }
-
-    if (teamState.errorMessage != null && teamState.posts.isEmpty) {
-      return _buildError(teamState.errorMessage!);
-    }
-
-    final allPosts = [
-      ...teamState.aiRecommended,
-      ...teamState.posts,
-    ];
-
-    if (allPosts.isEmpty) {
-      return _buildEmpty();
-    }
-
-    return RefreshIndicator(
-      color: AppColors.black,
-      onRefresh: () => ref.read(teamHallProvider.notifier).loadPosts(),
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        itemCount: allPosts.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 4),
-        itemBuilder: (context, index) {
-          final post = allPosts[index];
-          return TeamPostCard(
-            post: post,
-            onTap: () => context.push('/projects/${post.projectId}'),
-          );
-        },
-      ),
-    );
-  }
-
   Widget _buildSkeleton() {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
@@ -299,40 +278,37 @@ class _MarketPageState extends ConsumerState<MarketPage>
 
   Widget _buildEmpty() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 60),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.gray50,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.explore_outlined,
-                size: 36,
-                color: AppColors.gray300,
-              ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.gray100,
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              '暂无内容',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.gray500,
-              ),
+            child: const Icon(
+              Icons.inbox_outlined,
+              size: 32,
+              color: AppColors.gray400,
             ),
-            const SizedBox(height: 6),
-            const Text(
-              '试试切换分类或调整筛选条件',
-              style: TextStyle(fontSize: 13, color: AppColors.gray400),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '暂无内容',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: AppColors.gray500,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            '调整筛选条件试试',
+            style: TextStyle(fontSize: 13, color: AppColors.gray400),
+          ),
+        ],
       ),
     );
   }
@@ -404,7 +380,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
         padding: EdgeInsets.symmetric(vertical: 20),
         child: Center(
           child: Text(
-            '已加载全部项目',
+            '已加载全部需求',
             style: TextStyle(fontSize: 13, color: AppColors.gray400),
           ),
         ),

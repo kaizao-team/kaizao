@@ -1,14 +1,22 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"mime"
+	"path"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
+	"github.com/vibebuild/server/internal/pkg/objectstore"
 	"github.com/vibebuild/server/internal/repository"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type ReviewService struct {
@@ -91,11 +99,12 @@ func (s *ReviewService) ListByProject(projectUUID string) ([]*model.Review, erro
 
 type TeamService struct {
 	repos *repository.Repositories
+	store *objectstore.Client
 	log   *zap.Logger
 }
 
-func NewTeamService(repos *repository.Repositories, log *zap.Logger) *TeamService {
-	return &TeamService{repos: repos, log: log}
+func NewTeamService(repos *repository.Repositories, store *objectstore.Client, log *zap.Logger) *TeamService {
+	return &TeamService{repos: repos, store: store, log: log}
 }
 
 type TeamPostItem struct {
@@ -216,4 +225,105 @@ func (s *TeamService) RespondInvite(inviteUUID string, accept bool) error {
 		invite.Status = 3
 	}
 	return s.repos.Team.UpdateInvite(invite)
+}
+
+// UploadTeamStaticAsset 团队成员上传静态文件：二进制写入 MinIO，元数据写入 team_static_assets
+func (s *TeamService) UploadTeamStaticAsset(ctx context.Context, teamUUID, userUUID, purpose, filename string, size int64, contentType string, src io.Reader) (*model.TeamStaticAsset, error) {
+	if s.store == nil || !s.store.Enabled() {
+		return nil, fmt.Errorf("%d", errcode.ErrObjectStorageDisabled)
+	}
+	if size <= 0 || size > s.store.MaxUploadBytes() {
+		return nil, fmt.Errorf("%d", errcode.ErrUploadFileTooLarge)
+	}
+	team, err := s.repos.Team.FindByUUID(teamUUID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("%d", errcode.ErrTeamNotFound)
+		}
+		return nil, err
+	}
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return nil, err
+	}
+	if !s.isTeamUploader(team, user.ID) {
+		return nil, fmt.Errorf("%d", errcode.ErrTeamFileForbidden)
+	}
+	if size <= 0 {
+		return nil, fmt.Errorf("%d", errcode.ErrUploadEmptyFile)
+	}
+	safeName := objectstore.SanitizeFileName(filename)
+	objectUUID := uuid.New().String()
+	objectKey := fmt.Sprintf("teams/%s/%s-%s", teamUUID, objectUUID, safeName)
+	ct := contentType
+	if ct == "" {
+		ct = mime.TypeByExtension(path.Ext(safeName))
+	}
+	if ct == "" {
+		ct = "application/octet-stream"
+	}
+	if err := s.store.Upload(ctx, objectKey, src, size, ct); err != nil {
+		s.log.Error("object upload failed", zap.Error(err), zap.String("key", objectKey))
+		return nil, fmt.Errorf("%d", errcode.ErrObjectUploadFailed)
+	}
+	if purpose == "" {
+		purpose = "content"
+	}
+	rec := &model.TeamStaticAsset{
+		TeamID:           team.ID,
+		UploadedByUserID: user.ID,
+		Bucket:           s.store.Bucket(),
+		ObjectKey:        objectKey,
+		OriginalName:     safeName,
+		ContentType:      ct,
+		SizeBytes:        size,
+		Purpose:          purpose,
+		Storage:          "minio",
+	}
+	if err := s.repos.TeamStaticAsset.Create(rec); err != nil {
+		return nil, err
+	}
+	return rec, nil
+}
+
+// ListTeamStaticAssets 团队成员分页查看本团队已登记静态文件元数据
+func (s *TeamService) ListTeamStaticAssets(teamUUID, userUUID string, page, pageSize int) ([]*model.TeamStaticAsset, int64, error) {
+	team, err := s.repos.Team.FindByUUID(teamUUID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, 0, fmt.Errorf("%d", errcode.ErrTeamNotFound)
+		}
+		return nil, 0, err
+	}
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return nil, 0, err
+	}
+	if !s.isTeamUploader(team, user.ID) {
+		return nil, 0, fmt.Errorf("%d", errcode.ErrTeamFileForbidden)
+	}
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	off := (page - 1) * pageSize
+	return s.repos.TeamStaticAsset.ListByTeamID(team.ID, off, pageSize)
+}
+
+func (s *TeamService) isTeamUploader(team *model.Team, userID int64) bool {
+	if team.LeaderID == userID {
+		return true
+	}
+	_, err := s.repos.Team.FindMember(team.ID, userID)
+	return err == nil
+}
+
+// StaticAssetPublicURL 根据 object_key 拼接对外访问地址（依赖 oss.base_url）
+func (s *TeamService) StaticAssetPublicURL(objectKey string) string {
+	if s.store == nil {
+		return ""
+	}
+	return s.store.PublicURL(objectKey)
 }

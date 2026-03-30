@@ -24,7 +24,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
   late Animation<double> _sloganOpacityAnim;
   late Animation<double> _buttonOpacityAnim;
   late Animation<Offset> _buttonSlideAnim;
-  
 
   @override
   void initState() {
@@ -66,12 +65,13 @@ class _SplashPageState extends ConsumerState<SplashPage>
     _buttonOpacityAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _buttonController, curve: Curves.easeOut),
     );
-    _buttonSlideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _buttonController, curve: Curves.easeOutCubic),
-    );
+    _buttonSlideAnim =
+        Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _buttonController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _runSequence();
   }
@@ -86,7 +86,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
     _buttonController.forward();
-  
   }
 
   Future<void> _onStart() async {
@@ -106,9 +105,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authStateProvider);
-    final showStartButton =
-        !(auth.isInitialized && auth.isLoggedIn);
     final padding = MediaQuery.of(context).padding;
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
@@ -132,83 +128,83 @@ class _SplashPageState extends ConsumerState<SplashPage>
                         child: SizedBox(
                           width: 212,
                           height: 212,
-                          child: ClipRect(
-                            child: Image.asset(
-                              'assets/branding/app_launch_motion_flat.webp',
-                              fit: BoxFit.cover,
-                              alignment: Alignment.center,
-                              filterQuality: FilterQuality.low,
-                            ),
+                          child: Image.asset(
+                            'assets/branding/app_launch_motion_flat.webp',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            filterQuality: FilterQuality.low,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 2),
                     Opacity(
                       opacity: _logoOpacityAnim.value,
                       child: Transform.scale(
                         scale: _scaleAnim.value,
-                        child: const Text(
-                          '开造',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1A1A1A),
-                            letterSpacing: 8,
-                            height: 1.2,
-                          ),
+                        child: const Column(
+                          children: [
+                            Text(
+                              'KAIZAO',
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1A1A1A),
+                                letterSpacing: 6,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 40),
                     Opacity(
                       opacity: _sloganOpacityAnim.value,
                       child: const Text(
                         '点亮每一个想法',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w400,
                           color: Color(0xFF9CA3AF),
-                          letterSpacing: 6,
+                          letterSpacing: 4,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              if (showStartButton)
-                Positioned(
-                  left: 24,
-                  right: 24,
-                  bottom: padding.bottom + 34,
-                  child: FadeTransition(
-                    opacity: _buttonOpacityAnim,
-                    child: SlideTransition(
-                      position: _buttonSlideAnim,
-                      child: SizedBox(
-                        height: 54,
-                        child: ElevatedButton(
-                          onPressed: _onStart,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1A1A1A),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: padding.bottom + 34,
+                child: FadeTransition(
+                  opacity: _buttonOpacityAnim,
+                  child: SlideTransition(
+                    position: _buttonSlideAnim,
+                    child: SizedBox(
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _onStart,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A1A1A),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Text(
-                            '开始',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        ),
+                        child: const Text(
+                          '开始',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
+              ),
             ],
           );
         },

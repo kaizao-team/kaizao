@@ -10,7 +10,7 @@ import '../../../shared/widgets/vcc_toast.dart';
 import '../../onboarding/providers/onboarding_provider.dart';
 import '../providers/auth_provider.dart';
 
-/// FE-AUTH-006: 角色选择页 — 需求方 / 专家
+/// FE-AUTH-006: 角色选择页 — 项目方 / 团队方
 class RoleSelectPage extends ConsumerStatefulWidget {
   const RoleSelectPage({super.key});
 
@@ -27,8 +27,9 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
       return;
     }
 
-    final success =
-        await ref.read(authStateProvider.notifier).selectRole(_selectedRole!);
+    final success = await ref
+        .read(authStateProvider.notifier)
+        .selectRole(_selectedRole!);
     if (success && mounted) {
       final onboardingNotifier = ref.read(onboardingProvider.notifier);
       if (_selectedRole == 1) {
@@ -44,9 +45,9 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
   String get _headlineBody {
     switch (_selectedRole) {
       case 1:
-        return '你会先进入需求发布路径，把想法、预算和方向收拢成一份能推进的 brief。';
+        return '你会先进入项目创建路径，把想法、预算和方向收拢成一份能推进的 brief。';
       case 2:
-        return '你会先进入团队建档路径，把能力、案例和协作方式压成一张可接单的画像。';
+        return '你会先进入团队建档路径，把能力、案例和协作方式压成一张可承接项目的画像。';
       default:
         return '先挑一个更顺手的入口。选中后，版面会顺势展开，后面的引导也会直接接上。';
     }
@@ -72,9 +73,7 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
       body: Stack(
         children: [
           const Positioned.fill(
-            child: IgnorePointer(
-              child: _RoleSelectionBackdrop(),
-            ),
+            child: IgnorePointer(child: _RoleSelectionBackdrop()),
           ),
           SafeArea(
             child: SingleChildScrollView(
@@ -85,7 +84,7 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
                   Row(
                     children: [
                       const Text(
-                        'Kaizao',
+                        'KAIZAO',
                         style: AppTextStyles.onboardingWordmark,
                       ),
                       const Spacer(),
@@ -94,7 +93,7 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
                   ),
                   const SizedBox(height: 30),
                   Text(
-                    '你想怎样进入 Kaizao',
+                    '你想怎样进入 KAIZAO',
                     style: AppTextStyles.onboardingTitle.copyWith(
                       fontSize: 36,
                       letterSpacing: -1.2,
@@ -126,23 +125,23 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
                   const SizedBox(height: 34),
                   _PaperRoleBranch(
                     serial: '01',
-                    title: '我有需求',
+                    title: '我是项目方',
                     titleTag: '发布路径',
                     shortDescription: '带着想法、目标和预算进来。',
-                    expandedDescription: '先定方向，再收 brief，系统会把需求推到更合适的团队面前。',
+                    expandedDescription: '先定方向，再收 brief，系统会把项目推到更合适的团队面前。',
                     icon: Icons.wb_incandescent_outlined,
                     pathLabel: '项目方路径',
-                    steps: const ['发布项目', '整理 brief', '匹配团队'],
+                    steps: const ['创建项目', '整理 brief', '匹配团队'],
                     isSelected: _selectedRole == 1,
                     onTap: () => setState(() => _selectedRole = 1),
                   ),
                   const SizedBox(height: 18),
                   _PaperRoleBranch(
                     serial: '02',
-                    title: '我是团队',
+                    title: '我是团队方',
                     titleTag: '建档路径',
                     shortDescription: '带着能力、案例和协作方式进来。',
-                    expandedDescription: '先建立团队画像，再把能力信号、案例和协作节奏整理成可接单的入口。',
+                    expandedDescription: '先建立团队画像，再把能力信号、案例和协作节奏整理成可承接项目的入口。',
                     icon: Icons.code_rounded,
                     pathLabel: '团队方路径',
                     steps: const ['展示能力', '补案例', '开始接单'],
@@ -171,9 +170,7 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
 class _RolePageStatus extends StatelessWidget {
   final int? selectedRole;
 
-  const _RolePageStatus({
-    required this.selectedRole,
-  });
+  const _RolePageStatus({required this.selectedRole});
 
   @override
   Widget build(BuildContext context) {
@@ -409,17 +406,12 @@ class _PaperRoleBranch extends StatelessWidget {
                   Positioned(
                     left: isCompact ? -2 : 0,
                     top: isCompact ? 44 : 46,
-                    child: _MorphRoleChip(
-                      icon: icon,
-                      isSelected: isSelected,
-                    ),
+                    child: _MorphRoleChip(icon: icon, isSelected: isSelected),
                   ),
                   Positioned(
                     right: isCompact ? 12 : 16,
                     top: -8,
-                    child: _PaperSelectionSeal(
-                      isSelected: isSelected,
-                    ),
+                    child: _PaperSelectionSeal(isSelected: isSelected),
                   ),
                 ],
               ),
@@ -435,10 +427,7 @@ class _RoleTitleTag extends StatelessWidget {
   final String label;
   final bool isSelected;
 
-  const _RoleTitleTag({
-    required this.label,
-    required this.isSelected,
-  });
+  const _RoleTitleTag({required this.label, required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -467,10 +456,7 @@ class _PaperSerialTag extends StatelessWidget {
   final String serial;
   final bool isSelected;
 
-  const _PaperSerialTag({
-    required this.serial,
-    required this.isSelected,
-  });
+  const _PaperSerialTag({required this.serial, required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -487,9 +473,7 @@ class _PaperSerialTag extends StatelessWidget {
       ),
       child: Text(
         serial,
-        style: AppTextStyles.onboardingMeta.copyWith(
-          color: AppColors.gray400,
-        ),
+        style: AppTextStyles.onboardingMeta.copyWith(color: AppColors.gray400),
       ),
     );
   }
@@ -499,10 +483,7 @@ class _MorphRoleChip extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
 
-  const _MorphRoleChip({
-    required this.icon,
-    required this.isSelected,
-  });
+  const _MorphRoleChip({required this.icon, required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -541,11 +522,7 @@ class _MorphRoleChip extends StatelessWidget {
                       color: AppColors.black,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(
-                      icon,
-                      size: 20,
-                      color: AppColors.white,
-                    ),
+                    child: Icon(icon, size: 20, color: AppColors.white),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -577,11 +554,7 @@ class _MorphRoleChip extends StatelessWidget {
               )
             : Center(
                 key: const ValueKey('morph-collapsed'),
-                child: Icon(
-                  icon,
-                  size: 24,
-                  color: AppColors.black,
-                ),
+                child: Icon(icon, size: 24, color: AppColors.black),
               ),
       ),
     );
@@ -591,9 +564,7 @@ class _MorphRoleChip extends StatelessWidget {
 class _PaperSelectionSeal extends StatelessWidget {
   final bool isSelected;
 
-  const _PaperSelectionSeal({
-    required this.isSelected,
-  });
+  const _PaperSelectionSeal({required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -607,9 +578,7 @@ class _PaperSelectionSeal extends StatelessWidget {
       decoration: BoxDecoration(
         color: isSelected ? AppColors.white : Colors.transparent,
         borderRadius: BorderRadius.circular(AppRadius.full),
-        border: Border.all(
-          color: AppColors.onboardingHairline,
-        ),
+        border: Border.all(color: AppColors.onboardingHairline),
         boxShadow: isSelected ? AppShadows.shadow1 : const [],
       ),
       child: AnimatedSwitcher(
@@ -651,9 +620,7 @@ class _PaperSelectionSeal extends StatelessWidget {
                 height: 10,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.gray300,
-                  ),
+                  border: Border.all(color: AppColors.gray300),
                 ),
               ),
       ),
@@ -665,10 +632,7 @@ class _DetachedPathStrip extends StatelessWidget {
   final String pathLabel;
   final List<String> steps;
 
-  const _DetachedPathStrip({
-    required this.pathLabel,
-    required this.steps,
-  });
+  const _DetachedPathStrip({required this.pathLabel, required this.steps});
 
   @override
   Widget build(BuildContext context) {

@@ -18,7 +18,7 @@ class ProfileStatsRow extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _StatItem(value: '${stats.publishedProjects}', label: '发布需求'),
+          _StatItem(value: '${stats.publishedProjects}', label: '创建项目'),
           _StatItem(
             value: '¥${stats.totalSpent.toStringAsFixed(0)}',
             label: '消费金额',

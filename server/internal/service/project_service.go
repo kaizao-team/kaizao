@@ -2,11 +2,16 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/vibebuild/server/internal/model"
+	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/repository"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // UserService 用户服务
@@ -86,6 +91,117 @@ func (s *UserService) GetUserStats(user *model.User) *UserStats {
 func (s *UserService) ListExperts(page, pageSize int) ([]*model.User, int64, error) {
 	offset := (page - 1) * pageSize
 	return s.repos.User.ListExperts(offset, pageSize)
+}
+
+// SetOnboarding 管理端更新用户入驻状态
+func (s *UserService) SetOnboarding(userUUID string, status int16, reason *string, reviewerUserID int64) error {
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return err
+	}
+	fields := map[string]interface{}{
+		"onboarding_status": status,
+	}
+	now := time.Now()
+	fields["onboarding_reviewed_at"] = &now
+	fields["onboarding_reviewer_id"] = reviewerUserID
+	if status == model.OnboardingRejected && reason != nil {
+		fields["onboarding_reject_reason"] = *reason
+	}
+	if status == model.OnboardingApproved {
+		fields["onboarding_reject_reason"] = nil
+	}
+	return s.repos.User.UpdateFields(user.ID, fields)
+}
+
+// SubmitOnboardingApplication 专家提交简历/作品集进入人工审核
+func (s *UserService) SubmitOnboardingApplication(userUUID string, resumeURL *string, note *string, portfolioUUIDs []string) error {
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return err
+	}
+	if user.Role != 2 && user.Role != 3 {
+		return fmt.Errorf("%d", errcode.ErrOnboardingNeedExpertRole)
+	}
+	if user.OnboardingStatus == model.OnboardingApproved {
+		return fmt.Errorf("%d", errcode.ErrOnboardingAlreadyApproved)
+	}
+	resume := ""
+	if resumeURL != nil {
+		resume = strings.TrimSpace(*resumeURL)
+	}
+	noteText := ""
+	if note != nil {
+		noteText = strings.TrimSpace(*note)
+	}
+	var portfolioOK bool
+	if len(portfolioUUIDs) > 0 {
+		cnt, err := s.repos.User.CountPortfoliosByUserAndUUIDs(user.ID, portfolioUUIDs)
+		if err != nil {
+			return err
+		}
+		if cnt != int64(len(portfolioUUIDs)) {
+			return fmt.Errorf("%d", errcode.ErrOnboardingApplicationInvalid)
+		}
+		portfolioOK = true
+	}
+	if resume == "" && !portfolioOK {
+		return fmt.Errorf("%d", errcode.ErrOnboardingApplicationInvalid)
+	}
+	now := time.Now()
+	fields := map[string]interface{}{
+		"onboarding_status":       model.OnboardingPending,
+		"onboarding_submitted_at": &now,
+	}
+	if resume != "" {
+		fields["resume_url"] = resume
+	} else {
+		fields["resume_url"] = nil
+	}
+	if noteText != "" {
+		fields["onboarding_application_note"] = noteText
+	} else {
+		fields["onboarding_application_note"] = nil
+	}
+	return s.repos.User.UpdateFields(user.ID, fields)
+}
+
+// RedeemTeamInviteForOnboarding 兑换团队邀请码：直接通过入驻、加入团队；码作废并轮换新码
+func (s *UserService) RedeemTeamInviteForOnboarding(userUUID, plain string) error {
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return err
+	}
+	if user.Role != 2 && user.Role != 3 {
+		return fmt.Errorf("%d", errcode.ErrOnboardingNeedExpertRole)
+	}
+	if user.OnboardingStatus == model.OnboardingApproved {
+		return fmt.Errorf("%d", errcode.ErrOnboardingAlreadyApproved)
+	}
+	consumed, _, err := s.repos.InviteCode.ConsumeTeamInviteAndRotate(strings.TrimSpace(plain))
+	if err != nil {
+		return err
+	}
+	teamID := *consumed.TeamID
+	if _, err := s.repos.Team.FindMember(teamID, user.ID); errors.Is(err, gorm.ErrRecordNotFound) {
+		member := &model.TeamMember{
+			TeamID:     teamID,
+			UserID:     user.ID,
+			RoleInTeam: "member",
+			SplitRatio: 0,
+			Status:     1,
+		}
+		if err := s.repos.Team.CreateMember(member); err != nil {
+			return err
+		}
+	}
+	fields := map[string]interface{}{
+		"onboarding_status":        model.OnboardingApproved,
+		"invite_code_id":           consumed.ID,
+		"onboarding_submitted_at":  nil,
+		"onboarding_reject_reason": nil,
+	}
+	return s.repos.User.UpdateFields(user.ID, fields)
 }
 
 // ProjectService 项目服务
@@ -340,12 +456,74 @@ var categoryMeta = []struct {
 	Name string
 	Icon string
 }{
-	{"app", "App 开发", "phone_android"},
-	{"web", "Web 开发", "web"},
-	{"miniprogram", "小程序", "qr_code"},
-	{"design", "UI/UX 设计", "brush"},
-	{"data", "数据分析", "bar_chart"},
-	{"consult", "技术咨询", "support_agent"},
+	{"data", "数据", "bar_chart"},
+	{"dev", "研发", "code"},
+	{"visual", "视觉设计", "brush"},
+	{"solution", "解决方案", "lightbulb"},
+}
+
+// expertSkillDisplayName 单条关联的展示名：优先预加载的 Skill.Name，否则用 namesBySkillID 兜底（避免仓储未 Preload 时静默为空）。
+func expertSkillDisplayName(us *model.UserSkill, namesBySkillID map[int64]string) string {
+	if us == nil {
+		return ""
+	}
+	if n := strings.TrimSpace(us.Skill.Name); n != "" {
+		return n
+	}
+	if us.SkillID > 0 && namesBySkillID != nil {
+		if n := strings.TrimSpace(namesBySkillID[us.SkillID]); n != "" {
+			return n
+		}
+	}
+	return ""
+}
+
+// expertPrimarySkillName 取专家展示用主技能名：优先 is_primary，否则取首条有效技能名。
+func expertPrimarySkillName(skills []*model.UserSkill, namesBySkillID map[int64]string) string {
+	for _, us := range skills {
+		if us != nil && us.IsPrimary {
+			if n := expertSkillDisplayName(us, namesBySkillID); n != "" {
+				return n
+			}
+		}
+	}
+	for _, us := range skills {
+		if n := expertSkillDisplayName(us, namesBySkillID); n != "" {
+			return n
+		}
+	}
+	return ""
+}
+
+func groupUserSkillsByUserID(skills []*model.UserSkill) map[int64][]*model.UserSkill {
+	by := make(map[int64][]*model.UserSkill)
+	for _, us := range skills {
+		if us == nil {
+			continue
+		}
+		by[us.UserID] = append(by[us.UserID], us)
+	}
+	return by
+}
+
+// skillIDsMissingPreloadedName 收集「关联行存在但 Skill 未预加载出名称」的技能 ID，用于批量补全。
+func skillIDsMissingPreloadedName(skills []*model.UserSkill) []int64 {
+	seen := make(map[int64]struct{})
+	var ids []int64
+	for _, us := range skills {
+		if us == nil || us.SkillID == 0 {
+			continue
+		}
+		if strings.TrimSpace(us.Skill.Name) != "" {
+			continue
+		}
+		if _, ok := seen[us.SkillID]; ok {
+			continue
+		}
+		seen[us.SkillID] = struct{}{}
+		ids = append(ids, us.SkillID)
+	}
+	return ids
 }
 
 // GetDemanderHome 获取需求方首页数据
@@ -372,13 +550,32 @@ func (s *HomeService) GetDemanderHome(userUUID string) (*DemanderHomeData, error
 	}
 
 	experts, _, _ := s.repos.User.ListExperts(0, 5)
+	expertIDs := make([]int64, 0, len(experts))
+	for _, e := range experts {
+		expertIDs = append(expertIDs, e.ID)
+	}
+	var namesBySkillID map[int64]string
+	skillsByUser := make(map[int64][]*model.UserSkill)
+	if len(expertIDs) > 0 {
+		if allSkills, err := s.repos.User.ListUserSkillsForUsers(expertIDs); err == nil {
+			if missing := skillIDsMissingPreloadedName(allSkills); len(missing) > 0 {
+				if m, err := s.repos.User.FindSkillNamesByIDs(missing); err == nil {
+					namesBySkillID = m
+				}
+			}
+			skillsByUser = groupUserSkillsByUserID(allSkills)
+		}
+	}
+
 	expertBriefs := make([]ExpertBrief, 0, len(experts))
 	for _, e := range experts {
+		skillName := expertPrimarySkillName(skillsByUser[e.ID], namesBySkillID)
 		eb := ExpertBrief{
 			ID:              e.UUID,
 			Nickname:        e.Nickname,
 			AvatarURL:       e.AvatarURL,
 			Rating:          e.AvgRating,
+			Skill:           skillName,
 			HourlyRate:      e.HourlyRate,
 			CompletedOrders: e.CompletedOrders,
 		}

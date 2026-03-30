@@ -24,6 +24,23 @@
 
 ---
 
+## Commit Message 规范
+
+所有 AI 编码助手统一使用：
+
+`type(scope): summary`
+
+硬性规则：
+
+- `type` 使用英文小写：`feat`、`fix`、`refactor`、`docs`、`chore`、`ci`、`test`
+- `scope` 必须具体，优先写功能域或改动层，如 `home`、`market`、`auth`、`project`、`shared`、`ci`
+- `summary` 默认使用英文短语，保持单行、简洁、可扫描
+- 同一仓库内保持统一风格：`英文 type + 英文 scope + 英文 summary`
+- 不要使用 `update`、`modify`、`adjust`、`misc`、`tweak stuff` 这类信息量低的写法
+- 不要把多个不相关动作塞进同一个 commit message
+
+---
+
 ## 前端规范优先级
 
 前端相关工作按以下顺序收口，越靠前优先级越高：

@@ -7,6 +7,7 @@ import (
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	jwtpkg "github.com/vibebuild/server/internal/pkg/jwt"
 	"github.com/vibebuild/server/internal/pkg/response"
+	"github.com/vibebuild/server/internal/service"
 )
 
 // JWTAuth JWT 认证中间件
@@ -72,11 +73,17 @@ func OptionalJWTAuth(jwtManager *jwtpkg.Manager) gin.HandlerFunc {
 	}
 }
 
-// AdminAuth 管理员权限中间件（需在 JWTAuth 之后使用）
-func AdminAuth() gin.HandlerFunc {
+// AdminAuth 管理员权限（需在 JWTAuth 之后；以数据库 users.role=9 为准，避免 JWT 内角色过期）
+func AdminAuth(services *service.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		role, exists := c.Get("user_role")
-		if !exists || role.(int) != 9 {
+		uuid := c.GetString("user_uuid")
+		if uuid == "" {
+			response.ErrorForbidden(c, errcode.ErrNoAdminPermission, "无管理员权限")
+			c.Abort()
+			return
+		}
+		u, err := services.User.GetByUUID(uuid)
+		if err != nil || u.Role != 9 {
 			response.ErrorForbidden(c, errcode.ErrNoAdminPermission, "无管理员权限")
 			c.Abort()
 			return

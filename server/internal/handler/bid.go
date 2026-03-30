@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vibebuild/server/internal/model"
@@ -82,6 +83,11 @@ func (h *BidHandler) AcceptBid(c *gin.Context) {
 	userUUID := c.GetString("user_uuid")
 	bid, err := h.bidService.Accept(bidID, userUUID)
 	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
 		response.ErrorBadRequest(c, errcode.ErrBidNotFound, err.Error())
 		return
 	}

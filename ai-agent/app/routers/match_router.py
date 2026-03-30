@@ -1,7 +1,7 @@
 """
 开造 VibeBuild — 智能匹配 API 路由 (v2)
 
-为需求方推荐合适的造物者（供给方），基于向量检索 + 多维评分 + LLM 推荐。
+为需求方推荐合适的团队方（供给方），基于向量检索 + 多维评分 + LLM 推荐。
 """
 
 import uuid
@@ -32,7 +32,7 @@ class MatchRequest(BaseModel):
     response_model=APIResponse,
     summary="智能匹配推荐",
     description="""
-## 为需求推荐合适的造物者
+## 为需求推荐合适的团队方
 
 基于需求描述进行向量检索 + 多维评分 + LLM 推荐理由生成。
 

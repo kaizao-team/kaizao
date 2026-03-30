@@ -21,6 +21,7 @@ type User struct {
 	Gender          int16      `gorm:"default:0" json:"gender"`
 	Bio             *string    `gorm:"type:text" json:"bio"`
 	City            *string    `gorm:"type:varchar(50)" json:"city"`
+	ContactPhone    *string    `gorm:"column:contact_phone;type:varchar(20)" json:"contact_phone"`
 	RealName        *string    `gorm:"type:varchar(50)" json:"-"`
 	IDCardNo        *string    `gorm:"type:varchar(255)" json:"-"`
 	IsVerified      bool       `gorm:"not null;default:false" json:"is_verified"`
@@ -35,7 +36,15 @@ type User struct {
 	CompletionRate  float64    `gorm:"type:decimal(5,2);not null;default:0.00" json:"completion_rate"`
 	AvgRating       float64    `gorm:"type:decimal(3,2);not null;default:0.00" json:"avg_rating"`
 	TotalEarnings   float64    `gorm:"type:decimal(12,2);not null;default:0.00" json:"total_earnings"`
-	Status          int16      `gorm:"not null;default:1;index" json:"status"`
+	Status               int16      `gorm:"not null;default:1;index" json:"status"`
+	OnboardingStatus     int16      `gorm:"not null;default:2;index" json:"onboarding_status"`
+	InviteCodeID         *int64     `gorm:"index" json:"invite_code_id,omitempty"`
+	OnboardingRejectReason *string `gorm:"type:varchar(500)" json:"onboarding_reject_reason,omitempty"`
+	OnboardingReviewedAt   *time.Time `json:"onboarding_reviewed_at,omitempty"`
+	OnboardingReviewerID   *int64   `json:"onboarding_reviewer_id,omitempty"`
+	ResumeURL                *string    `gorm:"column:resume_url;type:varchar(512)" json:"resume_url,omitempty"`
+	OnboardingApplicationNote *string   `gorm:"type:text" json:"onboarding_application_note,omitempty"`
+	OnboardingSubmittedAt    *time.Time `json:"onboarding_submitted_at,omitempty"`
 	FreezeReason    *string    `gorm:"type:varchar(200)" json:"freeze_reason,omitempty"`
 	LastLoginAt     *time.Time `json:"last_login_at,omitempty"`
 	LastLoginIP     *string    `gorm:"type:varchar(45)" json:"-"`

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../app/theme/app_colors.dart';
 
 class AboutPage extends StatelessWidget {
@@ -9,7 +10,7 @@ class AboutPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '关于开造',
+          '关于 KAIZAO',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
       ),
@@ -18,29 +19,17 @@ class AboutPage extends StatelessWidget {
         children: [
           const SizedBox(height: 40),
           Center(
-            child: Container(
+            child: Image.asset(
+              'assets/branding/app_launch_static_transparent_cropped.png',
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.black,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Center(
-                child: Text(
-                  '开',
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.white,
-                  ),
-                ),
-              ),
+              fit: BoxFit.contain,
             ),
           ),
           const SizedBox(height: 16),
           const Center(
             child: Text(
-              '开造',
+              'KAIZAO',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,

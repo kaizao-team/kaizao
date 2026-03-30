@@ -11,7 +11,7 @@ import '../widgets/onboarding_chrome.dart';
 
 const _expertLevelStepLabels = ['资料', '补充', '等级'];
 
-/// ONBOARD-007: 专家定级展示
+/// ONBOARD-007: 团队定级展示
 class ExpertLevelPage extends ConsumerStatefulWidget {
   const ExpertLevelPage({super.key});
 
@@ -75,7 +75,7 @@ class _ExpertLevelPageState extends ConsumerState<ExpertLevelPage> {
           context.go(RoutePaths.expertOnboarding2);
         }
       },
-      primaryActionText: _showResult ? '开始接单' : '正在生成专家等级',
+      primaryActionText: _showResult ? '开始接单' : '正在生成团队等级',
       onPrimaryAction: _showResult ? () => _finish(context, ref) : null,
       secondaryActionText: _showResult ? '去首页' : null,
       onSecondaryAction: _showResult ? () => _finish(context, ref) : null,
@@ -121,10 +121,10 @@ class _AssessmentLoadingView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 34),
-        const Text('正在生成你的专家等级', style: AppTextStyles.onboardingTitle),
+        const Text('正在生成你的团队等级', style: AppTextStyles.onboardingTitle),
         const SizedBox(height: 12),
         const Text(
-          'AI 正在把你的能力、排期与协作方式压成一张初始专家画像。',
+          'AI 正在把你的能力、排期与协作方式压成一张初始团队画像。',
           style: AppTextStyles.onboardingBody,
         ),
         const SizedBox(height: 18),
@@ -311,7 +311,7 @@ class _AssessmentResultView extends StatelessWidget {
       case 5:
         return '你已经具备主导关键路径的信号，适合接高判断密度的项目。';
       case 4:
-        return '复杂协作和稳定交付是你的起点，可以直接接中高复杂度需求。';
+        return '复杂协作和稳定交付是你的起点，可以直接接中高复杂度项目。';
       case 3:
         return '独立推进能力已经成形，先用真实案例把信任继续往上拉。';
       default:
@@ -333,17 +333,17 @@ class _AssessmentResultView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 30),
-        const Text('你的专家等级已生成', style: AppTextStyles.onboardingTitle),
+        const Text('你的团队等级已生成', style: AppTextStyles.onboardingTitle),
         const SizedBox(height: 12),
         const Text(
-          '这不是终局评级，而是你进入 Kaizao 专家网络的起始位。后面的真实合作会继续抬高它。',
+          '这不是终局评级，而是你进入 KAIZAO 团队网络的起始位。后面的真实合作会继续抬高它。',
           style: AppTextStyles.onboardingBody,
         ),
         const SizedBox(height: 18),
         Row(
           children: [
             Text(
-              'EXPERT SIGNAL READY',
+              'TEAM SIGNAL READY',
               style: AppTextStyles.onboardingMeta.copyWith(
                 color: AppColors.onboardingPrimary,
               ),
@@ -426,7 +426,7 @@ class _AssessmentResultView extends StatelessWidget {
         _AssessmentSignalRail(
           label: '市场起步',
           value: '$highlightedSkillCount 项主力方向',
-          hint: '把前几个案例和响应速度做好，平台会更愿意把高意向需求推给你。',
+          hint: '把前几个案例和响应速度做好，平台会更愿意把高意向项目推给你。',
           progress: _marketScore(),
           icon: Icons.rocket_launch_outlined,
         ),

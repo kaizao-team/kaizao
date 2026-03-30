@@ -21,7 +21,7 @@ class ProjectListPage extends ConsumerWidget {
       backgroundColor: AppColors.gray50,
       appBar: AppBar(
         title: Text(
-          isDemander ? '我的需求' : '我的项目',
+          '我的项目',
           style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
         actions: [
@@ -57,9 +57,9 @@ class ProjectListPage extends ConsumerWidget {
                       icon: isDemander
                           ? Icons.description_outlined
                           : Icons.explore_outlined,
-                      title: isDemander ? '还没有需求' : '还没有项目',
-                      subtitle: isDemander ? '发布你的第一个需求' : '去广场看看好项目',
-                      buttonText: isDemander ? '发布需求' : '去广场',
+                      title: '还没有项目',
+                      subtitle: isDemander ? '创建你的第一个项目' : '去广场看看好项目',
+                      buttonText: isDemander ? '创建项目' : '去广场',
                       onButtonPressed: () => isDemander
                           ? context.push(RoutePaths.publishProject)
                           : context.go(RoutePaths.square),
@@ -103,8 +103,7 @@ class ProjectListPage extends ConsumerWidget {
                                           horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
                                         color: _statusBgColor(proj.status),
-                                        borderRadius:
-                                            BorderRadius.circular(6),
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
                                         proj.statusName,
@@ -121,8 +120,7 @@ class ProjectListPage extends ConsumerWidget {
                                 Text(
                                   proj.budgetDisplay,
                                   style: const TextStyle(
-                                      fontSize: 14,
-                                      color: AppColors.gray600),
+                                      fontSize: 14, color: AppColors.gray600),
                                 ),
                                 if (proj.progress > 0) ...[
                                   const SizedBox(height: 10),
@@ -134,8 +132,7 @@ class ProjectListPage extends ConsumerWidget {
                                               BorderRadius.circular(3),
                                           child: LinearProgressIndicator(
                                             value: proj.progress / 100,
-                                            backgroundColor:
-                                                AppColors.gray200,
+                                            backgroundColor: AppColors.gray200,
                                             valueColor:
                                                 const AlwaysStoppedAnimation<
                                                     Color>(AppColors.accent),

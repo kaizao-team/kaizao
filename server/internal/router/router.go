@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -25,6 +26,19 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	gin.SetMode(cfg.Server.Mode)
 
 	r := gin.New()
+	maxMB := cfg.OSS.MaxUploadMB
+	if maxMB <= 0 {
+		maxMB = 32
+	}
+	r.MaxMultipartMemory = int64(maxMB) << 20
+
+	if dir := strings.TrimSpace(cfg.OSS.LocalUploadDir); dir != "" {
+		urlPath := strings.TrimSpace(cfg.OSS.LocalURLPath)
+		if urlPath == "" {
+			urlPath = "/api/v1/upload-files"
+		}
+		r.Static(urlPath, dir)
+	}
 
 	r.Use(middleware.Recovery(log))
 	r.Use(middleware.RequestLogger(log))
@@ -53,6 +67,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	{
 		users.GET("/me", middleware.JWTAuth(services.JWT), handlers.User.GetMe)
 		users.PUT("/me", middleware.JWTAuth(services.JWT), handlers.User.UpdateMe)
+		users.POST("/me/onboarding/application", middleware.JWTAuth(services.JWT), handlers.User.SubmitOnboardingApplication)
+		users.POST("/me/onboarding/redeem-invite", middleware.JWTAuth(services.JWT), handlers.User.RedeemOnboardingInvite)
 		// v6.0 PROF 模块
 		users.GET("/:id", middleware.OptionalJWTAuth(services.JWT), handlers.User.GetProfile)
 		users.PUT("/:id", middleware.JWTAuth(services.JWT), handlers.User.UpdateProfile)
@@ -73,7 +89,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	}
 
 	v1.GET("/skills", placeholder)
-	v1.POST("/upload", middleware.JWTAuth(services.JWT), placeholder)
+	v1.POST("/upload", middleware.JWTAuth(services.JWT), handlers.Upload.Post)
 
 	// ==================== 首页模块 ====================
 	home := v1.Group("/home", middleware.JWTAuth(services.JWT))
@@ -176,7 +192,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	// ==================== 支付模块 ====================
 	orders := v1.Group("/orders")
 	{
-		orders.POST("", middleware.JWTAuth(services.JWT), placeholder)
+		orders.POST("", middleware.JWTAuth(services.JWT), handlers.Order.Create)
 		orders.GET("/:id", middleware.JWTAuth(services.JWT), handlers.Order.GetDetail)
 		orders.POST("/:id/prepay", middleware.JWTAuth(services.JWT), handlers.Order.Prepay)
 		orders.GET("/:id/status", middleware.JWTAuth(services.JWT), handlers.Order.GetStatus)
@@ -204,17 +220,21 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	// ==================== 通知模块 ====================
 	notifications := v1.Group("/notifications", middleware.JWTAuth(services.JWT))
 	{
-		notifications.GET("", placeholder)
-		notifications.PUT("/:uuid/read", placeholder)
-		notifications.PUT("/read-all", placeholder)
-		notifications.GET("/unread-count", placeholder)
+		notifications.GET("", handlers.Notification.List)
+		notifications.GET("/unread-count", handlers.Notification.UnreadCount)
+		notifications.PUT("/read-all", handlers.Notification.MarkAllRead)
+		notifications.PUT("/:uuid/read", handlers.Notification.MarkRead)
 	}
 
 	v1.POST("/devices", middleware.JWTAuth(services.JWT), placeholder)
 
 	// ==================== 管理后台模块 ====================
-	admin := v1.Group("/admin", middleware.JWTAuth(services.JWT), middleware.AdminAuth())
+	admin := v1.Group("/admin", middleware.JWTAuth(services.JWT), middleware.AdminAuth(services))
 	{
+		admin.GET("/teams/:uuid/current-invite-code", handlers.Admin.GetTeamCurrentInviteCode)
+		admin.POST("/invite-codes", handlers.Admin.CreateInviteCode)
+		admin.GET("/invite-codes", handlers.Admin.ListInviteCodes)
+		admin.PUT("/users/:uuid/onboarding", handlers.Admin.UpdateUserOnboarding)
 		admin.GET("/users", placeholder)
 		admin.PUT("/users/:uuid/status", placeholder)
 		admin.GET("/reports", placeholder)
@@ -240,6 +260,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		teams.GET("", middleware.OptionalJWTAuth(services.JWT), handlers.Team.ListTeams)
 		teams.POST("", middleware.JWTAuth(services.JWT), placeholder)
 		teams.GET("/:uuid", middleware.OptionalJWTAuth(services.JWT), handlers.Team.GetDetail)
+		teams.POST("/:uuid/static-assets", middleware.JWTAuth(services.JWT), handlers.Team.UploadStaticAsset)
+		teams.GET("/:uuid/static-assets", middleware.JWTAuth(services.JWT), handlers.Team.ListStaticAssets)
 		teams.POST("/:uuid/invite", middleware.JWTAuth(services.JWT), handlers.Team.Invite)
 		teams.PUT("/:uuid/split-ratio", middleware.JWTAuth(services.JWT), handlers.Team.UpdateSplitRatio)
 		teams.GET("/ai-recommend", middleware.JWTAuth(services.JWT), placeholder)

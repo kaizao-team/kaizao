@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../../app/theme/app_colors.dart';
 import '../models/home_models.dart';
+import 'home_section_header.dart';
 
 class HomeSkillHeat extends StatelessWidget {
   final List<SkillHeatItem> skills;
@@ -11,90 +13,184 @@ class HomeSkillHeat extends StatelessWidget {
   Widget build(BuildContext context) {
     if (skills.isEmpty) return const SizedBox.shrink();
 
-    final maxHeat = skills.fold<int>(1, (m, s) => s.heat > m ? s.heat : m);
+    final rankedSkills = skills.toList()
+      ..sort((left, right) => right.heat.compareTo(left.heat));
+    final visibleSkills = rankedSkills.take(5).toList();
+    final headlineSkill = visibleSkills.first;
+    final maxHeat =
+        visibleSkills.fold<int>(1, (m, s) => s.heat > m ? s.heat : m);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '技能热度',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.black,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const HomeSectionHeader(
+          title: '技能热度',
+          subtitle: '近期在平台上被频繁点名的方向。',
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '当前最高需求',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.gray500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            headlineSkill.name,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.gray100,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '${headlineSkill.heat} 热度',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.gray700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                for (var index = 0; index < visibleSkills.length; index++) ...[
+                  _SkillHeatRow(
+                    rank: index + 1,
+                    skill: visibleSkills[index],
+                    maxHeat: maxHeat,
+                  ),
+                  if (index != visibleSkills.length - 1)
+                    const SizedBox(height: 12),
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          ...skills.map((skill) => _SkillHeatRow(
-                skill: skill,
-                maxHeat: maxHeat,
-              )),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
 class _SkillHeatRow extends StatelessWidget {
+  final int rank;
   final SkillHeatItem skill;
   final int maxHeat;
 
-  const _SkillHeatRow({required this.skill, required this.maxHeat});
+  const _SkillHeatRow({
+    required this.rank,
+    required this.skill,
+    required this.maxHeat,
+  });
 
   @override
   Widget build(BuildContext context) {
     final fraction = skill.heat / maxHeat;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 64,
-            child: Text(
-              skill.name,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.gray700,
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: rank == 1 ? AppColors.black : AppColors.gray100,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '$rank',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: rank == 1 ? AppColors.white : AppColors.gray700,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: fraction),
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOut,
-                builder: (_, value, __) => LinearProgressIndicator(
-                  value: value,
-                  backgroundColor: AppColors.gray100,
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(AppColors.black),
-                  minHeight: 6,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      skill.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.black,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '${skill.heat}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gray500,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: fraction),
+                  duration: const Duration(milliseconds: 700),
+                  curve: Curves.easeOutCubic,
+                  builder: (_, value, __) => LinearProgressIndicator(
+                    value: value,
+                    backgroundColor: AppColors.gray100,
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(AppColors.black),
+                    minHeight: 7,
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 28,
-            child: Text(
-              '${skill.heat}',
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.gray500,
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

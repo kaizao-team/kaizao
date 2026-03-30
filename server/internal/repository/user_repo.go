@@ -67,7 +67,7 @@ func (r *userRepository) UpdateFields(id int64, fields map[string]interface{}) e
 func (r *userRepository) ListExperts(offset, limit int) ([]*model.User, int64, error) {
 	var users []*model.User
 	var total int64
-	query := r.db.Model(&model.User{}).Where("role IN (2,3) AND status = 1 AND available_status = 1")
+	query := r.db.Model(&model.User{}).Where("role IN (2,3) AND status = 1 AND available_status = 1 AND onboarding_status = ?", model.OnboardingApproved)
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -82,6 +82,35 @@ func (r *userRepository) ListUserSkills(userID int64) ([]*model.UserSkill, error
 	var skills []*model.UserSkill
 	err := r.db.Preload("Skill").Where("user_id = ?", userID).Find(&skills).Error
 	return skills, err
+}
+
+func (r *userRepository) ListUserSkillsForUsers(userIDs []int64) ([]*model.UserSkill, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	var skills []*model.UserSkill
+	err := r.db.Preload("Skill").
+		Where("user_id IN ?", userIDs).
+		Order("user_id ASC, is_primary DESC, id ASC").
+		Find(&skills).Error
+	return skills, err
+}
+
+func (r *userRepository) FindSkillNamesByIDs(skillIDs []int64) (map[int64]string, error) {
+	if len(skillIDs) == 0 {
+		return map[int64]string{}, nil
+	}
+	var rows []model.Skill
+	if err := r.db.Model(&model.Skill{}).Select("id", "name").
+		Where("id IN ? AND status = 1", skillIDs).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make(map[int64]string, len(rows))
+	for i := range rows {
+		out[rows[i].ID] = strings.TrimSpace(rows[i].Name)
+	}
+	return out, nil
 }
 
 func (r *userRepository) ReplaceUserSkills(userID int64, skills []*model.UserSkill) error {
@@ -137,4 +166,15 @@ func (r *userRepository) ListUserPortfolios(userID int64) ([]*model.Portfolio, e
 	var portfolios []*model.Portfolio
 	err := r.db.Where("user_id = ? AND status = 1", userID).Order("sort_order ASC, created_at DESC").Find(&portfolios).Error
 	return portfolios, err
+}
+
+func (r *userRepository) CountPortfoliosByUserAndUUIDs(userID int64, uuids []string) (int64, error) {
+	if len(uuids) == 0 {
+		return 0, nil
+	}
+	var n int64
+	err := r.db.Model(&model.Portfolio{}).
+		Where("user_id = ? AND status = 1 AND uuid IN ?", userID, uuids).
+		Count(&n).Error
+	return n, err
 }

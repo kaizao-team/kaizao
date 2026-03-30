@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -8,13 +10,55 @@ import (
 
 // Config 全局配置结构
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Redis    RedisConfig    `mapstructure:"redis"`
-	JWT      JWTConfig      `mapstructure:"jwt"`
-	Log      LogConfig      `mapstructure:"log"`
-	OSS      OSSConfig      `mapstructure:"oss"`
-	SMS      SMSConfig      `mapstructure:"sms"`
+	Server       ServerConfig       `mapstructure:"server"`
+	Database     DatabaseConfig     `mapstructure:"database"`
+	Redis        RedisConfig        `mapstructure:"redis"`
+	JWT          JWTConfig          `mapstructure:"jwt"`
+	Log          LogConfig          `mapstructure:"log"`
+	OSS          OSSConfig          `mapstructure:"oss"`
+	SMS          SMSConfig          `mapstructure:"sms"`
+	Registration RegistrationConfig `mapstructure:"registration"`
+}
+
+// RegistrationConfig 注册 / 邀请码 / 入驻审核
+type RegistrationConfig struct {
+	DisableAutoRegister  bool  `mapstructure:"disable_auto_register"`
+	RequireInviteRoles   []int `mapstructure:"require_invite_roles"`
+	RequireApprovalRoles []int `mapstructure:"require_approval_roles"`
+}
+
+// RoleNeedsInvite 指定角色是否必须提供邀请码
+func (r RegistrationConfig) RoleNeedsInvite(role int) bool {
+	return intInSlice(r.RequireInviteRoles, role)
+}
+
+// RoleNeedsApproval 指定角色注册后是否待审核（不发 Token）
+func (r RegistrationConfig) RoleNeedsApproval(role int) bool {
+	return intInSlice(r.RequireApprovalRoles, role)
+}
+
+func intInSlice(list []int, v int) bool {
+	for _, x := range list {
+		if x == v {
+			return true
+		}
+	}
+	return false
+}
+
+func parseIntCSV(s string) []int {
+	var out []int
+	for _, p := range strings.Split(s, ",") {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		n, err := strconv.Atoi(p)
+		if err == nil {
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 // ServerConfig HTTP 服务配置
@@ -23,6 +67,8 @@ type ServerConfig struct {
 	Mode            string `mapstructure:"mode"`
 	ReadTimeoutSec  int    `mapstructure:"read_timeout_sec"`
 	WriteTimeoutSec int    `mapstructure:"write_timeout_sec"`
+	// PublicBaseURL 对外访问本服务的根 URL（无尾斜杠），如 https://api.example.com；用于拼接上传返回的相对资源路径，避免使用 Host 头（防主机头注入）。为空则只返回相对 path。
+	PublicBaseURL string `mapstructure:"public_base_url"`
 }
 
 // DatabaseConfig MySQL 配置
@@ -62,13 +108,21 @@ type LogConfig struct {
 	Format string `mapstructure:"format"`
 }
 
-// OSSConfig 阿里云 OSS 配置
+// OSSConfig 对象存储（MinIO / S3 兼容，含阿里云 OSS 的 S3 接入；团队静态文件、通用上传等）
 type OSSConfig struct {
-	Endpoint        string `mapstructure:"endpoint"`
+	Enabled         bool   `mapstructure:"enabled"`
+	Endpoint        string `mapstructure:"endpoint"` // host:port，不含协议；阿里云填 OSS 外网 Endpoint（不含 https://）
+	UseSSL          bool   `mapstructure:"use_ssl"`
+	Region          string `mapstructure:"region"`
 	AccessKeyID     string `mapstructure:"access_key_id"`
 	AccessKeySecret string `mapstructure:"access_key_secret"`
 	BucketName      string `mapstructure:"bucket_name"`
-	BaseURL         string `mapstructure:"base_url"`
+	BaseURL         string `mapstructure:"base_url"` // 对外访问 URL 前缀，如 https://cdn.example.com/bucket
+	MaxUploadMB     int    `mapstructure:"max_upload_mb"`
+	// LocalUploadDir 非空且对象存储未就绪时，通用上传落本地磁盘（开发/内网）；需配合 LocalURLPath 暴露静态访问
+	LocalUploadDir string `mapstructure:"local_upload_dir"`
+	// LocalURLPath 本地文件 HTTP 路径前缀，如 /api/v1/upload-files（与 router.Static 一致）
+	LocalURLPath string `mapstructure:"local_url_path"`
 }
 
 // SMSConfig 短信配置
@@ -88,6 +142,7 @@ func Load() (*Config, error) {
 	v.SetDefault("server.mode", "debug")
 	v.SetDefault("server.read_timeout_sec", 10)
 	v.SetDefault("server.write_timeout_sec", 10)
+	v.SetDefault("server.public_base_url", "")
 	v.SetDefault("database.host", "localhost")
 	v.SetDefault("database.port", 3306)
 	v.SetDefault("database.user", "root")
@@ -109,6 +164,12 @@ func Load() (*Config, error) {
 	v.SetDefault("jwt.issuer", "vibebuild")
 	v.SetDefault("log.level", "info")
 	v.SetDefault("log.format", "json")
+	v.SetDefault("registration.disable_auto_register", false)
+	v.SetDefault("oss.enabled", false)
+	v.SetDefault("oss.use_ssl", false)
+	v.SetDefault("oss.max_upload_mb", 32)
+	v.SetDefault("oss.local_upload_dir", "")
+	v.SetDefault("oss.local_url_path", "/api/v1/upload-files")
 
 	// 配置文件
 	v.SetConfigName("config")
@@ -128,6 +189,17 @@ func Load() (*Config, error) {
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
+	}
+
+	// 逗号分隔环境变量（覆盖 yaml），便于容器内配置
+	if s := os.Getenv("VB_REGISTRATION_REQUIRE_INVITE_ROLES"); s != "" {
+		cfg.Registration.RequireInviteRoles = parseIntCSV(s)
+	}
+	if s := os.Getenv("VB_REGISTRATION_REQUIRE_APPROVAL_ROLES"); s != "" {
+		cfg.Registration.RequireApprovalRoles = parseIntCSV(s)
+	}
+	if os.Getenv("VB_REGISTRATION_DISABLE_AUTO_REGISTER") == "true" || os.Getenv("VB_REGISTRATION_DISABLE_AUTO_REGISTER") == "1" {
+		cfg.Registration.DisableAutoRegister = true
 	}
 
 	return &cfg, nil

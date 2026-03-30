@@ -8,7 +8,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 
-/// ONBOARD-004: 引导需求方 — 完成页
+/// ONBOARD-004: 引导项目方 — 完成页
 class DemanderCompletePage extends ConsumerWidget {
   const DemanderCompletePage({super.key});
 
@@ -106,7 +106,7 @@ class DemanderCompletePage extends ConsumerWidget {
           context.go(RoutePaths.demanderOnboarding3);
         }
       },
-      primaryActionText: '进入需求详情',
+      primaryActionText: '进入项目详情',
       onPrimaryAction: () => _goToProjectDetail(context, ref),
       secondaryActionText: '去首页',
       onSecondaryAction: () => _goHome(context, ref),
@@ -114,10 +114,10 @@ class DemanderCompletePage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 26),
-          const Text('需求已发布', style: AppTextStyles.onboardingTitle),
+          const Text('项目已发布', style: AppTextStyles.onboardingTitle),
           const SizedBox(height: 10),
           const Text(
-            '你的需求已进入 Kaizao 专家网络，我们正在为您匹配合适的行业导师、协作者与交付方。',
+            '你的项目已进入 KAIZAO 团队网络，我们正在为你匹配合适的协作团队。',
             style: AppTextStyles.onboardingBody,
           ),
           const SizedBox(height: 22),
@@ -138,7 +138,7 @@ class DemanderCompletePage extends ConsumerWidget {
           const OnboardingInfoBlock(
             icon: Icons.verified_user_outlined,
             title: '平台担保',
-            description: '所有合作都以 Kaizao 协作标准为基础，确保交付过程清晰可信。',
+            description: '所有合作都以 KAIZAO 协作标准为基础，确保交付过程清晰可信。',
           ),
           const SizedBox(height: 24),
         ],
@@ -178,7 +178,7 @@ class _RequirementSummaryCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              const OnboardingStatusBadge(text: '专家匹配中', animate: true),
+              const OnboardingStatusBadge(text: '团队匹配中', animate: true),
             ],
           ),
           const SizedBox(height: 14),
@@ -200,7 +200,7 @@ class _RequirementSummaryCard extends StatelessWidget {
           _MetaLine(icon: Icons.schedule_outlined, text: cycleText),
           const SizedBox(height: 18),
           OnboardingSectionHeader(
-            title: '专家候选队列 (2)',
+            title: '团队候选队列 (2)',
             accessory: Text(
               '实时更新中',
               style: AppTextStyles.caption.copyWith(

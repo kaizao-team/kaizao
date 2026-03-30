@@ -9,7 +9,7 @@ import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 
-/// ONBOARD-003: 引导需求方填写需求资料和预算
+/// ONBOARD-003: 引导项目方填写项目资料和预算
 class DemanderGuideFillPage extends ConsumerStatefulWidget {
   const DemanderGuideFillPage({super.key});
 
@@ -232,7 +232,7 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
     final descriptionHelperText = !hasDescription
         ? '项目语境至少 20 个字，目标和范围要写出来。'
         : description.length >= 20
-            ? '这段信息已经够专家快速判断。'
+            ? '这段信息已经够团队快速判断。'
             : '再补 ${20 - description.length} 个字，接口才会接收。';
     final footnoteText = _isValid
         ? '骨架已经立住了，再补两句语境，系统会更快把你推到合适的人面前。'
@@ -246,7 +246,7 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
           context.go(RoutePaths.demanderOnboarding2);
         }
       },
-      primaryActionText: '发布需求',
+      primaryActionText: '创建项目',
       onPrimaryAction: _isValid ? _submit : null,
       isPrimaryLoading: state.isLoading,
       child: Column(
