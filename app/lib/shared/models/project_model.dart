@@ -1,3 +1,5 @@
+import 'project_category.dart';
+
 class ProjectModel {
   final String id;
   final String uuid;
@@ -64,7 +66,7 @@ class ProjectModel {
       teamId: json['team_id']?.toString(),
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      category: json['category'] as String? ?? '',
+      category: normalizeProjectCategoryKey(json['category'] as String? ?? ''),
       budgetMin: (json['budget_min'] as num?)?.toDouble(),
       budgetMax: (json['budget_max'] as num?)?.toDouble(),
       agreedPrice: (json['agreed_price'] as num?)?.toDouble(),
@@ -161,23 +163,7 @@ class ProjectModel {
   }
 
   String get categoryName {
-    switch (category) {
-      case 'app':
-        return 'APP开发';
-      case 'web':
-        return '网站开发';
-      case 'miniprogram':
-        return '小程序';
-      case 'visual':
-      case 'design':
-        return '视觉设计';
-      case 'data':
-        return '数据分析';
-      case 'consult':
-        return '技术指导';
-      default:
-        return '其他';
-    }
+    return projectCategoryLabel(category);
   }
 
   bool get hasMatchedProvider {

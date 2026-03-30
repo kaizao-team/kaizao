@@ -1,3 +1,5 @@
+import '../../../shared/models/project_category.dart';
+
 class MarketCategory {
   final String key;
   final String name;
@@ -14,7 +16,8 @@ class MarketCategory {
 
   static bool supports(String? key) {
     if (key == null || key.isEmpty) return false;
-    return all.any((category) => category.key == key);
+    if (key == 'all') return true;
+    return supportsProjectCategory(key);
   }
 }
 
@@ -79,7 +82,7 @@ class MarketProjectItem {
       uuid: json['uuid'] as String? ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      category: json['category'] as String? ?? '',
+      category: normalizeProjectCategoryKey(json['category'] as String? ?? ''),
       ownerName: json['owner_name'] as String?,
       budgetMin: (json['budget_min'] as num?)?.toDouble() ?? 0,
       budgetMax: (json['budget_max'] as num?)?.toDouble() ?? 0,
@@ -99,16 +102,15 @@ class MarketProjectItem {
       '¥${budgetMin.toStringAsFixed(0)}-${budgetMax.toStringAsFixed(0)}';
 
   String get categoryName {
-    for (final cat in MarketCategory.all) {
-      if (cat.key == category) return cat.name;
-    }
-    return '其他';
+    return projectCategoryLabel(category);
   }
 }
 
 String normalizeMarketCategory(String? category) {
-  if (MarketCategory.supports(category)) {
-    return category!;
+  if (category == 'all') return 'all';
+  final normalized = normalizeProjectCategoryKey(category);
+  if (MarketCategory.supports(normalized)) {
+    return normalized;
   }
   return 'all';
 }

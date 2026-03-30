@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../../../app/theme/app_colors.dart';
+import '../../../shared/models/project_category.dart';
 import '../../../shared/widgets/vcc_button.dart';
 
 class PublishProjectPage extends StatefulWidget {
@@ -12,15 +14,6 @@ class PublishProjectPage extends StatefulWidget {
 class _PublishProjectPageState extends State<PublishProjectPage> {
   int _currentStep = 0;
   String? _selectedCategory;
-
-  final List<Map<String, dynamic>> _categories = [
-    {'id': 'app', 'label': 'APP开发', 'icon': Icons.phone_android},
-    {'id': 'web', 'label': '网站开发', 'icon': Icons.language},
-    {'id': 'miniprogram', 'label': '小程序', 'icon': Icons.widgets_outlined},
-    {'id': 'design', 'label': 'UI设计', 'icon': Icons.palette_outlined},
-    {'id': 'data', 'label': '数据分析', 'icon': Icons.analytics_outlined},
-    {'id': 'consult', 'label': '技术指导', 'icon': Icons.school_outlined},
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +43,8 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
                         height: index == _currentStep ? 10 : 8,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: isActive
-                              ? AppGradients.primaryButton
-                              : null,
+                          gradient:
+                              isActive ? AppGradients.primaryButton : null,
                           border: isActive
                               ? null
                               : Border.all(color: AppColors.gray300, width: 1),
@@ -121,22 +113,20 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
           crossAxisSpacing: 12,
           childAspectRatio: 165.5 / 96,
         ),
-        itemCount: _categories.length,
+        itemCount: projectCategorySpecs.length,
         itemBuilder: (context, index) {
-          final cat = _categories[index];
-          final isSelected = _selectedCategory == cat['id'];
+          final cat = projectCategorySpecs[index];
+          final isSelected = _selectedCategory == cat.key;
           return GestureDetector(
-            onTap: () =>
-                setState(() => _selectedCategory = cat['id'] as String),
+            onTap: () => setState(() => _selectedCategory = cat.key),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               decoration: BoxDecoration(
                 color: isSelected ? const Color(0xFFF8F7FF) : AppColors.gray50,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected
-                      ? AppColors.brandPurple
-                      : Colors.transparent,
+                  color:
+                      isSelected ? AppColors.brandPurple : Colors.transparent,
                   width: isSelected ? 2 : 0,
                 ),
               ),
@@ -144,15 +134,14 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    cat['icon'] as IconData,
+                    _categoryIcon(cat.key),
                     size: 32,
-                    color: isSelected
-                        ? AppColors.brandPurple
-                        : AppColors.gray500,
+                    color:
+                        isSelected ? AppColors.brandPurple : AppColors.gray500,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    cat['label'] as String,
+                    cat.label,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -335,5 +324,20 @@ class _PublishProjectPageState extends State<PublishProjectPage> {
         ],
       ),
     );
+  }
+}
+
+IconData _categoryIcon(String key) {
+  switch (key) {
+    case 'dev':
+      return Icons.code_rounded;
+    case 'visual':
+      return Icons.palette_outlined;
+    case 'data':
+      return Icons.analytics_outlined;
+    case 'solution':
+      return Icons.lightbulb_outline_rounded;
+    default:
+      return Icons.more_horiz;
   }
 }

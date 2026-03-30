@@ -170,7 +170,7 @@ class MarketMock {
       'owner_name': '陈强',
       'title': '社区团购小程序',
       'description': '社区团购微信小程序，含团长端、用户端和后台管理',
-      'category': 'solution',
+      'category': 'dev',
       'budget_min': 3000,
       'budget_max': 6000,
       'match_score': 71,
@@ -190,7 +190,6 @@ class MarketMock {
       'category': 'visual',
       'budget_min': 4000,
       'budget_max': 8000,
-
       'match_score': 65,
       'status': 2,
       'tech_requirements': ['Figma', 'Three.js', 'Framer Motion'],
@@ -390,6 +389,9 @@ class MarketMock {
 
     final normalized = Map<String, dynamic>.from(project);
     normalized['id'] = normalized['id'] ?? normalized['uuid'];
+    normalized['category'] = _normalizeCategory(
+      normalized['category']?.toString(),
+    );
 
     if (index >= 0) {
       _allProjects[index] = {
@@ -400,6 +402,29 @@ class MarketMock {
     }
 
     _allProjects.insert(0, normalized);
+  }
+
+  static String _normalizeCategory(String? category) {
+    switch (category) {
+      case 'data':
+      case 'dev':
+      case 'visual':
+      case 'solution':
+        return category!;
+      case 'app':
+      case 'web':
+      case 'miniprogram':
+      case 'backend':
+        return 'dev';
+      case 'consult':
+        return 'solution';
+      case 'design':
+        return 'visual';
+      case 'ai':
+        return 'data';
+      default:
+        return 'dev';
+    }
   }
 
   static Map<String, dynamic> _marketProjects(RequestOptions options) {
@@ -473,8 +498,9 @@ class MarketMock {
           (_allProjects[index]['view_count'] as int? ?? 0) + 1;
     }
 
-    final project =
-        index >= 0 ? _allProjects[index] : Map<String, dynamic>.from(_allProjects.first);
+    final project = index >= 0
+        ? _allProjects[index]
+        : Map<String, dynamic>.from(_allProjects.first);
 
     final detail = Map<String, dynamic>.from(project);
     detail['milestones'] = [

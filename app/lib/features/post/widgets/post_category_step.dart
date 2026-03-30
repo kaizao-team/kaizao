@@ -1,26 +1,13 @@
 import 'package:flutter/material.dart';
+
 import '../../../app/theme/app_colors.dart';
+import '../../../shared/models/project_category.dart';
 
 class PostCategoryStep extends StatelessWidget {
   final String? selected;
   final ValueChanged<String> onSelect;
 
-  const PostCategoryStep({
-    super.key,
-    this.selected,
-    required this.onSelect,
-  });
-
-  static const _categories = [
-    {'key': 'app', 'icon': Icons.phone_iphone, 'label': 'App 开发'},
-    {'key': 'web', 'icon': Icons.web, 'label': 'Web 开发'},
-    {'key': 'miniprogram', 'icon': Icons.widgets_outlined, 'label': '小程序'},
-    {'key': 'visual', 'icon': Icons.palette_outlined, 'label': '视觉设计'},
-    {'key': 'data', 'icon': Icons.bar_chart, 'label': '数据分析'},
-    {'key': 'ai', 'icon': Icons.auto_awesome, 'label': 'AI / ML'},
-    {'key': 'backend', 'icon': Icons.dns_outlined, 'label': '后端开发'},
-    {'key': 'other', 'icon': Icons.more_horiz, 'label': '其他'},
-  ];
+  const PostCategoryStep({super.key, this.selected, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +19,11 @@ class PostCategoryStep extends StatelessWidget {
           const SizedBox(height: 32),
           const Text(
             '你想做什么？',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.black),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AppColors.black,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -47,8 +38,8 @@ class PostCategoryStep extends StatelessWidget {
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
             childAspectRatio: 2.2,
-            children: _categories.map((cat) {
-              final key = cat['key'] as String;
+            children: projectCategorySpecs.map((cat) {
+              final key = cat.key;
               final isSelected = selected == key;
               return GestureDetector(
                 onTap: () => onSelect(key),
@@ -66,17 +57,19 @@ class PostCategoryStep extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        cat['icon'] as IconData,
+                        _categoryIcon(key),
                         size: 20,
                         color: isSelected ? AppColors.white : AppColors.gray600,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        cat['label'] as String,
+                        cat.label,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: isSelected ? AppColors.white : AppColors.gray700,
+                          color: isSelected
+                              ? AppColors.white
+                              : AppColors.gray700,
                         ),
                       ),
                     ],
@@ -88,5 +81,20 @@ class PostCategoryStep extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+IconData _categoryIcon(String key) {
+  switch (key) {
+    case 'dev':
+      return Icons.code_rounded;
+    case 'visual':
+      return Icons.palette_outlined;
+    case 'data':
+      return Icons.bar_chart_rounded;
+    case 'solution':
+      return Icons.lightbulb_outline_rounded;
+    default:
+      return Icons.more_horiz;
   }
 }
