@@ -84,7 +84,7 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
                   Row(
                     children: [
                       const Text(
-                        'Kaizo',
+                        'KAIZO',
                         style: AppTextStyles.onboardingWordmark,
                       ),
                       const Spacer(),

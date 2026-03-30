@@ -281,7 +281,7 @@ class _HomeAppBar extends ConsumerWidget {
                 ),
                 const SizedBox(width: 10),
                 const Text(
-                  'Kaizo',
+                  'KAIZO',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,

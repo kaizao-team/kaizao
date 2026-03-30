@@ -13,7 +13,7 @@ class AuthMetaBar extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Text(
-        'Kaizo',
+        'KAIZO',
         style: AppTextStyles.overline.copyWith(
           fontWeight: FontWeight.w700,
           letterSpacing: 1.8,

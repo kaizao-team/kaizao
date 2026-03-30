@@ -29,7 +29,7 @@ class AboutPage extends StatelessWidget {
           const SizedBox(height: 16),
           const Center(
             child: Text(
-              'Kaizo',
+              'KAIZO',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,

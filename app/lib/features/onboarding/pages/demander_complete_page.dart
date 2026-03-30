@@ -45,7 +45,7 @@ class DemanderCompletePage extends ConsumerWidget {
   }
 
   String _buildProjectCode(String seed) {
-    final normalized = seed.trim().isEmpty ? 'Kaizo' : seed.trim();
+    final normalized = seed.trim().isEmpty ? 'KAIZO' : seed.trim();
     final hash = normalized.hashCode.abs().toString();
     final suffix = hash.padLeft(4, '0').substring(0, 4);
     return 'KZ-$suffix';

@@ -350,7 +350,7 @@ class _LoginMetaBar extends StatelessWidget {
                 color: AppColors.gray400,
               ),
               children: [
-                const TextSpan(text: 'Kaizo'),
+                const TextSpan(text: 'KAIZO'),
                 const TextSpan(text: '  /  '),
                 TextSpan(
                   text: 'AUTHENTICATION',
@@ -425,7 +425,7 @@ class _LoginHero extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xxs),
         Text(
-          'Kaizo',
+          'KAIZO',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: compact ? 20 : 22,
