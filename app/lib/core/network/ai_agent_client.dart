@@ -1,0 +1,79 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
+import '../config/app_env.dart';
+import 'sse_client.dart';
+
+/// Lightweight Dio client for the AI Agent (Python) service.
+/// Separate from ApiClient — no MockInterceptor, no JWT, longer timeouts.
+class AiAgentClient {
+  static AiAgentClient? _instance;
+  late final Dio _dio;
+
+  AiAgentClient._() {
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: AppEnv.aiAgentBaseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 10),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          requestHeader: false,
+          responseHeader: false,
+          logPrint: (obj) => debugPrint('[AiAgent] $obj'),
+        ),
+      );
+    }
+  }
+
+  factory AiAgentClient() {
+    _instance ??= AiAgentClient._();
+    return _instance!;
+  }
+
+  Dio get dio => _dio;
+
+  Future<Map<String, dynamic>> post(
+    String path, {
+    Map<String, dynamic>? data,
+  }) async {
+    final response = await _dio.post(path, data: data);
+    final body = response.data;
+    if (body is Map<String, dynamic>) return body;
+    return {};
+  }
+
+  /// Open an SSE stream via POST. Returns parsed [SseEvent]s.
+  ///
+  /// The caller should use `await for` to consume events and pass a
+  /// [CancelToken] to abort the stream when navigating away.
+  Stream<SseEvent> postSseStream(
+    String path, {
+    Map<String, dynamic>? data,
+    CancelToken? cancelToken,
+  }) async* {
+    final response = await _dio.post<ResponseBody>(
+      path,
+      data: data,
+      options: Options(
+        responseType: ResponseType.stream,
+        // SSE is a long-lived connection — disable receive timeout
+        receiveTimeout: Duration.zero,
+        headers: {'Accept': 'text/event-stream'},
+      ),
+      cancelToken: cancelToken,
+    );
+    yield* SseClient.parse(response.data!.stream);
+  }
+}

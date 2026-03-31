@@ -22,6 +22,13 @@
 
 当前前端不是品牌展示页视觉，也不是典型 SaaS 仪表盘。
 
+运行与验证硬性规则：
+- 开发阶段禁止拉起 Web 端做预览或验收
+- 不使用 `flutter run -d chrome`、浏览器预览、或其他 Web 调试链路
+- UI 开发、联调、验收默认走移动端模拟器
+- iOS 优先使用 Simulator；Android 场景使用 Android Emulator
+- 除非 Dylan 明确要求，否则不要用 `macos` 作为前端验证目标
+
 统一设计语言：
 - **Architectural Minimalism / The Digital Atheneum**
 - 关键词：安静、克制、内容优先、编辑式、带建筑感的秩序

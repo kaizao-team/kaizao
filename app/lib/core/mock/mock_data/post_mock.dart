@@ -9,7 +9,7 @@ class PostMock {
 
   static void register(Map<String, MockHandler> handlers) {
     handlers['POST:/api/v1/projects/ai-chat'] = MockHandler(
-      delayMs: 800,
+      delayMs: 600,
       handler: (options) => _aiChat(options),
     );
 
@@ -40,28 +40,168 @@ class PostMock {
   }
 
   static int _turnCount = 0;
+  static String? _activeCategory;
+
+  static final _categoryScripts = <String, List<Map<String, dynamic>>>{
+    'data': [
+      {
+        'reply':
+            '收到，你提到「{{userMessage}}」。这次数据项目里最需要先解决的业务问题是什么？是增长、转化、留存，还是某个运营环节的效率判断？',
+        'completeness_score': 20,
+        'can_generate_prd': false,
+      },
+      {
+        'reply':
+            '我先按「{{userMessage}}」理解为一项需要沉淀分析口径的任务。现在请告诉我已有的数据源有哪些，比如业务库、埋点、CRM 或 Excel，口径是否已经统一？',
+        'completeness_score': 40,
+        'can_generate_prd': false,
+      },
+      {
+        'reply':
+            '围绕「{{userMessage}}」，目标已经开始清晰了。还想确认最终交付更偏实时 dashboard、固定周期报告，还是一次专项分析结论？这些信息已经足够先生成 PRD，但补充越细，后面模块越准。',
+        'completeness_score': 60,
+        'can_generate_prd': true,
+      },
+      {
+        'reply':
+            '基于你刚才补充的「{{userMessage}}」，我现在基本能拆出数据接入、指标建模和结果展示三层结构。还差两个关键点：谁是主要查看人，以及期望上线时间或分析周期是什么？现在已经可以生成 PRD。',
+        'completeness_score': 80,
+        'can_generate_prd': true,
+      },
+      {
+        'reply':
+            '我把「{{userMessage}}」相关需求汇总一下：要先明确业务问题，接着梳理数据源与指标口径，最后交付可复用的分析结果或看板。信息已经足够生成完整 PRD，最后请确认是否还有权限、合规、预算或跨部门协作方面的限制？',
+        'completeness_score': 100,
+        'can_generate_prd': true,
+      },
+    ],
+    'dev': [
+      {
+        'reply':
+            '明白，你提到「{{userMessage}}」。先抓最核心的一层：第一版必须上线的功能有哪些？哪些是没有就不能发布的 P0 功能？',
+        'completeness_score': 20,
+        'can_generate_prd': false,
+      },
+      {
+        'reply':
+            '我先把「{{userMessage}}」视为一个需要快速定义范围的软件项目。目标用户是谁，他们进入产品后最先要完成的关键动作是什么？',
+        'completeness_score': 40,
+        'can_generate_prd': false,
+      },
+      {
+        'reply':
+            '结合你刚补充的「{{userMessage}}」，需求主线已经有了。现在请确认交付平台和技术偏好：是 Web、App、小程序，还是多端一起上？这一步确认后就已经可以先生成 PRD。',
+        'completeness_score': 60,
+        'can_generate_prd': true,
+      },
+      {
+        'reply':
+            '按目前对「{{userMessage}}」的理解，我可以开始拆认证、核心流程和管理后台了。还想补上时间线与约束：预计什么时候上线，是否有现有系统、接口或合规要求需要兼容？现在已经足够生成 PRD。',
+        'completeness_score': 80,
+        'can_generate_prd': true,
+      },
+      {
+        'reply':
+            '我把这轮围绕「{{userMessage}}」的研发需求汇总一下：目标用户、核心功能、交付平台、技术边界和上线节奏都已经基本齐了。信息足够生成完整 PRD，最后请确认是否还存在预算、第三方集成或团队协作上的限制？',
+        'completeness_score': 100,
+        'can_generate_prd': true,
+      },
+    ],
+    'design': [
+      {
+        'reply':
+            '收到，你说的是「{{userMessage}}」。这次设计项目最先要解决的是什么，品牌识别、界面体验、营销表达，还是转化效率？',
+        'completeness_score': 20,
+        'can_generate_prd': false,
+      },
+      {
+        'reply':
+            '我先按「{{userMessage}}」理解为需要统一视觉方向的一次设计交付。现在是否已经有 logo、品牌色、字体、参考案例或明确不能碰的风格限制？',
+        'completeness_score': 40,
+        'can_generate_prd': false,
+      },
+      {
+        'reply':
+            '围绕「{{userMessage}}」，我已经能初步判断交付范围了。最终你更需要高保真页面、完整品牌视觉包，还是一套可复用的 design system？这些信息已经足够先生成 PRD。',
+        'completeness_score': 60,
+        'can_generate_prd': true,
+      },
+      {
+        'reply':
+            '结合你对「{{userMessage}}」的补充，我可以开始拆品牌、界面和规范三个层级。还差受众场景与执行限制：主要面对谁、在哪些渠道使用、可接受几轮修改，以及是否需要和研发同步落地？现在已经能生成 PRD。',
+        'completeness_score': 80,
+        'can_generate_prd': true,
+      },
+      {
+        'reply':
+            '我把「{{userMessage}}」这类设计需求整理一下：目标、风格方向、交付清单、受众场景与协作方式都已经比较完整。现在足够生成完整 PRD，最后请确认是否还有品牌审批、素材准备或工期上的硬约束？',
+        'completeness_score': 100,
+        'can_generate_prd': true,
+      },
+    ],
+    'solution': [
+      {
+        'reply':
+            '明白，你提到「{{userMessage}}」。先确认这次方案项目最核心的问题是什么，最终希望解决方向判断、执行路径，还是资源组织效率？',
+        'completeness_score': 20,
+        'can_generate_prd': false,
+      },
+      {
+        'reply':
+            '我先把「{{userMessage}}」理解成一项需要先梳理再落地的咨询任务。当前项目进行到哪一步，已经有哪些前提、资料或既定决策不能动？',
+        'completeness_score': 40,
+        'can_generate_prd': false,
+      },
+      {
+        'reply':
+            '结合你刚才关于「{{userMessage}}」的描述，问题边界已经开始成形。最终输出更偏策略文档、实施路径图、阶段性里程碑，还是陪跑式拆解方案？这些信息已经足够先生成 PRD。',
+        'completeness_score': 60,
+        'can_generate_prd': true,
+      },
+      {
+        'reply':
+            '按目前对「{{userMessage}}」的理解，我可以开始拆研究诊断、策略设计和落地计划了。还想补上关键干系人、决策节奏，以及最大的风险或约束条件是什么。现在已经可以生成 PRD。',
+        'completeness_score': 80,
+        'can_generate_prd': true,
+      },
+      {
+        'reply':
+            '我把围绕「{{userMessage}}」的解决方案需求汇总一下：问题定义、现状前提、输出形式、关键干系人与落地约束都已经比较明确。信息足够生成完整 PRD，最后请确认是否还要纳入预算、组织协同或阶段验收方面的要求？',
+        'completeness_score': 100,
+        'can_generate_prd': true,
+      },
+    ],
+  };
+
+  static const _categoryLabels = <String, String>{
+    'data': '数据分析',
+    'dev': '软件研发',
+    'design': '视觉设计',
+    'solution': '解决方案',
+  };
 
   static Map<String, dynamic> _aiChat(RequestOptions options) {
     final data = options.data as Map<String, dynamic>? ?? {};
     final userMessage = data['message'] as String? ?? '';
-    _turnCount++;
+    final category = _normalizeCategory(data['category'] as String?);
+    final scripts = _categoryScripts[category] ?? _categoryScripts['dev']!;
 
-    String reply;
-    bool canGeneratePrd = false;
-
-    if (_turnCount == 1) {
-      reply = '好的，我来帮你梳理需求。你提到「$userMessage」，能详细说说你期望的核心功能有哪些吗？比如用户端需要哪些主要页面？';
-    } else if (_turnCount == 2) {
-      reply =
-          '明白了，我整理一下：\n\n1. **用户注册/登录** — 手机号 + 短信验证\n2. **首页推荐** — 个性化内容推荐\n3. **核心功能模块** — 根据你描述的业务场景\n4. **个人中心** — 账号管理与设置\n\n你对技术栈有偏好吗？需要支持哪些平台？';
-    } else if (_turnCount == 3) {
-      reply =
-          '需求已经比较清晰了！我帮你总结一下：\n\n📋 **项目概要**\n- 平台：移动端 (iOS + Android)\n- 核心模块：3-4个主要功能\n- 预计工期：4-6周\n- 技术建议：Flutter + Go 后端\n\n信息足够生成 PRD 了，你可以点击「生成PRD」按钮，我会帮你生成完整的需求文档。';
-      canGeneratePrd = true;
-    } else {
-      reply = '好的，我已经记录了你的补充。你还有其他要补充的吗？信息已经足够生成 PRD 了。';
-      canGeneratePrd = true;
+    if (_activeCategory != category) {
+      _activeCategory = category;
+      _turnCount = 0;
     }
+
+    _turnCount += 1;
+    final scriptIndex =
+        _turnCount <= scripts.length ? _turnCount - 1 : scripts.length - 1;
+    final script = scripts[scriptIndex];
+    final safeMessage =
+        userMessage.trim().isEmpty ? _defaultUserMessage(category) : userMessage.trim();
+    final reply = (script['reply'] as String? ?? '')
+        .replaceAll('{{userMessage}}', safeMessage);
+    final completenessScore = script['completeness_score'] as int? ?? 0;
+    final canGeneratePrd =
+        script['can_generate_prd'] as bool? ?? completenessScore >= 60;
 
     return {
       'code': 0,
@@ -69,180 +209,888 @@ class PostMock {
       'data': {
         'reply': reply,
         'can_generate_prd': canGeneratePrd,
+        'completeness_score': completenessScore,
         'turn': _turnCount,
       },
     };
   }
 
   static Map<String, dynamic> _generatePrd(RequestOptions options) {
+    final data = options.data as Map<String, dynamic>? ?? {};
+    final category = _normalizeCategory(data['category'] as String?);
+    final chatHistory = data['chat_history'] as List? ?? const [];
+    final focus = _extractFocus(chatHistory, category);
+    final prd = _buildPrd(category, focus, chatHistory);
+
     _turnCount = 0;
+    _activeCategory = null;
+
     return {
       'code': 0,
       'message': 'ok',
-      'data': {
-        'prd_id': 'prd_mock_001',
-        'title': '智能协作平台 PRD',
-        'modules': [
-          {
-            'id': 'mod_auth',
-            'name': '认证模块',
-            'cards': [
-              {
-                'id': 'card_001',
-                'module_id': 'mod_auth',
-                'title': '手机号登录',
-                'type': 'event',
-                'priority': 'P0',
-                'description': '用户通过手机号和短信验证码完成登录',
-                'event': '用户输入手机号并点击获取验证码',
-                'action': '系统发送短信验证码，用户输入后验证',
-                'response': '验证成功跳转首页，失败提示错误',
-                'state_change': '用户状态从未登录变为已登录',
-                'acceptance_criteria': [
-                  {
-                    'id': 'ac_001',
-                    'content': '手机号格式校验（11位数字）',
-                    'checked': false
-                  },
-                  {'id': 'ac_002', 'content': '验证码60秒倒计时', 'checked': false},
-                  {'id': 'ac_003', 'content': '3次错误后锁定5分钟', 'checked': false},
-                ],
-                'roles': ['frontend', 'backend'],
-                'effort_hours': 8,
-                'dependencies': [],
-                'tech_tags': ['Flutter', 'SMS SDK'],
-                'status': 'pending',
-              },
-              {
-                'id': 'card_002',
-                'module_id': 'mod_auth',
-                'title': '自动登录',
-                'type': 'state',
-                'priority': 'P1',
-                'description': 'App启动时检查Token有效性，自动登录',
-                'event': 'App冷启动',
-                'action': '检查本地Token是否存在且未过期',
-                'response': 'Token有效直接进入首页，无效跳转登录页',
-                'state_change': '从启动态切换为已登录或未登录',
-                'acceptance_criteria': [
-                  {'id': 'ac_004', 'content': 'Token过期自动刷新', 'checked': false},
-                  {'id': 'ac_005', 'content': '刷新失败跳转登录页', 'checked': false},
-                ],
-                'roles': ['frontend'],
-                'effort_hours': 4,
-                'dependencies': ['card_001'],
-                'tech_tags': ['JWT', 'SharedPreferences'],
-                'status': 'pending',
-              },
-            ],
+      'data': prd,
+    };
+  }
+
+  static String _normalizeCategory(String? category) {
+    final normalized = category?.trim();
+    if (_categoryScripts.containsKey(normalized)) {
+      return normalized!;
+    }
+    return 'dev';
+  }
+
+  static String _defaultUserMessage(String category) {
+    return '${_categoryLabels[category] ?? '项目'}需求';
+  }
+
+  static String _extractFocus(List<dynamic> chatHistory, String category) {
+    final userMessages = chatHistory
+        .whereType<Map<String, dynamic>>()
+        .where((item) => item['role'] == 'user')
+        .map((item) => item['content']?.toString().trim() ?? '')
+        .where((text) => text.isNotEmpty)
+        .toList();
+
+    if (userMessages.isEmpty) {
+      return _defaultUserMessage(category);
+    }
+
+    final raw = userMessages.first
+        .replaceAll('\n', ' ')
+        .replaceAll('，', ' ')
+        .replaceAll('。', ' ')
+        .replaceAll('？', ' ')
+        .replaceAll('！', ' ')
+        .replaceAll('、', ' ')
+        .replaceAll(',', ' ')
+        .replaceAll('.', ' ')
+        .trim();
+    final compact = raw.replaceAll(RegExp(r'\s+'), ' ');
+
+    if (compact.isEmpty) {
+      return _defaultUserMessage(category);
+    }
+
+    return compact.length > 16 ? compact.substring(0, 16) : compact;
+  }
+
+  static String _conversationBrief(List<dynamic> chatHistory, String category) {
+    final userMessages = chatHistory
+        .whereType<Map<String, dynamic>>()
+        .where((item) => item['role'] == 'user')
+        .map((item) => item['content']?.toString().trim() ?? '')
+        .where((text) => text.isNotEmpty)
+        .toList();
+
+    if (userMessages.isEmpty) {
+      return '当前主要围绕${_categoryLabels[category] ?? '项目需求'}展开';
+    }
+
+    final summary = userMessages.take(2).join('；');
+    return summary.length > 48 ? '${summary.substring(0, 48)}...' : summary;
+  }
+
+  static Map<String, dynamic> _buildPrd(
+    String category,
+    String focus,
+    List<dynamic> chatHistory,
+  ) {
+    final brief = _conversationBrief(chatHistory, category);
+
+    switch (category) {
+      case 'data':
+        return {
+          'prd_id': 'prd_data_001',
+          'title': '$focus 数据分析项目 PRD',
+          'modules': _buildDataModules(focus, brief),
+          'budget_suggestion': {
+            'min': 12000,
+            'max': 24000,
+            'reason': '围绕「$focus」的数据项目通常包含数据接入、指标建模与结果展示三层工作，建议预算控制在 ¥12,000 - ¥24,000。',
           },
-          {
-            'id': 'mod_home',
-            'name': '首页模块',
-            'cards': [
-              {
-                'id': 'card_003',
-                'module_id': 'mod_home',
-                'title': '个性化推荐',
-                'type': 'response',
-                'priority': 'P0',
-                'description': '首页展示个性化推荐内容',
-                'event': '用户进入首页',
-                'action': '根据用户画像和浏览历史请求推荐数据',
-                'response': '展示推荐卡片列表，支持下拉刷新',
-                'state_change': '首页数据加载完成',
-                'acceptance_criteria': [
-                  {'id': 'ac_006', 'content': '首屏加载时间 < 2秒', 'checked': false},
-                  {'id': 'ac_007', 'content': '支持下拉刷新', 'checked': false},
-                  {'id': 'ac_008', 'content': '无数据时展示空状态', 'checked': false},
-                ],
-                'roles': ['frontend', 'backend', 'algorithm'],
-                'effort_hours': 12,
-                'dependencies': ['card_001'],
-                'tech_tags': ['Flutter', '推荐算法'],
-                'status': 'pending',
-              },
-              {
-                'id': 'card_004',
-                'module_id': 'mod_home',
-                'title': '分类导航',
-                'type': 'action',
-                'priority': 'P1',
-                'description': '首页顶部分类导航栏',
-                'event': '用户点击分类标签',
-                'action': '切换分类并加载对应数据',
-                'response': '列表内容切换为对应分类',
-                'state_change': '当前分类标记更新',
-                'acceptance_criteria': [
-                  {'id': 'ac_009', 'content': '分类切换无闪烁', 'checked': false},
-                  {'id': 'ac_010', 'content': '当前分类高亮显示', 'checked': false},
-                ],
-                'roles': ['frontend'],
-                'effort_hours': 6,
-                'dependencies': ['card_003'],
-                'tech_tags': ['Flutter'],
-                'status': 'pending',
-              },
-            ],
+        };
+      case 'design':
+        return {
+          'prd_id': 'prd_design_001',
+          'title': '$focus 设计项目 PRD',
+          'modules': _buildDesignModules(focus, brief),
+          'budget_suggestion': {
+            'min': 8000,
+            'max': 18000,
+            'reason': '结合「$focus」的品牌与界面交付范围，建议预算区间为 ¥8,000 - ¥18,000，能覆盖视觉探索、页面输出与规范沉淀。',
           },
-          {
-            'id': 'mod_core',
-            'name': '核心业务模块',
-            'cards': [
-              {
-                'id': 'card_005',
-                'module_id': 'mod_core',
-                'title': '需求发布',
-                'type': 'event',
-                'priority': 'P0',
-                'description': '用户发布项目需求',
-                'event': '用户点击发布按钮并填写需求表单',
-                'action': '验证必填项，提交需求数据',
-                'response': '发布成功跳转需求详情页',
-                'state_change': '需求状态变为已发布',
-                'acceptance_criteria': [
-                  {'id': 'ac_011', 'content': '标题字数限制50字', 'checked': false},
-                  {'id': 'ac_012', 'content': '描述支持富文本', 'checked': false},
-                  {'id': 'ac_013', 'content': '预算范围选择', 'checked': false},
-                  {'id': 'ac_014', 'content': '附件上传（图片/文档）', 'checked': false},
-                ],
-                'roles': ['frontend', 'backend'],
-                'effort_hours': 16,
-                'dependencies': ['card_001'],
-                'tech_tags': ['Flutter', 'OSS'],
-                'status': 'pending',
-              },
-              {
-                'id': 'card_006',
-                'module_id': 'mod_core',
-                'title': '需求匹配',
-                'type': 'response',
-                'priority': 'P0',
-                'description': 'AI自动匹配合适的团队',
-                'event': '需求发布后',
-                'action': 'AI分析项目特征，匹配团队库',
-                'response': '展示匹配结果列表，按匹配度排序',
-                'state_change': '需求状态变为匹配中',
-                'acceptance_criteria': [
-                  {'id': 'ac_015', 'content': '匹配结果在30秒内返回', 'checked': false},
-                  {'id': 'ac_016', 'content': '展示匹配度百分比', 'checked': false},
-                  {'id': 'ac_017', 'content': '支持手动筛选', 'checked': false},
-                ],
-                'roles': ['frontend', 'backend', 'algorithm'],
-                'effort_hours': 20,
-                'dependencies': ['card_005'],
-                'tech_tags': ['Flutter', 'ML', 'Go'],
-                'status': 'pending',
-              },
-            ],
+        };
+      case 'solution':
+        return {
+          'prd_id': 'prd_solution_001',
+          'title': '$focus 解决方案 PRD',
+          'modules': _buildSolutionModules(focus, brief),
+          'budget_suggestion': {
+            'min': 12000,
+            'max': 28000,
+            'reason': '围绕「$focus」的咨询方案通常需要研究诊断、策略设计与实施路径三段投入，建议预算区间为 ¥12,000 - ¥28,000。',
           },
+        };
+      case 'dev':
+      default:
+        return {
+          'prd_id': 'prd_dev_001',
+          'title': '$focus 软件产品 PRD',
+          'modules': _buildDevModules(focus, brief),
+          'budget_suggestion': {
+            'min': 18000,
+            'max': 48000,
+            'reason': '结合「$focus」的软件研发范围，建议预算区间为 ¥18,000 - ¥48,000，可覆盖认证、核心功能与后台管理交付。',
+          },
+        };
+    }
+  }
+
+  static List<Map<String, dynamic>> _buildDataModules(
+    String focus,
+    String brief,
+  ) {
+    return [
+      _buildModule(
+        id: 'mod_data_pipeline',
+        name: '数据管道',
+        cards: [
+          _buildCard(
+            id: 'card_data_001',
+            moduleId: 'mod_data_pipeline',
+            title: '$focus 数据源接入',
+            type: 'event',
+            priority: 'P0',
+            description: '梳理并接入与「$focus」相关的核心数据源，支撑后续分析链路。当前对话摘要：$brief',
+            event: '项目启动并确认数据清单',
+            action: '接入业务库、埋点表、外部表格或 CRM 数据',
+            response: '形成统一的数据接入清单和同步方式',
+            stateChange: '数据源状态从分散变为可统一拉取',
+            acceptanceCriteria: [
+              '至少完成 2 类核心数据源接入',
+              '明确更新频率与负责人',
+              '缺失字段与异常值有记录方案',
+            ],
+            roles: ['data', 'backend'],
+            effortHours: 14,
+            techTags: ['ETL', 'SQL'],
+          ),
+          _buildCard(
+            id: 'card_data_002',
+            moduleId: 'mod_data_pipeline',
+            title: '$focus 指标口径定义',
+            type: 'state',
+            priority: 'P0',
+            description: '为核心业务问题建立统一指标口径和计算逻辑。',
+            event: '分析目标确认后',
+            action: '沉淀指标定义、维度字段和口径说明',
+            response: '输出可复用的指标字典',
+            stateChange: '指标解释从口头约定变为文档化标准',
+            acceptanceCriteria: [
+              '核心指标均提供公式说明',
+              '维度拆分规则可追溯',
+              '业务方确认关键口径',
+            ],
+            roles: ['data', 'pm'],
+            effortHours: 10,
+            dependencies: ['card_data_001'],
+            techTags: ['Metric', 'BI'],
+          ),
+          _buildCard(
+            id: 'card_data_003',
+            moduleId: 'mod_data_pipeline',
+            title: '$focus 数据质量监控',
+            type: 'response',
+            priority: 'P1',
+            description: '对关键表与核心指标建立质量检查与异常提醒。',
+            event: '数据每日同步完成',
+            action: '执行完整性、及时性和异常波动检测',
+            response: '出现异常时生成提醒与修复清单',
+            stateChange: '数据可用性从被动发现变为主动监控',
+            acceptanceCriteria: [
+              '每日自动校验任务可运行',
+              '异常记录可回溯到字段级',
+              '关键问题 1 小时内可见',
+            ],
+            roles: ['data'],
+            effortHours: 8,
+            dependencies: ['card_data_002'],
+            techTags: ['Monitor', 'Alert'],
+          ),
         ],
-        'budget_suggestion': {
-          'min': 5000,
-          'max': 15000,
-          'reason': '基于项目复杂度和市场行情，建议预算范围为 ¥5,000 - ¥15,000',
-        },
-      },
+      ),
+      _buildModule(
+        id: 'mod_data_dashboard',
+        name: 'Dashboard',
+        cards: [
+          _buildCard(
+            id: 'card_data_004',
+            moduleId: 'mod_data_dashboard',
+            title: '$focus 核心看板',
+            type: 'response',
+            priority: 'P0',
+            description: '为业务方提供面向核心目标的可视化看板。',
+            event: '用户进入数据看板首页',
+            action: '展示核心指标、趋势图和关键说明',
+            response: '业务方可快速判断当前表现',
+            stateChange: '核心数据从离散表格变为可视化总览',
+            acceptanceCriteria: [
+              '首页展示 5-8 个核心指标',
+              '支持按时间筛选',
+              '空状态和加载态完整',
+            ],
+            roles: ['data', 'design', 'frontend'],
+            effortHours: 16,
+            dependencies: ['card_data_002'],
+            techTags: ['Dashboard', 'Charts'],
+          ),
+          _buildCard(
+            id: 'card_data_005',
+            moduleId: 'mod_data_dashboard',
+            title: '$focus 下钻分析',
+            type: 'action',
+            priority: 'P1',
+            description: '支持从总览进一步查看维度拆解与异常来源。',
+            event: '用户点击某个核心指标',
+            action: '按渠道、地区、产品或时间维度展开分析',
+            response: '定位问题来源并支持导出视图',
+            stateChange: '分析路径从单层查看变为多维探索',
+            acceptanceCriteria: [
+              '至少支持 3 个维度下钻',
+              '筛选条件之间可以联动',
+              '导出内容与页面一致',
+            ],
+            roles: ['data', 'frontend'],
+            effortHours: 12,
+            dependencies: ['card_data_004'],
+            techTags: ['BI', 'Charts'],
+          ),
+        ],
+      ),
+      _buildModule(
+        id: 'mod_data_reporting',
+        name: 'Reporting',
+        cards: [
+          _buildCard(
+            id: 'card_data_006',
+            moduleId: 'mod_data_reporting',
+            title: '$focus 定期报告',
+            type: 'event',
+            priority: 'P1',
+            description: '将分析结果整理为固定节奏的周报或月报。',
+            event: '到达约定汇报周期',
+            action: '自动汇总指标并生成结构化报告',
+            response: '输出适合分享给管理层的结论摘要',
+            stateChange: '汇报材料从人工整理变为模板化输出',
+            acceptanceCriteria: [
+              '支持周报和月报两种模板',
+              '结论区包含异常说明',
+              '可导出 PDF 或图片',
+            ],
+            roles: ['data', 'pm'],
+            effortHours: 8,
+            dependencies: ['card_data_004'],
+            techTags: ['Report', 'Export'],
+          ),
+          _buildCard(
+            id: 'card_data_007',
+            moduleId: 'mod_data_reporting',
+            title: '$focus 异常预警',
+            type: 'response',
+            priority: 'P1',
+            description: '对重点指标建立阈值预警与提醒规则。',
+            event: '指标触发波动阈值',
+            action: '生成异常提醒并附上关联数据说明',
+            response: '相关人及时收到预警消息',
+            stateChange: '异常响应从延迟发现变为即时通知',
+            acceptanceCriteria: [
+              '支持按指标配置阈值',
+              '提醒对象可配置',
+              '预警记录可追踪',
+            ],
+            roles: ['data', 'backend'],
+            effortHours: 6,
+            dependencies: ['card_data_003'],
+            techTags: ['Alert', 'Notification'],
+          ),
+        ],
+      ),
+    ];
+  }
+
+  static List<Map<String, dynamic>> _buildDevModules(
+    String focus,
+    String brief,
+  ) {
+    return [
+      _buildModule(
+        id: 'mod_dev_auth',
+        name: 'Auth',
+        cards: [
+          _buildCard(
+            id: 'card_dev_001',
+            moduleId: 'mod_dev_auth',
+            title: '$focus 账号注册登录',
+            type: 'event',
+            priority: 'P0',
+            description: '建立基础登录注册流程，为「$focus」项目提供可控身份入口。当前对话摘要：$brief',
+            event: '用户首次进入产品',
+            action: '支持手机号或邮箱完成注册与登录',
+            response: '成功进入主流程，失败提供明确反馈',
+            stateChange: '用户从访客状态切换为已登录状态',
+            acceptanceCriteria: [
+              '注册登录流程可闭环完成',
+              '错误提示覆盖常见异常',
+              '支持基础安全校验',
+            ],
+            roles: ['frontend', 'backend'],
+            effortHours: 12,
+            techTags: ['Auth', 'JWT'],
+          ),
+          _buildCard(
+            id: 'card_dev_002',
+            moduleId: 'mod_dev_auth',
+            title: '$focus 权限角色',
+            type: 'state',
+            priority: 'P1',
+            description: '按用户角色控制页面和功能权限。',
+            event: '用户登录并进入系统',
+            action: '根据角色加载不同权限范围',
+            response: '不同身份看到对应菜单和数据',
+            stateChange: '访问控制从统一入口变为分角色治理',
+            acceptanceCriteria: [
+              '至少支持 2 类角色',
+              '菜单与接口权限一致',
+              '权限变更可即时生效',
+            ],
+            roles: ['backend', 'frontend'],
+            effortHours: 8,
+            dependencies: ['card_dev_001'],
+            techTags: ['RBAC', 'Security'],
+          ),
+        ],
+      ),
+      _buildModule(
+        id: 'mod_dev_core',
+        name: 'Core Features',
+        cards: [
+          _buildCard(
+            id: 'card_dev_003',
+            moduleId: 'mod_dev_core',
+            title: '$focus 核心业务流程',
+            type: 'action',
+            priority: 'P0',
+            description: '实现围绕「$focus」的主流程交互与关键页面。',
+            event: '用户完成登录后进入产品',
+            action: '按核心路径完成浏览、提交、查看或处理动作',
+            response: '形成 MVP 可验证的业务闭环',
+            stateChange: '产品从静态页面变为可用主流程',
+            acceptanceCriteria: [
+              '核心流程可从头到尾跑通',
+              '关键页面状态完整',
+              '异常流程有兜底处理',
+            ],
+            roles: ['frontend', 'backend', 'pm'],
+            effortHours: 24,
+            dependencies: ['card_dev_001'],
+            techTags: ['Flutter', 'API'],
+          ),
+          _buildCard(
+            id: 'card_dev_004',
+            moduleId: 'mod_dev_core',
+            title: '$focus 消息通知',
+            type: 'response',
+            priority: 'P1',
+            description: '在关键节点提供站内消息或推送提醒。',
+            event: '用户状态或任务发生变化',
+            action: '触发消息模板并投递到对应渠道',
+            response: '用户能及时感知重要事件',
+            stateChange: '系统反馈从被动查看变为主动提醒',
+            acceptanceCriteria: [
+              '覆盖至少 3 类核心通知',
+              '已读未读状态可区分',
+              '通知内容支持跳转详情',
+            ],
+            roles: ['frontend', 'backend'],
+            effortHours: 10,
+            dependencies: ['card_dev_003'],
+            techTags: ['Message', 'Push'],
+          ),
+          _buildCard(
+            id: 'card_dev_005',
+            moduleId: 'mod_dev_core',
+            title: '$focus 数据列表与详情',
+            type: 'response',
+            priority: 'P1',
+            description: '沉淀主对象的列表、筛选和详情展示能力。',
+            event: '用户查看业务对象',
+            action: '支持搜索、筛选、排序和详情查看',
+            response: '信息浏览效率提升并可继续操作',
+            stateChange: '数据访问从零散状态变为结构化管理',
+            acceptanceCriteria: [
+              '支持分页与筛选',
+              '详情信息字段完整',
+              '列表性能满足常规数据量',
+            ],
+            roles: ['frontend', 'backend'],
+            effortHours: 14,
+            dependencies: ['card_dev_003'],
+            techTags: ['List', 'Detail'],
+          ),
+        ],
+      ),
+      _buildModule(
+        id: 'mod_dev_admin',
+        name: 'Admin',
+        cards: [
+          _buildCard(
+            id: 'card_dev_006',
+            moduleId: 'mod_dev_admin',
+            title: '$focus 管理后台',
+            type: 'event',
+            priority: 'P1',
+            description: '为运营或管理员提供基础管理入口。',
+            event: '管理员进入后台',
+            action: '查看业务数据、处理异常和维护配置',
+            response: '后台能支撑日常运营动作',
+            stateChange: '运营支持从手工处理变为后台管理',
+            acceptanceCriteria: [
+              '后台菜单结构清晰',
+              '关键操作有确认机制',
+              '核心数据可查询',
+            ],
+            roles: ['frontend', 'backend'],
+            effortHours: 16,
+            dependencies: ['card_dev_002', 'card_dev_003'],
+            techTags: ['Admin', 'Dashboard'],
+          ),
+          _buildCard(
+            id: 'card_dev_007',
+            moduleId: 'mod_dev_admin',
+            title: '$focus 配置中心',
+            type: 'state',
+            priority: 'P2',
+            description: '支持维护基础配置、标签、文案或业务规则。',
+            event: '管理员调整业务参数',
+            action: '更新配置并记录变更',
+            response: '前台逻辑按新配置生效',
+            stateChange: '配置从写死代码变为后台可维护',
+            acceptanceCriteria: [
+              '关键配置可增删改查',
+              '变更记录可回溯',
+              '错误配置有校验',
+            ],
+            roles: ['backend', 'frontend'],
+            effortHours: 10,
+            dependencies: ['card_dev_006'],
+            techTags: ['Config', 'Ops'],
+          ),
+        ],
+      ),
+    ];
+  }
+
+  static List<Map<String, dynamic>> _buildDesignModules(
+    String focus,
+    String brief,
+  ) {
+    return [
+      _buildModule(
+        id: 'mod_design_brand',
+        name: '品牌识别',
+        cards: [
+          _buildCard(
+            id: 'card_design_001',
+            moduleId: 'mod_design_brand',
+            title: '$focus 品牌方向定义',
+            type: 'event',
+            priority: 'P0',
+            description: '梳理「$focus」项目的品牌定位、调性和核心视觉方向。当前对话摘要：$brief',
+            event: '设计项目启动',
+            action: '整理品牌目标、受众和参考案例',
+            response: '输出清晰的视觉方向说明',
+            stateChange: '品牌表达从模糊描述变为可执行方向',
+            acceptanceCriteria: [
+              '产出 1 份方向说明',
+              '包含关键词与风格边界',
+              '业务方完成方向确认',
+            ],
+            roles: ['design', 'pm'],
+            effortHours: 8,
+            techTags: ['Brand'],
+          ),
+          _buildCard(
+            id: 'card_design_002',
+            moduleId: 'mod_design_brand',
+            title: '$focus 基础视觉资产',
+            type: 'response',
+            priority: 'P1',
+            description: '建立 logo、色彩、字体等基础视觉元素。',
+            event: '品牌方向确认后',
+            action: '输出核心视觉资产与组合规范',
+            response: '形成可复用的品牌基础物料',
+            stateChange: '视觉元素从零散素材变为统一资产',
+            acceptanceCriteria: [
+              '颜色与字体方案完整',
+              '主视觉样式可复用',
+              '资产导出格式齐全',
+            ],
+            roles: ['design'],
+            effortHours: 12,
+            dependencies: ['card_design_001'],
+            techTags: ['Visual', 'Brand'],
+          ),
+        ],
+      ),
+      _buildModule(
+        id: 'mod_design_ui',
+        name: 'UI 设计',
+        cards: [
+          _buildCard(
+            id: 'card_design_003',
+            moduleId: 'mod_design_ui',
+            title: '$focus 关键页面高保真',
+            type: 'action',
+            priority: 'P0',
+            description: '完成围绕核心流程的关键页面高保真设计。',
+            event: '交互流程明确后',
+            action: '输出首页、详情页、转化页等关键页面方案',
+            response: '关键路径具备统一且可评审的视觉方案',
+            stateChange: '页面从线框或概念变为高保真交付',
+            acceptanceCriteria: [
+              '至少交付 3 个关键页面',
+              '页面状态覆盖正常与异常情况',
+              '设计稿可直接进入评审',
+            ],
+            roles: ['design'],
+            effortHours: 18,
+            dependencies: ['card_design_001'],
+            techTags: ['Figma', 'UI'],
+          ),
+          _buildCard(
+            id: 'card_design_004',
+            moduleId: 'mod_design_ui',
+            title: '$focus 交互状态设计',
+            type: 'state',
+            priority: 'P1',
+            description: '补齐按钮、表单、反馈、空状态等交互细节。',
+            event: '页面视觉方案初稿完成',
+            action: '沉淀关键交互组件与状态说明',
+            response: '研发与业务能准确理解页面行为',
+            stateChange: '交互逻辑从隐含设想变为明确规范',
+            acceptanceCriteria: [
+              '关键组件状态完整',
+              '操作反馈有说明',
+              '异常场景不留空白',
+            ],
+            roles: ['design', 'frontend'],
+            effortHours: 10,
+            dependencies: ['card_design_003'],
+            techTags: ['Interaction', 'Prototype'],
+          ),
+          _buildCard(
+            id: 'card_design_005',
+            moduleId: 'mod_design_ui',
+            title: '$focus 设计交付包',
+            type: 'response',
+            priority: 'P1',
+            description: '整理页面文件、切图说明与评审备注，便于后续落地。',
+            event: '设计阶段收尾',
+            action: '输出可交接的设计文件和说明',
+            response: '研发或合作方可以直接接手制作',
+            stateChange: '交付从设计稿变为可执行资产包',
+            acceptanceCriteria: [
+              '文件命名统一',
+              '导出资源齐全',
+              '关键说明可追溯',
+            ],
+            roles: ['design'],
+            effortHours: 6,
+            dependencies: ['card_design_004'],
+            techTags: ['Handoff', 'Asset'],
+          ),
+        ],
+      ),
+      _buildModule(
+        id: 'mod_design_system',
+        name: 'Design System',
+        cards: [
+          _buildCard(
+            id: 'card_design_006',
+            moduleId: 'mod_design_system',
+            title: '$focus 组件规范',
+            type: 'response',
+            priority: 'P1',
+            description: '提炼可复用组件、间距和排版规则。',
+            event: '页面稿达到稳定阶段',
+            action: '整理按钮、输入框、卡片、列表等组件规范',
+            response: '后续页面设计与开发能保持一致',
+            stateChange: '组件使用从单页重复绘制变为系统复用',
+            acceptanceCriteria: [
+              '基础组件至少 8 类',
+              '组件含尺寸与状态说明',
+              '命名与层级可复用',
+            ],
+            roles: ['design', 'frontend'],
+            effortHours: 12,
+            dependencies: ['card_design_003'],
+            techTags: ['Design System'],
+          ),
+          _buildCard(
+            id: 'card_design_007',
+            moduleId: 'mod_design_system',
+            title: '$focus 设计 Token',
+            type: 'state',
+            priority: 'P2',
+            description: '沉淀颜色、字号、圆角、阴影等基础 token。',
+            event: '组件规范确认后',
+            action: '建立设计 token 表并映射组件用法',
+            response: '设计和研发之间的表达更统一',
+            stateChange: '视觉规则从经验使用变为系统化参数',
+            acceptanceCriteria: [
+              '核心 token 分类完整',
+              '支持主题扩展',
+              '与组件规范保持一致',
+            ],
+            roles: ['design', 'frontend'],
+            effortHours: 8,
+            dependencies: ['card_design_006'],
+            techTags: ['Token', 'System'],
+          ),
+        ],
+      ),
+    ];
+  }
+
+  static List<Map<String, dynamic>> _buildSolutionModules(
+    String focus,
+    String brief,
+  ) {
+    return [
+      _buildModule(
+        id: 'mod_solution_research',
+        name: 'Research',
+        cards: [
+          _buildCard(
+            id: 'card_solution_001',
+            moduleId: 'mod_solution_research',
+            title: '$focus 现状调研',
+            type: 'event',
+            priority: 'P0',
+            description: '围绕「$focus」梳理当前业务现状、问题来源与已有材料。当前对话摘要：$brief',
+            event: '方案项目立项',
+            action: '访谈关键角色并收集已有资料',
+            response: '形成现状诊断输入清单',
+            stateChange: '问题信息从分散输入变为系统收集',
+            acceptanceCriteria: [
+              '明确访谈对象名单',
+              '已有材料完成归档',
+              '问题描述形成初稿',
+            ],
+            roles: ['consulting', 'pm'],
+            effortHours: 12,
+            techTags: ['Research'],
+          ),
+          _buildCard(
+            id: 'card_solution_002',
+            moduleId: 'mod_solution_research',
+            title: '$focus 问题诊断',
+            type: 'response',
+            priority: 'P0',
+            description: '基于调研结果梳理核心问题、成因与优先级。',
+            event: '调研资料收集完成',
+            action: '进行问题归类、根因分析和优先级判断',
+            response: '输出结构化诊断结论',
+            stateChange: '问题判断从感性认知变为结构化诊断',
+            acceptanceCriteria: [
+              '至少识别 3 类核心问题',
+              '每类问题有原因说明',
+              '优先级排序可解释',
+            ],
+            roles: ['consulting'],
+            effortHours: 10,
+            dependencies: ['card_solution_001'],
+            techTags: ['Diagnosis'],
+          ),
+        ],
+      ),
+      _buildModule(
+        id: 'mod_solution_strategy',
+        name: 'Strategy',
+        cards: [
+          _buildCard(
+            id: 'card_solution_003',
+            moduleId: 'mod_solution_strategy',
+            title: '$focus 策略路径设计',
+            type: 'action',
+            priority: 'P0',
+            description: '根据诊断结果设计中短期可执行策略。',
+            event: '诊断结论确认后',
+            action: '拆解目标、路径与关键动作',
+            response: '形成阶段性策略方案',
+            stateChange: '方向讨论从抽象建议变为具体路径',
+            acceptanceCriteria: [
+              '策略路径分阶段呈现',
+              '每阶段有目标与动作',
+              '方案可供管理层评审',
+            ],
+            roles: ['consulting', 'pm'],
+            effortHours: 16,
+            dependencies: ['card_solution_002'],
+            techTags: ['Strategy'],
+          ),
+          _buildCard(
+            id: 'card_solution_004',
+            moduleId: 'mod_solution_strategy',
+            title: '$focus 优先级矩阵',
+            type: 'state',
+            priority: 'P1',
+            description: '将策略项按价值、难度和依赖关系排序。',
+            event: '策略项初步成型',
+            action: '建立优先级矩阵与取舍依据',
+            response: '帮助团队确定先做什么、后做什么',
+            stateChange: '执行顺序从主观判断变为标准化排序',
+            acceptanceCriteria: [
+              '优先级标准清晰',
+              '关键依赖关系可见',
+              '低优先级项有暂缓说明',
+            ],
+            roles: ['consulting', 'pm'],
+            effortHours: 8,
+            dependencies: ['card_solution_003'],
+            techTags: ['Prioritization'],
+          ),
+          _buildCard(
+            id: 'card_solution_005',
+            moduleId: 'mod_solution_strategy',
+            title: '$focus 干系人对齐',
+            type: 'response',
+            priority: 'P1',
+            description: '让核心决策人对目标、边界与投入达成一致。',
+            event: '策略方案进入评审阶段',
+            action: '准备汇报材料并组织对齐会议',
+            response: '关键干系人确认方案方向',
+            stateChange: '方案从单方输出变为共识性方案',
+            acceptanceCriteria: [
+              '评审材料结构完整',
+              '关键争议点有结论',
+              '责任边界得到确认',
+            ],
+            roles: ['consulting', 'pm'],
+            effortHours: 6,
+            dependencies: ['card_solution_004'],
+            techTags: ['Alignment'],
+          ),
+        ],
+      ),
+      _buildModule(
+        id: 'mod_solution_plan',
+        name: 'Implementation Plan',
+        cards: [
+          _buildCard(
+            id: 'card_solution_006',
+            moduleId: 'mod_solution_plan',
+            title: '$focus 实施里程碑',
+            type: 'event',
+            priority: 'P0',
+            description: '将策略方案拆成可执行的阶段与里程碑。',
+            event: '方案确认后进入落地阶段',
+            action: '定义阶段目标、时间节点和验收标准',
+            response: '项目进入可跟踪推进状态',
+            stateChange: '执行从原则建议变为里程碑管理',
+            acceptanceCriteria: [
+              '阶段划分清晰',
+              '每阶段有验收标准',
+              '关键节点具备责任人',
+            ],
+            roles: ['consulting', 'pm'],
+            effortHours: 12,
+            dependencies: ['card_solution_003'],
+            techTags: ['Plan', 'Milestone'],
+          ),
+          _buildCard(
+            id: 'card_solution_007',
+            moduleId: 'mod_solution_plan',
+            title: '$focus 风险与资源安排',
+            type: 'response',
+            priority: 'P1',
+            description: '识别实施阶段的关键风险、资源缺口与应对建议。',
+            event: '实施计划编制过程中',
+            action: '列出风险项、资源需求和缓解动作',
+            response: '团队能够提前准备资源与预案',
+            stateChange: '风险管理从事后补救变为前置控制',
+            acceptanceCriteria: [
+              '列出主要风险清单',
+              '每项风险有应对策略',
+              '资源需求可直接评估',
+            ],
+            roles: ['consulting'],
+            effortHours: 8,
+            dependencies: ['card_solution_006'],
+            techTags: ['Risk', 'Resource'],
+          ),
+        ],
+      ),
+    ];
+  }
+
+  static Map<String, dynamic> _buildModule({
+    required String id,
+    required String name,
+    required List<Map<String, dynamic>> cards,
+  }) {
+    return {
+      'id': id,
+      'name': name,
+      'cards': cards,
+    };
+  }
+
+  static Map<String, dynamic> _buildCard({
+    required String id,
+    required String moduleId,
+    required String title,
+    required String type,
+    required String priority,
+    required String description,
+    required String event,
+    required String action,
+    required String response,
+    required String stateChange,
+    required List<String> acceptanceCriteria,
+    required List<String> roles,
+    required int effortHours,
+    List<String> dependencies = const [],
+    List<String> techTags = const [],
+  }) {
+    return {
+      'id': id,
+      'module_id': moduleId,
+      'title': title,
+      'type': type,
+      'priority': priority,
+      'description': description,
+      'event': event,
+      'action': action,
+      'response': response,
+      'state_change': stateChange,
+      'acceptance_criteria': acceptanceCriteria
+          .asMap()
+          .entries
+          .map(
+            (entry) => {
+              'id': '${id}_ac_${(entry.key + 1).toString().padLeft(2, '0')}',
+              'content': entry.value,
+              'checked': false,
+            },
+          )
+          .toList(),
+      'roles': roles,
+      'effort_hours': effortHours,
+      'dependencies': dependencies,
+      'tech_tags': techTags,
+      'status': 'pending',
     };
   }
 

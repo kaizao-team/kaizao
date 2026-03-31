@@ -18,6 +18,13 @@ class AppEnv {
         AppEnvironment.prod => 'wss://ws.vibebuild.com',
       };
 
+  /// AI Agent (Python) service base URL — bypasses Go server
+  static String get aiAgentBaseUrl => switch (current) {
+        AppEnvironment.dev => 'http://47.236.165.75:39528',
+        AppEnvironment.staging => 'http://47.236.165.75:39528',
+        AppEnvironment.prod => 'http://47.236.165.75:39528',
+      };
+
   static bool get useMock =>
       current == AppEnvironment.dev &&
       const bool.fromEnvironment('USE_MOCK', defaultValue: false);
