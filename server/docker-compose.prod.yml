@@ -85,6 +85,8 @@ services:
       # 与宿主机映射 127.0.0.1:39000 一致；外网域名/CDN 请改此值
       VB_OSS_BASE_URL: http://127.0.0.1:39000/kaizao
       VB_OSS_MAX_UPLOAD_MB: "32"
+      # 智能匹配 AI-Agent（无尾斜杠）；生产可按实际改内网地址
+      VB_AI_AGENT_BASE_URL: http://47.236.165.75:39528
     ports:
       - "0.0.0.0:39527:8080"
     depends_on:

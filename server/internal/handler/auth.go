@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/vibebuild/server/internal/config"
 	"github.com/vibebuild/server/internal/dto"
+	"github.com/vibebuild/server/internal/pkg/aiagent"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
 	"github.com/vibebuild/server/internal/service"
@@ -40,6 +41,10 @@ func NewHandlers(services *service.Services, cfg *config.Config, log *zap.Logger
 	if cfg != nil {
 		publicBase = strings.TrimSpace(cfg.Server.PublicBaseURL)
 	}
+	var aiClient *aiagent.Client
+	if cfg != nil {
+		aiClient = aiagent.NewClient(cfg.AIAgent, log)
+	}
 	return &Handlers{
 		Auth:         NewAuthHandler(services.Auth, log),
 		Admin:        NewAdminHandler(services.Auth, services.User, log),
@@ -47,7 +52,7 @@ func NewHandlers(services *service.Services, cfg *config.Config, log *zap.Logger
 		Project:      NewProjectHandler(services.Project, log),
 		Home:         NewHomeHandler(services.Home, log),
 		PRD:          NewPRDHandler(services.Project, log),
-		Bid:          NewBidHandler(services.Bid, log),
+		Bid:          NewBidHandler(services.Bid, services.Project, aiClient, log),
 		Task:         NewTaskHandler(services.Task, services.Milestone, log),
 		Conversation: NewConversationHandler(services.Conversation, log),
 		Order:        NewOrderHandler(services.Order, services.Wallet, log),

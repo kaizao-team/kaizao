@@ -18,6 +18,13 @@ type Config struct {
 	OSS          OSSConfig          `mapstructure:"oss"`
 	SMS          SMSConfig          `mapstructure:"sms"`
 	Registration RegistrationConfig `mapstructure:"registration"`
+	AIAgent      AIAgentConfig      `mapstructure:"ai_agent"`
+}
+
+// AIAgentConfig 开造 AI-Agent 服务（智能匹配等），与 api/API_DOC.md 中 /api/v2 一致
+type AIAgentConfig struct {
+	BaseURL    string `mapstructure:"base_url"`    // 无尾斜杠，如 http://kaizao-ai-agent:8000
+	TimeoutSec int    `mapstructure:"timeout_sec"` // HTTP 超时秒数，推荐 ≥90（含向量+LLM）
 }
 
 // RegistrationConfig 注册 / 邀请码 / 入驻审核
@@ -170,6 +177,8 @@ func Load() (*Config, error) {
 	v.SetDefault("oss.max_upload_mb", 32)
 	v.SetDefault("oss.local_upload_dir", "")
 	v.SetDefault("oss.local_url_path", "/api/v1/upload-files")
+	v.SetDefault("ai_agent.base_url", "")
+	v.SetDefault("ai_agent.timeout_sec", 120)
 
 	// 配置文件
 	v.SetConfigName("config")

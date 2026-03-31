@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
@@ -22,6 +23,27 @@ type BidService struct {
 
 func NewBidService(repos *repository.Repositories, orderSvc *OrderService, log *zap.Logger) *BidService {
 	return &BidService{repos: repos, orderSvc: orderSvc, log: log}
+}
+
+func (s *BidService) FindUserByUUID(userUUID string) (*model.User, error) {
+	return s.repos.User.FindByUUID(userUUID)
+}
+
+// PrimarySkillName 用户首个（含主技能优先）技能名，供推荐列表展示
+func (s *BidService) PrimarySkillName(userID int64) string {
+	skills, err := s.repos.User.ListUserSkills(userID)
+	if err != nil || len(skills) == 0 {
+		return ""
+	}
+	for _, us := range skills {
+		if us.IsPrimary && us.Skill.Name != "" {
+			return us.Skill.Name
+		}
+	}
+	if skills[0].Skill.Name != "" {
+		return skills[0].Skill.Name
+	}
+	return ""
 }
 
 func (s *BidService) ListByProject(projectUUID string) ([]*model.Bid, error) {
@@ -251,4 +273,86 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 	}
 
 	return bid, nil
+}
+
+func pickQuickMatchPrice(p *model.Project) float64 {
+	if p.BudgetMin != nil && p.BudgetMax != nil && *p.BudgetMax >= *p.BudgetMin && *p.BudgetMin > 0 {
+		return (*p.BudgetMin + *p.BudgetMax) / 2
+	}
+	if p.BudgetMax != nil && *p.BudgetMax > 0 {
+		return *p.BudgetMax
+	}
+	if p.BudgetMin != nil && *p.BudgetMin > 0 {
+		return *p.BudgetMin
+	}
+	return 1000
+}
+
+func buildQuickMatchProposal(matchScore float64, reason string) string {
+	r := strings.TrimSpace(reason)
+	if utf8.RuneCountInString(r) > 500 {
+		r = string([]rune(r)[:500]) + "…"
+	}
+	if r == "" {
+		return fmt.Sprintf("【AI快速匹配】系统根据智能推荐选定您，匹配度 %.1f。", matchScore)
+	}
+	return fmt.Sprintf("【AI快速匹配】匹配度 %.1f。%s", matchScore, r)
+}
+
+// QuickMatch 需求方一键撮合：为 AI 推荐的造物者创建（或复用）待处理投标并立即 Accept，触发与手动选标相同的订单/会话/通知流程。
+func (s *BidService) QuickMatch(ownerUUID, projectUUID, providerUUID string, matchScore float64, reason string) (*model.Bid, error) {
+	owner, err := s.repos.User.FindByUUID(ownerUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	project, err := s.repos.Project.FindByUUID(projectUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if project.OwnerID != owner.ID {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectOwnerOnly)
+	}
+	if project.Status != 2 {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
+	}
+	if project.ProviderID != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectAlreadyMatched)
+	}
+
+	provider, err := s.repos.User.FindByUUID(providerUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrQuickMatchNoCandidate)
+	}
+	if provider.ID == project.OwnerID {
+		return nil, fmt.Errorf("%d", errcode.ErrQuickMatchNoCandidate)
+	}
+
+	bid, err := s.repos.Bid.FindPendingByProjectAndBidderID(project.ID, provider.ID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		prop := buildQuickMatchProposal(matchScore, reason)
+		bid = &model.Bid{
+			ProjectID:     project.ID,
+			BidderID:      &provider.ID,
+			Price:         pickQuickMatchPrice(project),
+			EstimatedDays: 14,
+			Proposal:      &prop,
+			Status:        1,
+		}
+		if err := s.repos.Bid.Create(bid); err != nil {
+			return nil, err
+		}
+		if err := s.repos.Project.UpdateFields(project.ID, map[string]interface{}{
+			"bid_count": project.BidCount + 1,
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := s.Accept(bid.UUID, ownerUUID); err != nil {
+		return nil, err
+	}
+	return s.repos.Bid.FindByUUID(bid.UUID)
 }

@@ -127,6 +127,8 @@ type BidRepository interface {
 	Update(bid *model.Bid) error
 	UpdateFields(id int64, fields map[string]interface{}) error
 	ListByProjectID(projectID int64, offset, limit int) ([]*model.Bid, int64, error)
+	// FindPendingByProjectAndBidderID 待处理投标 status=1
+	FindPendingByProjectAndBidderID(projectID, bidderID int64) (*model.Bid, error)
 }
 
 // TaskRepository 任务数据访问接口
