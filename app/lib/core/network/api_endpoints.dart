@@ -186,6 +186,22 @@ class ApiEndpoints {
       '/api/v1/agent-sessions/$id/message';
 
   // ============================================================
+  // AI Agent v2 (Python service, direct connection)
+  // ============================================================
+  static const String aiAgentStart = '/api/v2/requirement/start';
+  static String aiAgentMessage(String projectId) =>
+      '/api/v2/requirement/$projectId/message';
+  static String aiAgentConfirm(String projectId) =>
+      '/api/v2/requirement/$projectId/confirm';
+
+  // SSE streaming variants
+  static const String aiAgentStartStream = '/api/v2/requirement/start/stream';
+  static String aiAgentMessageStream(String projectId) =>
+      '/api/v2/requirement/$projectId/message/stream';
+  static String aiAgentConfirmStream(String projectId) =>
+      '/api/v2/requirement/$projectId/confirm/stream';
+
+  // ============================================================
   // 文件上传
   // ============================================================
   static const String uploadFile = '/api/v1/upload';

@@ -1,3 +1,11 @@
+/// Tracks the current phase of an AI SSE stream.
+enum AiStreamPhase {
+  idle,
+  thinking,
+  receiving,
+  toolCall,
+}
+
 enum MatchMode {
   ai('ai', 'AI 智能撮合', '系统根据项目特征自动匹配最合适的团队'),
   manual('manual', '手动选择', '在项目广场公开发布，团队主动投标'),
@@ -21,6 +29,15 @@ class AiChatMessage {
     required this.isUser,
     required this.timestamp,
   });
+
+  AiChatMessage copyWith({String? content}) {
+    return AiChatMessage(
+      id: id,
+      content: content ?? this.content,
+      isUser: isUser,
+      timestamp: timestamp,
+    );
+  }
 }
 
 class PostDraft {

@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_colors.dart';
+import '../models/post_models.dart';
 import '../providers/post_provider.dart';
 import 'chat_bubble.dart';
 
 class PostAiChat extends ConsumerStatefulWidget {
-  const PostAiChat({super.key});
+  final ScrollController? scrollController;
+  final bool showFooter;
+
+  const PostAiChat({
+    super.key,
+    this.scrollController,
+    this.showFooter = true,
+  });
 
   @override
   ConsumerState<PostAiChat> createState() => _PostAiChatState();
@@ -13,13 +21,16 @@ class PostAiChat extends ConsumerStatefulWidget {
 
 class _PostAiChatState extends ConsumerState<PostAiChat> {
   final _controller = TextEditingController();
-  final _scrollController = ScrollController();
+  final _internalScrollController = ScrollController();
   final _focusNode = FocusNode();
+
+  ScrollController get _scrollController =>
+      widget.scrollController ?? _internalScrollController;
 
   @override
   void dispose() {
     _controller.dispose();
-    _scrollController.dispose();
+    _internalScrollController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -48,8 +59,16 @@ class _PostAiChatState extends ConsumerState<PostAiChat> {
   Widget build(BuildContext context) {
     final postState = ref.watch(postStateProvider);
 
+    // Show typing indicator only for thinking/toolCall — during receiving,
+    // the growing text itself provides visual feedback.
+    final showTypingIndicator =
+        postState.aiStreamPhase == AiStreamPhase.thinking ||
+        postState.aiStreamPhase == AiStreamPhase.toolCall;
+
     ref.listen(postStateProvider, (prev, next) {
-      if ((prev?.messages.length ?? 0) != next.messages.length) {
+      if (widget.scrollController == null &&
+          ((prev?.messages.length ?? 0) != next.messages.length ||
+              prev?.aiStreamPhase != next.aiStreamPhase)) {
         _scrollToBottom();
       }
     });
@@ -60,7 +79,8 @@ class _PostAiChatState extends ConsumerState<PostAiChat> {
           child: ListView.builder(
             controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            itemCount: postState.messages.length + (postState.isAiTyping ? 1 : 0),
+            itemCount:
+                postState.messages.length + (showTypingIndicator ? 1 : 0),
             itemBuilder: (context, index) {
               if (index == postState.messages.length) {
                 return const AiTypingIndicator();
@@ -69,16 +89,19 @@ class _PostAiChatState extends ConsumerState<PostAiChat> {
             },
           ),
         ),
-        if (postState.canGeneratePrd && !postState.isGeneratingPrd)
+        if (widget.showFooter &&
+            postState.canGeneratePrd &&
+            !postState.isGeneratingPrd)
           _GeneratePrdButton(
             onTap: () => ref.read(postStateProvider.notifier).generatePrd(),
           ),
-        _ChatInputBar(
-          controller: _controller,
-          focusNode: _focusNode,
-          isAiTyping: postState.isAiTyping,
-          onSend: _send,
-        ),
+        if (widget.showFooter)
+          _ChatInputBar(
+            controller: _controller,
+            focusNode: _focusNode,
+            isAiTyping: postState.isAiTyping,
+            onSend: _send,
+          ),
       ],
     );
   }
@@ -144,7 +167,11 @@ class _GeneratePrdButtonState extends State<_GeneratePrdButton>
                   SizedBox(width: 8),
                   Text(
                     '生成 PRD',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.white),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.white,
+                    ),
                   ),
                 ],
               ),
@@ -202,7 +229,8 @@ class _ChatInputBar extends StatelessWidget {
                   hintText: '描述你的需求...',
                   hintStyle: TextStyle(color: AppColors.gray400, fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   isDense: true,
                 ),
                 style: const TextStyle(fontSize: 14, color: AppColors.black),
@@ -219,7 +247,11 @@ class _ChatInputBar extends StatelessWidget {
                 color: isAiTyping ? AppColors.gray300 : AppColors.black,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_upward, size: 20, color: AppColors.white),
+              child: const Icon(
+                Icons.arrow_upward,
+                size: 20,
+                color: AppColors.white,
+              ),
             ),
           ),
         ],
