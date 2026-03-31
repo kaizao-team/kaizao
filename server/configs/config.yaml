@@ -67,3 +67,9 @@ registration:
   disable_auto_register: false
   require_invite_roles: []
   require_approval_roles: []
+
+# AI-Agent（智能匹配 /api/v2/match/recommend）；与 docker 内服务名或宿主机端口一致，无尾斜杠
+# 环境变量: VB_AI_AGENT_BASE_URL
+ai_agent:
+  base_url: ""
+  timeout_sec: 120

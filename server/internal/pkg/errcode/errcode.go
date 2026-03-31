@@ -82,7 +82,8 @@ const (
 	ErrBidPriceExceed      = 30005
 	ErrProjectAlreadyMatched = 30006
 	ErrTeamBidLeaderOnly   = 30007
-	ErrFavoriteExceedLimit = 30008
+	ErrFavoriteExceedLimit   = 30008
+	ErrQuickMatchNoCandidate = 30009
 )
 
 // 交易/支付模块 40001-40999
@@ -184,8 +185,9 @@ var ErrorMessages = map[int]string{
 	ErrSkillsExceedLimit:    "技能标签数量超过上限",
 	ErrBioTooLong:           "个人简介长度超限",
 	ErrUserDeactivated:      "用户已注销",
-	ErrProjectNotFound:      "项目不存在",
-	ErrProjectTitleEmpty:    "需求标题不能为空",
+	ErrProjectNotFound:       "项目不存在",
+	ErrProjectStatusInvalid:  "项目状态不允许此操作",
+	ErrProjectTitleEmpty:     "需求标题不能为空",
 	ErrProjectDescTooShort:  "需求描述长度不足",
 	ErrBudgetRangeInvalid:   "预算范围不合法",
 	ErrProjectOwnerOnly:     "仅需求发布者可操作",
@@ -195,7 +197,9 @@ var ErrorMessages = map[int]string{
 	ErrBidNotFound:          "投标不存在",
 	ErrBidOwnProject:        "不能对自己的需求投标",
 	ErrBidDuplicate:         "已对该需求投标，不可重复",
-	ErrBidClosed:            "投标已关闭或已处理",
+	ErrBidClosed:               "投标已关闭或已处理",
+	ErrProjectAlreadyMatched:   "项目已撮合或已选定服务方",
+	ErrQuickMatchNoCandidate:   "未找到可撮合的造物者，请稍后再试或手动选标",
 	ErrOrderNotFound:        "订单不存在",
 	ErrOrderStatusInvalid:   "订单状态不允许当前操作",
 	ErrOrderAlreadyExists:   "该项目已有待支付订单",

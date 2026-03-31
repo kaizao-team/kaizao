@@ -191,6 +191,18 @@ func (r *bidRepository) ListByProjectID(projectID int64, offset, limit int) ([]*
 	return bids, total, nil
 }
 
+func (r *bidRepository) FindPendingByProjectAndBidderID(projectID, bidderID int64) (*model.Bid, error) {
+	var bid model.Bid
+	err := r.db.Preload("Bidder").
+		Where("project_id = ? AND bidder_id = ? AND status = ?", projectID, bidderID, 1).
+		Order("created_at DESC").
+		First(&bid).Error
+	if err != nil {
+		return nil, err
+	}
+	return &bid, nil
+}
+
 // --- Task Repository ---
 
 type taskRepository struct {

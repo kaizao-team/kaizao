@@ -89,6 +89,8 @@ services:
       VB_OSS_ACCESS_KEY_SECRET: minio12345
       VB_OSS_BUCKET_NAME: kaizao
       VB_OSS_BASE_URL: http://localhost:9000/kaizao
+      # 智能匹配：POST /api/v2/match/recommend（无尾斜杠）
+      VB_AI_AGENT_BASE_URL: http://47.236.165.75:39528
     ports:
       - "${SERVER_HOST_PORT:-8080}:8080"
     depends_on:

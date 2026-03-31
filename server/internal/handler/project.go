@@ -139,7 +139,7 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 
 	var req dto.UpdateProjectReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorBadRequest(c, errcode.ErrProjectTitleEmpty, "参数校验失败")
+		response.ErrorBadRequest(c, errcode.ErrProjectTitleEmpty, "参数校验失败: "+err.Error())
 		return
 	}
 
@@ -182,6 +182,11 @@ func (h *ProjectHandler) Close(c *gin.Context) {
 	c.ShouldBindJSON(&req)
 
 	if err := h.projectService.Close(uuid, req.Reason); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
 		response.ErrorInternal(c, "关闭项目失败")
 		return
 	}
