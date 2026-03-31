@@ -1,15 +1,16 @@
 """
 开造 VibeBuild — 项目管理 API 路由 (v2)
+
+PM 方案由 lifecycle hook (on-matched) 自动生成，不再支持手动 start/confirm。
+本路由只保留文档查询和重新生成能力。
 """
 
-import json
 import uuid
 from typing import Optional
 
 import structlog
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
-from sse_starlette.sse import EventSourceResponse
 
 from app.schemas.common import APIResponse
 
@@ -18,79 +19,15 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v2/pm", tags=["v2-pm"])
 
 
-class StartRequest(BaseModel):
+class RegenerateRequest(BaseModel):
+    agreed_price: Optional[float] = None
+    agreed_days: Optional[int] = None
     feedback: Optional[str] = None
-
-
-@router.post("/{project_id}/start", response_model=APIResponse)
-async def start_pm(project_id: str, req: StartRequest, request: Request):
-    """启动项目管理方案生成"""
-    from app.main import v2_orchestrator, v2_pm_agent, v2_doc_writer
-
-    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
-
-    try:
-        ok, msg, state = await v2_orchestrator.start_stage(project_id, "pm")
-        if not ok:
-            return APIResponse(code=40001, message=msg, request_id=request_id)
-
-        context = v2_orchestrator.load_stage_context(project_id, "pm")
-
-        messages, tool_result = await v2_pm_agent.generate(
-            project_id=project_id,
-            requirement_content=context.get("requirement.md", ""),
-            design_content=context.get("design.md", ""),
-            task_content=context.get("task.md", ""),
-            feedback=req.feedback or "",
-        )
-
-        agent_text = v2_pm_agent.extract_text_response(messages)
-        tool_name = tool_result.get("tool_name", "")
-        doc_exists = v2_doc_writer.read_document(project_id, "project-plan.md") is not None
-
-        if doc_exists:
-            doc_path = f"outputs/{project_id}/v1/project-plan.md"
-            state.set_stage_status("pm", "awaiting_confirmation", document_path=doc_path)
-            await v2_orchestrator.save_project(state)
-            return APIResponse(
-                code=0, message="success",
-                data={"project_id": project_id, "agent_message": agent_text, "tool_name": tool_name, "document_path": doc_path},
-                request_id=request_id,
-            )
-        else:
-            state.set_stage_status("pm", "running")
-            await v2_orchestrator.save_project(state)
-            return APIResponse(
-                code=50004,
-                message="项目管理方案未生成：模型未调用 produce_project_plan 工具，请重试",
-                data={"project_id": project_id, "agent_message": agent_text, "tool_name": tool_name},
-                request_id=request_id,
-            )
-    except Exception as e:
-        logger.error("pm_start_error", error=str(e), request_id=request_id)
-        return APIResponse(code=50004, message=f"项目管理方案生成失败: {e}", request_id=request_id)
-
-
-@router.post("/{project_id}/confirm", response_model=APIResponse)
-async def confirm_pm(project_id: str, request: Request):
-    """确认项目管理方案（需文档已生成）"""
-    from app.main import v2_orchestrator, v2_doc_writer
-
-    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
-
-    doc_exists = v2_doc_writer.read_document(project_id, "project-plan.md") is not None
-    if not doc_exists:
-        return APIResponse(code=40002, message="无法确认：project-plan.md 文档尚未生成，请先调用 start 接口", request_id=request_id)
-
-    ok, msg, state = await v2_orchestrator.confirm_stage(project_id, "pm")
-    if not ok:
-        return APIResponse(code=40001, message=msg, request_id=request_id)
-    return APIResponse(code=0, message=msg, data=state.to_summary(), request_id=request_id)
 
 
 @router.get("/{project_id}/document", response_model=APIResponse)
 async def get_document(project_id: str, request: Request):
-    """获取项目管理文档（返回文件路径）"""
+    """获取项目管理文档（返回文件路径和内容）"""
     from app.main import v2_doc_writer
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
     content = v2_doc_writer.read_document(project_id, "project-plan.md")
@@ -100,36 +37,57 @@ async def get_document(project_id: str, request: Request):
     return APIResponse(code=0, data={"filename": "project-plan.md", "path": path, "size": len(content), "content": content}, request_id=request_id)
 
 
-@router.post("/{project_id}/start/stream")
-async def start_pm_stream(project_id: str, req: StartRequest, request: Request):
-    """[SSE 流式] 启动项目管理方案生成"""
-    from app.main import v2_orchestrator, v2_pm_agent, v2_doc_writer
+@router.post("/{project_id}/regenerate", response_model=APIResponse)
+async def regenerate_pm(project_id: str, req: RegenerateRequest, request: Request):
+    """
+    重新生成 PM 方案。
 
-    async def event_generator():
-        try:
-            ok, msg, state = await v2_orchestrator.start_stage(project_id, "pm")
-            if not ok:
-                yield {"event": "error", "data": msg}
-                return
+    用于项目执行期间工期/价格调整后重新生成里程碑计划。
+    需要 pm 阶段已生成过文档（即 on-matched 已执行过）。
+    """
+    from app.main import v2_orchestrator, v2_doc_writer
 
-            context = v2_orchestrator.load_stage_context(project_id, "pm")
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
 
-            async for event in v2_pm_agent.generate_stream(
-                project_id=project_id,
-                requirement_content=context.get("requirement.md", ""),
-                design_content=context.get("design.md", ""),
-                task_content=context.get("task.md", ""),
-                feedback=req.feedback or "",
-            ):
-                yield event
+    if not v2_orchestrator:
+        return APIResponse(code=50001, message="流水线编排器未初始化", request_id=request_id)
 
-            doc_exists = v2_doc_writer.read_document(project_id, "project-plan.md") is not None
-            if doc_exists:
-                state.set_stage_status("pm", "awaiting_confirmation", document_path=f"outputs/{project_id}/v1/project-plan.md")
-            await v2_orchestrator.save_project(state)
+    state = await v2_orchestrator.get_project(project_id)
+    if not state:
+        return APIResponse(code=40401, message=f"项目 {project_id} 不存在", request_id=request_id)
 
-        except Exception as e:
-            logger.error("pm_stream_error", error=str(e))
-            yield {"event": "error", "data": str(e)}
+    pm_stage = state.get_stage("pm")
+    if pm_stage.status not in ("confirmed", "error"):
+        return APIResponse(
+            code=40001,
+            message=f"PM 方案尚未生成过（当前状态: {pm_stage.status}），请等待撮合完成后自动生成",
+            request_id=request_id,
+        )
 
-    return EventSourceResponse(event_generator())
+    # 读取现有匹配信息或使用请求中的新值
+    # 如果没有提供新值，使用默认占位（regenerate 时至少要有 price 和 days）
+    agreed_price = req.agreed_price
+    agreed_days = req.agreed_days
+
+    if agreed_price is None or agreed_days is None:
+        return APIResponse(
+            code=40002,
+            message="重新生成 PM 方案需要提供 agreed_price 和 agreed_days",
+            request_id=request_id,
+        )
+
+    try:
+        ok, msg, data = await v2_orchestrator.generate_pm(
+            project_id=project_id,
+            agreed_price=agreed_price,
+            agreed_days=agreed_days,
+        )
+
+        if not ok:
+            return APIResponse(code=40001, message=msg, request_id=request_id)
+
+        return APIResponse(code=0, message="PM 方案已重新生成", data=data, request_id=request_id)
+
+    except Exception as e:
+        logger.error("pm_regenerate_error", error=str(e), request_id=request_id)
+        return APIResponse(code=50004, message=f"PM 方案重新生成失败: {e}", request_id=request_id)

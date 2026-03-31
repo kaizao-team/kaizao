@@ -23,7 +23,7 @@ logger = structlog.get_logger()
 
 # 需要转交给其他 Agent 的意图映射
 HANDOFF_INTENTS = {
-    "A1": "ProjectAnalyzer",
+    "A1": "RequirementAgent",
     "B1": "SmartMatcher",
 }
 
@@ -47,7 +47,7 @@ class ChatAssistantAgent(BaseAgent):
     功能：
     1. 意图识别 -> 分类用户消息
     2. 多轮对话 -> 上下文滑动窗口
-    3. Agent 转交 -> 需求发布转 ProjectAnalyzer，找人转 SmartMatcher
+    3. Agent 转交 -> 需求发布转 RequirementAgent，找人转 SmartMatcher
     4. 安全防护 -> Prompt 注入检测 + 内容过滤
     """
 

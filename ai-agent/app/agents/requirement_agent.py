@@ -3,7 +3,8 @@
 通过多轮对话产出 requirement.md（PRD + EARS 拆解）
 """
 
-from typing import Any
+import json
+from typing import Any, Optional
 
 import structlog
 
@@ -19,6 +20,17 @@ from app.tools.agent_tools import (
 from app.tools.document_tools import SAVE_DOCUMENT_TOOL
 
 logger = structlog.get_logger()
+
+# 默认维度覆盖度（全零）
+DEFAULT_DIMENSION_COVERAGE = {
+    "product_scope": 0,
+    "target_users": 0,
+    "core_features": 0,
+    "tech_preference": 0,
+    "business_goal": 0,
+    "mvp_scope": 0,
+    "constraints": 0,
+}
 
 
 class RequirementAgent(ToolUseBaseAgent):
@@ -40,6 +52,7 @@ class RequirementAgent(ToolUseBaseAgent):
         self._project_id: str = ""
         self._sub_stage: str = "clarifying"
         self._completeness_score: int = 0
+        self._dimension_coverage: dict = dict(DEFAULT_DIMENSION_COVERAGE)
 
     def _get_tools(self) -> list[dict]:
         return [
@@ -55,6 +68,7 @@ class RequirementAgent(ToolUseBaseAgent):
             project_id=self._project_id,
             sub_stage=self._sub_stage,
             completeness_score=self._completeness_score,
+            dimension_coverage=json.dumps(self._dimension_coverage, ensure_ascii=False),
             additional_context=additional,
         )
         return REQUIREMENT_SYSTEM_PROMPT + "\n\n" + ctx
@@ -63,6 +77,10 @@ class RequirementAgent(ToolUseBaseAgent):
         if tool_name == "ask_clarification":
             self._completeness_score = tool_input.get("completeness_score", self._completeness_score)
             self._sub_stage = "clarifying"
+            # 存储维度覆盖度
+            coverage = tool_input.get("dimension_coverage")
+            if coverage:
+                self._dimension_coverage = coverage
             return "已向用户展示澄清问题。"
 
         elif tool_name == "generate_prd":
@@ -89,12 +107,18 @@ class RequirementAgent(ToolUseBaseAgent):
 
         return f"未知工具: {tool_name}"
 
+    @property
+    def dimension_coverage(self) -> dict:
+        """对外暴露当前维度覆盖度"""
+        return dict(self._dimension_coverage)
+
     async def chat(
         self,
         project_id: str,
         messages: list[dict],
         sub_stage: str = "clarifying",
         completeness_score: int = 0,
+        dimension_coverage: Optional[dict] = None,
     ) -> tuple[list[dict], dict[str, Any], str, int]:
         """
         执行一轮对话
@@ -105,6 +129,10 @@ class RequirementAgent(ToolUseBaseAgent):
         self._project_id = project_id
         self._sub_stage = sub_stage
         self._completeness_score = completeness_score
+        if dimension_coverage:
+            self._dimension_coverage = dimension_coverage
+        else:
+            self._dimension_coverage = dict(DEFAULT_DIMENSION_COVERAGE)
 
         updated_messages, last_tool = await self.run(
             messages=messages,
@@ -125,11 +153,16 @@ class RequirementAgent(ToolUseBaseAgent):
         messages: list[dict],
         sub_stage: str = "clarifying",
         completeness_score: int = 0,
+        dimension_coverage: Optional[dict] = None,
     ):
         """流式执行一轮对话，yield SSE 事件"""
         self._project_id = project_id
         self._sub_stage = sub_stage
         self._completeness_score = completeness_score
+        if dimension_coverage:
+            self._dimension_coverage = dimension_coverage
+        else:
+            self._dimension_coverage = dict(DEFAULT_DIMENSION_COVERAGE)
 
         async for event in self.run_stream(messages=messages, max_tokens=16384):
             yield event
@@ -137,7 +170,11 @@ class RequirementAgent(ToolUseBaseAgent):
         # 追加阶段信息到 done 事件后
         yield {
             "event": "stage_info",
-            "data": f'{{"sub_stage": "{self._sub_stage}", "completeness_score": {self._completeness_score}}}',
+            "data": json.dumps({
+                "sub_stage": self._sub_stage,
+                "completeness_score": self._completeness_score,
+                "dimension_coverage": self._dimension_coverage,
+            }, ensure_ascii=False),
         }
 
     async def confirm_prd_stream(
@@ -160,7 +197,11 @@ class RequirementAgent(ToolUseBaseAgent):
 
         yield {
             "event": "stage_info",
-            "data": f'{{"sub_stage": "{self._sub_stage}", "completeness_score": {self._completeness_score}}}',
+            "data": json.dumps({
+                "sub_stage": self._sub_stage,
+                "completeness_score": self._completeness_score,
+                "dimension_coverage": self._dimension_coverage,
+            }, ensure_ascii=False),
         }
 
     async def confirm_prd(

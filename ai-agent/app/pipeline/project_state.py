@@ -9,13 +9,16 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-STAGES = ["requirement", "design", "task", "pm"]
+STAGES = ["requirement", "design", "task"]
 STAGE_FILENAMES = {
     "requirement": "requirement.md",
     "design": "design.md",
     "task": "task.md",
-    "pm": "project-plan.md",
+    "pm": "project-plan.md",  # PM 不参与流水线守卫，由 lifecycle hook 触发
 }
+
+# 包含 pm 在内的所有阶段（用于文档查询等非守卫场景）
+ALL_STAGES = ["requirement", "design", "task", "pm"]
 
 
 class StageState(BaseModel):
@@ -80,7 +83,7 @@ class ProjectState(BaseModel):
         return self.current_stage
 
     def to_summary(self) -> dict:
-        """返回状态摘要"""
+        """返回状态摘要（包含全部 4 个阶段，含 pm）"""
         return {
             "project_id": self.project_id,
             "title": self.title,
@@ -88,6 +91,6 @@ class ProjectState(BaseModel):
             "version": self.version,
             "stages": {
                 s: {"status": self.get_stage(s).status, "sub_stage": self.get_stage(s).sub_stage}
-                for s in STAGES
+                for s in ALL_STAGES
             },
         }

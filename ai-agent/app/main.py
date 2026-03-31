@@ -204,6 +204,7 @@ from app.routers import (
     rating_router,
     match_router,
     chat_router,
+    lifecycle_router,
 )
 app.include_router(requirement_router.router)
 app.include_router(design_router.router)
@@ -213,6 +214,7 @@ app.include_router(pipeline_router.router)
 app.include_router(rating_router.router)
 app.include_router(match_router.router)
 app.include_router(chat_router.router)
+app.include_router(lifecycle_router.router)
 
 # CORS 中间件
 app.add_middleware(

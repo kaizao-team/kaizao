@@ -10,7 +10,7 @@ import structlog
 from app.agents.base_agent import ToolUseBaseAgent
 from app.llm.router import LLMRouter
 from app.outputs.writer import DocumentWriter
-from app.prompts.pm_prompts import PM_CONTEXT_TEMPLATE, PM_SYSTEM_PROMPT
+from app.prompts.pm_prompts import PM_CONTEXT_TEMPLATE, PM_MATCH_INFO_TEMPLATE, PM_SYSTEM_PROMPT
 from app.tools.agent_tools import PRODUCE_PROJECT_PLAN_TOOL
 from app.tools.document_tools import SAVE_DOCUMENT_TOOL
 
@@ -42,6 +42,22 @@ class PMAgent(ToolUseBaseAgent):
             design_content=design_content,
             task_content=task_content,
         )
+
+        # 注入撮合信息（如果有）
+        agreed_price = context.get("agreed_price")
+        agreed_days = context.get("agreed_days")
+        if agreed_price is not None and agreed_days is not None:
+            provider_info = context.get("provider_info")
+            provider_section = ""
+            if provider_info:
+                provider_section = f"- **造物者信息**: {provider_info}"
+            match_ctx = PM_MATCH_INFO_TEMPLATE.format(
+                agreed_price=agreed_price,
+                agreed_days=agreed_days,
+                provider_section=provider_section,
+            )
+            ctx += "\n" + match_ctx
+
         return PM_SYSTEM_PROMPT + "\n\n" + ctx
 
     async def _execute_tool(self, tool_name: str, tool_input: dict) -> str:
@@ -85,11 +101,16 @@ class PMAgent(ToolUseBaseAgent):
         design_content: str,
         task_content: str,
         feedback: str = "",
+        agreed_price: float | None = None,
+        agreed_days: int | None = None,
+        provider_info: dict | None = None,
     ) -> tuple[list[dict], dict[str, Any]]:
         """生成项目管理方案"""
         self._project_id = project_id
 
         user_msg = "请基于所有前序文档，使用 produce_project_plan 工具生成完整的项目管理方案。"
+        if agreed_price is not None and agreed_days is not None:
+            user_msg += f"\n\n商定总价: ¥{agreed_price}，商定工期: {agreed_days} 天。请严格按照这些参数拆分里程碑。"
         if feedback:
             user_msg = f"请根据以下反馈修改项目管理方案：\n\n{feedback}\n\n使用 produce_project_plan 工具输出修改后的方案。"
 
@@ -101,4 +122,7 @@ class PMAgent(ToolUseBaseAgent):
             requirement_content=requirement_content,
             design_content=design_content,
             task_content=task_content,
+            agreed_price=agreed_price,
+            agreed_days=agreed_days,
+            provider_info=provider_info,
         )

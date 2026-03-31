@@ -166,13 +166,66 @@ POST /api/v2/requirement/start
   "data": {
     "project_id": "a1b2c3d4e5f6",
     "session_id": "req-a1b2c3d4e5f6",
-    "agent_message": "您好！您想做一个在线教育平台，我需要了解更多细节...",
+    "agent_message": "好的！在线教育是个很好的方向。为了帮您梳理清楚需求，我需要了解几个关键信息：",
     "sub_stage": "clarifying",
-    "completeness_score": 25,
+    "completeness_score": 12,
     "tool_result": {
       "tool_name": "ask_clarification",
-      "completeness_score": 25,
-      "questions": [...]
+      "completeness_score": 12
+    },
+    "questions": [
+      {
+        "id": "q1",
+        "question": "这个教育平台主要面向哪类用户？",
+        "category": "target_users",
+        "input_type": "single_choice",
+        "options": [
+          {"label": "K12 学生（小初高）", "value": "k12"},
+          {"label": "大学生", "value": "college"},
+          {"label": "职场人士（职业培训）", "value": "professional"},
+          {"label": "全年龄段", "value": "all_ages"}
+        ],
+        "allow_custom": true,
+        "required": true
+      },
+      {
+        "id": "q2",
+        "question": "需要支持哪些教学形式？",
+        "category": "core_features",
+        "input_type": "multi_choice",
+        "options": [
+          {"label": "直播课", "value": "live_class"},
+          {"label": "录播课", "value": "recorded_class"},
+          {"label": "1对1辅导", "value": "one_on_one"},
+          {"label": "题库/在线作业", "value": "homework"},
+          {"label": "互动白板", "value": "whiteboard"}
+        ],
+        "allow_custom": true,
+        "required": true
+      },
+      {
+        "id": "q3",
+        "question": "优先开发哪个平台？",
+        "category": "tech_preference",
+        "input_type": "single_choice",
+        "options": [
+          {"label": "微信小程序", "value": "wechat_mini"},
+          {"label": "iOS / Android App", "value": "native_app"},
+          {"label": "Web 网页端", "value": "web"},
+          {"label": "多端都要", "value": "multi_platform"}
+        ],
+        "allow_custom": false,
+        "required": true
+      }
+    ],
+    "dimension_coverage": {
+      "product_scope": 30,
+      "target_users": 10,
+      "core_features": 10,
+      "tech_preference": 0,
+      "business_goal": 0,
+      "mvp_scope": 0,
+      "constraints": 0
     }
   }
 }
@@ -184,8 +237,49 @@ POST /api/v2/requirement/start
 | session_id | 会话 ID（内部用，前端无需关心） |
 | agent_message | Agent 的回复文本，直接展示给用户 |
 | sub_stage | 当前子阶段：`clarifying` / `prd_draft` / `prd_confirmed` / `tasks_ready` |
-| completeness_score | 需求完整度 0-100，>=80 时 Agent 会自动生成 PRD |
-| tool_result | Agent 调用的工具及结果摘要 |
+| completeness_score | 需求完整度 0-100，>=80 且所有维度 >=60 时 Agent 自动生成 PRD |
+| tool_result | Agent 调用的工具及结果摘要（不含 questions 和 dimension_coverage） |
+| questions | **结构化问题列表**，前端根据 `input_type` 渲染不同控件（详见下方） |
+| dimension_coverage | **各维度覆盖度** 0-100，前端可展示进度条或雷达图 |
+
+#### questions 字段说明
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 问题唯一标识（q1, q2...） |
+| question | string | 问题文本 |
+| category | string | 所属维度：`product_scope` / `target_users` / `core_features` / `tech_preference` / `business_goal` / `mvp_scope` / `constraints` |
+| input_type | string | 交互类型（见下方渲染协议） |
+| options | array | 选项列表（选择题才有），每项含 `label`（显示）、`value`（提交）、`description`（可选说明） |
+| allow_custom | boolean | 选择题是否允许自定义"其他"输入 |
+| placeholder | string | text/number 类型的输入提示语 |
+| required | boolean | 是否必填 |
+
+#### 前端渲染协议
+
+```
+input_type: "single_choice"  → 单选卡片 / Radio Group
+input_type: "multi_choice"   → 多选卡片 / Checkbox Group
+input_type: "text"           → 文本输入框（带 placeholder）
+input_type: "number"         → 数字输入框
+
+allow_custom: true → 选项末尾加"其他"+ 输入框
+required: true → 必填标记
+```
+
+用户提交时，前端将选择结果格式化为自然语言发回 `POST /{id}/message`。
+
+#### dimension_coverage 字段说明
+
+| 维度 | 说明 | 权重 |
+|------|------|------|
+| product_scope | 产品定位与边界 | 20% |
+| target_users | 用户画像 | 15% |
+| core_features | 核心功能 | 20% |
+| tech_preference | 技术偏好 | 10% |
+| business_goal | 商业目标 | 10% |
+| mvp_scope | MVP 范围 | 15% |
+| constraints | 约束条件 | 10% |
 
 ### 2.2 多轮对话（继续补充需求）
 
@@ -201,13 +295,15 @@ POST /api/v2/requirement/{project_id}/message
 }
 ```
 
-**响应:** 结构同 2.1，`sub_stage` 和 `completeness_score` 会随对话推进变化。
+**响应:** 结构同 2.1（含 `questions` 和 `dimension_coverage`），`sub_stage` 和 `completeness_score` 会随对话推进变化。
 
 > **多轮对话流程说明:**
 > 1. 前端拿到 `agent_message` 展示给用户
-> 2. 用户输入回复，调用此接口
-> 3. 重复直到 `sub_stage` 变为 `prd_draft`（Agent 认为信息充足，已生成 PRD 草稿）
-> 4. 此时调用 confirm 接口确认
+> 2. 前端根据 `questions` 列表渲染选择题/输入框等控件
+> 3. 用户选择/填写后，前端将结果格式化为自然语言消息，调用此接口
+> 4. 前端可用 `dimension_coverage` 展示雷达图/进度条
+> 5. 重复直到 `sub_stage` 变为 `prd_draft`（Agent 认为信息充足，已生成 PRD 草稿）
+> 6. 此时调用 confirm 接口确认
 
 ### 2.3 确认 PRD
 
@@ -982,10 +1078,15 @@ const projectId = data.project_id;
 
 // 展示 Agent 回复
 showMessage('agent', data.agent_message);
+// 渲染结构化问题控件
+renderQuestions(data.questions);
+// 展示维度覆盖雷达图
+renderDimensionCoverage(data.dimension_coverage);
 
 // Step 2: 多轮对话循环
 while (data.sub_stage === 'clarifying') {
-  const userReply = await getUserInput();
+  // 用户通过选择题/输入框回答问题
+  const userReply = await collectAnswersAsText(data.questions);
 
   const msgRes = await fetch(`/api/v2/requirement/${projectId}/message`, {
     method: 'POST',
@@ -995,7 +1096,9 @@ while (data.sub_stage === 'clarifying') {
   const msgData = (await msgRes.json()).data;
 
   showMessage('agent', msgData.agent_message);
-  showProgress(msgData.completeness_score);  // 展示完整度进度条
+  showProgress(msgData.completeness_score);       // 展示完整度进度条
+  renderQuestions(msgData.questions);              // 渲染新一轮问题
+  renderDimensionCoverage(msgData.dimension_coverage); // 更新雷达图
 
   // 当 sub_stage 变为 prd_draft，提示用户确认
   if (msgData.sub_stage === 'prd_draft') {
@@ -1023,6 +1126,8 @@ const confirmRes = await fetch(`/api/v2/requirement/${projectId}/confirm`, {
 | `completeness_score` | 展示为进度条（0-100） |
 | `sub_stage` | 控制 UI 状态（显示确认按钮、进入下一阶段等） |
 | `project_id` | 贯穿所有接口的唯一标识，必须持久化存储 |
+| `questions` | 结构化问题列表，根据 `input_type` 渲染单选/多选/文本/数字控件 |
+| `dimension_coverage` | 7 维度覆盖度，可用雷达图或进度条组展示 |
 
 ---
 

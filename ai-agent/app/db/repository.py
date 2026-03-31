@@ -20,6 +20,7 @@ from app.db.models import (
     AIProviderProfile,
     AIVibePowerLog,
     Project,
+    User,
 )
 
 logger = structlog.get_logger()
@@ -188,6 +189,78 @@ class ProjectRepository:
                 }
                 for doc in q.scalars().all()
             ]
+
+    # ---- 智能撮合查询 ----
+
+    async def get_project_for_matching(self, project_uuid: str) -> Optional[dict]:
+        """
+        读取项目详情供智能撮合使用。
+        返回需求侧关键字段：title, description, category, complexity,
+        tech_requirements, budget_min, budget_max, match_mode。
+        """
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(Project).where(Project.uuid == project_uuid)
+            )
+            p = q.scalars().first()
+            if not p:
+                return None
+
+            tech_stack = []
+            if p.tech_requirements:
+                try:
+                    raw = p.tech_requirements
+                    if isinstance(raw, str):
+                        tech_stack = json.loads(raw)
+                    elif isinstance(raw, list):
+                        tech_stack = raw
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            return {
+                "demand_id": p.uuid,
+                "title": p.title or "",
+                "description": p.description or "",
+                "category": p.category or "",
+                "complexity": p.complexity or "M",
+                "tech_stack": tech_stack,
+                "budget_min": float(p.budget_min) if p.budget_min is not None else 0,
+                "budget_max": float(p.budget_max) if p.budget_max is not None else 0,
+                "match_mode": p.match_mode,
+            }
+
+    async def batch_get_users_by_uuids(self, uuids: list[str]) -> dict[str, dict]:
+        """
+        批量查询用户信息，供撮合评分时丰富供给方数据。
+        返回 {uuid: user_dict} 映射。
+        """
+        if not uuids:
+            return {}
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(User).where(User.uuid.in_(uuids))
+            )
+            result = {}
+            for u in q.scalars().all():
+                result[u.uuid] = {
+                    "user_uuid": u.uuid,
+                    "nickname": u.nickname,
+                    "avatar_url": u.avatar_url,
+                    "role": u.role,
+                    "is_verified": u.is_verified,
+                    "hourly_rate": float(u.hourly_rate) if u.hourly_rate is not None else 0,
+                    "response_time_avg": u.response_time_avg,
+                    "credit_score": u.credit_score,
+                    "level": u.level,
+                    "total_orders": u.total_orders,
+                    "completed_orders": u.completed_orders,
+                    "completion_rate": float(u.completion_rate),
+                    "avg_rating": float(u.avg_rating),
+                    "available_status": u.available_status,
+                    "onboarding_status": u.onboarding_status,
+                    "created_at": u.created_at.isoformat() if u.created_at else None,
+                }
+            return result
 
     # ---- 对话消息 ----
 

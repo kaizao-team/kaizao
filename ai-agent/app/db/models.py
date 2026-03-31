@@ -33,6 +33,39 @@ class Base(DeclarativeBase):
 # Go 后端权威表 — AI Agent 只读/部分写
 # ============================================================
 
+class User(Base):
+    """
+    映射 Go 后端 kaizao.users 表 — AI Agent 只读。
+    用于智能撮合时读取供给方真实数据。
+    """
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    uuid: Mapped[str] = mapped_column(String(36), unique=True, nullable=False)
+    nickname: Mapped[str] = mapped_column(String(50), nullable=False, default="")
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    role: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    hourly_rate: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), nullable=True)
+    available_status: Mapped[int] = mapped_column(SmallInteger, default=1)
+    response_time_avg: Mapped[int] = mapped_column(Integer, default=0)
+    credit_score: Mapped[int] = mapped_column(Integer, nullable=False, default=500)
+    level: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)
+    total_orders: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    completed_orders: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    completion_rate: Mapped[float] = mapped_column(DECIMAL(5, 2), nullable=False, default=0)
+    avg_rating: Mapped[float] = mapped_column(DECIMAL(3, 2), nullable=False, default=0)
+    total_earnings: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False, default=0)
+    onboarding_status: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=2)
+    status: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = {"extend_existing": True}
+
+
 class Project(Base):
     """
     映射 Go 后端 kaizao.projects 表。
