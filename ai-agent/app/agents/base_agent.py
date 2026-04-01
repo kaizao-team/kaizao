@@ -332,6 +332,37 @@ class ToolUseBaseAgent(ABC):
 
                 yield {"event": "tool_result", "data": result_str[:200]}
 
+                # ask_clarification: 额外 yield 结构化 text 事件（含 options）
+                if tool_name == "ask_clarification":
+                    # 先发送 agent_message 作为纯文本
+                    agent_msg = tool_input.get("agent_message", "")
+                    if agent_msg:
+                        yield {"event": "text", "data": agent_msg}
+
+                    # 每个 question 生成独立的结构化 text 事件
+                    for question in tool_input.get("questions", []):
+                        input_type = question.get("input_type", "text")
+                        if input_type in ("single_choice", "multi_choice"):
+                            opts = question.get("options", [])
+                            options_payload = []
+                            for i, opt in enumerate(opts):
+                                item = {"key": chr(65 + i), "label": opt.get("label", "")}
+                                options_payload.append(item)
+                            # allow_custom → 追加"其他"选项
+                            if question.get("allow_custom", True):
+                                custom_key = chr(65 + len(opts))
+                                options_payload.append({"key": custom_key, "label": "其他", "is_custom": True})
+                            yield {
+                                "event": "text",
+                                "data": _json.dumps({
+                                    "content": question.get("question", ""),
+                                    "options": options_payload,
+                                }, ensure_ascii=False),
+                            }
+                        else:
+                            # text/number 类型：纯文本向后兼容
+                            yield {"event": "text", "data": question.get("question", "")}
+
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,

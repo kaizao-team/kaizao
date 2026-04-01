@@ -29,6 +29,7 @@ class StartRequest(BaseModel):
 class MessageRequest(BaseModel):
     """多轮对话消息"""
     message: str
+    option_key: Optional[str] = None
 
 
 class ConfirmRequest(BaseModel):
@@ -104,7 +105,10 @@ async def send_message(project_id: str, req: MessageRequest, request: Request):
 
         session_id = state.session_id or f"req-{project_id}"
         history = await v2_session.get_history(session_id)
-        history.append({"role": "user", "content": req.message})
+        user_content = req.message
+        if req.option_key:
+            user_content = f"[用户选择了选项 {req.option_key}] {req.message}"
+        history.append({"role": "user", "content": user_content})
 
         req_stage = state.requirement
         updated_msgs, tool_result, sub_stage, score = await v2_requirement_agent.chat(
@@ -257,7 +261,10 @@ async def send_message_stream(project_id: str, req: MessageRequest, request: Req
 
             session_id = state.session_id or f"req-{project_id}"
             history = await v2_session.get_history(session_id)
-            history.append({"role": "user", "content": req.message})
+            user_content = req.message
+            if req.option_key:
+                user_content = f"[用户选择了选项 {req.option_key}] {req.message}"
+            history.append({"role": "user", "content": user_content})
 
             req_stage = state.requirement
 
