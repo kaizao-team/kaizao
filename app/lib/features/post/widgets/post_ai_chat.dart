@@ -68,7 +68,11 @@ class _PostAiChatState extends ConsumerState<PostAiChat> {
     ref.listen(postStateProvider, (prev, next) {
       if (widget.scrollController == null &&
           ((prev?.messages.length ?? 0) != next.messages.length ||
-              prev?.aiStreamPhase != next.aiStreamPhase)) {
+              prev?.aiStreamPhase != next.aiStreamPhase ||
+              (next.messages.isNotEmpty &&
+                  prev?.messages.isNotEmpty == true &&
+                  next.messages.last.content !=
+                      prev!.messages.last.content))) {
         _scrollToBottom();
       }
     });
@@ -78,7 +82,7 @@ class _PostAiChatState extends ConsumerState<PostAiChat> {
         Expanded(
           child: ListView.builder(
             controller: _scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            padding: EdgeInsets.fromLTRB(20, 16, 20, widget.showFooter ? 8 : 120),
             itemCount:
                 postState.messages.length + (showTypingIndicator ? 1 : 0),
             itemBuilder: (context, index) {

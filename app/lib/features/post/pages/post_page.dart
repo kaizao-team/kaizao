@@ -562,7 +562,11 @@ class _PostPageState extends ConsumerState<PostPage> {
 
       if (next.currentStep == 1 &&
           ((previous?.messages.length ?? 0) != next.messages.length ||
-              previous?.isAiTyping != next.isAiTyping)) {
+              previous?.aiStreamPhase != next.aiStreamPhase ||
+              (next.messages.isNotEmpty &&
+                  previous?.messages.isNotEmpty == true &&
+                  next.messages.last.content !=
+                      previous!.messages.last.content))) {
         _scrollToBottom();
       }
 
