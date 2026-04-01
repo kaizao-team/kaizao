@@ -256,6 +256,7 @@ class PostNotifier extends StateNotifier<PostState> {
         _parseStageInfo(event.data);
 
       case 'error':
+        _removeEmptyTrailingAiMessage();
         state = state.copyWith(
           aiStreamPhase: AiStreamPhase.idle,
           errorMessage: () => event.data,
