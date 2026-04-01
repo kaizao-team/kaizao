@@ -64,6 +64,9 @@ class AppConstants {
   static const String categoryDesign = categoryVisual;
   static const String categoryConsult = categorySolution;
 
+  // 特性开关 — 后端就绪后开启
+  static const bool enableContactPhone = true;
+
   // EARS类型
   static const String earsUbiquitous = 'ubiquitous';
   static const String earsEvent = 'event';

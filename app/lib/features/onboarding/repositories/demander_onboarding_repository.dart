@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 
@@ -12,12 +13,17 @@ class DemanderOnboardingRepository {
   Future<Map<String, dynamic>> updateProfile({
     required String nickname,
     String? avatarUrl,
+    String? contactPhone,
   }) async {
     final response = await _client.put<Map<String, dynamic>>(
       ApiEndpoints.currentUser,
       data: {
         'nickname': nickname,
         'avatar_url': avatarUrl,
+        if (AppConstants.enableContactPhone &&
+            contactPhone != null &&
+            contactPhone.isNotEmpty)
+          'contact_phone': contactPhone,
       },
       fromJson: (data) => data as Map<String, dynamic>,
     );
