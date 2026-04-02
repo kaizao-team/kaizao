@@ -7,7 +7,6 @@ import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/profile_provider.dart';
-import '../../profile/widgets/role_switch_dialog.dart';
 import 'about_page.dart';
 
 String _formatMaskedPhone(String? phone) {
@@ -29,27 +28,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _notificationsEnabled = true;
-
-  Future<void> _showRoleSwitchDialog() async {
-    final authState = ref.read(authStateProvider);
-    final currentRole = authState.userRole;
-
-    await showDialog(
-      context: context,
-      builder: (_) => RoleSwitchDialog(
-        currentRole: currentRole,
-        onConfirm: () async {
-          final targetRole = currentRole == 1 ? 2 : 1;
-          final success = await ref
-              .read(authStateProvider.notifier)
-              .selectRole(targetRole);
-          if (success) {
-            ref.invalidate(profileProvider('me'));
-          }
-        },
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,27 +140,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   _SettingsRow(
                     label: '当前角色',
                     trailing: _RoleBadge(name: currentRoleName),
-                    onTap: _showRoleSwitchDialog,
+                    showArrow: false,
                   ),
                   _SettingsRow(
                     label: '手机号',
                     trailingText: phoneTrailing,
                   ),
-                  _SettingsRow(
-                    label: '微信绑定',
-                    trailing: _StatusDot(
-                      text: wechatTrailing,
-                      active: profile?.wechatBound == true,
-                    ),
-                  ),
-                  _SettingsRow(
-                    label: '实名认证',
-                    trailing: _StatusDot(
-                      text: verifyTrailing,
-                      active: profile?.isVerified == true,
-                    ),
-                    trailingColor: verifyColor,
-                  ),
+                  // _SettingsRow(
+                  //   label: '微信绑定',
+                  //   trailing: _StatusDot(
+                  //     text: wechatTrailing,
+                  //     active: profile?.wechatBound == true,
+                  //   ),
+                  // ),
+                  // _SettingsRow(
+                  //   label: '实名认证',
+                  //   trailing: _StatusDot(
+                  //     text: verifyTrailing,
+                  //     active: profile?.isVerified == true,
+                  //   ),
+                  //   trailingColor: verifyColor,
+                  // ),
                 ]),
 
                 const SizedBox(height: 32),
@@ -202,7 +180,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     trailingText: '简体中文',
                     showArrow: false,
                   ),
-                  const _SettingsRow(label: '存储空间'),
                 ]),
 
                 const SizedBox(height: 32),
@@ -211,7 +188,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 _buildSectionLabel('ABOUT'),
                 const SizedBox(height: 10),
                 _buildCard([
-                  const _SettingsRow(label: '帮助与反馈'),
                   _SettingsRow(
                     label: '用户协议',
                     onTap: () => context.push(RoutePaths.userAgreement),

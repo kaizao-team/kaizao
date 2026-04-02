@@ -136,7 +136,7 @@ _LegalDocument _documentFor(LegalDocumentType type) {
       return const _LegalDocument(
         title: '用户协议',
         updatedAt: '2026-03-27',
-        summary: '本协议说明你在使用 Kaizo 时的账号、内容、合作与平台规则边界。',
+        summary: '本协议说明你在使用 KAIZO 时的账号、内容、合作与平台规则边界。',
         sections: [
           _LegalSectionData(
             title: '1. 账号与访问',
@@ -148,7 +148,7 @@ _LegalDocument _documentFor(LegalDocumentType type) {
           _LegalSectionData(
             title: '2. 平台服务与使用规范',
             paragraphs: [
-              'Kaizo 提供项目发布、团队展示、沟通协作、撮合与进度管理等服务，平台会持续迭代功能与规则。',
+              'KAIZO 提供项目发布、团队展示、沟通协作、撮合与进度管理等服务，平台会持续迭代功能与规则。',
               '你不得发布违法违规、虚假、侵权、骚扰或绕开平台交易的信息；对明显违规行为，平台可直接处置。',
             ],
           ),
@@ -165,7 +165,7 @@ _LegalDocument _documentFor(LegalDocumentType type) {
       return const _LegalDocument(
         title: '隐私政策',
         updatedAt: '2026-03-27',
-        summary: '本政策说明 Kaizo 如何收集、使用、存储并保护你的个人信息。',
+        summary: '本政策说明 KAIZO 如何收集、使用、存储并保护你的个人信息。',
         sections: [
           _LegalSectionData(
             title: '1. 我们收集的信息',

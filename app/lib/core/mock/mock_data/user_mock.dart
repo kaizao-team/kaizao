@@ -8,7 +8,7 @@ class UserMock {
   static Map<String, dynamic> _currentUser = {
     'id': 'user_001',
     'uuid': 'user_001',
-    'nickname': 'Kaizo 用户',
+    'nickname': 'KAIZO 用户',
     'avatar_url': null,
     'role': 1,
     'bio': null,

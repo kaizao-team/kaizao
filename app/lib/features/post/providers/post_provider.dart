@@ -87,9 +87,50 @@ class PostNotifier extends StateNotifier<PostState> {
   PostNotifier(this._repository) : super(const PostState());
 
   void selectCategory(String category) {
+    final hadDownstreamData = state.prdData != null ||
+        state.budgetMin != null ||
+        state.matchMode != null;
+
+    if (hadDownstreamData && state.category != null && state.category != category) {
+      _pendingCategory = category;
+      state = state.copyWith(
+        errorMessage: () => '__confirm_category_change__',
+      );
+      return;
+    }
+
+    _applyCategory(category);
+  }
+
+  String? _pendingCategory;
+
+  void confirmCategoryChange() {
+    if (_pendingCategory != null) {
+      _applyCategory(_pendingCategory!);
+      _pendingCategory = null;
+    }
+  }
+
+  void cancelCategoryChange() {
+    _pendingCategory = null;
+    state = state.copyWith(errorMessage: () => null);
+  }
+
+  void _applyCategory(String category) {
     state = state.copyWith(
       category: () => category,
       currentStep: 1,
+      messages: [],
+      canGeneratePrd: false,
+      prdData: () => null,
+      isGeneratingPrd: false,
+      prdProgress: 0,
+      budgetMin: () => null,
+      budgetMax: () => null,
+      budgetSuggestion: () => null,
+      matchMode: () => null,
+      errorMessage: () => null,
+      validationErrors: {},
     );
   }
 
@@ -127,7 +168,7 @@ class PostNotifier extends StateNotifier<PostState> {
       if (!mounted) return;
       state = state.copyWith(
         isAiTyping: false,
-        errorMessage: () => e.toString(),
+        errorMessage: () => 'AI 对话失败：${_friendlyError(e)}',
       );
     }
   }
@@ -162,7 +203,7 @@ class PostNotifier extends StateNotifier<PostState> {
       if (!mounted) return;
       state = state.copyWith(
         isGeneratingPrd: false,
-        errorMessage: () => e.toString(),
+        errorMessage: () => 'PRD 生成失败：${_friendlyError(e)}',
       );
     }
   }
@@ -210,13 +251,13 @@ class PostNotifier extends StateNotifier<PostState> {
       if (!mounted) return null;
       state = state.copyWith(
         isPublishing: false,
-        errorMessage: () => e.toString(),
+        errorMessage: () => '项目发布失败：${_friendlyError(e)}',
       );
       return null;
     }
   }
 
-  Future<void> saveDraft() async {
+  Future<bool> saveDraft() async {
     try {
       await _repository.saveDraft({
         'category': state.category,
@@ -225,8 +266,13 @@ class PostNotifier extends StateNotifier<PostState> {
         'match_mode': state.matchMode?.value,
         'step': state.currentStep,
       });
-    } catch (_) {
-      // draft save is best-effort
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(
+        errorMessage: () => '草稿保存失败：${_friendlyError(e)}',
+      );
+      return false;
     }
   }
 
@@ -234,6 +280,27 @@ class PostNotifier extends StateNotifier<PostState> {
     if (step >= 0 && step <= 4) {
       state = state.copyWith(currentStep: step);
     }
+  }
+
+  String _friendlyError(Object e) {
+    final msg = e.toString();
+    if (msg.contains('SocketException') || msg.contains('Connection')) {
+      return '网络连接失败，请检查网络后重试';
+    }
+    if (msg.contains('TimeoutException') || msg.contains('timed out')) {
+      return '请求超时，请稍后重试';
+    }
+    if (msg.contains('401') || msg.contains('Unauthorized')) {
+      return '登录已过期，请重新登录';
+    }
+    if (msg.contains('400')) {
+      return '请求参数有误，请检查填写内容';
+    }
+    if (msg.contains('500') || msg.contains('Internal Server')) {
+      return '服务器异常，请稍后重试';
+    }
+    final cleaned = msg.replaceFirst('Exception: ', '');
+    return cleaned.length > 80 ? '${cleaned.substring(0, 80)}...' : cleaned;
   }
 }
 

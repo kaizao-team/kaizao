@@ -336,7 +336,7 @@ class _AssessmentResultView extends StatelessWidget {
         const Text('你的团队等级已生成', style: AppTextStyles.onboardingTitle),
         const SizedBox(height: 12),
         const Text(
-          '这不是终局评级，而是你进入 Kaizo 团队网络的起始位。后面的真实合作会继续抬高它。',
+          '这不是终局评级，而是你进入 KAIZO 团队网络的起始位。后面的真实合作会继续抬高它。',
           style: AppTextStyles.onboardingBody,
         ),
         const SizedBox(height: 18),

@@ -93,7 +93,7 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
                   ),
                   const SizedBox(height: 30),
                   Text(
-                    '你想怎样进入 Kaizo',
+                    '你想怎样进入 KAIZO',
                     style: AppTextStyles.onboardingTitle.copyWith(
                       fontSize: 36,
                       letterSpacing: -1.2,
