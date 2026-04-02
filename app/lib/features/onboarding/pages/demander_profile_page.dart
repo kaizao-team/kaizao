@@ -24,7 +24,7 @@ class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
   String? _avatarUrl;
   final _nicknameSuggestions = const [
     'Dylan',
-    'Kaizo Studio',
+    'KAIZO Studio',
     'Aurora Studio'
   ];
 

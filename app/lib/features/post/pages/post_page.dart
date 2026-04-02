@@ -38,6 +38,18 @@ class _PostPageState extends ConsumerState<PostPage> {
   Widget build(BuildContext context) {
     final postState = ref.watch(postStateProvider);
 
+    ref.listen<PostState>(postStateProvider, (prev, next) {
+      if (next.errorMessage == '__confirm_category_change__') {
+        _showCategoryChangeConfirm();
+        return;
+      }
+      if (next.errorMessage != null &&
+          next.errorMessage != prev?.errorMessage) {
+        VccToast.show(context,
+            message: next.errorMessage!, type: VccToastType.error);
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -57,7 +69,17 @@ class _PostPageState extends ConsumerState<PostPage> {
         actions: [
           if (postState.currentStep > 0 && postState.currentStep < 4)
             TextButton(
-              onPressed: () => ref.read(postStateProvider.notifier).saveDraft(),
+              onPressed: () async {
+                final success =
+                    await ref.read(postStateProvider.notifier).saveDraft();
+                if (mounted) {
+                  VccToast.show(
+                    context,
+                    message: success ? '草稿已保存' : '草稿保存失败',
+                    type: success ? VccToastType.success : VccToastType.error,
+                  );
+                }
+              },
               child: const Text('保存草稿',
                   style: TextStyle(fontSize: 13, color: AppColors.gray500)),
             ),
@@ -90,8 +112,9 @@ class _PostPageState extends ConsumerState<PostPage> {
       case 0:
         return PostCategoryStep(
           selected: postState.category,
-          onSelect: (cat) =>
-              ref.read(postStateProvider.notifier).selectCategory(cat),
+          onSelect: (cat) {
+            ref.read(postStateProvider.notifier).selectCategory(cat);
+          },
         );
       case 1:
         return const PostAiChat();
@@ -170,6 +193,35 @@ class _PostPageState extends ConsumerState<PostPage> {
       VccToast.show(context, message: '项目创建成功', type: VccToastType.success);
       context.go('/projects/$projectId');
     }
+  }
+
+  void _showCategoryChangeConfirm() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('切换分类？',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        content: const Text('切换分类将清空已有的对话记录、PRD、预算和撮合配置，确定要切换吗？'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(postStateProvider.notifier).cancelCategoryChange();
+            },
+            child:
+                const Text('取消', style: TextStyle(color: AppColors.gray500)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(postStateProvider.notifier).confirmCategoryChange();
+            },
+            child:
+                const Text('确定切换', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleBack(PostState postState) {

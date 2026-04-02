@@ -130,7 +130,7 @@ class DemanderCompletePage extends ConsumerWidget {
           const Text('项目已发布', style: AppTextStyles.onboardingTitle),
           const SizedBox(height: 10),
           const Text(
-            '你的项目已进入 Kaizo 团队网络，我们正在为你匹配合适的协作团队。',
+            '你的项目已进入 KAIZO 团队网络，我们正在为你匹配合适的协作团队。',
             style: AppTextStyles.onboardingBody,
           ),
           const SizedBox(height: 22),
@@ -151,7 +151,7 @@ class DemanderCompletePage extends ConsumerWidget {
           const OnboardingInfoBlock(
             icon: Icons.verified_user_outlined,
             title: '平台担保',
-            description: '所有合作都以 Kaizo 协作标准为基础，确保交付过程清晰可信。',
+            description: '所有合作都以 KAIZO 协作标准为基础，确保交付过程清晰可信。',
           ),
           const SizedBox(height: 24),
         ],

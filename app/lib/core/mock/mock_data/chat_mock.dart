@@ -39,7 +39,7 @@ class ChatMock {
         {'id': 'conv_002', 'peer_id': 'user_202', 'peer_name': '李设计', 'peer_avatar': null, 'last_message': 'UI稿已经更新了，请查看', 'last_message_time': '2026-03-23T12:15:00Z', 'unread_count': 1, 'project_title': '企业官网改版'},
         {'id': 'conv_003', 'peer_id': 'user_203', 'peer_name': '王产品', 'peer_avatar': null, 'last_message': '需求文档已确认，可以开始开发了', 'last_message_time': '2026-03-22T18:00:00Z', 'unread_count': 0, 'project_title': 'AI写作助手'},
         {'id': 'conv_004', 'peer_id': 'user_204', 'peer_name': '赵测试', 'peer_avatar': null, 'last_message': '发现了一个bug，详情见截图', 'last_message_time': '2026-03-22T10:30:00Z', 'unread_count': 0, 'project_title': '智能客服系统'},
-        {'id': 'conv_005', 'peer_id': 'user_205', 'peer_name': 'Kaizo 小助手', 'peer_avatar': null, 'last_message': '你的项目已成功发布，快来看看吧', 'last_message_time': '2026-03-21T09:00:00Z', 'unread_count': 0, 'project_title': null},
+        {'id': 'conv_005', 'peer_id': 'user_205', 'peer_name': 'KAIZO 小助手', 'peer_avatar': null, 'last_message': '你的项目已成功发布，快来看看吧', 'last_message_time': '2026-03-21T09:00:00Z', 'unread_count': 0, 'project_title': null},
       ],
     };
   }

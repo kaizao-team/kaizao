@@ -170,35 +170,40 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       opacity: _logoOpacityAnim.value,
                       child: Transform.scale(
                         scale: _scaleAnim.value,
-                        child: SizedBox(
-                          width: logoViewportSize,
-                          height: logoViewportSize,
-                          child: ClipRect(
-                            child: Transform.scale(
-                              scale: logoZoomScale,
-                              child: _videoReady && _videoController != null
-                                  ? FittedBox(
-                                      fit: BoxFit.cover,
-                                      child:
-                                          SizedBox(
-                                            width: _videoController!
-                                                .value.size.width,
-                                            height: _videoController!
-                                                .value.size.height,
-                                            child: VideoPlayer(
-                                                _videoController!,),
+                        filterQuality: FilterQuality.high,
+                        child: RepaintBoundary(
+                          child: SizedBox(
+                            width: logoViewportSize,
+                            height: logoViewportSize,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Transform.scale(
+                                scale: logoZoomScale,
+                                filterQuality: FilterQuality.high,
+                                child: _videoReady && _videoController != null
+                                    ? FittedBox(
+                                        fit: BoxFit.cover,
+                                        child: SizedBox(
+                                          width: _videoController!
+                                              .value.size.width,
+                                          height: _videoController!
+                                              .value.size.height,
+                                          child: VideoPlayer(
+                                            _videoController!,
                                           ),
-                                    )
-                                  : Image.asset(
-                                      'assets/branding/app_launch_static_transparent_cropped.png',
-                                      fit: BoxFit.cover,
-                                      alignment: Alignment.center,
-                                      filterQuality: FilterQuality.high,
-                                      isAntiAlias: true,
-                                      gaplessPlayback: true,
-                                      cacheWidth: logoCacheSize,
-                                      cacheHeight: logoCacheSize,
-                                    ),
+                                        ),
+                                      )
+                                    : Image.asset(
+                                        'assets/branding/app_launch_static_transparent_cropped.png',
+                                        fit: BoxFit.cover,
+                                        alignment: Alignment.center,
+                                        filterQuality: FilterQuality.high,
+                                        isAntiAlias: true,
+                                        gaplessPlayback: true,
+                                        cacheWidth: logoCacheSize,
+                                        cacheHeight: logoCacheSize,
+                                      ),
+                              ),
                             ),
                           ),
                         ),

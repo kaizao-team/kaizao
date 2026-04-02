@@ -147,6 +147,33 @@ class MarketNotifier extends StateNotifier<MarketState> {
   Future<void> refresh() async {
     await loadInitial();
   }
+
+  void updateProjectViewCount(String projectId, int viewCount) {
+    final idx = state.projects.indexWhere(
+      (p) => p.id == projectId || p.uuid == projectId,
+    );
+    if (idx == -1) return;
+
+    final updated = List<MarketProjectItem>.from(state.projects);
+    final old = updated[idx];
+    updated[idx] = MarketProjectItem(
+      id: old.id,
+      uuid: old.uuid,
+      title: old.title,
+      description: old.description,
+      category: old.category,
+      ownerName: old.ownerName,
+      budgetMin: old.budgetMin,
+      budgetMax: old.budgetMax,
+      matchScore: old.matchScore,
+      status: old.status,
+      techRequirements: old.techRequirements,
+      viewCount: viewCount,
+      bidCount: old.bidCount,
+      createdAt: old.createdAt,
+    );
+    state = state.copyWith(projects: updated);
+  }
 }
 
 final marketRepositoryProvider = Provider<MarketRepository>((ref) {
