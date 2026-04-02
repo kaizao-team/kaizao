@@ -50,8 +50,18 @@ ASK_CLARIFICATION_TOOL = {
                         },
                         "input_type": {
                             "type": "string",
-                            "enum": ["single_choice", "multi_choice", "text", "number"],
-                            "description": "交互类型: single_choice=单选, multi_choice=多选, text=文本输入, number=数字输入",
+                            "enum": ["single_choice", "multi_choice", "free_text", "number"],
+                            "description": "交互类型: single_choice=单选, multi_choice=多选, free_text=自由文本输入, number=数字输入",
+                        },
+                        "min_select": {
+                            "type": "integer",
+                            "description": "多选最少选几个（仅 multi_choice 时有效），默认 1",
+                            "minimum": 1,
+                        },
+                        "max_select": {
+                            "type": "integer",
+                            "description": "多选最多选几个（仅 multi_choice 时有效），不填则不限",
+                            "minimum": 1,
                         },
                         "options": {
                             "type": "array",
@@ -71,17 +81,21 @@ ASK_CLARIFICATION_TOOL = {
                                         "type": "string",
                                         "description": "选项补充说明（可选）",
                                     },
+                                    "is_custom": {
+                                        "type": "boolean",
+                                        "description": "是否为自定义输入项（默认 false）",
+                                    },
                                 },
                                 "required": ["label", "value"],
                             },
                         },
                         "allow_custom": {
                             "type": "boolean",
-                            "description": "选择题是否允许用户自定义输入（默认 true）",
+                            "description": "是否允许用户自定义输入（默认 true）",
                         },
                         "placeholder": {
                             "type": "string",
-                            "description": "text/number 类型的输入提示语",
+                            "description": "free_text/number 类型的输入提示语",
                         },
                         "required": {
                             "type": "boolean",
