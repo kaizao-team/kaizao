@@ -54,6 +54,7 @@ async def init_db(auto_create_tables: bool = False):
         from app.db.models import (
             AIProjectStage, AIDocument, AIConversationMessage,
             AIProviderProfile, AIVibePowerLog,
+            AIMatchResult, AIPrdItem, AIEarsTask, AIMilestone,
         )
         # 只建 AI 独有表，不动 Go 后端的 projects 表
         ai_tables = [
@@ -62,6 +63,10 @@ async def init_db(auto_create_tables: bool = False):
             AIConversationMessage.__table__,
             AIProviderProfile.__table__,
             AIVibePowerLog.__table__,
+            AIMatchResult.__table__,
+            AIPrdItem.__table__,
+            AIEarsTask.__table__,
+            AIMilestone.__table__,
         ]
         from app.db.models import Base
         async with _engine.begin() as conn:

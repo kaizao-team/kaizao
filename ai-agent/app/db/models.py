@@ -233,3 +233,89 @@ class AIVibePowerLog(Base):
     __table_args__ = (
         Index("idx_ai_provider", "provider_id", "created_at"),
     )
+
+
+class AIMatchResult(Base):
+    """AI 撮合推荐结果"""
+    __tablename__ = "ai_match_results"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    project_id: Mapped[str] = mapped_column(String(36), index=True)
+    provider_user_uuid: Mapped[str] = mapped_column(String(36))
+    rank: Mapped[int] = mapped_column(Integer)
+    match_score: Mapped[float] = mapped_column(DECIMAL(6, 2))
+    dimension_scores: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    recommendation_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    highlight_skills: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    match_type: Mapped[str] = mapped_column(String(50), default="recommend_providers")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_ai_match_project", "project_id", "created_at"),
+    )
+
+
+class AIPrdItem(Base):
+    """AI PRD 需求条目（Feature Items）"""
+    __tablename__ = "ai_prd_items"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    project_id: Mapped[str] = mapped_column(String(36), index=True)
+    item_id: Mapped[str] = mapped_column(String(20))  # e.g. F-1.1
+    module_name: Mapped[str] = mapped_column(String(100), default="")
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    priority: Mapped[str] = mapped_column(String(10), default="P1")  # P0/P1/P2
+    acceptance_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "item_id", "version", name="uq_ai_prd_item"),
+    )
+
+
+class AIEarsTask(Base):
+    """AI EARS 原子任务卡片"""
+    __tablename__ = "ai_ears_tasks"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    project_id: Mapped[str] = mapped_column(String(36), index=True)
+    task_id: Mapped[str] = mapped_column(String(20))  # e.g. T-001
+    feature_item_id: Mapped[str] = mapped_column(String(20))  # links to ai_prd_items.item_id
+    ears_type: Mapped[str] = mapped_column(String(20))
+    ears_statement: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    module: Mapped[str] = mapped_column(String(100), default="")
+    role_tag: Mapped[str] = mapped_column(String(20), default="fullstack")
+    priority: Mapped[int] = mapped_column(Integer, default=3)  # 1-5
+    estimated_hours: Mapped[Optional[float]] = mapped_column(DECIMAL(6, 1), nullable=True)
+    acceptance_criteria: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    dependencies: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    adjustment_count: Mapped[int] = mapped_column(Integer, default=0)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "task_id", "version", name="uq_ai_ears_task"),
+    )
+
+
+class AIMilestone(Base):
+    """AI 项目里程碑"""
+    __tablename__ = "ai_milestones"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    project_id: Mapped[str] = mapped_column(String(36), index=True)
+    milestone_index: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(200))
+    duration_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    payment_ratio: Mapped[Optional[float]] = mapped_column(DECIMAL(5, 2), nullable=True)
+    deliverables: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending/in_progress/delivered/accepted
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "milestone_index", name="uq_ai_milestone"),
+    )

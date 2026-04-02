@@ -166,6 +166,10 @@ class SmartMatcherAgent(BaseAgent):
 
         processing_time = round((time.time() - start_time) * 1000)
 
+        # 撮合结果落库
+        if recommendations:
+            await self._save_match_results(demand_id, match_type, recommendations)
+
         return {
             "demand_id": demand_id,
             "match_type": match_type,
@@ -178,6 +182,20 @@ class SmartMatcherAgent(BaseAgent):
                 "rag_references_used": 0,
             },
         }
+
+    async def _save_match_results(
+        self, demand_id: str, match_type: str, recommendations: List[Dict]
+    ) -> None:
+        """将撮合推荐结果持久化到 ai_match_results 表"""
+        try:
+            await self._project_repo.save_match_results(
+                project_id=demand_id,
+                recommendations=recommendations,
+                match_type=match_type,
+            )
+            self.logger.info("match_results_saved", demand_id=demand_id, count=len(recommendations))
+        except Exception as e:
+            self.logger.warning("save_match_results_failed", error=str(e))
 
     async def _get_demand_info(self, demand_id: str) -> Optional[Dict[str, Any]]:
         """

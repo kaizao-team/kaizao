@@ -16,6 +16,10 @@ from app.db.engine import get_session_factory
 from app.db.models import (
     AIConversationMessage,
     AIDocument,
+    AIEarsTask,
+    AIMilestone,
+    AIMatchResult,
+    AIPrdItem,
     AIProjectStage,
     AIProviderProfile,
     AIVibePowerLog,
@@ -307,6 +311,273 @@ class ProjectRepository:
                     pass
                 results.append({"role": msg.role, "content": content})
             return results
+
+    # ---- 撮合结果 ----
+
+    async def save_match_results(
+        self, project_id: str, recommendations: list[dict], match_type: str = "recommend_providers"
+    ) -> None:
+        """批量写入撮合推荐结果"""
+        async with get_session_factory()() as session:
+            async with session.begin():
+                for rec in recommendations:
+                    session.add(AIMatchResult(
+                        project_id=project_id,
+                        provider_user_uuid=rec.get("provider_id", ""),
+                        rank=rec.get("rank", 0),
+                        match_score=rec.get("match_score", 0),
+                        dimension_scores=rec.get("dimension_scores"),
+                        recommendation_reason=rec.get("recommendation_reason", ""),
+                        highlight_skills=rec.get("highlight_skills"),
+                        match_type=match_type,
+                    ))
+
+    async def get_match_results(self, project_id: str) -> list[dict]:
+        """查询历史撮合结果"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(AIMatchResult)
+                .where(AIMatchResult.project_id == project_id)
+                .order_by(AIMatchResult.created_at.desc())
+            )
+            return [
+                {
+                    "id": r.id,
+                    "project_id": r.project_id,
+                    "provider_user_uuid": r.provider_user_uuid,
+                    "rank": r.rank,
+                    "match_score": float(r.match_score),
+                    "dimension_scores": r.dimension_scores,
+                    "recommendation_reason": r.recommendation_reason,
+                    "highlight_skills": r.highlight_skills,
+                    "match_type": r.match_type,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                }
+                for r in q.scalars().all()
+            ]
+
+    # ---- PRD 条目 ----
+
+    async def save_prd_items(self, project_id: str, items: list[dict], version: int = 1) -> None:
+        """批量写入 PRD 需求条目"""
+        async with get_session_factory()() as session:
+            async with session.begin():
+                for item in items:
+                    stmt = mysql_insert(AIPrdItem).values(
+                        project_id=project_id,
+                        item_id=item.get("item_id", ""),
+                        module_name=item.get("module_name", ""),
+                        title=item.get("title", ""),
+                        description=item.get("description", ""),
+                        priority=item.get("priority", "P1"),
+                        acceptance_summary=item.get("acceptance_summary", ""),
+                        version=version,
+                    )
+                    stmt = stmt.on_duplicate_key_update(
+                        title=stmt.inserted.title,
+                        description=stmt.inserted.description,
+                        priority=stmt.inserted.priority,
+                        acceptance_summary=stmt.inserted.acceptance_summary,
+                        module_name=stmt.inserted.module_name,
+                    )
+                    await session.execute(stmt)
+
+    async def get_prd_items(self, project_id: str) -> list[dict]:
+        """查询 PRD 需求条目"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(AIPrdItem)
+                .where(AIPrdItem.project_id == project_id)
+                .order_by(AIPrdItem.item_id)
+            )
+            return [
+                {
+                    "id": r.id,
+                    "project_id": r.project_id,
+                    "item_id": r.item_id,
+                    "module_name": r.module_name,
+                    "title": r.title,
+                    "description": r.description,
+                    "priority": r.priority,
+                    "acceptance_summary": r.acceptance_summary,
+                    "version": r.version,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                }
+                for r in q.scalars().all()
+            ]
+
+    # ---- EARS 任务卡片 ----
+
+    async def save_ears_tasks(self, project_id: str, tasks: list[dict], version: int = 1) -> None:
+        """批量写入 EARS 任务卡片"""
+        async with get_session_factory()() as session:
+            async with session.begin():
+                for task in tasks:
+                    stmt = mysql_insert(AIEarsTask).values(
+                        project_id=project_id,
+                        task_id=task.get("task_id", ""),
+                        feature_item_id=task.get("feature_item_id", ""),
+                        ears_type=task.get("ears_type", ""),
+                        ears_statement=task.get("ears_statement", ""),
+                        module=task.get("module", ""),
+                        role_tag=task.get("role_tag", "fullstack"),
+                        priority=task.get("priority", 3),
+                        estimated_hours=task.get("estimated_hours"),
+                        acceptance_criteria=task.get("acceptance_criteria"),
+                        dependencies=task.get("dependencies"),
+                        version=version,
+                    )
+                    stmt = stmt.on_duplicate_key_update(
+                        ears_type=stmt.inserted.ears_type,
+                        ears_statement=stmt.inserted.ears_statement,
+                        module=stmt.inserted.module,
+                        role_tag=stmt.inserted.role_tag,
+                        priority=stmt.inserted.priority,
+                        estimated_hours=stmt.inserted.estimated_hours,
+                        acceptance_criteria=stmt.inserted.acceptance_criteria,
+                        dependencies=stmt.inserted.dependencies,
+                    )
+                    await session.execute(stmt)
+
+    async def get_ears_tasks(self, project_id: str) -> list[dict]:
+        """查询 EARS 任务卡片"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(AIEarsTask)
+                .where(AIEarsTask.project_id == project_id)
+                .order_by(AIEarsTask.task_id)
+            )
+            return [
+                {
+                    "id": r.id,
+                    "project_id": r.project_id,
+                    "task_id": r.task_id,
+                    "feature_item_id": r.feature_item_id,
+                    "ears_type": r.ears_type,
+                    "ears_statement": r.ears_statement,
+                    "module": r.module,
+                    "role_tag": r.role_tag,
+                    "priority": r.priority,
+                    "estimated_hours": float(r.estimated_hours) if r.estimated_hours else None,
+                    "acceptance_criteria": r.acceptance_criteria,
+                    "dependencies": r.dependencies,
+                    "adjustment_count": r.adjustment_count,
+                    "version": r.version,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                }
+                for r in q.scalars().all()
+            ]
+
+    async def get_ears_task(self, project_id: str, task_id: str) -> Optional[dict]:
+        """查询单个 EARS 卡片"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(AIEarsTask)
+                .where(AIEarsTask.project_id == project_id, AIEarsTask.task_id == task_id)
+                .order_by(AIEarsTask.version.desc())
+                .limit(1)
+            )
+            r = q.scalars().first()
+            if not r:
+                return None
+            return {
+                "id": r.id,
+                "project_id": r.project_id,
+                "task_id": r.task_id,
+                "feature_item_id": r.feature_item_id,
+                "ears_type": r.ears_type,
+                "ears_statement": r.ears_statement,
+                "module": r.module,
+                "role_tag": r.role_tag,
+                "priority": r.priority,
+                "estimated_hours": float(r.estimated_hours) if r.estimated_hours else None,
+                "acceptance_criteria": r.acceptance_criteria,
+                "dependencies": r.dependencies,
+                "adjustment_count": r.adjustment_count,
+                "version": r.version,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+
+    async def update_ears_task(self, project_id: str, task_id: str, changes: dict) -> dict:
+        """
+        更新单个 EARS 卡片，含 adjustment_count++ 检查（上限 3 次）。
+        返回更新后的卡片或 error dict。
+        """
+        allowed_fields = {"ears_statement", "priority", "estimated_hours", "acceptance_criteria"}
+        async with get_session_factory()() as session:
+            async with session.begin():
+                q = await session.execute(
+                    select(AIEarsTask)
+                    .where(AIEarsTask.project_id == project_id, AIEarsTask.task_id == task_id)
+                    .order_by(AIEarsTask.version.desc())
+                    .limit(1)
+                    .with_for_update()
+                )
+                task = q.scalars().first()
+                if not task:
+                    return {"error": f"EARS task {task_id} not found"}
+                if task.adjustment_count >= 3:
+                    return {"error": f"EARS task {task_id} has reached adjustment limit (3)"}
+
+                for field, value in changes.items():
+                    if field in allowed_fields:
+                        setattr(task, field, value)
+                task.adjustment_count += 1
+
+                return {
+                    "task_id": task.task_id,
+                    "adjustment_count": task.adjustment_count,
+                    "status": "updated",
+                }
+
+    # ---- 里程碑 ----
+
+    async def save_milestones(self, project_id: str, milestones: list[dict]) -> None:
+        """批量写入里程碑"""
+        async with get_session_factory()() as session:
+            async with session.begin():
+                for idx, ms in enumerate(milestones):
+                    stmt = mysql_insert(AIMilestone).values(
+                        project_id=project_id,
+                        milestone_index=idx + 1,
+                        title=ms.get("title", f"里程碑 {idx + 1}"),
+                        duration_days=ms.get("duration_days"),
+                        payment_ratio=ms.get("payment_ratio"),
+                        deliverables=ms.get("deliverables"),
+                        status="pending",
+                    )
+                    stmt = stmt.on_duplicate_key_update(
+                        title=stmt.inserted.title,
+                        duration_days=stmt.inserted.duration_days,
+                        payment_ratio=stmt.inserted.payment_ratio,
+                        deliverables=stmt.inserted.deliverables,
+                    )
+                    await session.execute(stmt)
+
+    async def get_milestones(self, project_id: str) -> list[dict]:
+        """查询里程碑列表"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(AIMilestone)
+                .where(AIMilestone.project_id == project_id)
+                .order_by(AIMilestone.milestone_index)
+            )
+            return [
+                {
+                    "id": r.id,
+                    "project_id": r.project_id,
+                    "milestone_index": r.milestone_index,
+                    "title": r.title,
+                    "duration_days": r.duration_days,
+                    "payment_ratio": float(r.payment_ratio) if r.payment_ratio else None,
+                    "deliverables": r.deliverables,
+                    "status": r.status,
+                    "started_at": r.started_at.isoformat() if r.started_at else None,
+                    "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                }
+                for r in q.scalars().all()
+            ]
 
 
 class RatingRepository:

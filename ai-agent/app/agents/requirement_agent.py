@@ -86,10 +86,18 @@ class RequirementAgent(ToolUseBaseAgent):
         elif tool_name == "generate_prd":
             self._completeness_score = tool_input.get("completeness_score", self._completeness_score)
             self._sub_stage = "prd_draft"
+            # 解析 PRD feature_modules → 写入 ai_prd_items
+            if self._project_id:
+                prd = tool_input.get("prd", {})
+                self._persist_prd_items(self._project_id, prd)
             return "PRD 已生成，等待用户确认。"
 
         elif tool_name == "decompose_to_ears":
             self._sub_stage = "tasks_ready"
+            # 解析 ears_tasks → 写入 ai_ears_tasks
+            if self._project_id:
+                tasks = tool_input.get("ears_tasks", [])
+                self._persist_ears_tasks(self._project_id, tasks)
             # 自动保存文档
             md_content = tool_input.get("markdown_preview", "")
             if md_content and self._project_id:
@@ -106,6 +114,62 @@ class RequirementAgent(ToolUseBaseAgent):
             return "保存失败：缺少 project_id"
 
         return f"未知工具: {tool_name}"
+
+    @staticmethod
+    def _persist_prd_items(project_id: str, prd: dict) -> None:
+        """解析 PRD feature_modules，异步写入 ai_prd_items"""
+        import asyncio
+
+        items = []
+        for module in prd.get("feature_modules", []):
+            module_name = module.get("module_name", "")
+            for fi in module.get("feature_items", []):
+                items.append({
+                    "item_id": fi.get("item_id", ""),
+                    "module_name": module_name,
+                    "title": fi.get("title", ""),
+                    "description": fi.get("description", ""),
+                    "priority": fi.get("priority", "P1"),
+                    "acceptance_summary": fi.get("acceptance_summary", ""),
+                })
+        if not items:
+            return
+
+        async def _do():
+            try:
+                from app.db.repository import ProjectRepository
+                repo = ProjectRepository()
+                await repo.save_prd_items(project_id, items)
+            except Exception as e:
+                logger.warning("persist_prd_items_failed", error=str(e))
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_do())
+        except RuntimeError:
+            pass
+
+    @staticmethod
+    def _persist_ears_tasks(project_id: str, tasks: list[dict]) -> None:
+        """解析 ears_tasks，异步写入 ai_ears_tasks"""
+        import asyncio
+
+        if not tasks:
+            return
+
+        async def _do():
+            try:
+                from app.db.repository import ProjectRepository
+                repo = ProjectRepository()
+                await repo.save_ears_tasks(project_id, tasks)
+            except Exception as e:
+                logger.warning("persist_ears_tasks_failed", error=str(e))
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_do())
+        except RuntimeError:
+            pass
 
     @property
     def dimension_coverage(self) -> dict:
