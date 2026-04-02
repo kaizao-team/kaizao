@@ -1,6 +1,6 @@
 """
 开造 VibeBuild — LLM 模型路由（v2 异步版）
-支持 Claude -> 智谱 GLM -> 通义千问自动降级，返回 Message 对象或字符串
+降级链：GPT-5.4 → 智谱 GLM → 通义千问
 """
 
 from typing import Any, Optional
@@ -19,15 +19,24 @@ class LLMRouter:
     - 按 model_tier 选择合适的模型
     - create_message() 返回 Message 对象（支持 tool use）
     - generate() 返回字符串（兼容旧接口）
-    - 降级链：Claude → 智谱 GLM → 通义千问
+    - 降级链：GPT-5.4 → 智谱 GLM → 通义千问
     """
 
     def __init__(self):
         self.claude_client = ClaudeClient()
+        self._openai_gpt_client = None
         self._zhipu_client = None
         self._dashscope_available = bool(settings.dashscope_api_key)
 
-        # 初始化智谱客户端
+        # 初始化 GPT-5.4 客户端（主力）
+        if settings.openai_api_key:
+            try:
+                from app.llm.openai_gpt_client import OpenAIGPTClient
+                self._openai_gpt_client = OpenAIGPTClient()
+            except Exception as e:
+                logger.warning(f"GPT 客户端初始化失败: {e}")
+
+        # 初始化智谱客户端（降级）
         if settings.zhipu_api_key:
             try:
                 from app.llm.zhipu_client import ZhipuClient
@@ -37,6 +46,7 @@ class LLMRouter:
 
         logger.info(
             "LLMRouter 初始化完成",
+            gpt_available=self._openai_gpt_client is not None and self._openai_gpt_client.available,
             claude_available=self.claude_client.available,
             zhipu_available=self._zhipu_client is not None and self._zhipu_client.available,
             dashscope_available=self._dashscope_available,
@@ -59,24 +69,22 @@ class LLMRouter:
         """
         返回 Message 对象（支持 tool use）
 
-        降级链：Claude → 智谱 GLM（支持 tool use）→ 通义千问（tool 嵌入 prompt）
+        降级链：GPT-5.4 → 智谱 GLM → 通义千问
         """
-        # 尝试 Claude
-        if self.claude_client.available:
-            model = self._resolve_model(model_tier)
+        # 主力：GPT-5.4
+        if self._openai_gpt_client and self._openai_gpt_client.available:
             try:
-                return await self.claude_client.create_message(
+                return await self._openai_gpt_client.create_message(
                     messages=messages,
-                    model=model,
                     max_tokens=max_tokens,
                     temperature=temperature,
                     system=system,
                     tools=tools,
                 )
             except Exception as e:
-                logger.warning("Claude API 调用失败，尝试降级", model=model, error=str(e))
+                logger.warning("GPT-5.4 调用失败，尝试降级到智谱 GLM", error=str(e))
 
-        # 降级到智谱 GLM（原生支持 tool use）
+        # 降级1：智谱 GLM（原生支持 tool use）
         if self._zhipu_client and self._zhipu_client.available:
             try:
                 return await self._zhipu_client.create_message(
@@ -89,7 +97,22 @@ class LLMRouter:
             except Exception as e:
                 logger.warning("智谱 GLM 调用失败，尝试降级到 Qwen", error=str(e))
 
-        # 降级到通义千问（tools 嵌入 system prompt）
+        # 降级2：Claude（如果有 key）
+        if self.claude_client.available:
+            model = self._resolve_model(model_tier)
+            try:
+                return await self.claude_client.create_message(
+                    messages=messages,
+                    model=model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    system=system,
+                    tools=tools,
+                )
+            except Exception as e:
+                logger.warning("Claude 调用失败，尝试降级到 Qwen", error=str(e))
+
+        # 降级3：通义千问（tools 嵌入 system prompt）
         if self._dashscope_available:
             fallback_model = (
                 settings.qwen_max_model if model_tier == "high" else settings.qwen_turbo_model
@@ -125,20 +148,19 @@ class LLMRouter:
         response_format: Optional[str] = None,
     ) -> str:
         """兼容旧版：返回纯文本字符串"""
-        # 尝试 Claude
-        if self.claude_client.available:
-            model = self._resolve_model(model_tier)
+        # 主力：GPT-5.4
+        if self._openai_gpt_client and self._openai_gpt_client.available:
             try:
-                return await self.claude_client.generate(
+                resp = await self._openai_gpt_client.create_message(
                     messages=messages,
-                    model=model,
                     max_tokens=max_tokens,
                     temperature=temperature,
                 )
+                return "".join(b.text for b in resp.content if hasattr(b, "text"))
             except Exception as e:
-                logger.warning("Claude 调用失败，尝试降级", error=str(e))
+                logger.warning("GPT-5.4 调用失败，尝试降级", error=str(e))
 
-        # 降级到智谱 GLM
+        # 降级1：智谱 GLM
         if self._zhipu_client and self._zhipu_client.available:
             try:
                 resp = await self._zhipu_client.create_message(
@@ -150,7 +172,20 @@ class LLMRouter:
             except Exception as e:
                 logger.warning("智谱 GLM 调用失败", error=str(e))
 
-        # 降级到通义千问
+        # 降级2：Claude
+        if self.claude_client.available:
+            model = self._resolve_model(model_tier)
+            try:
+                return await self.claude_client.generate(
+                    messages=messages,
+                    model=model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                )
+            except Exception as e:
+                logger.warning("Claude 调用失败", error=str(e))
+
+        # 降级3：通义千问
         if self._dashscope_available:
             fallback_model = (
                 settings.qwen_max_model if model_tier == "high" else settings.qwen_turbo_model

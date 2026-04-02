@@ -8,24 +8,15 @@ services:
       dockerfile: Dockerfile
     container_name: vibebuild-ai-agent
     ports:
-      - "8000:8000"
-    environment:
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
-      - MILVUS_HOST=milvus
-      - MILVUS_PORT=19530
-      - REDIS_URL=redis://redis:6379/0
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - LOG_LEVEL=INFO
-      - DEBUG=false
+      - "39528:39528"
+    env_file: .env
     depends_on:
       milvus:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     restart: unless-stopped
     networks:
       - vibebuild-net
+      - kaizao-net
 
   # Milvus 依赖: etcd
   etcd:
@@ -72,6 +63,7 @@ services:
   # Milvus 向量数据库
   milvus:
     image: milvusdb/milvus:v2.3.4
+    command: ["milvus", "run", "standalone"]
     container_name: vibebuild-milvus
     environment:
       ETCD_ENDPOINTS: etcd:2379
@@ -94,23 +86,7 @@ services:
     networks:
       - vibebuild-net
 
-  # Redis 缓存/会话存储
-  redis:
-    image: redis:7-alpine
-    container_name: vibebuild-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - vibebuild-net
-
-  # Elasticsearch 关键词搜索（可选）
+  # Elasticsearch 关键词搜索
   elasticsearch:
     image: elasticsearch:8.15.1
     container_name: vibebuild-elasticsearch
@@ -134,9 +110,11 @@ volumes:
   etcd_data:
   minio_data:
   milvus_data:
-  redis_data:
   es_data:
 
 networks:
   vibebuild-net:
     driver: bridge
+  kaizao-net:
+    external: true
+    name: kaizao-server_default
