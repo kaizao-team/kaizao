@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../../app/routes.dart';
 import '../../onboarding/providers/onboarding_provider.dart';
 import '../providers/auth_provider.dart';
+
+const _kBgColor = Color(0xFFF8F8FA);
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -16,6 +21,9 @@ class SplashPage extends ConsumerStatefulWidget {
 
 class _SplashPageState extends ConsumerState<SplashPage>
     with TickerProviderStateMixin {
+  VideoPlayerController? _videoController;
+  bool _videoReady = false;
+
   late AnimationController _logoController;
   late AnimationController _sloganController;
   late AnimationController _buttonController;
@@ -32,10 +40,12 @@ class _SplashPageState extends ConsumerState<SplashPage>
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: Color(0xFFF6F6F6),
+        systemNavigationBarColor: _kBgColor,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
+
+    _initVideo();
 
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -72,7 +82,35 @@ class _SplashPageState extends ConsumerState<SplashPage>
         curve: Curves.easeOutCubic,
       ),
     );
+  }
 
+  Future<void> _initVideo() async {
+    try {
+      final byteData = await rootBundle.load('assets/branding/lanuch.mp4');
+      final tempDir = Directory.systemTemp;
+      final file = File('${tempDir.path}/kaizao_splash.mp4');
+      await file.writeAsBytes(
+        byteData.buffer.asUint8List(),
+        flush: true,
+      );
+
+      final controller = VideoPlayerController.file(file);
+      await controller.initialize();
+      controller.setLooping(false);
+      controller.setVolume(0);
+
+      if (!mounted) {
+        controller.dispose();
+        return;
+      }
+
+      _videoController = controller;
+      setState(() => _videoReady = true);
+
+      controller.play();
+    } catch (_) {
+      // Fallback: show static logo
+    }
     _runSequence();
   }
 
@@ -97,6 +135,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
   @override
   void dispose() {
+    _videoController?.dispose();
     _logoController.dispose();
     _sloganController.dispose();
     _buttonController.dispose();
@@ -111,8 +150,9 @@ class _SplashPageState extends ConsumerState<SplashPage>
     const logoZoomScale = 1.45;
     final logoCacheSize =
         (logoViewportSize * logoZoomScale * devicePixelRatio).round();
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: _kBgColor,
       body: AnimatedBuilder(
         animation: Listenable.merge([
           _logoController,
@@ -136,16 +176,29 @@ class _SplashPageState extends ConsumerState<SplashPage>
                           child: ClipRect(
                             child: Transform.scale(
                               scale: logoZoomScale,
-                              child: Image.asset(
-                                'assets/branding/app_launch_motion_flat.webp',
-                                fit: BoxFit.cover,
-                                alignment: Alignment.center,
-                                filterQuality: FilterQuality.high,
-                                isAntiAlias: true,
-                                gaplessPlayback: true,
-                                cacheWidth: logoCacheSize,
-                                cacheHeight: logoCacheSize,
-                              ),
+                              child: _videoReady && _videoController != null
+                                  ? FittedBox(
+                                      fit: BoxFit.cover,
+                                      child:
+                                          SizedBox(
+                                            width: _videoController!
+                                                .value.size.width,
+                                            height: _videoController!
+                                                .value.size.height,
+                                            child: VideoPlayer(
+                                                _videoController!,),
+                                          ),
+                                    )
+                                  : Image.asset(
+                                      'assets/branding/app_launch_static_transparent_cropped.png',
+                                      fit: BoxFit.cover,
+                                      alignment: Alignment.center,
+                                      filterQuality: FilterQuality.high,
+                                      isAntiAlias: true,
+                                      gaplessPlayback: true,
+                                      cacheWidth: logoCacheSize,
+                                      cacheHeight: logoCacheSize,
+                                    ),
                             ),
                           ),
                         ),
