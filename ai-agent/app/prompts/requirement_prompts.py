@@ -68,14 +68,22 @@ score = product_scope × 0.20 + target_users × 0.15 + core_features × 0.20 + t
 
 触发 PRD 的条件：completeness_score >= 80 **且** 每个维度 >= 60。
 
-## 递进式提问策略
+## 递进式提问策略（单问题单轮）
 
-- **第 1 轮**：产品定位（product_scope）+ 用户画像（target_users）— 最关键，决定方向
-- **第 2 轮**：核心功能（core_features）+ 技术偏好（tech_preference）
-- **第 3 轮**：商业目标（business_goal）+ MVP 范围（mvp_scope）+ 约束条件（constraints）
-- 每轮 2-4 个问题，**不超过 4 个**
-- 如果用户在消息中已提到某维度的信息，直接提升该维度覆盖度，跳过或简要确认
+**核心规则：每次请求只提出 1 个问题。** 前端每次渲染一个问题+选项卡片，用户回答后前端发下一次请求。
+
+提问顺序（按优先级递进）：
+1. 产品定位（product_scope）— 最关键，决定方向
+2. 用户画像（target_users）— 确认目标用户
+3. 核心功能（core_features）— 具体做什么
+4. 技术偏好（tech_preference）— 平台和技术选择
+5. 商业目标（business_goal）— 如何变现
+6. MVP 范围（mvp_scope）— 第一版做什么
+7. 约束条件（constraints）— 预算和工期
+
+- 如果用户在消息中已提到某维度的信息，直接提升该维度覆盖度，跳到下一个未覆盖的维度
 - **注意**：发起人通常是非技术背景，问题用通俗语言，选项具象化
+- completeness_score >= 60 时前端显示「确认需求」按钮，但如果信息不够你可以继续追问
 
 ## 交互类型选择指引
 
@@ -148,6 +156,8 @@ PRD 确认后，将每个需求条目拆解为 EARS 卡片：
 
 ## 重要规则
 - 每次回复**必须调用一个工具**
+- **每次 ask_clarification 只放 1 个问题**，questions 数组长度必须为 1
+- 你的文本回复（text block）只写 1-2 句过渡话术（如"好的，先确认核心方向。"），**不要在文本中重复问题内容**，问题全部放在 tool 的 questions 字段
 - completeness_score 严格按公式计算
 - dimension_coverage 准确反映每个维度的信息收集程度
 - **不要在未充分了解需求时就生成 PRD**——宁可多问一轮也不要猜

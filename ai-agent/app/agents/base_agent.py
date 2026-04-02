@@ -332,37 +332,6 @@ class ToolUseBaseAgent(ABC):
 
                 yield {"event": "tool_result", "data": result_str[:200]}
 
-                # ask_clarification: 额外 yield 结构化 text 事件（含 options）
-                if tool_name == "ask_clarification":
-                    # 先发送 agent_message 作为纯文本
-                    agent_msg = tool_input.get("agent_message", "")
-                    if agent_msg:
-                        yield {"event": "text", "data": agent_msg}
-
-                    # 每个 question 生成独立的结构化 text 事件
-                    for question in tool_input.get("questions", []):
-                        input_type = question.get("input_type", "text")
-                        if input_type in ("single_choice", "multi_choice"):
-                            opts = question.get("options", [])
-                            options_payload = []
-                            for i, opt in enumerate(opts):
-                                item = {"key": chr(65 + i), "label": opt.get("label", "")}
-                                options_payload.append(item)
-                            # allow_custom → 追加"其他"选项
-                            if question.get("allow_custom", True):
-                                custom_key = chr(65 + len(opts))
-                                options_payload.append({"key": custom_key, "label": "其他", "is_custom": True})
-                            yield {
-                                "event": "text",
-                                "data": _json.dumps({
-                                    "content": question.get("question", ""),
-                                    "options": options_payload,
-                                }, ensure_ascii=False),
-                            }
-                        else:
-                            # text/number 类型：纯文本向后兼容
-                            yield {"event": "text", "data": question.get("question", "")}
-
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,
@@ -371,21 +340,71 @@ class ToolUseBaseAgent(ABC):
 
             messages.append({"role": "user", "content": tool_results})
 
+            # ask_clarification 执行后立即结束 loop，防止 LLM 二次输出重复内容
+            if any(b.name == "ask_clarification" for b in tool_use_blocks):
+                break
+
         duration_ms = round((time.time() - start_time) * 1000, 2)
         self.logger.info("agentic_loop_stream_end", request_id=request_id, duration_ms=duration_ms)
 
-        # 最终结果
+        # 构建 done 事件
+        done_data = self._build_done_data(last_tool_input, duration_ms)
         yield {
             "event": "done",
-            "data": _json.dumps({
-                "messages": "ok",
-                "last_tool": last_tool_input,
-                "duration_ms": duration_ms,
-            }, ensure_ascii=False),
+            "data": _json.dumps(done_data, ensure_ascii=False),
         }
 
         # 将结果存到实例变量供调用方获取
         self._stream_result = (messages, last_tool_input)
+
+    @staticmethod
+    def _build_done_data(last_tool_input: dict, duration_ms: float) -> dict:
+        """
+        构建 done 事件数据。
+
+        当 ask_clarification 被调用时，返回单个 question 对象 + completeness_score；
+        其他情况返回通用格式。
+        """
+        import json as _json
+
+        tool_name = last_tool_input.get("tool_name", "")
+
+        if tool_name == "ask_clarification":
+            questions = last_tool_input.get("questions", [])
+            question_raw = questions[0] if questions else None
+
+            if question_raw:
+                # 构建 options（带 key 标签）
+                opts = question_raw.get("options", [])
+                options_payload = []
+                for i, opt in enumerate(opts):
+                    options_payload.append({"key": chr(65 + i), "label": opt.get("label", "")})
+                # allow_custom → 追加"其他"选项
+                if question_raw.get("allow_custom", True):
+                    options_payload.append({
+                        "key": chr(65 + len(opts)),
+                        "label": "其他",
+                        "is_custom": True,
+                    })
+
+                return {
+                    "question": {
+                        "id": question_raw.get("id", "q1"),
+                        "content": question_raw.get("question", ""),
+                        "input_type": question_raw.get("input_type", "single_choice"),
+                        "options": options_payload,
+                        "allow_custom": question_raw.get("allow_custom", True),
+                    },
+                    "completeness_score": last_tool_input.get("completeness_score", 0),
+                    "duration_ms": duration_ms,
+                }
+
+        # 默认格式（generate_prd / decompose_to_ears / 其他 tool）
+        return {
+            "messages": "ok",
+            "last_tool": last_tool_input,
+            "duration_ms": duration_ms,
+        }
 
     def _check_safety(self, user_input: str) -> dict:
         """

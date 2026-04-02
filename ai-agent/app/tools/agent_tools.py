@@ -7,7 +7,7 @@ Anthropic tool use 格式
 
 ASK_CLARIFICATION_TOOL = {
     "name": "ask_clarification",
-    "description": "向用户提出结构化澄清问题，帮助补全需求。支持选择题和文本输入等多种交互方式，包含完整度评分和各维度覆盖度。",
+    "description": "向用户提出一个结构化澄清问题，帮助补全需求。每次调用只提一个问题（questions 数组长度为 1），支持选择题和文本输入等交互方式，包含完整度评分和各维度覆盖度。",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -23,7 +23,7 @@ ASK_CLARIFICATION_TOOL = {
             },
             "questions": {
                 "type": "array",
-                "description": "结构化问题列表，每轮 2-4 个问题，不超过 4 个",
+                "description": "结构化问题列表，每次只放 1 个问题",
                 "items": {
                     "type": "object",
                     "properties": {
