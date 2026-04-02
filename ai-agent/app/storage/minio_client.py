@@ -30,9 +30,14 @@ class MinioDocStore:
             secret_key=settings.minio_secret_key,
             secure=settings.minio_use_ssl,
         )
-        if not self._client.bucket_exists(self._bucket):
-            self._client.make_bucket(self._bucket)
-            logger.info("minio_bucket_created", bucket=self._bucket)
+        try:
+            if not self._client.bucket_exists(self._bucket):
+                self._client.make_bucket(self._bucket)
+                logger.info("minio_bucket_created", bucket=self._bucket)
+        except S3Error as e:
+            # BucketAlreadyOwnedByYou 是正常情况
+            if "BucketAlreadyOwnedByYou" not in str(e):
+                raise
         logger.info("minio_connected", endpoint=settings.minio_endpoint, bucket=self._bucket)
 
     def _ensure_client(self) -> Minio:
