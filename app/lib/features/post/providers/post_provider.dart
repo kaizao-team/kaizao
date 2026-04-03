@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/sse_client.dart';
+import '../models/ai_agent_response.dart';
 import '../models/post_models.dart';
 import '../repositories/post_repository.dart';
 
@@ -950,9 +951,11 @@ class PostNotifier extends StateNotifier<PostState> {
 
   void _parseInitPayload(String rawData) {
     try {
-      final json = jsonDecode(rawData) as Map<String, dynamic>;
-      final projectId = json['project_id'] as String?;
-      final sessionId = json['session_id'] as String?;
+      final payload = AiAgentSsePayload.fromJson(
+        jsonDecode(rawData) as Map<String, dynamic>,
+      );
+      final projectId = payload.projectId;
+      final sessionId = payload.sessionId;
       debugPrint('[SSE] init: projectId=$projectId sessionId=$sessionId');
       state = state.copyWith(
         projectId: projectId != null ? () => projectId : null,
@@ -964,11 +967,12 @@ class PostNotifier extends StateNotifier<PostState> {
   void _parseDonePayload(String rawData) {
     try {
       final json = jsonDecode(rawData) as Map<String, dynamic>;
-      final projectId = json['project_id'] as String?;
-      final sessionId = json['session_id'] as String?;
-      final subStage = json['sub_stage'] as String?;
-      final score = _asInt(json['completeness_score']);
-      final analysisComplete = json['analysis_complete'] as bool?;
+      final payload = AiAgentSsePayload.fromJson(json);
+      final projectId = payload.projectId;
+      final sessionId = payload.sessionId;
+      final subStage = payload.subStage;
+      final score = payload.completenessScore;
+      final analysisComplete = payload.analysisComplete;
       final nextSubStage = subStage ?? state.subStage;
       final nextScore = score ?? state.completenessScore;
       final canConfirm = analysisComplete ??
@@ -987,7 +991,7 @@ class PostNotifier extends StateNotifier<PostState> {
         canConfirmRequirement: canConfirm,
       );
 
-      final question = _asJsonMap(json['question']);
+      final question = payload.question;
       if (question == null) return;
 
       final rawContent =
@@ -1018,9 +1022,11 @@ class PostNotifier extends StateNotifier<PostState> {
 
   void _parseStageInfo(String rawData) {
     try {
-      final json = jsonDecode(rawData) as Map<String, dynamic>;
-      final subStage = json['sub_stage'] as String?;
-      final score = _asInt(json['completeness_score']);
+      final payload = AiAgentSsePayload.fromJson(
+        jsonDecode(rawData) as Map<String, dynamic>,
+      );
+      final subStage = payload.subStage;
+      final score = payload.completenessScore;
       final nextSubStage = subStage ?? state.subStage;
       final nextScore = score ?? state.completenessScore;
       final canConfirm = state.analysisComplete ??
@@ -1160,10 +1166,7 @@ class PostNotifier extends StateNotifier<PostState> {
     state = state.copyWith(isConfirmingMatch: true, errorMessage: () => null);
 
     try {
-      await _repository.confirmMatch(
-        state.projectId ?? '',
-        team.teamId,
-      );
+      await _repository.confirmMatch(state.projectId ?? '');
       if (!mounted) return;
 
       state = state.copyWith(

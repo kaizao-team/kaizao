@@ -161,25 +161,12 @@ class PostRepository {
   }
 
   /// Confirm the recommended team by triggering Go quick-match.
-  Future<Map<String, dynamic>> confirmMatch(
-    String projectId,
-    String teamId,
-  ) async {
+  Future<Map<String, dynamic>> confirmMatch(String projectId) async {
     final response = await _client.post<Map<String, dynamic>>(
       ApiEndpoints.quickMatch(projectId),
       fromJson: (data) => data as Map<String, dynamic>,
     );
-    final data = response.data ?? const {};
-    final providerId = data['provider_id']?.toString().trim();
-    if (teamId.trim().isNotEmpty &&
-        providerId != null &&
-        providerId.isNotEmpty &&
-        providerId != teamId.trim()) {
-      throw StateError(
-        'quick-match 返回 provider_id=$providerId，与当前确认项 $teamId 不一致',
-      );
-    }
-    return data;
+    return response.data ?? const {};
   }
 
   // ============================================================

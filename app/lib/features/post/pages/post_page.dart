@@ -91,6 +91,7 @@ Widget? _buildFooter({
   required BuildContext context,
   required PostState state,
   required WidgetRef ref,
+  VoidCallback? onCompleted,
 }) {
   if (state.currentStep == 0) return null;
 
@@ -141,8 +142,18 @@ Widget? _buildFooter({
       );
     case 5:
       return VccFlowFooterBar(
-        label: '返回首页',
-        onPressed: () => context.go('/home'),
+        label: '完成',
+        onPressed: () {
+          if (onCompleted != null) {
+            onCompleted();
+            return;
+          }
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+          context.go('/home');
+        },
       );
   }
   return null;
@@ -296,8 +307,9 @@ List<Widget> _buildAiChatSlivers({
 
 class PostPage extends ConsumerStatefulWidget {
   final String? initialCategory;
+  final VoidCallback? onCompleted;
 
-  const PostPage({super.key, this.initialCategory});
+  const PostPage({super.key, this.initialCategory, this.onCompleted});
 
   @override
   ConsumerState<PostPage> createState() => _PostPageState();
@@ -516,6 +528,7 @@ class _PostPageState extends ConsumerState<PostPage> {
         context: context,
         state: postState,
         ref: ref,
+        onCompleted: widget.onCompleted,
       ),
       footerHeight: _footerHeight(postState),
       slivers: _buildPostSlivers(
@@ -1106,8 +1119,8 @@ class _MatchTeamStage extends StatelessWidget {
       children: [
         const _InlineStepIntro(
           eyebrow: '推荐团队',
-          title: '平台推荐了一个团队',
-          body: '根据项目分类、预算和交付节奏自动匹配，确认后等待团队方回复。',
+          title: '平台生成了当前推荐',
+          body: '根据项目分类、预算和交付节奏自动匹配，采用后将按这条默认推荐发起快速撮合。',
         ),
         const SizedBox(height: 16),
         VccCard(
@@ -1266,7 +1279,7 @@ class _MatchTeamFooter extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           VccButton(
-            text: '确认团队',
+            text: '采用当前推荐',
             onPressed: team != null && !isConfirming ? onConfirm : null,
             isLoading: isConfirming,
           ),
@@ -1305,7 +1318,7 @@ class _WaitForTeamStage extends StatelessWidget {
         const _InlineStepIntro(
           eyebrow: '等待确认',
           title: '团队方正在确认中',
-          body: '你已选定团队，正在等待对方确认合作意向。确认后即可正式启动项目。',
+          body: '你已采用当前推荐，正在等待对方确认合作意向。确认后即可正式启动项目。',
         ),
         const SizedBox(height: 24),
         VccCard(

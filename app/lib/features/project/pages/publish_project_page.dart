@@ -7,6 +7,8 @@ class PublishProjectPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const PostPage();
+    return PostPage(
+      onCompleted: () => Navigator.pop(context),
+    );
   }
 }

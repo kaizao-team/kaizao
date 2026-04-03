@@ -44,6 +44,7 @@ class VccFlowScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -73,7 +74,7 @@ class VccFlowScaffold extends StatelessWidget {
                 ...slivers,
                 if (footer != null)
                   SliverToBoxAdapter(
-                    child: SizedBox(height: footerHeight),
+                    child: SizedBox(height: footerHeight + bottomPadding),
                   ),
               ],
             ),
