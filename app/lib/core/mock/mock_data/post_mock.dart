@@ -253,7 +253,7 @@ class PostMock {
         return key;
       }
     }
-    return null;
+    return 'legacy:${data['category']?.toString().trim().toLowerCase() ?? 'dev'}';
   }
 
   static int _nextConversationTurn({

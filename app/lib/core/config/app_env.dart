@@ -19,10 +19,10 @@ class AppEnv {
       };
 
   /// AI Agent (Python) service base URL.
-  /// In production we go through the API gateway to avoid cleartext / bare IP traffic.
+  /// Route through the API gateway to avoid sending bearer tokens to the raw AI agent host.
   static String get aiAgentBaseUrl => switch (current) {
-        AppEnvironment.dev => 'http://47.236.165.75:39528',
-        AppEnvironment.staging => 'http://47.236.165.75:39528',
+        AppEnvironment.dev => baseUrl,
+        AppEnvironment.staging => baseUrl,
         AppEnvironment.prod => baseUrl,
       };
 

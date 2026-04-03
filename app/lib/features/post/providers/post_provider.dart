@@ -24,12 +24,17 @@ String _normalizePostCategoryKey(String? value) {
     case 'visual':
     case 'design':
       return 'design';
+    case 'app':
+    case 'web':
+    case 'miniprogram':
+    case 'backend':
+      return 'dev';
     case 'data':
     case 'dev':
     case 'solution':
       return normalized;
     default:
-      return normalized;
+      return '';
   }
 }
 

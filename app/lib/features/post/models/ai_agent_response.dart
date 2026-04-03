@@ -5,6 +5,7 @@ class AiAgentResponse {
   final String agentMessage;
   final String subStage;
   final int completenessScore;
+  final bool? analysisComplete;
 
   const AiAgentResponse({
     required this.projectId,
@@ -12,6 +13,7 @@ class AiAgentResponse {
     required this.agentMessage,
     required this.subStage,
     required this.completenessScore,
+    this.analysisComplete,
   });
 
   factory AiAgentResponse.fromJson(Map<String, dynamic> json) {
@@ -28,8 +30,11 @@ class AiAgentResponse {
           '',
       subStage: data['sub_stage'] as String? ?? 'clarifying',
       completenessScore: data['completeness_score'] as int? ?? 0,
+      analysisComplete: data['analysis_complete'] as bool?,
     );
   }
 
-  bool get canGeneratePrd => subStage == 'prd_draft' || completenessScore >= 60;
+  bool get canGeneratePrd =>
+      analysisComplete ??
+      (subStage == 'prd_draft' || completenessScore >= 60);
 }
