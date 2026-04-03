@@ -44,21 +44,29 @@ class AiAgentClient {
 
   Dio get dio => _dio;
 
+  Map<String, dynamic> _expectJsonMap(
+    dynamic body, {
+    required String method,
+    required String path,
+  }) {
+    if (body is Map<String, dynamic>) return body;
+    if (body is Map) return Map<String, dynamic>.from(body);
+    throw FormatException(
+      '$method $path expected JSON object but got ${body.runtimeType}',
+    );
+  }
+
   Future<Map<String, dynamic>> post(
     String path, {
     Map<String, dynamic>? data,
   }) async {
     final response = await _dio.post(path, data: data);
-    final body = response.data;
-    if (body is Map<String, dynamic>) return body;
-    return {};
+    return _expectJsonMap(response.data, method: 'POST', path: path);
   }
 
   Future<Map<String, dynamic>> get(String path) async {
     final response = await _dio.get(path);
-    final body = response.data;
-    if (body is Map<String, dynamic>) return body;
-    return {};
+    return _expectJsonMap(response.data, method: 'GET', path: path);
   }
 
   /// Open an SSE stream via POST. Returns parsed [SseEvent]s.

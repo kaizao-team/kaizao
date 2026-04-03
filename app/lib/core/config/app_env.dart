@@ -18,11 +18,12 @@ class AppEnv {
         AppEnvironment.prod => 'wss://ws.vibebuild.com',
       };
 
-  /// AI Agent (Python) service base URL — bypasses Go server
+  /// AI Agent (Python) service base URL.
+  /// In production we go through the API gateway to avoid cleartext / bare IP traffic.
   static String get aiAgentBaseUrl => switch (current) {
         AppEnvironment.dev => 'http://47.236.165.75:39528',
         AppEnvironment.staging => 'http://47.236.165.75:39528',
-        AppEnvironment.prod => 'http://47.236.165.75:39528',
+        AppEnvironment.prod => baseUrl,
       };
 
   static bool get useMock =>

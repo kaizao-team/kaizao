@@ -88,6 +88,7 @@ double _footerHeight(PostState state) {
 }
 
 Widget? _buildFooter({
+  required BuildContext context,
   required PostState state,
   required WidgetRef ref,
 }) {
@@ -141,7 +142,7 @@ Widget? _buildFooter({
     case 5:
       return VccFlowFooterBar(
         label: '返回首页',
-        onPressed: () => ref.read(postStateProvider.notifier).goToStep(0),
+        onPressed: () => context.go('/home'),
       );
   }
   return null;
@@ -468,6 +469,7 @@ class _PostPageState extends ConsumerState<PostPage> {
       onClose: () => _handleClose(postState),
       scrollController: _flowScrollController,
       footer: _buildFooter(
+        context: context,
         state: postState,
         ref: ref,
       ),
