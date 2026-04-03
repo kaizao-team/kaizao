@@ -1,4 +1,3 @@
-import '../../../core/config/app_env.dart';
 import '../../../core/network/ai_agent_client.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -12,21 +11,58 @@ class PostRepository {
       : _client = client ?? ApiClient(),
         _aiAgent = aiAgent ?? AiAgentClient();
 
+  Map<String, dynamic> _unwrapAiAgentEnvelope(
+    Map<String, dynamic> body, {
+    required String operation,
+  }) {
+    if (!body.containsKey('code')) {
+      return body;
+    }
+
+    final code = body['code'] as int? ?? -1;
+    if (code != 0) {
+      final message = body['message'] as String? ?? '$operation failed';
+      throw Exception(message);
+    }
+
+    final data = body['data'];
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+
+    return const {};
+  }
+
   // ============================================================
-  // AI Agent v2 — real AI conversation
+  // AI Agent v2 — project draft bootstrap + requirement conversation
   // ============================================================
 
+  /// Create a Go-side project draft and return the raw data payload.
+  Future<Map<String, dynamic>> createProjectDraft({
+    String? category,
+    double? budgetMin,
+    double? budgetMax,
+    int step = 1,
+  }) async {
+    final response = await _client.post<Map<String, dynamic>>(
+      ApiEndpoints.projectDraft,
+      data: {
+        if (category != null) 'category': category,
+        if (budgetMin != null) 'budget_min': budgetMin,
+        if (budgetMax != null) 'budget_max': budgetMax,
+        'step': step,
+      },
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+    return response.data ?? const {};
+  }
+
   /// First turn: create a requirement session.
-  /// [projectId] is required by the AI Agent — in production this comes from
-  /// Go backend's project creation; for demo we generate a UUID on the client.
   Future<AiAgentResponse> startRequirement(
     String projectId,
     String message, {
     String? title,
   }) async {
-    if (AppEnv.useMock) {
-      return _mockSendMessage(message, null);
-    }
     final body = await _aiAgent.post(
       ApiEndpoints.aiAgentStart,
       data: {
@@ -43,9 +79,6 @@ class PostRepository {
     String projectId,
     String message,
   ) async {
-    if (AppEnv.useMock) {
-      return _mockSendMessage(message, null);
-    }
     final body = await _aiAgent.post(
       ApiEndpoints.aiAgentMessage(projectId),
       data: {'message': message},
@@ -53,75 +86,66 @@ class PostRepository {
     return AiAgentResponse.fromJson(body);
   }
 
-  /// Confirm (or give feedback on) the generated PRD.
-  Future<AiAgentResponse> confirmPrd(
+  /// Confirm the PRD. This is now a lightweight ack only.
+  Future<Map<String, dynamic>> confirmRequirement(
     String projectId, {
     String? feedback,
   }) async {
-    if (AppEnv.useMock) {
-      return _mockConfirmPrd();
-    }
     final body = await _aiAgent.post(
       ApiEndpoints.aiAgentConfirm(projectId),
       data: {
+        'project_id': projectId,
         if (feedback != null) 'feedback': feedback,
       },
     );
-    return AiAgentResponse.fromJson(body);
+    return _unwrapAiAgentEnvelope(body, operation: 'Confirm requirement');
   }
 
-  // ============================================================
-  // Legacy mock fallback (USE_MOCK=true)
-  // ============================================================
+  /// Trigger EARS decomposition after match + cooperation confirmation.
+  /// This is reserved for a later flow; current PostPage should not call it.
+  Future<Map<String, dynamic>> decomposeRequirement(String projectId) async {
+    final body = await _aiAgent.post(
+      ApiEndpoints.aiAgentDecompose(projectId),
+    );
+    return _unwrapAiAgentEnvelope(body, operation: 'Decompose requirement');
+  }
 
-  Future<AiAgentResponse> _mockSendMessage(
-    String message,
-    String? category,
-  ) async {
-    final result = await _client.post(
-      ApiEndpoints.projectAiChat,
+  /// GET the requirement document (markdown).
+  Future<Map<String, dynamic>> fetchDocument(String projectId) async {
+    final body = await _aiAgent.get(
+      ApiEndpoints.requirementDocument(projectId),
+    );
+    return _unwrapAiAgentEnvelope(
+      body,
+      operation: 'Fetch requirement document',
+    );
+  }
+
+  /// POST match/recommend — get recommended teams.
+  Future<Map<String, dynamic>> recommendTeam(
+    String projectId, {
+    int pageSize = 1,
+  }) async {
+    return await _aiAgent.post(
+      ApiEndpoints.matchRecommend,
       data: {
-        'message': message,
-        if (category != null) 'category': category,
+        'demand_id': projectId,
+        'page_size': pageSize,
       },
     );
-    final data = result.data as Map<String, dynamic>? ?? {};
-    return AiAgentResponse(
-      projectId: data['project_id'] as String? ?? 'mock_project',
-      sessionId: data['session_id'] as String? ?? 'mock_session',
-      agentMessage: data['reply'] as String? ?? '',
-      subStage: (data['can_generate_prd'] == true) ? 'prd_draft' : 'clarifying',
-      completenessScore: data['completeness_score'] as int? ?? 0,
-    );
   }
 
-  Future<AiAgentResponse> _mockConfirmPrd() async {
-    return const AiAgentResponse(
-      projectId: 'mock_project',
-      sessionId: 'mock_session',
-      agentMessage: 'PRD confirmed',
-      subStage: 'tasks_ready',
-      completenessScore: 100,
-    );
-  }
-
-  // ============================================================
-  // Non-AI endpoints (unchanged, still via Go server)
-  // ============================================================
-
-  Future<Map<String, dynamic>> generatePrd(
-    String category,
-    List<Map<String, String>> chatHistory,
+  /// No real backend endpoint exists yet for confirming a matched team.
+  Future<Map<String, dynamic>> confirmMatch(
+    String projectId,
+    String teamId,
   ) async {
-    final response = await _client.post(
-      ApiEndpoints.projectGeneratePrd,
-      data: {
-        'category': category,
-        'chat_history': chatHistory,
-      },
-    );
-    return response.data as Map<String, dynamic>? ?? {};
+    throw UnimplementedError('缺少真实的确认撮合接口，无法继续提交 team_id=$teamId');
   }
+
+  // ============================================================
+  // Non-AI endpoints (Go server)
+  // ============================================================
 
   Future<void> saveDraft(Map<String, dynamic> draftData) async {
     await _client.post(ApiEndpoints.projectDraft, data: draftData);
@@ -130,7 +154,8 @@ class PostRepository {
   Future<Map<String, dynamic>> publishProject(
     Map<String, dynamic> projectData,
   ) async {
-    final response = await _client.post(ApiEndpoints.projects, data: projectData);
+    final response =
+        await _client.post(ApiEndpoints.projects, data: projectData);
     return response.data as Map<String, dynamic>? ?? {};
   }
 }

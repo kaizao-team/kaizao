@@ -3,15 +3,19 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 
-import '../../../core/config/app_env.dart';
 import '../../../core/network/ai_agent_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/sse_client.dart';
-import '../models/ai_agent_response.dart';
 import '../models/post_models.dart';
 import '../repositories/post_repository.dart';
+
+const _categoryLabels = <String, String>{
+  'data': '数据',
+  'dev': '研发',
+  'design': '视觉设计',
+  'solution': '解决方案',
+};
 
 class PostState {
   final int currentStep;
@@ -19,18 +23,28 @@ class PostState {
   final String? projectId;
   final String? sessionId;
   final String? subStage;
+  final bool? analysisComplete;
   final List<AiChatMessage> messages;
   final AiStreamPhase aiStreamPhase;
-  final bool canGeneratePrd;
   final int completenessScore;
-  final PrdGeneratedData? prdData;
-  final bool isGeneratingPrd;
-  final int prdProgress;
+
+  // Requirement confirmation
+  final bool canConfirmRequirement;
+  final bool isConfirmingRequirement;
+
+  // Project overview (replaces PRD)
+  final ProjectOverviewData? overviewData;
+
+  // Budget
   final double? budgetMin;
   final double? budgetMax;
   final BudgetSuggestion? budgetSuggestion;
-  final MatchMode? matchMode;
-  final bool isPublishing;
+
+  // Team matching
+  final RecommendedTeam? recommendedTeam;
+  final bool isLoadingMatch;
+  final bool isConfirmingMatch;
+
   final String? errorMessage;
   final Map<String, bool> validationErrors;
 
@@ -40,23 +54,23 @@ class PostState {
     this.projectId,
     this.sessionId,
     this.subStage,
+    this.analysisComplete,
     this.messages = const [],
     this.aiStreamPhase = AiStreamPhase.idle,
-    this.canGeneratePrd = false,
     this.completenessScore = 0,
-    this.prdData,
-    this.isGeneratingPrd = false,
-    this.prdProgress = 0,
+    this.canConfirmRequirement = false,
+    this.isConfirmingRequirement = false,
+    this.overviewData,
     this.budgetMin,
     this.budgetMax,
     this.budgetSuggestion,
-    this.matchMode,
-    this.isPublishing = false,
+    this.recommendedTeam,
+    this.isLoadingMatch = false,
+    this.isConfirmingMatch = false,
     this.errorMessage,
     this.validationErrors = const {},
   });
 
-  /// Backward-compatible getter — UI code that checks `isAiTyping` still works.
   bool get isAiTyping => aiStreamPhase != AiStreamPhase.idle;
 
   PostState copyWith({
@@ -65,18 +79,19 @@ class PostState {
     String? Function()? projectId,
     String? Function()? sessionId,
     String? Function()? subStage,
+    bool? Function()? analysisComplete,
     List<AiChatMessage>? messages,
     AiStreamPhase? aiStreamPhase,
-    bool? canGeneratePrd,
     int? completenessScore,
-    PrdGeneratedData? Function()? prdData,
-    bool? isGeneratingPrd,
-    int? prdProgress,
+    bool? canConfirmRequirement,
+    bool? isConfirmingRequirement,
+    ProjectOverviewData? Function()? overviewData,
     double? Function()? budgetMin,
     double? Function()? budgetMax,
     BudgetSuggestion? Function()? budgetSuggestion,
-    MatchMode? Function()? matchMode,
-    bool? isPublishing,
+    RecommendedTeam? Function()? recommendedTeam,
+    bool? isLoadingMatch,
+    bool? isConfirmingMatch,
     String? Function()? errorMessage,
     Map<String, bool>? validationErrors,
   }) {
@@ -86,35 +101,36 @@ class PostState {
       projectId: projectId != null ? projectId() : this.projectId,
       sessionId: sessionId != null ? sessionId() : this.sessionId,
       subStage: subStage != null ? subStage() : this.subStage,
+      analysisComplete:
+          analysisComplete != null ? analysisComplete() : this.analysisComplete,
       messages: messages ?? this.messages,
       aiStreamPhase: aiStreamPhase ?? this.aiStreamPhase,
-      canGeneratePrd: canGeneratePrd ?? this.canGeneratePrd,
       completenessScore: completenessScore ?? this.completenessScore,
-      prdData: prdData != null ? prdData() : this.prdData,
-      isGeneratingPrd: isGeneratingPrd ?? this.isGeneratingPrd,
-      prdProgress: prdProgress ?? this.prdProgress,
+      canConfirmRequirement:
+          canConfirmRequirement ?? this.canConfirmRequirement,
+      isConfirmingRequirement:
+          isConfirmingRequirement ?? this.isConfirmingRequirement,
+      overviewData: overviewData != null ? overviewData() : this.overviewData,
       budgetMin: budgetMin != null ? budgetMin() : this.budgetMin,
       budgetMax: budgetMax != null ? budgetMax() : this.budgetMax,
-      budgetSuggestion: budgetSuggestion != null ? budgetSuggestion() : this.budgetSuggestion,
-      matchMode: matchMode != null ? matchMode() : this.matchMode,
-      isPublishing: isPublishing ?? this.isPublishing,
+      budgetSuggestion:
+          budgetSuggestion != null ? budgetSuggestion() : this.budgetSuggestion,
+      recommendedTeam:
+          recommendedTeam != null ? recommendedTeam() : this.recommendedTeam,
+      isLoadingMatch: isLoadingMatch ?? this.isLoadingMatch,
+      isConfirmingMatch: isConfirmingMatch ?? this.isConfirmingMatch,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       validationErrors: validationErrors ?? this.validationErrors,
     );
   }
-
-  bool get canPublish =>
-      category != null &&
-      prdData != null &&
-      budgetMin != null &&
-      budgetMax != null &&
-      matchMode != null;
 }
 
 class PostNotifier extends StateNotifier<PostState> {
   final PostRepository _repository;
   final AiAgentClient _aiAgent;
   CancelToken? _sseCancelToken;
+  int _streamingGeneration = 0; // cancel stale _simulateStreaming loops
+  bool _expectsFreshAiMessage = false;
 
   PostNotifier(this._repository, {AiAgentClient? aiAgent})
       : _aiAgent = aiAgent ?? AiAgentClient(),
@@ -126,88 +142,136 @@ class PostNotifier extends StateNotifier<PostState> {
     super.dispose();
   }
 
+  String? _readProjectId(Map<String, dynamic> data) {
+    final candidates = [
+      data['project_id'],
+      data['uuid'],
+      data['project_uuid'],
+      data['draft_id'],
+      data['id'],
+      state.projectId,
+    ];
+
+    for (final value in candidates) {
+      final text = value?.toString().trim();
+      if (text != null && text.isNotEmpty) {
+        return text;
+      }
+    }
+    return null;
+  }
+
+  Future<String> _ensureRealProjectId({
+    String? category,
+    int? step,
+  }) async {
+    final existing = state.projectId?.trim();
+    if (existing != null && existing.isNotEmpty) {
+      return existing;
+    }
+
+    final draft = await _repository.createProjectDraft(
+      category: category ?? state.category,
+      budgetMin: state.budgetMin,
+      budgetMax: state.budgetMax,
+      step: step ?? state.currentStep,
+    );
+    final projectId = _readProjectId(draft);
+    if (projectId == null) {
+      throw Exception('Go /api/v1/projects/draft 未返回可用 project id');
+    }
+
+    if (!mounted) return projectId;
+    state = state.copyWith(projectId: () => projectId);
+    return projectId;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Step 0 → Step 1: select category, auto-start SSE conversation
+  // ---------------------------------------------------------------------------
+
   void selectCategory(String category) {
     state = state.copyWith(
       category: () => category,
       currentStep: 1,
+      projectId: () => null,
+      sessionId: () => null,
+      subStage: () => null,
+      analysisComplete: () => null,
+      messages: const [],
+      aiStreamPhase: AiStreamPhase.idle,
       completenessScore: 0,
-      canGeneratePrd: false,
+      canConfirmRequirement: false,
+      isConfirmingRequirement: false,
+      overviewData: () => null,
+      budgetMin: () => null,
+      budgetMax: () => null,
+      budgetSuggestion: () => null,
+      recommendedTeam: () => null,
+      isLoadingMatch: false,
+      isConfirmingMatch: false,
+      errorMessage: () => null,
+      validationErrors: const {},
     );
+
+    _initConversation(category);
   }
 
-  Future<void> sendMessage(String content) async {
-    // Mock path — unchanged synchronous logic
-    if (AppEnv.useMock) {
-      return _sendMessageMock(content);
-    }
-    return _sendMessageSse(content);
+  Future<void> _initConversation(String category) async {
+    return _initConversationSse(category);
   }
 
-  // ---------------------------------------------------------------------------
-  // SSE streaming path
-  // ---------------------------------------------------------------------------
-
-  Future<void> _sendMessageSse(String content) async {
-    // 1. Add user message + empty AI placeholder, enter thinking phase
-    final userMsg = AiChatMessage(
-      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-      content: content,
-      isUser: true,
-      timestamp: DateTime.now(),
-    );
-    final aiPlaceholder = AiChatMessage(
-      id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
-      content: '',
-      isUser: false,
-      timestamp: DateTime.now(),
-    );
+  Future<void> _initConversationSse(String category) async {
+    final label = _categoryLabels[category] ?? category;
+    final initialMessage = '我想做一个$label类的项目';
 
     state = state.copyWith(
-      messages: [...state.messages, userMsg, aiPlaceholder],
+      messages: const [],
       aiStreamPhase: AiStreamPhase.thinking,
       errorMessage: () => null,
     );
 
-    // 2. Choose endpoint based on whether we have a projectId
-    _sseCancelToken?.cancel('new message');
-    _sseCancelToken = CancelToken();
-
-    final String path;
-    final Map<String, dynamic> data;
-
-    if (state.projectId == null) {
-      final newProjectId = const Uuid().v4();
-      path = ApiEndpoints.aiAgentStartStream;
-      data = {'project_id': newProjectId, 'message': content};
-    } else {
-      path = ApiEndpoints.aiAgentMessageStream(state.projectId!);
-      data = {'message': content};
+    try {
+      final newProjectId = await _ensureRealProjectId(
+        category: category,
+        step: 1,
+      );
+      if (!mounted) return;
+      state = state.copyWith(projectId: () => newProjectId);
+    } catch (e) {
+      debugPrint('[SSE] create draft failed: $e');
+      if (!mounted) return;
+      state = state.copyWith(
+        aiStreamPhase: AiStreamPhase.idle,
+        errorMessage: () => e.toString(),
+      );
+      return;
     }
 
-    // 3. Consume SSE events
+    _sseCancelToken?.cancel('new conversation');
+    _sseCancelToken = CancelToken();
+
+    final pid = state.projectId!;
     try {
-      debugPrint('[SSE] Starting stream to $path');
       final stream = _aiAgent.postSseStream(
-        path,
-        data: data,
+        ApiEndpoints.aiAgentStartStream,
+        data: {'project_id': pid, 'message': initialMessage},
         cancelToken: _sseCancelToken,
       );
 
       await for (final event in stream) {
-        debugPrint('[SSE] event=${event.event} data=${event.data.length > 80 ? '${event.data.substring(0, 80)}...' : event.data}');
+        debugPrint(
+          '[SSE] event=${event.event} data=${event.data.length > 80 ? '${event.data.substring(0, 80)}...' : event.data}',
+        );
         if (!mounted) return;
         _handleSseEvent(event);
       }
-      debugPrint('[SSE] Stream ended normally');
 
-      // Stream ended normally — ensure we're idle
       if (mounted && state.aiStreamPhase != AiStreamPhase.idle) {
         state = state.copyWith(aiStreamPhase: AiStreamPhase.idle);
       }
     } on DioException catch (e) {
-      debugPrint('[SSE] DioException: ${e.type} ${e.message}');
       if (e.type == DioExceptionType.cancel) {
-        // Remove the empty AI placeholder left by the cancelled stream
         if (mounted) _removeEmptyTrailingAiMessage();
         return;
       }
@@ -228,10 +292,242 @@ class PostNotifier extends StateNotifier<PostState> {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // SSE option selection (options come from backend via SSE text event)
+  // ---------------------------------------------------------------------------
+
+  void selectSseOption(String messageId, AiChatOption option) {
+    final targetIndex = state.messages.indexWhere((m) => m.id == messageId);
+    if (targetIndex == -1) return;
+
+    final target = state.messages[targetIndex];
+    if (target.optionSelected != null) return;
+
+    final updated = [...state.messages];
+    updated[targetIndex] = target.copyWith(
+      optionSelected: () => option,
+    );
+    state = state.copyWith(messages: updated);
+
+    if (_isRequirementAnalysisComplete()) return;
+
+    _sendMessageSse(option.label, appendUserMessage: false);
+  }
+
+  void submitCustomSseOption(String messageId, String text) {
+    final normalized = text.trim();
+    if (normalized.isEmpty) return;
+
+    final targetIndex = state.messages.indexWhere((m) => m.id == messageId);
+    if (targetIndex == -1) {
+      _sendMessageSse(normalized);
+      return;
+    }
+
+    final target = state.messages[targetIndex];
+    if (target.optionSelected != null) return;
+
+    AiChatOption? customBase;
+    for (final option in target.options ?? const <AiChatOption>[]) {
+      if (option.isCustom) {
+        customBase = option;
+        break;
+      }
+    }
+
+    final updated = [...state.messages];
+    updated[targetIndex] = target.copyWith(
+      optionSelected: () => AiChatOption(
+        key: customBase?.key ?? 'Z',
+        label: normalized,
+        isCustom: true,
+      ),
+    );
+    state = state.copyWith(messages: updated);
+
+    if (_isRequirementAnalysisComplete()) return;
+
+    _sendMessageSse(normalized, appendUserMessage: false);
+  }
+
+  void submitMultiSseOptions(
+    String messageId,
+    List<AiChatOption> selectedOptions,
+  ) {
+    if (selectedOptions.isEmpty) return;
+
+    final targetIndex = state.messages.indexWhere((m) => m.id == messageId);
+    if (targetIndex == -1) return;
+
+    final target = state.messages[targetIndex];
+    if (target.optionsSelected != null && target.optionsSelected!.isNotEmpty) {
+      return;
+    }
+
+    final normalized = <AiChatOption>[];
+    final seen = <String>{};
+    for (final option in selectedOptions) {
+      final key = '${option.key}::${option.label}';
+      if (seen.add(key)) {
+        normalized.add(option);
+      }
+    }
+    if (normalized.isEmpty) return;
+
+    final userContent = normalized.map((option) => option.label).join('、');
+    final updated = [...state.messages];
+    updated[targetIndex] = target.copyWith(
+      optionsSelected: () => normalized,
+    );
+    state = state.copyWith(messages: updated);
+
+    if (_isRequirementAnalysisComplete()) return;
+
+    _sendMessageSse(userContent, appendUserMessage: false);
+  }
+
+  void submitFreeTextSseReply(String messageId, String text) {
+    final normalized = text.trim();
+    if (normalized.isEmpty) return;
+
+    final targetIndex = state.messages.indexWhere((m) => m.id == messageId);
+    if (targetIndex == -1) {
+      _sendMessageSse(normalized);
+      return;
+    }
+
+    final target = state.messages[targetIndex];
+    if (target.isAnswered) return;
+
+    final updated = [...state.messages];
+    updated[targetIndex] = target.copyWith(
+      freeTextAnswer: () => normalized,
+    );
+    state = state.copyWith(messages: updated);
+
+    if (_isRequirementAnalysisComplete()) return;
+
+    _sendMessageSse(normalized, appendUserMessage: false);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Free-text message sending
+  // ---------------------------------------------------------------------------
+
+  Future<void> sendMessage(String content) async {
+    return _sendMessageSse(content);
+  }
+
+  Future<void> _sendMessageSse(
+    String content, {
+    bool appendUserMessage = true,
+  }) async {
+    _streamingGeneration++; // cancel any running streaming
+
+    // Add user message — no AI placeholder yet (added on first text event)
+    final msgs = [...state.messages];
+    _expectsFreshAiMessage = !appendUserMessage;
+
+    // Only add user message if the last message isn't already this user message
+    final needsUserMsg =
+        msgs.isEmpty || !msgs.last.isUser || msgs.last.content != content;
+    if (appendUserMessage && needsUserMsg) {
+      msgs.add(
+        AiChatMessage(
+          id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+          content: content,
+          isUser: true,
+          timestamp: DateTime.now(),
+        ),
+      );
+    }
+
+    state = state.copyWith(
+      messages: msgs,
+      aiStreamPhase: AiStreamPhase.thinking,
+      analysisComplete: () => null,
+      canConfirmRequirement: false,
+      errorMessage: () => null,
+    );
+
+    _sseCancelToken?.cancel('new message');
+    _sseCancelToken = CancelToken();
+
+    final String path;
+    final Map<String, dynamic> data;
+
+    if (state.projectId == null) {
+      try {
+        final newProjectId = await _ensureRealProjectId(
+          step: state.currentStep == 0 ? 1 : state.currentStep,
+        );
+        if (!mounted) return;
+        state = state.copyWith(projectId: () => newProjectId);
+      } catch (e) {
+        debugPrint('[SSE] create draft failed: $e');
+        if (!mounted) return;
+        state = state.copyWith(
+          aiStreamPhase: AiStreamPhase.idle,
+          errorMessage: () => e.toString(),
+        );
+        return;
+      }
+      final pid = state.projectId!;
+      path = ApiEndpoints.aiAgentStartStream;
+      data = {'project_id': pid, 'message': content};
+    } else {
+      path = ApiEndpoints.aiAgentMessageStream(state.projectId!);
+      data = {'message': content};
+    }
+
+    try {
+      debugPrint('[SSE] Starting stream to $path');
+      final stream = _aiAgent.postSseStream(
+        path,
+        data: data,
+        cancelToken: _sseCancelToken,
+      );
+
+      await for (final event in stream) {
+        debugPrint(
+          '[SSE] event=${event.event} data=${event.data.length > 80 ? '${event.data.substring(0, 80)}...' : event.data}',
+        );
+        if (!mounted) return;
+        _handleSseEvent(event);
+      }
+
+      if (mounted && state.aiStreamPhase != AiStreamPhase.idle) {
+        state = state.copyWith(aiStreamPhase: AiStreamPhase.idle);
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) {
+        if (mounted) _removeEmptyTrailingAiMessage();
+        return;
+      }
+      if (!mounted) return;
+      _removeEmptyTrailingAiMessage();
+      state = state.copyWith(
+        aiStreamPhase: AiStreamPhase.idle,
+        errorMessage: () => e.message ?? 'Network error',
+      );
+    } catch (e, st) {
+      debugPrint('[SSE] Error: $e\n$st');
+      if (!mounted) return;
+      _removeEmptyTrailingAiMessage();
+      state = state.copyWith(
+        aiStreamPhase: AiStreamPhase.idle,
+        errorMessage: () => e.toString(),
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // SSE event handling
+  // ---------------------------------------------------------------------------
+
   void _handleSseEvent(SseEvent event) {
     switch (event.event) {
       case 'init':
-        // Backend sends project_id/session_id immediately on connection
         _parseInitPayload(event.data);
 
       case 'thinking':
@@ -239,13 +535,12 @@ class PostNotifier extends StateNotifier<PostState> {
 
       case 'text':
         state = state.copyWith(aiStreamPhase: AiStreamPhase.receiving);
-        _appendToLastAiMessage(event.data);
+        _handleTextEvent(event.data);
 
       case 'tool_call':
         state = state.copyWith(aiStreamPhase: AiStreamPhase.toolCall);
 
       case 'tool_result':
-        // tool_result is informational; stay in toolCall phase
         break;
 
       case 'done':
@@ -267,7 +562,263 @@ class PostNotifier extends StateNotifier<PostState> {
     }
   }
 
-  /// Remove trailing empty AI message left by a cancelled/failed stream.
+  /// Ensure there is an AI placeholder as the last message.
+  /// Returns true if a new one was created.
+  bool _ensureAiPlaceholder() {
+    final msgs = state.messages;
+    if (_expectsFreshAiMessage) {
+      _expectsFreshAiMessage = false;
+      state = state.copyWith(
+        messages: [
+          ...msgs,
+          AiChatMessage(
+            id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+            content: '',
+            isUser: false,
+            timestamp: DateTime.now(),
+          ),
+        ],
+      );
+      return true;
+    }
+    if (msgs.isNotEmpty && !msgs.last.isUser) return false;
+    state = state.copyWith(
+      messages: [
+        ...msgs,
+        AiChatMessage(
+          id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+          content: '',
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      ],
+    );
+    return true;
+  }
+
+  bool _isRequirementAnalysisComplete() {
+    return state.analysisComplete ?? state.canConfirmRequirement;
+  }
+
+  bool _canConfirmFromProgress({
+    String? subStage,
+    int? completenessScore,
+  }) {
+    return subStage == 'prd_draft' ||
+        (completenessScore != null && completenessScore >= 60);
+  }
+
+  String _buildOverviewTitle() {
+    final categoryLabel = state.category != null
+        ? _categoryLabels[state.category!] ?? state.category!
+        : null;
+    if (categoryLabel != null && categoryLabel.isNotEmpty) {
+      return '$categoryLabel项目需求';
+    }
+    return '项目需求';
+  }
+
+  String _buildOverviewSummaryFromMessages() {
+    for (final message in state.messages.reversed) {
+      if (message.isUser) continue;
+      final content = message.content.trim();
+      if (content.isEmpty) continue;
+      if (message.hasOptions) continue;
+      return content;
+    }
+    return 'PRD 已确认。当前阶段只锁定需求范围与方向，正式 requirement.md 会在撮合成功并确认合作后由后端触发 EARS 拆解生成。';
+  }
+
+  int? _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  String _normalizeQuestionText(String text) {
+    return text.trim();
+  }
+
+  Map<String, dynamic>? _asJsonMap(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, mapValue) => MapEntry('$key', mapValue));
+    }
+    return null;
+  }
+
+  bool _isCustomLikeLabel(Object? value) {
+    final text = value?.toString().trim().toLowerCase();
+    if (text == null || text.isEmpty) return false;
+    return text == '其他' ||
+        text == '其它' ||
+        text == 'other' ||
+        text.startsWith('其他') ||
+        text.startsWith('其它');
+  }
+
+  List<AiChatOption> _parseOptions(
+    Object? rawOptions, {
+    bool allowCustom = false,
+  }) {
+    final options = <AiChatOption>[];
+    final seen = <String>{};
+
+    if (rawOptions is List) {
+      for (int i = 0; i < rawOptions.length; i++) {
+        final raw = rawOptions[i];
+        if (raw is String) {
+          final label = raw.trim();
+          if (label.isEmpty) continue;
+          final option = AiChatOption(
+            key: String.fromCharCode(65 + i),
+            label: label,
+            isCustom: _isCustomLikeLabel(label),
+          );
+          final dedupeKey = option.isCustom
+              ? '__custom__'
+              : '${option.key.toUpperCase()}::$label';
+          if (seen.add(dedupeKey)) {
+            options.add(option);
+          }
+          continue;
+        }
+
+        final optionJson = _asJsonMap(raw);
+        if (optionJson == null) continue;
+
+        final label = optionJson['label']?.toString().trim() ?? '';
+        if (label.isEmpty) continue;
+        final option = AiChatOption(
+          key: optionJson['key'] as String? ?? String.fromCharCode(65 + i),
+          label: label,
+          isCustom: (optionJson['is_custom'] as bool? ?? false) ||
+              _isCustomLikeLabel(label),
+        );
+        final dedupeKey = option.isCustom
+            ? '__custom__'
+            : '${option.key.toUpperCase()}::$label';
+        if (seen.add(dedupeKey)) {
+          options.add(option);
+        }
+      }
+    }
+
+    if (allowCustom && !options.any((option) => option.isCustom)) {
+      options.add(const AiChatOption(key: 'Z', label: '其他', isCustom: true));
+    }
+
+    return options;
+  }
+
+  AiChatInputType _parseInputType(
+    Map<String, dynamic> payload, [
+    Map<String, dynamic>? question,
+  ]) {
+    final rawInputType =
+        (question?['input_type'] ?? payload['input_type']) as String?;
+    final parsed = AiChatInputType.fromBackend(rawInputType);
+    if (parsed != AiChatInputType.unknown) return parsed;
+
+    final rawOptions = question?['options'] ?? payload['options'];
+    if (rawOptions is List && rawOptions.isNotEmpty) {
+      return AiChatInputType.singleChoice;
+    }
+
+    return AiChatInputType.unknown;
+  }
+
+  void _upsertStructuredAiMessage({
+    String? messageId,
+    required String content,
+    required List<AiChatOption> options,
+    required AiChatInputType inputType,
+    int? minSelections,
+    int? maxSelections,
+    String? placeholder,
+  }) {
+    final msgs = [...state.messages];
+
+    if (_expectsFreshAiMessage) {
+      _expectsFreshAiMessage = false;
+    } else if (msgs.isNotEmpty && !msgs.last.isUser) {
+      final current = msgs.last;
+      msgs[msgs.length - 1] = current.copyWith(
+        content: content.isNotEmpty ? content : current.content,
+        inputType: inputType,
+        options: () => options,
+        minSelections: () => minSelections,
+        maxSelections: () => maxSelections,
+        placeholder: () => placeholder,
+      );
+      state = state.copyWith(messages: msgs);
+      return;
+    }
+
+    if (content.isEmpty && options.isEmpty) return;
+
+    msgs.add(
+      AiChatMessage(
+        id: messageId ?? 'ai_${DateTime.now().millisecondsSinceEpoch}',
+        content: content,
+        isUser: false,
+        timestamp: DateTime.now(),
+        inputType: inputType,
+        options: options,
+        minSelections: minSelections,
+        maxSelections: maxSelections,
+        placeholder: placeholder,
+      ),
+    );
+    state = state.copyWith(messages: msgs);
+  }
+
+  /// Handle SSE text event: try JSON with options, fallback to plain text.
+  void _handleTextEvent(String data) {
+    // Cancel any running _simulateStreaming loop from a previous text event
+    _streamingGeneration++;
+
+    _ensureAiPlaceholder();
+
+    try {
+      final json = jsonDecode(data) as Map<String, dynamic>;
+      final question = _asJsonMap(json['question']);
+      final rawContent =
+          (question?['content'] ?? json['content'])?.toString() ?? '';
+      final content = _normalizeQuestionText(rawContent);
+      final allowCustom =
+          (question?['allow_custom'] ?? json['allow_custom']) as bool? ?? false;
+      final placeholder =
+          (question?['placeholder'] ?? json['placeholder'])?.toString().trim();
+      final inputType = _parseInputType(json, question);
+      final options = _parseOptions(
+        question?['options'] ?? json['options'],
+        allowCustom: allowCustom,
+      );
+
+      if (question != null || inputType != AiChatInputType.unknown) {
+        _upsertStructuredAiMessage(
+          content: content,
+          options: options,
+          inputType: inputType,
+          minSelections: _asInt(question?['min_select'] ?? json['min_select']),
+          maxSelections: _asInt(question?['max_select'] ?? json['max_select']),
+          placeholder: placeholder,
+        );
+        return;
+      }
+
+      // JSON but no options — treat content as plain text
+      if (content.isNotEmpty) {
+        _simulateStreaming(content);
+      }
+    } catch (_) {
+      // Not JSON — plain text streaming (original behavior)
+      _simulateStreaming(data);
+    }
+  }
+
   void _removeEmptyTrailingAiMessage() {
     final msgs = state.messages;
     if (msgs.isNotEmpty && !msgs.last.isUser && msgs.last.content.isEmpty) {
@@ -283,6 +834,26 @@ class PostNotifier extends StateNotifier<PostState> {
     state = state.copyWith(messages: msgs);
   }
 
+  void _simulateStreaming(String text) {
+    const chunkSize = 2;
+    const chunkDelay = Duration(milliseconds: 25);
+    final gen = _streamingGeneration; // capture current generation
+    int offset = 0;
+    Future.doWhile(() async {
+      // Stop if disposed, generation changed (new text event), or done
+      if (!mounted || gen != _streamingGeneration || offset >= text.length) {
+        return false;
+      }
+      final end = (offset + chunkSize).clamp(0, text.length);
+      _appendToLastAiMessage(text.substring(offset, end));
+      offset = end;
+      if (offset < text.length) {
+        await Future.delayed(chunkDelay);
+      }
+      return offset < text.length && mounted && gen == _streamingGeneration;
+    });
+  }
+
   void _parseInitPayload(String rawData) {
     try {
       final json = jsonDecode(rawData) as Map<String, dynamic>;
@@ -293,9 +864,7 @@ class PostNotifier extends StateNotifier<PostState> {
         projectId: projectId != null ? () => projectId : null,
         sessionId: sessionId != null ? () => sessionId : null,
       );
-    } catch (_) {
-      // best-effort
-    }
+    } catch (_) {}
   }
 
   void _parseDonePayload(String rawData) {
@@ -303,165 +872,216 @@ class PostNotifier extends StateNotifier<PostState> {
       final json = jsonDecode(rawData) as Map<String, dynamic>;
       final projectId = json['project_id'] as String?;
       final sessionId = json['session_id'] as String?;
+      final subStage = json['sub_stage'] as String?;
+      final score = _asInt(json['completeness_score']);
+      final analysisComplete = json['analysis_complete'] as bool?;
+      final nextSubStage = subStage ?? state.subStage;
+      final nextScore = score ?? state.completenessScore;
+      final canConfirm = analysisComplete ??
+          _canConfirmFromProgress(
+            subStage: nextSubStage,
+            completenessScore: nextScore,
+          );
+
       state = state.copyWith(
         projectId: projectId != null ? () => projectId : null,
         sessionId: sessionId != null ? () => sessionId : null,
+        subStage: subStage != null ? () => subStage : null,
+        analysisComplete:
+            analysisComplete != null ? () => analysisComplete : null,
+        completenessScore: nextScore,
+        canConfirmRequirement: canConfirm,
       );
-    } catch (_) {
-      // done data may not be valid JSON — that's fine
-    }
+
+      final question = _asJsonMap(json['question']);
+      if (question == null) return;
+
+      final rawContent =
+          (question['content'] ?? json['content'])?.toString() ?? '';
+      final content = _normalizeQuestionText(rawContent);
+      final allowCustom =
+          (question['allow_custom'] ?? json['allow_custom']) as bool? ?? false;
+      final placeholder =
+          (question['placeholder'] ?? json['placeholder'])?.toString().trim();
+      final options = _parseOptions(
+        question['options'] ?? json['options'],
+        allowCustom: allowCustom,
+      );
+
+      if (content.isEmpty && options.isEmpty) return;
+
+      _upsertStructuredAiMessage(
+        messageId: question['id'] as String?,
+        content: content,
+        options: options,
+        inputType: _parseInputType(json, question),
+        minSelections: _asInt(question['min_select'] ?? json['min_select']),
+        maxSelections: _asInt(question['max_select'] ?? json['max_select']),
+        placeholder: placeholder,
+      );
+    } catch (_) {}
   }
 
   void _parseStageInfo(String rawData) {
     try {
       final json = jsonDecode(rawData) as Map<String, dynamic>;
       final subStage = json['sub_stage'] as String?;
-      final score = json['completeness_score'] as int?;
-      final canPrd = subStage == 'prd_draft' || (score != null && score >= 60);
+      final score = _asInt(json['completeness_score']);
+      final nextSubStage = subStage ?? state.subStage;
+      final nextScore = score ?? state.completenessScore;
+      final canConfirm = state.analysisComplete ??
+          _canConfirmFromProgress(
+            subStage: nextSubStage,
+            completenessScore: nextScore,
+          );
       state = state.copyWith(
         subStage: subStage != null ? () => subStage : null,
-        completenessScore: score,
-        canGeneratePrd: canPrd,
+        completenessScore: nextScore,
+        canConfirmRequirement: canConfirm,
       );
-    } catch (_) {
-      // best-effort parsing
-    }
+    } catch (_) {}
   }
 
   // ---------------------------------------------------------------------------
-  // Mock path — original synchronous logic
+  // Step 1 → Step 2: confirm requirement → project overview
   // ---------------------------------------------------------------------------
 
-  Future<void> _sendMessageMock(String content) async {
-    final userMsg = AiChatMessage(
-      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-      content: content,
-      isUser: true,
-      timestamp: DateTime.now(),
-    );
+  Future<void> confirmRequirement() async {
+    // Kill any running SSE stream first
+    _sseCancelToken?.cancel('confirm requirement');
+    _sseCancelToken = null;
+    _streamingGeneration++;
 
     state = state.copyWith(
-      messages: [...state.messages, userMsg],
-      aiStreamPhase: AiStreamPhase.thinking,
+      isConfirmingRequirement: true,
+      aiStreamPhase: AiStreamPhase.idle,
       errorMessage: () => null,
     );
 
     try {
-      final AiAgentResponse response;
-      if (state.projectId == null) {
-        final newProjectId = const Uuid().v4();
-        response = await _repository.startRequirement(newProjectId, content);
-      } else {
-        response = await _repository.sendMessage(state.projectId!, content);
-      }
+      final pid = state.projectId;
+      if (pid == null) throw Exception('No project ID');
+
+      final confirmResult = await _repository.confirmRequirement(pid);
       if (!mounted) return;
 
-      final aiMsg = AiChatMessage(
-        id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
-        content: response.agentMessage,
-        isUser: false,
-        timestamp: DateTime.now(),
-      );
+      final subStage = confirmResult['sub_stage']?.toString();
+      final score = _asInt(confirmResult['completeness_score']) ?? 100;
 
       state = state.copyWith(
-        messages: [...state.messages, aiMsg],
-        aiStreamPhase: AiStreamPhase.idle,
-        canGeneratePrd: response.canGeneratePrd,
-        completenessScore: response.completenessScore,
-        subStage: () => response.subStage,
-        projectId: () => response.projectId,
-        sessionId: () => response.sessionId,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      state = state.copyWith(
-        aiStreamPhase: AiStreamPhase.idle,
-        errorMessage: () => e.toString(),
-      );
-    }
-  }
-
-  Future<void> generatePrd() async {
-    state = state.copyWith(isGeneratingPrd: true, prdProgress: 0);
-
-    final steps = ['分析需求...', '构建模块结构...', '生成EARS卡片...', '完成PRD文档'];
-    for (int i = 0; i < steps.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
-      state = state.copyWith(prdProgress: ((i + 1) / steps.length * 100).round());
-    }
-
-    try {
-      final chatHistory = state.messages
-          .map((m) => {'role': m.isUser ? 'user' : 'assistant', 'content': m.content})
-          .toList();
-      final result = await _repository.generatePrd(state.category ?? '', chatHistory);
-      if (!mounted) return;
-
-      final prdData = PrdGeneratedData.fromJson(result);
-      state = state.copyWith(
-        isGeneratingPrd: false,
-        prdData: () => prdData,
-        budgetSuggestion: () => prdData.budgetSuggestion,
-        budgetMin: () => prdData.budgetSuggestion?.min,
-        budgetMax: () => prdData.budgetSuggestion?.max,
+        isConfirmingRequirement: false,
+        subStage: subStage != null ? () => subStage : null,
+        completenessScore: score,
+        analysisComplete: () => true,
+        canConfirmRequirement: false,
+        overviewData: () => ProjectOverviewData(
+          projectId: pid,
+          title: _buildOverviewTitle(),
+          summary: _buildOverviewSummaryFromMessages(),
+        ),
         currentStep: 2,
       );
     } catch (e) {
       if (!mounted) return;
       state = state.copyWith(
-        isGeneratingPrd: false,
-        errorMessage: () => e.toString(),
+        isConfirmingRequirement: false,
+        errorMessage: () => '确认需求失败: $e',
       );
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Step 2 → Step 3: budget
+  // ---------------------------------------------------------------------------
 
   void setBudget(double min, double max) {
     state = state.copyWith(
       budgetMin: () => min,
       budgetMax: () => max,
-      currentStep: 3,
     );
   }
 
-  void setMatchMode(MatchMode mode) {
-    state = state.copyWith(matchMode: () => mode);
-  }
+  // ---------------------------------------------------------------------------
+  // Step 3 → Step 4: auto-match team
+  // ---------------------------------------------------------------------------
 
-  Map<String, bool> validate() {
-    final errors = <String, bool>{};
-    if (state.category == null) errors['category'] = true;
-    if (state.prdData == null) errors['prd'] = true;
-    if (state.budgetMin == null || state.budgetMax == null) errors['budget'] = true;
-    if (state.matchMode == null) errors['matchMode'] = true;
-    state = state.copyWith(validationErrors: errors);
-    return errors;
-  }
+  Future<void> requestMatch() async {
+    state = state.copyWith(
+      isLoadingMatch: true,
+      recommendedTeam: () => null,
+      errorMessage: () => null,
+    );
 
-  Future<String?> publish() async {
-    final errors = validate();
-    if (errors.isNotEmpty) return null;
-
-    state = state.copyWith(isPublishing: true, errorMessage: () => null);
     try {
-      final result = await _repository.publishProject({
-        'category': state.category,
-        'prd_id': state.prdData?.prdId,
-        'budget_min': state.budgetMin,
-        'budget_max': state.budgetMax,
-        'match_mode': state.matchMode?.value,
-      });
-      if (!mounted) return null;
+      final pid = state.projectId;
+      if (pid == null) throw Exception('No project ID');
 
-      state = state.copyWith(isPublishing: false);
-      return result['id'] as String?;
+      final result = await _repository.recommendTeam(pid);
+      if (!mounted) return;
+
+      final teams = result['teams'] as List? ?? result['data'] as List? ?? [];
+      if (teams.isNotEmpty) {
+        final team = RecommendedTeam.fromJson(
+          teams.first as Map<String, dynamic>,
+        );
+        state = state.copyWith(
+          isLoadingMatch: false,
+          recommendedTeam: () => team,
+        );
+      } else {
+        state = state.copyWith(
+          isLoadingMatch: false,
+          errorMessage: () => 'match/recommend 未返回可用团队',
+        );
+      }
     } catch (e) {
-      if (!mounted) return null;
+      if (!mounted) return;
       state = state.copyWith(
-        isPublishing: false,
+        isLoadingMatch: false,
+        errorMessage: () => '匹配团队失败: $e',
+      );
+    }
+  }
+
+  Future<void> reMatch() async => requestMatch();
+
+  // ---------------------------------------------------------------------------
+  // Step 4 → Step 5: confirm team match
+  // ---------------------------------------------------------------------------
+
+  Future<void> confirmTeamMatch() async {
+    final team = state.recommendedTeam;
+    if (team == null) return;
+
+    state = state.copyWith(isConfirmingMatch: true, errorMessage: () => null);
+
+    try {
+      await _repository.confirmMatch(
+        state.projectId ?? '',
+        team.teamId,
+      );
+      if (!mounted) return;
+
+      state = state.copyWith(
+        isConfirmingMatch: false,
+        currentStep: 5,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+        isConfirmingMatch: false,
         errorMessage: () => e.toString(),
       );
-      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Navigation + utility
+  // ---------------------------------------------------------------------------
+
+  void goToStep(int step) {
+    if (step >= 0 && step <= 5) {
+      state = state.copyWith(currentStep: step);
     }
   }
 
@@ -471,18 +1091,9 @@ class PostNotifier extends StateNotifier<PostState> {
         'category': state.category,
         'budget_min': state.budgetMin,
         'budget_max': state.budgetMax,
-        'match_mode': state.matchMode?.value,
         'step': state.currentStep,
       });
-    } catch (_) {
-      // draft save is best-effort
-    }
-  }
-
-  void goToStep(int step) {
-    if (step >= 0 && step <= 4) {
-      state = state.copyWith(currentStep: step);
-    }
+    } catch (_) {}
   }
 }
 

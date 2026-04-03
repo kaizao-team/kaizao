@@ -54,6 +54,13 @@ class AiAgentClient {
     return {};
   }
 
+  Future<Map<String, dynamic>> get(String path) async {
+    final response = await _dio.get(path);
+    final body = response.data;
+    if (body is Map<String, dynamic>) return body;
+    return {};
+  }
+
   /// Open an SSE stream via POST. Returns parsed [SseEvent]s.
   ///
   /// The caller should use `await for` to consume events and pass a

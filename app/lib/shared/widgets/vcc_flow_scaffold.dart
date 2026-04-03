@@ -14,6 +14,7 @@ class VccFlowScaffold extends StatelessWidget {
   final String title;
   final String subtitle;
   final String? compactTitle;
+  final String? titleTag;
   final VoidCallback? onBack;
   final VoidCallback? onClose;
   final List<Widget> slivers;
@@ -31,6 +32,7 @@ class VccFlowScaffold extends StatelessWidget {
     required this.subtitle,
     required this.slivers,
     this.compactTitle,
+    this.titleTag,
     this.onBack,
     this.onClose,
     this.footer,
@@ -62,6 +64,7 @@ class VccFlowScaffold extends StatelessWidget {
                     title: title,
                     subtitle: subtitle,
                     compactTitle: compactTitle ?? title,
+                    titleTag: titleTag,
                     onBack: onBack,
                     onClose: onClose,
                     backgroundColor: backgroundColor,
@@ -372,6 +375,7 @@ class _VccFlowHeaderDelegate extends SliverPersistentHeaderDelegate {
   final String title;
   final String subtitle;
   final String compactTitle;
+  final String? titleTag;
   final VoidCallback? onBack;
   final VoidCallback? onClose;
   final Color backgroundColor;
@@ -384,6 +388,7 @@ class _VccFlowHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.title,
     required this.subtitle,
     required this.compactTitle,
+    required this.titleTag,
     required this.onBack,
     required this.onClose,
     required this.backgroundColor,
@@ -409,7 +414,8 @@ class _VccFlowHeaderDelegate extends SliverPersistentHeaderDelegate {
         1 - Curves.easeOut.transform(((progress - 0.2) / 0.4).clamp(0.0, 1.0));
     final compactIndicatorOpacity =
         Curves.easeOut.transform(((progress - 0.4) / 0.4).clamp(0.0, 1.0));
-    final shadowOpacity =
+    // Immersive design: no shadow, only a subtle divider at full collapse.
+    final dividerOpacity =
         Curves.easeOut.transform(((progress - 0.85) / 0.15).clamp(0.0, 1.0));
     final compactTitleOpacity = compactTitle == title
         ? 0.0
@@ -417,11 +423,8 @@ class _VccFlowHeaderDelegate extends SliverPersistentHeaderDelegate {
     final movingTitleOpacity =
         compactTitle == title ? 1.0 : (1 - compactTitleOpacity).clamp(0.0, 1.0);
 
-    final background = Color.lerp(
-      backgroundColor,
-      AppColors.onboardingSurface,
-      progress,
-    )!;
+    // Immersive: background stays page color, no lerp to white surface.
+    final background = backgroundColor;
     final toolbarTop = topPadding + ((_toolbarHeight - _actionSize) / 2);
     final compactIndicatorTop = topPadding + ((_toolbarHeight - 28) / 2);
     final expandedTitleTop = topPadding + _toolbarHeight + 4;
@@ -449,6 +452,7 @@ class _VccFlowHeaderDelegate extends SliverPersistentHeaderDelegate {
     final titleWeight =
         FontWeight.lerp(FontWeight.w700, FontWeight.w600, progress) ??
             FontWeight.w600;
+    final hasTitleTag = titleTag?.trim().isNotEmpty == true;
 
     final subtitleTop = expandedTitleTop + 28;
     final expandedIndicatorTop = subtitleTop + 42;
@@ -456,20 +460,15 @@ class _VccFlowHeaderDelegate extends SliverPersistentHeaderDelegate {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: background,
-        boxShadow: shadowOpacity == 0
-            ? null
-            : [
-                BoxShadow(
-                  color: Color.fromRGBO(
-                    0,
-                    0,
-                    0,
-                    0.04 * shadowOpacity,
-                  ),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+        // Immersive: thin bottom border instead of shadow/solid bar
+        border: dividerOpacity > 0
+            ? Border(
+                bottom: BorderSide(
+                  color: AppColors.gray200.withValues(alpha: dividerOpacity),
+                  width: 0.5,
                 ),
-              ],
+              )
+            : null,
       ),
       child: Stack(
         fit: StackFit.expand,
@@ -498,16 +497,16 @@ class _VccFlowHeaderDelegate extends SliverPersistentHeaderDelegate {
             child: IgnorePointer(
               child: Opacity(
                 opacity: movingTitleOpacity,
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.h2.copyWith(
+                child: _HeaderTitleRow(
+                  title: title,
+                  titleStyle: AppTextStyles.h2.copyWith(
                     fontSize: titleFontSize,
                     fontWeight: titleWeight,
                     height: 1.18,
                     color: AppColors.gray800,
                   ),
+                  titleTag: hasTitleTag ? titleTag : null,
+                  compact: progress > 0.55,
                 ),
               ),
             ),
@@ -524,16 +523,16 @@ class _VccFlowHeaderDelegate extends SliverPersistentHeaderDelegate {
               child: IgnorePointer(
                 child: Opacity(
                   opacity: compactTitleOpacity,
-                  child: Text(
-                    compactTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.h3.copyWith(
+                  child: _HeaderTitleRow(
+                    title: compactTitle,
+                    titleStyle: AppTextStyles.h3.copyWith(
                       fontSize: _collapsedTitleFontSize,
                       fontWeight: FontWeight.w600,
                       height: 1.2,
                       color: AppColors.gray800,
                     ),
+                    titleTag: hasTitleTag ? titleTag : null,
+                    compact: true,
                   ),
                 ),
               ),
@@ -609,9 +608,107 @@ class _VccFlowHeaderDelegate extends SliverPersistentHeaderDelegate {
         title != oldDelegate.title ||
         subtitle != oldDelegate.subtitle ||
         compactTitle != oldDelegate.compactTitle ||
+        titleTag != oldDelegate.titleTag ||
         onBack != oldDelegate.onBack ||
         onClose != oldDelegate.onClose ||
         backgroundColor != oldDelegate.backgroundColor;
+  }
+}
+
+class _HeaderTitleRow extends StatelessWidget {
+  final String title;
+  final TextStyle titleStyle;
+  final String? titleTag;
+  final bool compact;
+
+  const _HeaderTitleRow({
+    required this.title,
+    required this.titleStyle,
+    required this.titleTag,
+    required this.compact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: titleStyle,
+          ),
+        ),
+        if (titleTag != null) ...[
+          SizedBox(width: compact ? 8 : 10),
+          _HeaderTitleTag(
+            label: titleTag!,
+            compact: compact,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _HeaderTitleTag extends StatelessWidget {
+  final String label;
+  final bool compact;
+
+  const _HeaderTitleTag({
+    required this.label,
+    required this.compact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 10,
+        vertical: compact ? 4 : 5,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.onboardingSurface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: AppColors.gray300,
+        ),
+        boxShadow: compact
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color.fromRGBO(17, 17, 17, 0.04),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: compact ? 5 : 6,
+            height: compact ? 5 : 6,
+            decoration: const BoxDecoration(
+              color: AppColors.black,
+              shape: BoxShape.circle,
+            ),
+          ),
+          SizedBox(width: compact ? 5 : 6),
+          Text(
+            label,
+            style:
+                (compact ? AppTextStyles.caption : AppTextStyles.onboardingMeta)
+                    .copyWith(
+              color: AppColors.gray800,
+              fontWeight: FontWeight.w700,
+              letterSpacing: compact ? 0 : 0.45,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
