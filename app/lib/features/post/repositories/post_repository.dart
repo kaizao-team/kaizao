@@ -75,7 +75,9 @@ class PostRepository {
         if (title != null) 'title': title,
       },
     );
-    return AiAgentResponse.fromJson(body);
+    return AiAgentResponse.fromJson(
+      _unwrapAiAgentEnvelope(body, operation: 'Start requirement'),
+    );
   }
 
   /// Subsequent turns: continue the conversation.
@@ -87,7 +89,9 @@ class PostRepository {
       ApiEndpoints.aiAgentMessage(projectId),
       data: {'message': message},
     );
-    return AiAgentResponse.fromJson(body);
+    return AiAgentResponse.fromJson(
+      _unwrapAiAgentEnvelope(body, operation: 'Send requirement message'),
+    );
   }
 
   /// Confirm the PRD. This is now a lightweight ack only.

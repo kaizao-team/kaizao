@@ -145,6 +145,7 @@ class PostNotifier extends StateNotifier<PostState> {
   final PostRepository _repository;
   final AiAgentClient _aiAgent;
   CancelToken? _sseCancelToken;
+  int _requestGeneration = 0;
   int _streamingGeneration = 0; // cancel stale _simulateStreaming loops
   bool _expectsFreshAiMessage = false;
 
@@ -243,6 +244,10 @@ class PostNotifier extends StateNotifier<PostState> {
   Future<void> _initConversationSse(String category) async {
     final label = _categoryLabels[category] ?? category;
     final initialMessage = '我想做一个$label类的项目';
+    final requestGeneration = ++_requestGeneration;
+
+    _sseCancelToken?.cancel('new conversation');
+    _sseCancelToken = CancelToken();
 
     state = state.copyWith(
       messages: const [],
@@ -255,20 +260,17 @@ class PostNotifier extends StateNotifier<PostState> {
         category: category,
         step: 1,
       );
-      if (!mounted) return;
+      if (!mounted || requestGeneration != _requestGeneration) return;
       state = state.copyWith(projectId: () => newProjectId);
     } catch (e) {
       debugPrint('[SSE] create draft failed: $e');
-      if (!mounted) return;
+      if (!mounted || requestGeneration != _requestGeneration) return;
       state = state.copyWith(
         aiStreamPhase: AiStreamPhase.idle,
         errorMessage: () => e.toString(),
       );
       return;
     }
-
-    _sseCancelToken?.cancel('new conversation');
-    _sseCancelToken = CancelToken();
 
     final pid = state.projectId!;
     try {
@@ -282,11 +284,13 @@ class PostNotifier extends StateNotifier<PostState> {
         debugPrint(
           '[SSE] event=${event.event} data=${event.data.length > 80 ? '${event.data.substring(0, 80)}...' : event.data}',
         );
-        if (!mounted) return;
+        if (!mounted || requestGeneration != _requestGeneration) return;
         _handleSseEvent(event);
       }
 
-      if (mounted && state.aiStreamPhase != AiStreamPhase.idle) {
+      if (mounted &&
+          requestGeneration == _requestGeneration &&
+          state.aiStreamPhase != AiStreamPhase.idle) {
         state = state.copyWith(aiStreamPhase: AiStreamPhase.idle);
       }
     } on DioException catch (e) {
@@ -294,7 +298,7 @@ class PostNotifier extends StateNotifier<PostState> {
         if (mounted) _removeEmptyTrailingAiMessage();
         return;
       }
-      if (!mounted) return;
+      if (!mounted || requestGeneration != _requestGeneration) return;
       _removeEmptyTrailingAiMessage();
       state = state.copyWith(
         aiStreamPhase: AiStreamPhase.idle,
@@ -302,7 +306,7 @@ class PostNotifier extends StateNotifier<PostState> {
       );
     } catch (e, st) {
       debugPrint('[SSE] Error: $e\n$st');
-      if (!mounted) return;
+      if (!mounted || requestGeneration != _requestGeneration) return;
       _removeEmptyTrailingAiMessage();
       state = state.copyWith(
         aiStreamPhase: AiStreamPhase.idle,
@@ -441,6 +445,7 @@ class PostNotifier extends StateNotifier<PostState> {
     String content, {
     bool appendUserMessage = true,
   }) async {
+    final requestGeneration = ++_requestGeneration;
     _streamingGeneration++; // cancel any running streaming
 
     // Add user message — no AI placeholder yet (added on first text event)
@@ -480,11 +485,11 @@ class PostNotifier extends StateNotifier<PostState> {
         final newProjectId = await _ensureRealProjectId(
           step: state.currentStep == 0 ? 1 : state.currentStep,
         );
-        if (!mounted) return;
+        if (!mounted || requestGeneration != _requestGeneration) return;
         state = state.copyWith(projectId: () => newProjectId);
       } catch (e) {
         debugPrint('[SSE] create draft failed: $e');
-        if (!mounted) return;
+        if (!mounted || requestGeneration != _requestGeneration) return;
         state = state.copyWith(
           aiStreamPhase: AiStreamPhase.idle,
           errorMessage: () => e.toString(),
@@ -511,11 +516,13 @@ class PostNotifier extends StateNotifier<PostState> {
         debugPrint(
           '[SSE] event=${event.event} data=${event.data.length > 80 ? '${event.data.substring(0, 80)}...' : event.data}',
         );
-        if (!mounted) return;
+        if (!mounted || requestGeneration != _requestGeneration) return;
         _handleSseEvent(event);
       }
 
-      if (mounted && state.aiStreamPhase != AiStreamPhase.idle) {
+      if (mounted &&
+          requestGeneration == _requestGeneration &&
+          state.aiStreamPhase != AiStreamPhase.idle) {
         state = state.copyWith(aiStreamPhase: AiStreamPhase.idle);
       }
     } on DioException catch (e) {
@@ -523,7 +530,7 @@ class PostNotifier extends StateNotifier<PostState> {
         if (mounted) _removeEmptyTrailingAiMessage();
         return;
       }
-      if (!mounted) return;
+      if (!mounted || requestGeneration != _requestGeneration) return;
       _removeEmptyTrailingAiMessage();
       state = state.copyWith(
         aiStreamPhase: AiStreamPhase.idle,
@@ -969,6 +976,7 @@ class PostNotifier extends StateNotifier<PostState> {
     // Kill any running SSE stream first
     _sseCancelToken?.cancel('confirm requirement');
     _sseCancelToken = null;
+    _requestGeneration++;
     _streamingGeneration++;
 
     state = state.copyWith(

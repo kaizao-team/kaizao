@@ -2,13 +2,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../config/app_env.dart';
+import '../storage/storage_service.dart';
 import 'sse_client.dart';
 
-/// Lightweight Dio client for the AI Agent (Python) service.
-/// Separate from ApiClient — no MockInterceptor, no JWT, longer timeouts.
+/// Dedicated Dio client for the AI Agent (Python) service.
+/// Keeps the longer SSE-friendly timeouts while reusing app auth headers.
 class AiAgentClient {
   static AiAgentClient? _instance;
   late final Dio _dio;
+  final StorageService _storage = StorageService();
 
   AiAgentClient._() {
     _dio = Dio(
@@ -20,6 +22,22 @@ class AiAgentClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+        },
+      ),
+    );
+
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await _storage.getAccessToken();
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+
+          options.headers['X-Device-Type'] =
+              defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+          options.headers['X-App-Version'] = '1.0.0';
+          handler.next(options);
         },
       ),
     );

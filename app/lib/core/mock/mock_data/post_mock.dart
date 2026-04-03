@@ -6,6 +6,7 @@ class PostMock {
   PostMock._();
 
   static int _draftCount = 0;
+  static final _conversationStates = <String, _MockConversationState>{};
 
   static void register(Map<String, MockHandler> handlers) {
     handlers['POST:/api/v1/projects/ai-chat'] = MockHandler(
@@ -38,9 +39,6 @@ class PostMock {
       handler: (options) => _publishProject(options),
     );
   }
-
-  static int _turnCount = 0;
-  static String? _activeCategory;
 
   static final _categoryScripts = <String, List<Map<String, dynamic>>>{
     'data': [
@@ -186,15 +184,15 @@ class PostMock {
     final userMessage = data['message'] as String? ?? '';
     final category = _normalizeCategory(data['category'] as String?);
     final scripts = _categoryScripts[category] ?? _categoryScripts['dev']!;
-
-    if (_activeCategory != category) {
-      _activeCategory = category;
-      _turnCount = 0;
-    }
-
-    _turnCount += 1;
+    final conversationKey = _resolveConversationKey(data);
+    final turnCount = conversationKey == null
+        ? 1
+        : _nextConversationTurn(
+            conversationKey: conversationKey,
+            category: category,
+          );
     final scriptIndex =
-        _turnCount <= scripts.length ? _turnCount - 1 : scripts.length - 1;
+        turnCount <= scripts.length ? turnCount - 1 : scripts.length - 1;
     final script = scripts[scriptIndex];
     final safeMessage =
         userMessage.trim().isEmpty ? _defaultUserMessage(category) : userMessage.trim();
@@ -211,7 +209,7 @@ class PostMock {
         'reply': reply,
         'can_generate_prd': canGeneratePrd,
         'completeness_score': completenessScore,
-        'turn': _turnCount,
+        'turn': turnCount,
       },
     };
   }
@@ -222,9 +220,6 @@ class PostMock {
     final chatHistory = data['chat_history'] as List? ?? const [];
     final focus = _extractFocus(chatHistory, category);
     final prd = _buildPrd(category, focus, chatHistory);
-
-    _turnCount = 0;
-    _activeCategory = null;
 
     return {
       'code': 0,
@@ -242,6 +237,38 @@ class PostMock {
       return normalized!;
     }
     return 'dev';
+  }
+
+  static String? _resolveConversationKey(Map<String, dynamic> data) {
+    final candidates = [
+      data['project_id'],
+      data['draft_id'],
+      data['uuid'],
+      data['id'],
+      data['session_id'],
+    ];
+    for (final candidate in candidates) {
+      final key = candidate?.toString().trim();
+      if (key != null && key.isNotEmpty) {
+        return key;
+      }
+    }
+    return null;
+  }
+
+  static int _nextConversationTurn({
+    required String conversationKey,
+    required String category,
+  }) {
+    final current = _conversationStates[conversationKey];
+    final nextTurn = current == null || current.category != category
+        ? 1
+        : current.turnCount + 1;
+    _conversationStates[conversationKey] = _MockConversationState(
+      category: category,
+      turnCount: nextTurn,
+    );
+    return nextTurn;
   }
 
   static String _defaultUserMessage(String category) {
@@ -1122,6 +1149,7 @@ class PostMock {
       'bid_count': 0,
       'created_at': now,
     };
+    _conversationStates.remove(projectId);
     MarketMock.upsertProject(project);
 
     return {
@@ -1235,4 +1263,14 @@ class PostMock {
       'data': project,
     };
   }
+}
+
+class _MockConversationState {
+  final String category;
+  final int turnCount;
+
+  const _MockConversationState({
+    required this.category,
+    required this.turnCount,
+  });
 }
