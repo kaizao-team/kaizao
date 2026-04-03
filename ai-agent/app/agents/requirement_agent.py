@@ -37,9 +37,9 @@ class RequirementAgent(ToolUseBaseAgent):
     """
     需求分析 Agent
 
-    阶段机：clarifying → prd_draft → prd_confirmed → tasks_ready
-    - 一句话需求 → 多轮对话澄清 → 生成 PRD → EARS 拆解
-    - 清晰需求 → 直接生成 PRD → EARS 拆解
+    阶段机：clarifying → prd_draft → prd_confirmed → (发布/撮合/确认合作) → ears_decomposing → tasks_ready
+    - 一句话需求 → 多轮对话澄清 → 生成 PRD → 确认 PRD（需求阶段暂停）
+    - 确认合作后 → EARS 拆解 → 生成 requirement.md
     """
 
     agent_name = "requirement"
@@ -241,19 +241,19 @@ class RequirementAgent(ToolUseBaseAgent):
             }, ensure_ascii=False),
         }
 
-    async def confirm_prd_stream(
+    async def decompose_ears_stream(
         self,
         project_id: str,
         messages: list[dict],
     ):
-        """流式确认 PRD，yield SSE 事件"""
+        """流式 EARS 拆解（确认合作后调用），yield SSE 事件"""
         self._project_id = project_id
-        self._sub_stage = "prd_confirmed"
+        self._sub_stage = "ears_decomposing"
         self._completeness_score = 100
 
         messages.append({
             "role": "user",
-            "content": "PRD 已确认，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
+            "content": "需求双方已确认合作，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
         })
 
         async for event in self.run_stream(messages=messages, max_tokens=16384):
@@ -268,25 +268,23 @@ class RequirementAgent(ToolUseBaseAgent):
             }, ensure_ascii=False),
         }
 
-    async def confirm_prd(
+    async def decompose_ears(
         self,
         project_id: str,
         messages: list[dict],
     ) -> tuple[list[dict], dict[str, Any], str, int]:
-        """用户确认 PRD，触发 EARS 拆解"""
+        """EARS 拆解（确认合作后调用）"""
         self._project_id = project_id
-        self._sub_stage = "prd_confirmed"
+        self._sub_stage = "ears_decomposing"
         self._completeness_score = 100
 
-        # 添加确认指令
         messages.append({
             "role": "user",
-            "content": "PRD 已确认，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
+            "content": "需求双方已确认合作，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
         })
 
         updated_messages, last_tool = await self.run(
             messages=messages,
-            # EARS 拆解需要更多 token
             max_tokens=16384,
         )
 

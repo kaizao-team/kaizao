@@ -148,10 +148,45 @@ async def confirm_prd(project_id: str, req: ConfirmRequest, request: Request):
     """
     确认 PRD — 轻量操作，立即返回。
 
-    1. 标记 requirement 阶段为 prd_confirmed
-    2. 后台异步触发 EARS 拆解（不阻塞响应）
-    3. 前端通过 GET /pipeline/{project_id}/status 轮询 sub_stage 变为 tasks_ready
-       或改用 POST /confirm/stream 获取实时进度
+    只标记 PRD 已确认，不触发 EARS 拆解。
+    EARS 拆解在撮合成功、确认合作后由 POST /{project_id}/decompose 触发。
+    """
+    from app.main import v2_orchestrator
+
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
+
+    try:
+        state = await v2_orchestrator.get_project(project_id)
+        if not state:
+            return APIResponse(code=40401, message=f"项目 {project_id} 不存在", request_id=request_id)
+
+        # 标记 PRD 已确认，requirement 阶段完成
+        state.set_stage_status("requirement", "confirmed", sub_stage="prd_confirmed",
+                               document_path=f"outputs/{project_id}/v1/prd.md")
+        await v2_orchestrator.save_project(state)
+
+        return APIResponse(
+            code=0,
+            message="PRD 已确认",
+            data={
+                "project_id": project_id,
+                "sub_stage": "prd_confirmed",
+                "completeness_score": 100,
+            },
+            request_id=request_id,
+        )
+    except Exception as e:
+        logger.error("requirement_confirm_error", error=str(e), request_id=request_id)
+        return APIResponse(code=50001, message=f"PRD 确认失败: {e}", request_id=request_id)
+
+
+@router.post("/{project_id}/decompose", response_model=APIResponse)
+async def decompose_ears(project_id: str, request: Request):
+    """
+    触发 EARS 拆解 — 确认合作后调用。
+
+    业务流程：确认PRD → 发布项目 → 撮合匹配 → 确认合作 → **调用此接口** → EARS 拆解 → 生成 requirement.md
+    后台异步执行，前端通过 GET /pipeline/{project_id}/status 轮询 sub_stage 变为 tasks_ready。
     """
     import asyncio
     from app.main import v2_orchestrator, v2_session, v2_requirement_agent
@@ -163,32 +198,32 @@ async def confirm_prd(project_id: str, req: ConfirmRequest, request: Request):
         if not state:
             return APIResponse(code=40401, message=f"项目 {project_id} 不存在", request_id=request_id)
 
-        # 立即标记 PRD 已确认
-        state.set_stage_status("requirement", "running", sub_stage="prd_confirmed")
-        await v2_orchestrator.save_project(state)
-
         session_id = state.session_id or f"req-{project_id}"
 
-        # 后台异步执行 EARS 拆解（不阻塞响应）
+        # 标记 EARS 拆解进行中
+        state.set_stage_status("requirement", "running", sub_stage="ears_decomposing")
+        await v2_orchestrator.save_project(state)
+
+        # 后台异步执行 EARS 拆解
         async def _background_ears_decompose():
             try:
                 history = await v2_session.get_history(session_id)
-                updated_msgs, tool_result, sub_stage, score = await v2_requirement_agent.confirm_prd(
+                updated_msgs, tool_result, sub_stage, score = await v2_requirement_agent.decompose_ears(
                     project_id=project_id,
                     messages=history,
                 )
                 await v2_session.save_history(session_id, updated_msgs)
                 bg_state = await v2_orchestrator.get_project(project_id)
                 if bg_state:
-                    bg_state.set_stage_status("requirement", "awaiting_confirmation", sub_stage=sub_stage)
                     if sub_stage == "tasks_ready":
                         bg_state.set_stage_status("requirement", "confirmed", sub_stage=sub_stage,
                                                    document_path=f"outputs/{project_id}/v1/requirement.md")
+                    else:
+                        bg_state.set_stage_status("requirement", "running", sub_stage=sub_stage)
                     await v2_orchestrator.save_project(bg_state)
-                logger.info("background_ears_complete", project_id=project_id, sub_stage=sub_stage)
+                logger.info("ears_decompose_complete", project_id=project_id, sub_stage=sub_stage)
             except Exception as e:
-                logger.error("background_ears_failed", project_id=project_id, error=str(e))
-                # 标记错误状态，前端轮询时可感知
+                logger.error("ears_decompose_failed", project_id=project_id, error=str(e))
                 err_state = await v2_orchestrator.get_project(project_id)
                 if err_state:
                     err_state.set_stage_status("requirement", "error", error_message=str(e))
@@ -198,18 +233,17 @@ async def confirm_prd(project_id: str, req: ConfirmRequest, request: Request):
 
         return APIResponse(
             code=0,
-            message="PRD 已确认，EARS 拆解进行中",
+            message="EARS 拆解已启动",
             data={
                 "project_id": project_id,
-                "sub_stage": "prd_confirmed",
-                "completeness_score": 100,
+                "sub_stage": "ears_decomposing",
                 "ears_status": "processing",
             },
             request_id=request_id,
         )
     except Exception as e:
-        logger.error("requirement_confirm_error", error=str(e), request_id=request_id)
-        return APIResponse(code=50001, message=f"PRD 确认失败: {e}", request_id=request_id)
+        logger.error("ears_decompose_error", error=str(e), request_id=request_id)
+        return APIResponse(code=50001, message=f"EARS 拆解启动失败: {e}", request_id=request_id)
 
 
 @router.get("/{project_id}/document", response_model=APIResponse)
@@ -311,9 +345,9 @@ async def send_message_stream(project_id: str, req: MessageRequest, request: Req
     return EventSourceResponse(event_generator())
 
 
-@router.post("/{project_id}/confirm/stream")
-async def confirm_prd_stream(project_id: str, req: ConfirmRequest, request: Request):
-    """[SSE 流式] 确认 PRD → 触发 EARS 拆解（含实时思考过程）"""
+@router.post("/{project_id}/decompose/stream")
+async def decompose_ears_stream(project_id: str, request: Request):
+    """[SSE 流式] EARS 拆解（确认合作后调用，含实时思考过程）"""
     from app.main import v2_orchestrator, v2_session, v2_requirement_agent
 
     async def event_generator():
@@ -326,7 +360,7 @@ async def confirm_prd_stream(project_id: str, req: ConfirmRequest, request: Requ
             session_id = state.session_id or f"req-{project_id}"
             history = await v2_session.get_history(session_id)
 
-            async for event in v2_requirement_agent.confirm_prd_stream(
+            async for event in v2_requirement_agent.decompose_ears_stream(
                 project_id=project_id,
                 messages=history,
             ):
@@ -338,14 +372,15 @@ async def confirm_prd_stream(project_id: str, req: ConfirmRequest, request: Requ
                 await v2_session.save_history(session_id, updated_msgs)
 
                 sub_stage = v2_requirement_agent._sub_stage
-                state.set_stage_status("requirement", "awaiting_confirmation", sub_stage=sub_stage)
                 if sub_stage == "tasks_ready":
                     state.set_stage_status("requirement", "confirmed", sub_stage=sub_stage,
                                            document_path=f"outputs/{project_id}/v1/requirement.md")
+                else:
+                    state.set_stage_status("requirement", "running", sub_stage=sub_stage)
                 await v2_orchestrator.save_project(state)
 
         except Exception as e:
-            logger.error("requirement_confirm_stream_error", error=str(e))
+            logger.error("ears_decompose_stream_error", error=str(e))
             yield {"event": "error", "data": str(e)}
 
     return EventSourceResponse(event_generator())
