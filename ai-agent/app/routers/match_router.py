@@ -71,3 +71,23 @@ async def smart_match(req: MatchRequest, request: Request):
         return APIResponse(
             code=50002, message=f"AI 匹配服务异常: {e}", request_id=request_id
         )
+
+
+@router.get(
+    "/{project_id}/results",
+    response_model=APIResponse,
+    summary="查询历史撮合结果",
+)
+async def get_match_results(project_id: str, request: Request):
+    """查询项目的历史撮合推荐结果"""
+    from app.db.repository import ProjectRepository
+
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
+
+    try:
+        repo = ProjectRepository()
+        results = await repo.get_match_results(project_id)
+        return APIResponse(code=0, data={"results": results}, request_id=request_id)
+    except Exception as e:
+        logger.error("get_match_results_error", error=str(e), request_id=request_id)
+        return APIResponse(code=50002, message=f"查询失败: {e}", request_id=request_id)

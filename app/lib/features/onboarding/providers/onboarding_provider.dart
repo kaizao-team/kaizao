@@ -283,10 +283,14 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   Future<bool> submitDemanderProfile({
     required String nickname,
     String? avatarUrl,
+    String? contactPhone,
   }) async {
+    final phone =
+        (contactPhone != null && contactPhone.isNotEmpty) ? contactPhone : null;
     final payload = {
       'nickname': nickname,
       'avatar_url': avatarUrl,
+      if (phone != null) 'contact_phone': phone,
     };
 
     state = state.copyWith(isLoading: true, errorMessage: null);
@@ -294,6 +298,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       await _demanderRepository.updateProfile(
         nickname: nickname,
         avatarUrl: avatarUrl,
+        contactPhone: phone,
       );
       await saveDraft(payload);
       if (!mounted) return false;
@@ -318,7 +323,10 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     required String availability,
     required double rateMin,
     required double rateMax,
+    String? contactPhone,
   }) async {
+    final phone =
+        (contactPhone != null && contactPhone.isNotEmpty) ? contactPhone : null;
     final payload = {
       'nickname': nickname,
       'skills': skills,
@@ -327,6 +335,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       'availability': availability,
       'rate_min': rateMin,
       'rate_max': rateMax,
+      if (phone != null) 'contact_phone': phone,
     };
 
     state = state.copyWith(isLoading: true, errorMessage: null);
@@ -336,6 +345,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         hourlyRate: rateMin,
         availableStatus: _mapAvailabilityStatus(availability),
         role: 2,
+        contactPhone: phone,
       );
       await _expertRepository.updateSkills(
         _buildExpertSkills(skills: skills, tools: tools),

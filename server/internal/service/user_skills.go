@@ -94,3 +94,67 @@ func (s *UserService) ReplaceUserSkills(userUUID string, items []ReplaceUserSkil
 	}
 	return s.repos.User.ReplaceUserSkills(user.ID, rows)
 }
+
+// expertPrimarySkillName 选取展示用主技能名（单测与首页专家列表共用）
+func expertPrimarySkillName(skills []*model.UserSkill, namesBySkillID map[int64]string) string {
+	if len(skills) == 0 {
+		return ""
+	}
+	pick := func(us *model.UserSkill) string {
+		if us == nil {
+			return ""
+		}
+		if us.Skill.Name != "" {
+			return us.Skill.Name
+		}
+		if namesBySkillID != nil {
+			if n, ok := namesBySkillID[us.SkillID]; ok && n != "" {
+				return n
+			}
+		}
+		return ""
+	}
+	for _, us := range skills {
+		if us != nil && us.IsPrimary {
+			if s := pick(us); s != "" {
+				return s
+			}
+		}
+	}
+	for _, us := range skills {
+		if s := pick(us); s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func groupUserSkillsByUserID(rows []*model.UserSkill) map[int64][]*model.UserSkill {
+	m := make(map[int64][]*model.UserSkill)
+	for _, r := range rows {
+		if r == nil {
+			continue
+		}
+		m[r.UserID] = append(m[r.UserID], r)
+	}
+	return m
+}
+
+func skillIDsMissingPreloadedName(skills []*model.UserSkill) []int64 {
+	seen := make(map[int64]struct{})
+	var out []int64
+	for _, us := range skills {
+		if us == nil {
+			continue
+		}
+		if us.Skill.Name != "" {
+			continue
+		}
+		if _, ok := seen[us.SkillID]; ok {
+			continue
+		}
+		seen[us.SkillID] = struct{}{}
+		out = append(out, us.SkillID)
+	}
+	return out
+}

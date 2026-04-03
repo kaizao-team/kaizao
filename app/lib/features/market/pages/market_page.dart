@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_loading.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../project/providers/project_detail_provider.dart';
 import '../providers/market_provider.dart';
 import '../widgets/market_filter_bar.dart';
 import '../widgets/market_filter_sheet.dart';
@@ -224,7 +225,21 @@ class _MarketPageState extends ConsumerState<MarketPage>
                                 project.matchScore! >= 80
                             ? '技能高度匹配，推荐组队投标'
                             : null,
-                        onTap: () => context.push('/projects/${project.id}'),
+                        onTap: () async {
+                          await context.push('/projects/${project.routingId}');
+                          if (!mounted) return;
+                          final detail = ref.read(
+                            projectDetailProvider(project.routingId),
+                          );
+                          if (detail.data != null) {
+                            ref
+                                .read(_marketProvider.notifier)
+                                .updateProjectViewCount(
+                                  project.routingId,
+                                  detail.viewCount,
+                                );
+                          }
+                        },
                       );
                     },
                   ),

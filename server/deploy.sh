@@ -6,7 +6,9 @@ set -e
 #
 # 本地部署（在 WSL 中执行，构建镜像并推送到远程服务器）:
 #   bash deploy.sh push
-# 可选环境变量: REMOTE_HOST（默认 kaizao）、PROD_HTTP_PORT（默认 39527，须与 docker-compose.prod.yml 一致）
+# 可选环境变量: REMOTE_HOST（默认 kaizao）、PROD_HTTP_PORT（默认 39527，须与 docker-compose.prod.yml 一致）、SCP_OPTS
+# 若 push 在「传输镜像包」阶段断连，可重试同条命令；若包已在远端 ~/kaizao-server.tar.gz，可 SSH 登录后执行:
+#   gunzip -c ~/kaizao-server.tar.gz | docker load && rm -f ~/kaizao-server.tar.gz && cd ~/kaizao-server && docker compose -f docker-compose.prod.yml up -d
 #
 # 远程管理（在远程服务器上执行）:
 #   bash deploy.sh up       # 启动服务
@@ -18,6 +20,8 @@ set -e
 
 REMOTE_HOST="${REMOTE_HOST:-kaizao}"
 REMOTE_DIR="\$HOME/kaizao-server"
+# 大镜像包传输易断连，scp 默认带保活（可用环境变量覆盖）
+SCP_OPTS="${SCP_OPTS:--o ServerAliveInterval=10 -o ServerAliveCountMax=60 -o TCPKeepAlive=yes}"
 IMAGE_NAME="kaizao-server"
 IMAGE_TAG="latest"
 COMPOSE_FILE="docker-compose.prod.yml"
@@ -36,16 +40,18 @@ do_push() {
     docker save ${IMAGE_NAME}:${IMAGE_TAG} | gzip > /tmp/${IMAGE_NAME}.tar.gz
     echo "    大小: $(du -h /tmp/${IMAGE_NAME}.tar.gz | cut -f1)"
 
-    echo "==> [3/5] 同步 compose / migrations 到远程..."
-    ssh "${REMOTE_HOST}" "mkdir -p ~/kaizao-server/migrations"
-    scp docker-compose.prod.yml "${REMOTE_HOST}:~/kaizao-server/docker-compose.prod.yml"
+    echo "==> [3/5] 同步 compose / migrations / scripts 到远程..."
+    # 勿用 ssh "... ~/..." ：~ 会在**本地** shell 展开，远程目录可能未创建
+    ssh "${REMOTE_HOST}" 'mkdir -p "$HOME/kaizao-server/migrations" "$HOME/kaizao-server/scripts"'
+    scp ${SCP_OPTS} docker-compose.prod.yml "${REMOTE_HOST}:~/kaizao-server/docker-compose.prod.yml"
+    scp ${SCP_OPTS} scripts/apply_migrations.sh "${REMOTE_HOST}:~/kaizao-server/scripts/apply_migrations.sh"
     for f in migrations/*.up.sql; do
         [ -f "$f" ] || continue
-        scp "$f" "${REMOTE_HOST}:~/kaizao-server/migrations/$(basename "$f")"
+        scp ${SCP_OPTS} "$f" "${REMOTE_HOST}:~/kaizao-server/migrations/$(basename "$f")"
     done
 
     echo "==> [4/5] 传输镜像包到远程..."
-    scp /tmp/${IMAGE_NAME}.tar.gz "${REMOTE_HOST}:~/${IMAGE_NAME}.tar.gz"
+    scp ${SCP_OPTS} /tmp/${IMAGE_NAME}.tar.gz "${REMOTE_HOST}:~/${IMAGE_NAME}.tar.gz"
 
     echo "==> [5/5] 远程加载镜像、启动、补迁移、健康检查..."
     # 通过 ssh 传入变量；heredoc 单引号避免本地展开，远程用已 export 的变量
@@ -60,19 +66,11 @@ do_push() {
         echo "    启动服务..."
         docker compose -f docker-compose.prod.yml up -d
 
-        echo "    等待 MySQL 就绪后补跑 002–005（旧卷可忽略 Duplicate）..."
-        for i in $(seq 1 45); do
-            if docker exec kaizao-mysql mysqladmin ping -h localhost -ukaizao -p"${MYSQL_PWD}" --silent 2>/dev/null; then
-                break
-            fi
-            sleep 2
-        done
-        for f in 002_invite_onboarding.up.sql 003_team_invite_onboarding.up.sql 004_team_static_assets.up.sql 005_project_category_normalize.up.sql; do
-            mf="$HOME/kaizao-server/migrations/$f"
-            if [ -f "$mf" ]; then
-                docker exec -i kaizao-mysql mysql -ukaizao -p"${MYSQL_PWD}" kaizao <"$mf" 2>/dev/null || true
-            fi
-        done
+        export MYSQL_PASSWORD="${MYSQL_PWD}"
+        export MYSQL_CONTAINER=kaizao-mysql MYSQL_USER=kaizao MYSQL_DATABASE=kaizao
+        export MIGRATIONS_DIR="$HOME/kaizao-server/migrations" WAIT_MYSQL_SEC=90
+        echo "    补跑迁移（utf8mb4，002–007 best-effort）..."
+        bash "$HOME/kaizao-server/scripts/apply_migrations.sh"
 
         echo "    等待健康检查 (宿主机端口 ${PROD_HTTP_PORT})..."
         for i in $(seq 1 30); do
@@ -100,12 +98,13 @@ do_sync() {
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     cd "$SCRIPT_DIR"
     echo "==> 同步配置文件到远程..."
-    ssh "${REMOTE_HOST}" "mkdir -p ~/kaizao-server/migrations ~/kaizao-server/configs"
-    scp docker-compose.prod.yml "${REMOTE_HOST}:~/kaizao-server/docker-compose.prod.yml"
-    scp deploy.sh "${REMOTE_HOST}:~/kaizao-server/deploy.sh"
+    ssh "${REMOTE_HOST}" 'mkdir -p "$HOME/kaizao-server/migrations" "$HOME/kaizao-server/configs" "$HOME/kaizao-server/scripts"'
+    scp ${SCP_OPTS} docker-compose.prod.yml "${REMOTE_HOST}:~/kaizao-server/docker-compose.prod.yml"
+    scp ${SCP_OPTS} deploy.sh "${REMOTE_HOST}:~/kaizao-server/deploy.sh"
+    scp ${SCP_OPTS} scripts/apply_migrations.sh "${REMOTE_HOST}:~/kaizao-server/scripts/apply_migrations.sh"
     for f in migrations/*.up.sql; do
         [ -f "$f" ] || continue
-        scp "$f" "${REMOTE_HOST}:~/kaizao-server/migrations/$(basename "$f")"
+        scp ${SCP_OPTS} "$f" "${REMOTE_HOST}:~/kaizao-server/migrations/$(basename "$f")"
     done
     echo "==> 同步完成"
 }

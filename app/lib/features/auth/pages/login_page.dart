@@ -185,7 +185,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
     final compact = screenHeight < 820 || keyboardInset > 0;
 
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: const Color(0xFFFEFCFD),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: SafeArea(
@@ -204,12 +204,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               const SizedBox(height: AppSpacing.sm),
-                              _LoginMetaBar(
-                                onHelpTap: () => _showToast(
-                                  '帮助中心即将开放',
-                                  type: VccToastType.info,
-                                ),
-                              ),
+                              const _LoginMetaBar(),
                               const Spacer(flex: 2),
                               _LoginHero(
                                 compact: compact,
@@ -333,57 +328,20 @@ class _LoginPageState extends ConsumerState<LoginPage>
 }
 
 class _LoginMetaBar extends StatelessWidget {
-  final VoidCallback onHelpTap;
-
-  const _LoginMetaBar({required this.onHelpTap});
+  const _LoginMetaBar();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text.rich(
-            TextSpan(
-              style: AppTextStyles.overline.copyWith(
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.6,
-                color: AppColors.gray400,
-              ),
-              children: [
-                const TextSpan(text: 'KAIZAO'),
-                const TextSpan(text: '  /  '),
-                TextSpan(
-                  text: 'AUTHENTICATION',
-                  style: AppTextStyles.overline.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.6,
-                    color: AppColors.black,
-                  ),
-                ),
-              ],
-            ),
-          ),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        'KAIZO',
+        style: AppTextStyles.overline.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.8,
+          color: AppColors.black,
         ),
-        TextButton(
-          onPressed: onHelpTap,
-          style: TextButton.styleFrom(
-            minimumSize: Size.zero,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xs,
-              vertical: AppSpacing.xs,
-            ),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text(
-            'HELP',
-            style: AppTextStyles.overline.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.6,
-              color: AppColors.black,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -421,31 +379,11 @@ class _LoginHero extends StatelessWidget {
             width: logoSize,
             height: logoSize,
             fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+            isAntiAlias: true,
           ),
         ),
-        const SizedBox(height: AppSpacing.xxs),
-        Text(
-          'KAIZAO',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: compact ? 20 : 22,
-            fontWeight: FontWeight.w700,
-            color: AppColors.black,
-            letterSpacing: 5,
-          ),
-        ),
-        SizedBox(height: compact ? AppSpacing.lg : AppSpacing.xl),
-        Text(
-          '欢迎回来',
-          textAlign: TextAlign.center,
-          style: AppTextStyles.h1.copyWith(height: 1.1),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          mode == _AuthMode.phone ? '输入手机号，把想法推进到开造流程。' : '登录你的账号，继续开造之旅。',
-          textAlign: TextAlign.center,
-          style: AppTextStyles.body2.copyWith(color: AppColors.gray400),
-        ),
+        SizedBox(height: compact ? AppSpacing.sm : AppSpacing.md)
       ],
     );
   }
@@ -862,28 +800,34 @@ class _LoginFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
       children: [
-        Text(
-          '第一次使用 KAIZAO？',
-          style: AppTextStyles.body2.copyWith(color: AppColors.gray500),
-        ),
-        TextButton(
-          onPressed: onRegisterTap,
-          style: TextButton.styleFrom(
-            minimumSize: Size.zero,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text(
-            '新用户注册',
-            style: AppTextStyles.body2.copyWith(
-              color: AppColors.black,
-              fontWeight: FontWeight.w600,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '第一次使用 KAIZO？',
+              style: AppTextStyles.body2.copyWith(color: AppColors.gray500),
             ),
-          ),
+            TextButton(
+              onPressed: onRegisterTap,
+              style: TextButton.styleFrom(
+                minimumSize: Size.zero,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                '新用户注册',
+                style: AppTextStyles.body2.copyWith(
+                  color: AppColors.black,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
+        const SizedBox(height: AppSpacing.md)
+        
       ],
     );
   }

@@ -21,8 +21,9 @@ OUTPUT_ROOT = Path(os.getenv("VIBEBUILD_OUTPUT_DIR", "outputs"))
 class DocumentWriter:
     """文档写入器：管理版本化的文档输出"""
 
-    def __init__(self, output_root: Optional[Path] = None):
+    def __init__(self, output_root: Optional[Path] = None, minio_store=None):
         self.root = output_root or OUTPUT_ROOT
+        self._minio_store = minio_store
 
     def _project_dir(self, project_id: str) -> Path:
         return self.root / project_id
@@ -77,17 +78,38 @@ class DocumentWriter:
         actual_version = version or self._latest_version(project_id) or 1
         logger.info("document_saved", project_id=project_id, path=relative_path)
 
+        # 上传到 Minio（如果可用）
+        minio_key = self._upload_to_minio(project_id, filename, content, actual_version)
+        # file_path 优先存 Minio object_key，否则存本地路径
+        stored_path = minio_key or relative_path
+
         # 异步写入 MySQL documents 表（fire-and-forget）
         self._save_document_to_db(
             project_id=project_id,
             stage=stage or "",
             filename=filename,
-            file_path=relative_path,
+            file_path=stored_path,
             version=actual_version,
             size_bytes=len(content.encode("utf-8")),
         )
 
         return relative_path
+
+    def _upload_to_minio(
+        self,
+        project_id: str,
+        filename: str,
+        content: str,
+        version: int,
+    ) -> Optional[str]:
+        """上传到 Minio，返回 object_key；失败返回 None"""
+        if not self._minio_store:
+            return None
+        try:
+            return self._minio_store.upload(project_id, filename, content, version)
+        except Exception as e:
+            logger.warning("minio_upload_skip", error=str(e))
+            return None
 
     @staticmethod
     def _save_document_to_db(

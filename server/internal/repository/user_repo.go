@@ -84,6 +84,35 @@ func (r *userRepository) ListUserSkills(userID int64) ([]*model.UserSkill, error
 	return skills, err
 }
 
+func (r *userRepository) ListUserSkillsForUsers(userIDs []int64) ([]*model.UserSkill, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	var skills []*model.UserSkill
+	err := r.db.Preload("Skill").
+		Where("user_id IN ?", userIDs).
+		Order("user_id ASC, is_primary DESC, id ASC").
+		Find(&skills).Error
+	return skills, err
+}
+
+func (r *userRepository) FindSkillNamesByIDs(skillIDs []int64) (map[int64]string, error) {
+	if len(skillIDs) == 0 {
+		return map[int64]string{}, nil
+	}
+	var rows []model.Skill
+	if err := r.db.Model(&model.Skill{}).Select("id", "name").
+		Where("id IN ? AND status = 1", skillIDs).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make(map[int64]string, len(rows))
+	for i := range rows {
+		out[rows[i].ID] = strings.TrimSpace(rows[i].Name)
+	}
+	return out, nil
+}
+
 func (r *userRepository) ReplaceUserSkills(userID int64, skills []*model.UserSkill) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ?", userID).Delete(&model.UserSkill{}).Error; err != nil {

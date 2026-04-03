@@ -1,3 +1,5 @@
+import '../../../shared/models/project_category.dart';
+
 class MarketCategory {
   final String key;
   final String name;
@@ -8,13 +10,14 @@ class MarketCategory {
     MarketCategory(key: 'all', name: '全部'),
     MarketCategory(key: 'data', name: '数据'),
     MarketCategory(key: 'dev', name: '研发'),
-    MarketCategory(key: 'design', name: '视觉设计'),
+    MarketCategory(key: 'visual', name: '视觉设计'),
     MarketCategory(key: 'solution', name: '解决方案'),
   ];
 
   static bool supports(String? key) {
     if (key == null || key.isEmpty) return false;
-    return all.any((category) => category.key == key);
+    if (key == 'all') return true;
+    return supportsProjectCategory(key);
   }
 }
 
@@ -39,6 +42,7 @@ class MarketSortOption {
 
 class MarketProjectItem {
   final String id;
+  final String uuid;
   final String title;
   final String description;
   final String category;
@@ -54,6 +58,7 @@ class MarketProjectItem {
 
   const MarketProjectItem({
     required this.id,
+    this.uuid = '',
     required this.title,
     required this.description,
     required this.category,
@@ -68,12 +73,16 @@ class MarketProjectItem {
     required this.createdAt,
   });
 
+  /// 路由用唯一标识：优先 uuid，回退 id
+  String get routingId => uuid.isNotEmpty ? uuid : id;
+
   factory MarketProjectItem.fromJson(Map<String, dynamic> json) {
     return MarketProjectItem(
       id: json['id']?.toString() ?? '',
+      uuid: json['uuid'] as String? ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      category: json['category'] as String? ?? '',
+      category: normalizeProjectCategoryKey(json['category'] as String? ?? ''),
       ownerName: json['owner_name'] as String?,
       budgetMin: (json['budget_min'] as num?)?.toDouble() ?? 0,
       budgetMax: (json['budget_max'] as num?)?.toDouble() ?? 0,
@@ -93,16 +102,15 @@ class MarketProjectItem {
       '¥${budgetMin.toStringAsFixed(0)}-${budgetMax.toStringAsFixed(0)}';
 
   String get categoryName {
-    for (final cat in MarketCategory.all) {
-      if (cat.key == category) return cat.name;
-    }
-    return '其他';
+    return projectCategoryLabel(category);
   }
 }
 
 String normalizeMarketCategory(String? category) {
-  if (MarketCategory.supports(category)) {
-    return category!;
+  if (category == 'all') return 'all';
+  final normalized = normalizeProjectCategoryKey(category);
+  if (MarketCategory.supports(normalized)) {
+    return normalized;
   }
   return 'all';
 }

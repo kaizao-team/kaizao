@@ -340,21 +340,110 @@ class ToolUseBaseAgent(ABC):
 
             messages.append({"role": "user", "content": tool_results})
 
+            # ask_clarification 执行后：发送 agent_message 作为 text 事件，然后结束 loop
+            ask_blocks = [b for b in tool_use_blocks if b.name == "ask_clarification"]
+            if ask_blocks:
+                agent_msg = ask_blocks[0].input.get("agent_message", "")
+                if agent_msg:
+                    yield {"event": "text", "data": agent_msg}
+                break
+
         duration_ms = round((time.time() - start_time) * 1000, 2)
         self.logger.info("agentic_loop_stream_end", request_id=request_id, duration_ms=duration_ms)
 
-        # 最终结果
+        # 构建 done 事件
+        done_data = self._build_done_data(last_tool_input, duration_ms)
         yield {
             "event": "done",
-            "data": _json.dumps({
-                "messages": "ok",
-                "last_tool": last_tool_input,
-                "duration_ms": duration_ms,
-            }, ensure_ascii=False),
+            "data": _json.dumps(done_data, ensure_ascii=False),
         }
 
         # 将结果存到实例变量供调用方获取
         self._stream_result = (messages, last_tool_input)
+
+    @staticmethod
+    def _build_done_data(last_tool_input: dict, duration_ms: float) -> dict:
+        """
+        构建 done 事件数据。
+
+        当 ask_clarification 被调用时，返回单个 question 对象 + completeness_score + analysis_complete；
+        其他情况返回通用格式。
+
+        analysis_complete: 标识需求分析是否已完成（completeness_score >= 80 且所有维度 >= 60）
+        """
+        tool_name = last_tool_input.get("tool_name", "")
+
+        if tool_name == "ask_clarification":
+            questions = last_tool_input.get("questions", [])
+            question_raw = questions[0] if questions else None
+            completeness_score = last_tool_input.get("completeness_score", 0)
+
+            # 判断分析是否完成
+            dimension_coverage = last_tool_input.get("dimension_coverage", {})
+            all_dims_ok = all(v >= 60 for v in dimension_coverage.values()) if dimension_coverage else False
+            analysis_complete = completeness_score >= 80 and all_dims_ok
+
+            if question_raw:
+                input_type = question_raw.get("input_type", "single_choice")
+
+                # 构建 options（带 key 标签）
+                opts = question_raw.get("options", [])
+                options_payload = []
+                for i, opt in enumerate(opts):
+                    opt_item = {"key": chr(65 + i), "label": opt.get("label", "")}
+                    if opt.get("is_custom"):
+                        opt_item["is_custom"] = True
+                    options_payload.append(opt_item)
+                # 选择题且 allow_custom → 追加"其他"选项（free_text 不追加）
+                if input_type in ("single_choice", "multi_choice") and question_raw.get("allow_custom", True):
+                    options_payload.append({
+                        "key": chr(65 + len(opts)),
+                        "label": "其他",
+                        "is_custom": True,
+                    })
+
+                question_payload = {
+                    "id": question_raw.get("id", "q1"),
+                    "content": question_raw.get("question", ""),
+                    "input_type": input_type,
+                    "options": options_payload,
+                    "allow_custom": question_raw.get("allow_custom", True),
+                }
+
+                # multi_choice 专属字段
+                if input_type == "multi_choice":
+                    if "min_select" in question_raw:
+                        question_payload["min_select"] = question_raw["min_select"]
+                    if "max_select" in question_raw:
+                        question_payload["max_select"] = question_raw["max_select"]
+
+                # free_text / number 的 placeholder
+                if input_type in ("free_text", "number") and "placeholder" in question_raw:
+                    question_payload["placeholder"] = question_raw["placeholder"]
+
+                return {
+                    "question": question_payload,
+                    "completeness_score": completeness_score,
+                    "analysis_complete": analysis_complete,
+                    "duration_ms": duration_ms,
+                }
+
+        # generate_prd → analysis_complete = True
+        if tool_name == "generate_prd":
+            return {
+                "messages": "ok",
+                "last_tool": tool_name,
+                "analysis_complete": True,
+                "duration_ms": duration_ms,
+            }
+
+        # 默认格式（decompose_to_ears / 其他 tool）
+        return {
+            "messages": "ok",
+            "last_tool": tool_name,
+            "analysis_complete": False,
+            "duration_ms": duration_ms,
+        }
 
     def _check_safety(self, user_input: str) -> dict:
         """

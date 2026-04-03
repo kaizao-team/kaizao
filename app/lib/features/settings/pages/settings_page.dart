@@ -7,7 +7,6 @@ import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/profile_provider.dart';
-import '../../profile/widgets/role_switch_dialog.dart';
 import 'about_page.dart';
 
 String _formatMaskedPhone(String? phone) {
@@ -30,32 +29,12 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _notificationsEnabled = true;
 
-  Future<void> _showRoleSwitchDialog() async {
-    final authState = ref.read(authStateProvider);
-    final currentRole = authState.userRole;
-
-    await showDialog(
-      context: context,
-      builder: (_) => RoleSwitchDialog(
-        currentRole: currentRole,
-        onConfirm: () async {
-          final targetRole = currentRole == 1 ? 2 : 1;
-          final success = await ref
-              .read(authStateProvider.notifier)
-              .selectRole(targetRole);
-          if (success) {
-            ref.invalidate(profileProvider('me'));
-          }
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final profileState = ref.watch(profileProvider('me'));
     final profile = profileState.profile;
+    final topPadding = MediaQuery.of(context).padding.top;
 
     final currentRoleName = authState.userRole == 2 ? '团队方' : '项目方';
     final phoneTrailing = profileState.isLoading && profile == null
@@ -64,152 +43,235 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final wechatTrailing = profileState.isLoading && profile == null
         ? '加载中...'
         : profile == null
-        ? '--'
-        : (profile.wechatBound ? '已绑定' : '未绑定');
+            ? '--'
+            : (profile.wechatBound ? '已绑定' : '未绑定');
     final verifyTrailing = profileState.isLoading && profile == null
         ? '加载中...'
         : profile == null
-        ? '--'
-        : (profile.isVerified ? '已认证' : '未认证');
-    final verifyColor = profile?.isVerified == true
-        ? AppColors.success
-        : AppColors.gray400;
+            ? '--'
+            : (profile.isVerified ? '已认证' : '未认证');
+    final verifyColor =
+        profile?.isVerified == true ? AppColors.success : AppColors.gray400;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF9F9F9),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: const Text(
-          '设置',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1C1C),
-          ),
-        ),
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            size: 18,
-            color: Color(0xFF1A1C1C),
-          ),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          const SizedBox(height: 8),
-          _buildGroupLabel('账号与安全'),
-          _buildCardGroup([
-            _buildIconItem(
-              Icons.swap_horiz_rounded,
-              '当前角色',
-              trailing: currentRoleName,
-              showArrow: true,
-              onTap: _showRoleSwitchDialog,
-            ),
-            _buildIconItem(
-              Icons.smartphone_outlined,
-              '手机号',
-              trailing: phoneTrailing,
-              showArrow: true,
-            ),
-            _buildIconItem(
-              Icons.chat_bubble_outline,
-              '微信绑定',
-              trailing: wechatTrailing,
-              trailingColor: AppColors.success,
-              showArrow: true,
-            ),
-            _buildIconItem(
-              Icons.verified_user_outlined,
-              '实名认证',
-              trailing: verifyTrailing,
-              trailingColor: verifyColor,
-              showArrow: true,
-            ),
-          ]),
-          const SizedBox(height: 24),
-          _buildGroupLabel('通用'),
-          _buildCardGroup([
-            _buildSwitchItem(
-              Icons.notifications_outlined,
-              '消息通知',
-              value: _notificationsEnabled,
-              onChanged: (value) =>
-                  setState(() => _notificationsEnabled = value),
-            ),
-            _buildIconItem(
-              Icons.language_outlined,
-              '语言',
-              trailing: '简体中文',
-              showArrow: false,
-            ),
-            _buildIconItem(Icons.storage_outlined, '存储空间', showArrow: true),
-          ]),
-          const SizedBox(height: 24),
-          _buildGroupLabel('关于'),
-          _buildCardGroup([
-            _buildIconItem(Icons.help_outline, '帮助与反馈', showArrow: true),
-            _buildIconItem(
-              Icons.description_outlined,
-              '用户协议',
-              showArrow: true,
-              onTap: () => context.push(RoutePaths.userAgreement),
-            ),
-            _buildIconItem(
-              Icons.privacy_tip_outlined,
-              '隐私政策',
-              showArrow: true,
-              onTap: () => context.push(RoutePaths.privacyPolicy),
-            ),
-            _buildIconItem(
-              Icons.info_outline,
-              '关于 KAIZAO',
-              showArrow: true,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AboutPage()),
+      body: CustomScrollView(
+        slivers: [
+          // — Hero header —
+          SliverToBoxAdapter(
+            child: Container(
+              padding: EdgeInsets.only(top: topPadding),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF111111), Color(0xFF3C3B3B)],
+                ),
               ),
-            ),
-          ]),
-          const SizedBox(height: 40),
-          Center(
-            child: TextButton(
-              onPressed: () async {
-                final confirmed = await _showLogoutConfirm(context);
-                if (confirmed != true) return;
-                if (!context.mounted) return;
-                await ref.read(authStateProvider.notifier).logout();
-              },
-              child: const Text(
-                '退出登录',
-                style: TextStyle(fontSize: 14, color: AppColors.error),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -30,
+                    top: -10,
+                    child: CustomPaint(
+                      size: const Size(160, 160),
+                      painter: _DotGridPainter(),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 40),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              behavior: HitTestBehavior.opaque,
+                              child: const Padding(
+                                padding: EdgeInsets.all(4),
+                                child: Icon(
+                                  Icons.arrow_back_ios,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'SETTINGS',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.4),
+                            letterSpacing: 3,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          '设置',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Center(
-            child: GestureDetector(
-              onTap: () {},
-              child: const Text(
-                '注销账号',
-                style: TextStyle(fontSize: 12, color: AppColors.gray400),
-              ),
+
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // — 账号与安全 —
+                _buildSectionLabel('ACCOUNT'),
+                const SizedBox(height: 10),
+                _buildCard([
+                  _SettingsRow(
+                    label: '当前角色',
+                    trailing: _RoleBadge(name: currentRoleName),
+                    showArrow: false,
+                  ),
+                  _SettingsRow(
+                    label: '手机号',
+                    trailingText: phoneTrailing,
+                  ),
+                  // _SettingsRow(
+                  //   label: '微信绑定',
+                  //   trailing: _StatusDot(
+                  //     text: wechatTrailing,
+                  //     active: profile?.wechatBound == true,
+                  //   ),
+                  // ),
+                  // _SettingsRow(
+                  //   label: '实名认证',
+                  //   trailing: _StatusDot(
+                  //     text: verifyTrailing,
+                  //     active: profile?.isVerified == true,
+                  //   ),
+                  //   trailingColor: verifyColor,
+                  // ),
+                ]),
+
+                const SizedBox(height: 32),
+
+                // — 通用 —
+                _buildSectionLabel('GENERAL'),
+                const SizedBox(height: 10),
+                _buildCard([
+                  _SettingsSwitchRow(
+                    label: '消息通知',
+                    value: _notificationsEnabled,
+                    onChanged: (v) =>
+                        setState(() => _notificationsEnabled = v),
+                  ),
+                  const _SettingsRow(
+                    label: '语言',
+                    trailingText: '简体中文',
+                    showArrow: false,
+                  ),
+                ]),
+
+                const SizedBox(height: 32),
+
+                // — 关于 —
+                _buildSectionLabel('ABOUT'),
+                const SizedBox(height: 10),
+                _buildCard([
+                  _SettingsRow(
+                    label: '用户协议',
+                    onTap: () => context.push(RoutePaths.userAgreement),
+                  ),
+                  _SettingsRow(
+                    label: '隐私政策',
+                    onTap: () => context.push(RoutePaths.privacyPolicy),
+                  ),
+                  _SettingsRow(
+                    label: '关于开造',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AboutPage(),
+                      ),
+                    ),
+                  ),
+                ]),
+
+                const SizedBox(height: 48),
+
+                // — 底部操作 —
+                _LogoutButton(
+                  onTap: () async {
+                    final confirmed = await _showLogoutConfirm(context);
+                    if (confirmed != true) return;
+                    if (!context.mounted) return;
+                    await ref.read(authStateProvider.notifier).logout();
+                  },
+                ),
+                const SizedBox(height: 14),
+                Center(
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: const Text(
+                      '注销账号',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.gray400,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Center(
+                  child: Text(
+                    'v1.0.0  ·  Build 42',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.gray300,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 56),
+              ]),
             ),
           ),
-          const SizedBox(height: 16),
-          const Center(
-            child: Text(
-              'v1.0.0 (Build 42)',
-              style: TextStyle(fontSize: 11, color: AppColors.gray300),
-            ),
-          ),
-          const SizedBox(height: 48),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: AppColors.gray400,
+        letterSpacing: 2.5,
+      ),
+    );
+  }
+
+  Widget _buildCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: children,
       ),
     );
   }
@@ -260,7 +322,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                   child: const Text(
                     '退出登录',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                   ),
                 ),
               ),
@@ -292,81 +355,62 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       },
     );
   }
+}
 
-  Widget _buildGroupLabel(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: AppColors.gray400,
-          letterSpacing: 0.3,
-        ),
-      ),
-    );
-  }
+// ────────────────────────────────────────────
+// Composable row widgets
+// ────────────────────────────────────────────
 
-  Widget _buildCardGroup(List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: List.generate(children.length, (index) {
-          return Column(
-            children: [
-              children[index],
-              if (index < children.length - 1)
-                Container(
-                  margin: const EdgeInsets.only(left: 52),
-                  height: 1,
-                  color: const Color(0xFFF3F3F3),
-                ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
+class _SettingsRow extends StatelessWidget {
+  final String label;
+  final String? trailingText;
+  final Widget? trailing;
+  final Color? trailingColor;
+  final bool showArrow;
+  final VoidCallback? onTap;
 
-  Widget _buildIconItem(
-    IconData icon,
-    String title, {
-    String? trailing,
-    Color? trailingColor,
-    bool showArrow = false,
-    VoidCallback? onTap,
-  }) {
+  const _SettingsRow({
+    required this.label,
+    this.trailingText,
+    this.trailing,
+    this.trailingColor,
+    this.showArrow = true,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: AppColors.gray500),
-            const SizedBox(width: 12),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 15, color: Color(0xFF1A1C1C)),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF1A1C1C),
+                  height: 1.3,
+                ),
+              ),
             ),
-            const Spacer(),
-            if (trailing != null)
+            if (trailing != null) trailing!,
+            if (trailing == null && trailingText != null)
               Text(
-                trailing,
+                trailingText!,
                 style: TextStyle(
                   fontSize: 14,
                   color: trailingColor ?? AppColors.gray400,
                 ),
               ),
             if (showArrow) ...[
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               const Icon(
                 Icons.chevron_right,
-                size: 18,
+                size: 16,
                 color: AppColors.gray300,
               ),
             ],
@@ -375,24 +419,35 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
     );
   }
+}
 
-  Widget _buildSwitchItem(
-    IconData icon,
-    String title, {
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
+class _SettingsSwitchRow extends StatelessWidget {
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _SettingsSwitchRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppColors.gray500),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 15, color: Color(0xFF1A1C1C)),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1C1C),
+                height: 1.3,
+              ),
+            ),
           ),
-          const Spacer(),
           CupertinoSwitch(
             value: value,
             onChanged: onChanged,
@@ -402,4 +457,121 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
     );
   }
+}
+
+// ────────────────────────────────────────────
+// Micro-components
+// ────────────────────────────────────────────
+
+class _RoleBadge extends StatelessWidget {
+  final String name;
+  const _RoleBadge({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F3F3),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        name,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF1A1C1C),
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusDot extends StatelessWidget {
+  final String text;
+  final bool active;
+
+  const _StatusDot({required this.text, required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active ? AppColors.success : AppColors.gray300,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            color: active ? AppColors.success : AppColors.gray400,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _LogoutButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: AppColors.error.withValues(alpha: 0.25),
+            width: 1,
+          ),
+        ),
+        child: const Text(
+          '退出登录',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppColors.error,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────
+// Background pattern painter
+// ────────────────────────────────────────────
+
+class _DotGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final dotPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.06)
+      ..style = PaintingStyle.fill;
+
+    const step = 16.0;
+    for (double x = 0; x < size.width; x += step) {
+      for (double y = 0; y < size.height; y += step) {
+        canvas.drawCircle(Offset(x, y), 1, dotPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

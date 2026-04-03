@@ -278,10 +278,12 @@ class _HomeAppBar extends ConsumerWidget {
                   width: 30,
                   height: 30,
                   fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  isAntiAlias: true,
                 ),
                 const SizedBox(width: 10),
                 const Text(
-                  '开造',
+                  'KAIZO',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,

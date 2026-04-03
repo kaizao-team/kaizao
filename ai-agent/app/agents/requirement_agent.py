@@ -3,7 +3,8 @@
 通过多轮对话产出 requirement.md（PRD + EARS 拆解）
 """
 
-from typing import Any
+import json
+from typing import Any, Optional
 
 import structlog
 
@@ -20,14 +21,25 @@ from app.tools.document_tools import SAVE_DOCUMENT_TOOL
 
 logger = structlog.get_logger()
 
+# 默认维度覆盖度（全零）
+DEFAULT_DIMENSION_COVERAGE = {
+    "product_scope": 0,
+    "target_users": 0,
+    "core_features": 0,
+    "tech_preference": 0,
+    "business_goal": 0,
+    "mvp_scope": 0,
+    "constraints": 0,
+}
+
 
 class RequirementAgent(ToolUseBaseAgent):
     """
     需求分析 Agent
 
-    阶段机：clarifying → prd_draft → prd_confirmed → tasks_ready
-    - 一句话需求 → 多轮对话澄清 → 生成 PRD → EARS 拆解
-    - 清晰需求 → 直接生成 PRD → EARS 拆解
+    阶段机：clarifying → prd_draft → prd_confirmed → (发布/撮合/确认合作) → ears_decomposing → tasks_ready
+    - 一句话需求 → 多轮对话澄清 → 生成 PRD → 确认 PRD（需求阶段暂停）
+    - 确认合作后 → EARS 拆解 → 生成 requirement.md
     """
 
     agent_name = "requirement"
@@ -40,6 +52,7 @@ class RequirementAgent(ToolUseBaseAgent):
         self._project_id: str = ""
         self._sub_stage: str = "clarifying"
         self._completeness_score: int = 0
+        self._dimension_coverage: dict = dict(DEFAULT_DIMENSION_COVERAGE)
 
     def _get_tools(self) -> list[dict]:
         return [
@@ -55,6 +68,7 @@ class RequirementAgent(ToolUseBaseAgent):
             project_id=self._project_id,
             sub_stage=self._sub_stage,
             completeness_score=self._completeness_score,
+            dimension_coverage=json.dumps(self._dimension_coverage, ensure_ascii=False),
             additional_context=additional,
         )
         return REQUIREMENT_SYSTEM_PROMPT + "\n\n" + ctx
@@ -63,15 +77,30 @@ class RequirementAgent(ToolUseBaseAgent):
         if tool_name == "ask_clarification":
             self._completeness_score = tool_input.get("completeness_score", self._completeness_score)
             self._sub_stage = "clarifying"
+            # 存储维度覆盖度
+            coverage = tool_input.get("dimension_coverage")
+            if coverage:
+                self._dimension_coverage = coverage
             return "已向用户展示澄清问题。"
 
         elif tool_name == "generate_prd":
             self._completeness_score = tool_input.get("completeness_score", self._completeness_score)
             self._sub_stage = "prd_draft"
+            if self._project_id:
+                prd = tool_input.get("prd", {})
+                complexity = tool_input.get("complexity")
+                # 解析 PRD feature_modules → 写入 ai_prd_items
+                self._persist_prd_items(self._project_id, prd)
+                # 持久化项目级概览信息 → 写入 ai_project_overview
+                self._persist_project_overview(self._project_id, prd, complexity)
             return "PRD 已生成，等待用户确认。"
 
         elif tool_name == "decompose_to_ears":
             self._sub_stage = "tasks_ready"
+            # 解析 ears_tasks → 写入 ai_ears_tasks
+            if self._project_id:
+                tasks = tool_input.get("ears_tasks", [])
+                self._persist_ears_tasks(self._project_id, tasks)
             # 自动保存文档
             md_content = tool_input.get("markdown_preview", "")
             if md_content and self._project_id:
@@ -89,12 +118,107 @@ class RequirementAgent(ToolUseBaseAgent):
 
         return f"未知工具: {tool_name}"
 
+    @staticmethod
+    def _persist_prd_items(project_id: str, prd: dict) -> None:
+        """解析 PRD feature_modules，异步写入 ai_prd_items"""
+        import asyncio
+
+        items = []
+        for module in prd.get("feature_modules", []):
+            module_name = module.get("module_name", "")
+            for fi in module.get("feature_items", []):
+                items.append({
+                    "item_id": fi.get("item_id", ""),
+                    "module_name": module_name,
+                    "title": fi.get("title", ""),
+                    "description": fi.get("description", ""),
+                    "priority": fi.get("priority", "P1"),
+                    "acceptance_summary": fi.get("acceptance_summary", ""),
+                })
+        if not items:
+            return
+
+        async def _do():
+            try:
+                from app.db.repository import ProjectRepository
+                repo = ProjectRepository()
+                await repo.save_prd_items(project_id, items)
+            except Exception as e:
+                logger.warning("persist_prd_items_failed", error=str(e))
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_do())
+        except RuntimeError:
+            pass
+
+    @staticmethod
+    def _persist_project_overview(project_id: str, prd: dict, complexity: str | None = None) -> None:
+        """持久化项目级概览信息，异步写入 ai_project_overview"""
+        import asyncio
+
+        modules = prd.get("feature_modules", [])
+        item_count = sum(len(m.get("feature_items", [])) for m in modules)
+
+        overview = {
+            "title": prd.get("title", ""),
+            "summary": prd.get("summary", ""),
+            "target_users": prd.get("target_users"),
+            "complexity": complexity,
+            "tech_requirements": prd.get("tech_requirements"),
+            "non_functional_requirements": prd.get("non_functional_requirements"),
+            "module_count": len(modules),
+            "item_count": item_count,
+        }
+
+        async def _do():
+            try:
+                from app.db.repository import ProjectRepository
+                repo = ProjectRepository()
+                await repo.save_project_overview(project_id, overview)
+            except Exception as e:
+                logger.warning("persist_project_overview_failed", error=str(e))
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_do())
+        except RuntimeError:
+            pass
+
+    @staticmethod
+    def _persist_ears_tasks(project_id: str, tasks: list[dict]) -> None:
+        """解析 ears_tasks，异步写入 ai_ears_tasks"""
+        import asyncio
+
+        if not tasks:
+            return
+
+        async def _do():
+            try:
+                from app.db.repository import ProjectRepository
+                repo = ProjectRepository()
+                await repo.save_ears_tasks(project_id, tasks)
+            except Exception as e:
+                logger.warning("persist_ears_tasks_failed", error=str(e))
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_do())
+        except RuntimeError:
+            pass
+
+    @property
+    def dimension_coverage(self) -> dict:
+        """对外暴露当前维度覆盖度"""
+        return dict(self._dimension_coverage)
+
     async def chat(
         self,
         project_id: str,
         messages: list[dict],
         sub_stage: str = "clarifying",
         completeness_score: int = 0,
+        dimension_coverage: Optional[dict] = None,
     ) -> tuple[list[dict], dict[str, Any], str, int]:
         """
         执行一轮对话
@@ -105,6 +229,10 @@ class RequirementAgent(ToolUseBaseAgent):
         self._project_id = project_id
         self._sub_stage = sub_stage
         self._completeness_score = completeness_score
+        if dimension_coverage:
+            self._dimension_coverage = dimension_coverage
+        else:
+            self._dimension_coverage = dict(DEFAULT_DIMENSION_COVERAGE)
 
         updated_messages, last_tool = await self.run(
             messages=messages,
@@ -125,11 +253,16 @@ class RequirementAgent(ToolUseBaseAgent):
         messages: list[dict],
         sub_stage: str = "clarifying",
         completeness_score: int = 0,
+        dimension_coverage: Optional[dict] = None,
     ):
         """流式执行一轮对话，yield SSE 事件"""
         self._project_id = project_id
         self._sub_stage = sub_stage
         self._completeness_score = completeness_score
+        if dimension_coverage:
+            self._dimension_coverage = dimension_coverage
+        else:
+            self._dimension_coverage = dict(DEFAULT_DIMENSION_COVERAGE)
 
         async for event in self.run_stream(messages=messages, max_tokens=16384):
             yield event
@@ -137,22 +270,26 @@ class RequirementAgent(ToolUseBaseAgent):
         # 追加阶段信息到 done 事件后
         yield {
             "event": "stage_info",
-            "data": f'{{"sub_stage": "{self._sub_stage}", "completeness_score": {self._completeness_score}}}',
+            "data": json.dumps({
+                "sub_stage": self._sub_stage,
+                "completeness_score": self._completeness_score,
+                "dimension_coverage": self._dimension_coverage,
+            }, ensure_ascii=False),
         }
 
-    async def confirm_prd_stream(
+    async def decompose_ears_stream(
         self,
         project_id: str,
         messages: list[dict],
     ):
-        """流式确认 PRD，yield SSE 事件"""
+        """流式 EARS 拆解（确认合作后调用），yield SSE 事件"""
         self._project_id = project_id
-        self._sub_stage = "prd_confirmed"
+        self._sub_stage = "ears_decomposing"
         self._completeness_score = 100
 
         messages.append({
             "role": "user",
-            "content": "PRD 已确认，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
+            "content": "需求双方已确认合作，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
         })
 
         async for event in self.run_stream(messages=messages, max_tokens=16384):
@@ -160,28 +297,30 @@ class RequirementAgent(ToolUseBaseAgent):
 
         yield {
             "event": "stage_info",
-            "data": f'{{"sub_stage": "{self._sub_stage}", "completeness_score": {self._completeness_score}}}',
+            "data": json.dumps({
+                "sub_stage": self._sub_stage,
+                "completeness_score": self._completeness_score,
+                "dimension_coverage": self._dimension_coverage,
+            }, ensure_ascii=False),
         }
 
-    async def confirm_prd(
+    async def decompose_ears(
         self,
         project_id: str,
         messages: list[dict],
     ) -> tuple[list[dict], dict[str, Any], str, int]:
-        """用户确认 PRD，触发 EARS 拆解"""
+        """EARS 拆解（确认合作后调用）"""
         self._project_id = project_id
-        self._sub_stage = "prd_confirmed"
+        self._sub_stage = "ears_decomposing"
         self._completeness_score = 100
 
-        # 添加确认指令
         messages.append({
             "role": "user",
-            "content": "PRD 已确认，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
+            "content": "需求双方已确认合作，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
         })
 
         updated_messages, last_tool = await self.run(
             messages=messages,
-            # EARS 拆解需要更多 token
             max_tokens=16384,
         )
 

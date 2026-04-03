@@ -1,14 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../models/notification_models.dart';
 import '../providers/notification_provider.dart';
 
-class NotificationPage extends ConsumerWidget {
+class NotificationPage extends ConsumerStatefulWidget {
   const NotificationPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationPage> createState() => _NotificationPageState();
+}
+
+class _NotificationPageState extends ConsumerState<NotificationPage> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 100) {
+      ref.read(notificationProvider.notifier).loadMore();
+    }
+  }
+
+  void _onNotificationTap(NotificationItem item) {
+    ref.read(notificationProvider.notifier).markAsRead(item.id);
+
+    if (!item.hasTarget) return;
+
+    switch (item.targetType) {
+      case 'project':
+        context.push('/projects/${item.targetId}');
+      case 'conversation':
+        context.push('/chat/${item.targetId}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(notificationProvider);
 
     return Scaffold(
@@ -25,10 +66,7 @@ class NotificationPage extends ConsumerWidget {
                   ref.read(notificationProvider.notifier).markAllAsRead(),
               child: const Text(
                 '全部已读',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.gray600,
-                ),
+                style: TextStyle(fontSize: 14, color: AppColors.gray600),
               ),
             ),
         ],
@@ -52,25 +90,59 @@ class NotificationPage extends ConsumerWidget {
                       .read(notificationProvider.notifier)
                       .loadNotifications(),
                   child: ListView.separated(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: state.notifications.length,
+                    itemCount: state.notifications.length +
+                        (state.hasMore || state.isLoadingMore ? 1 : 0),
                     separatorBuilder: (_, __) => const Divider(
                       height: 1,
                       indent: 68,
                       color: AppColors.gray100,
                     ),
                     itemBuilder: (context, index) {
+                      if (index == state.notifications.length) {
+                        return _buildLoadMoreFooter(state);
+                      }
                       final item = state.notifications[index];
                       return _NotificationTile(
                         item: item,
-                        onTap: () => ref
-                            .read(notificationProvider.notifier)
-                            .markAsRead(item.id),
+                        onTap: () => _onNotificationTap(item),
                       );
                     },
                   ),
                 ),
     );
+  }
+
+  Widget _buildLoadMoreFooter(NotificationState state) {
+    if (state.isLoadingMore) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.gray400),
+            ),
+          ),
+        ),
+      );
+    }
+    if (!state.hasMore) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(
+          child: Text(
+            '已加载全部通知',
+            style: TextStyle(fontSize: 13, color: AppColors.gray400),
+          ),
+        ),
+      );
+    }
+    return const SizedBox(height: 20);
   }
 
   Widget _buildEmpty() {
@@ -178,17 +250,31 @@ class _NotificationTile extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (!item.isRead) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      if (!item.isRead)
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEF4444),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      if (!item.isRead && item.hasTarget)
+                        const SizedBox(width: 8),
+                      if (item.hasTarget)
+                        const Text(
+                          '查看详情 →',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.gray500,
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),

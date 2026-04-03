@@ -26,7 +26,13 @@ class Settings(BaseSettings):
     claude_max_tokens: int = 8192
     claude_timeout: int = 30
 
-    # 智谱 GLM API 配置（支持 tool use）
+    # OpenAI GPT 配置（通过 codex-for.me 代理，主选 LLM）
+    openai_api_key: str = Field(default="", description="OpenAI/Codex API Key")
+    openai_base_url: str = Field(default="https://api-vip.codex-for.me/v1", description="OpenAI 兼容 Base URL")
+    openai_model: str = Field(default="gpt-5.4", description="GPT 模型名称")
+    openai_timeout: int = 60
+
+    # 智谱 GLM API 配置（降级备选，支持 tool use）
     zhipu_api_key: str = Field(default="", description="智谱 API Key")
     zhipu_model: str = "GLM-4-FlashX"
 
@@ -61,6 +67,13 @@ class Settings(BaseSettings):
 
     # MySQL 配置
     mysql_url: str = "mysql+aiomysql://root:root@localhost:3306/kaizao?charset=utf8mb4"
+
+    # Minio 对象存储配置
+    minio_endpoint: str = "minio:9000"
+    minio_access_key: str = "minioadmin"
+    minio_secret_key: str = "minioadmin"
+    minio_bucket: str = "ai-documents"
+    minio_use_ssl: bool = False
 
     # Agent 配置
     max_conversation_turns: int = 20

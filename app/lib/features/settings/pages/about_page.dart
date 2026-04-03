@@ -10,7 +10,7 @@ class AboutPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '关于 KAIZAO',
+          '关于 KAIZO',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
       ),
@@ -24,12 +24,14 @@ class AboutPage extends StatelessWidget {
               width: 80,
               height: 80,
               fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+              isAntiAlias: true,
             ),
           ),
           const SizedBox(height: 16),
           const Center(
             child: Text(
-              'KAIZAO',
+              'KAIZO',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,

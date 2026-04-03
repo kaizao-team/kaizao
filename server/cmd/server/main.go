@@ -85,7 +85,7 @@ func main() {
 	// 初始化各层依赖
 	repos := repository.NewRepositories(db)
 	services := service.NewServices(repos, rdb, cfg, log)
-	handlers := handler.NewHandlers(services, log)
+	handlers := handler.NewHandlers(services, cfg, log)
 
 	// 初始化路由
 	r := router.Setup(cfg, handlers, services, log, rdb)

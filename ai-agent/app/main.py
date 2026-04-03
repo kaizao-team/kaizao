@@ -28,10 +28,10 @@ chat_assistant: Optional[Any] = None
 # v2 全局组件实例
 v2_session: Optional[Any] = None
 v2_doc_writer: Optional[Any] = None
+v2_minio_store: Optional[Any] = None
 v2_orchestrator: Optional[Any] = None
 v2_requirement_agent: Optional[Any] = None
 v2_design_agent: Optional[Any] = None
-v2_task_agent: Optional[Any] = None
 v2_pm_agent: Optional[Any] = None
 v2_rating_agent: Optional[Any] = None
 
@@ -41,8 +41,8 @@ async def lifespan(app: FastAPI):
     """应用生命周期管理：启动时初始化组件，关闭时释放资源"""
     global llm_router, embedding_client, milvus_store, retriever
     global smart_matcher, chat_assistant
-    global v2_session, v2_doc_writer, v2_orchestrator
-    global v2_requirement_agent, v2_design_agent, v2_task_agent, v2_pm_agent, v2_rating_agent
+    global v2_session, v2_doc_writer, v2_minio_store, v2_orchestrator
+    global v2_requirement_agent, v2_design_agent, v2_pm_agent, v2_rating_agent
 
     logger.info("正在启动 VibeBuild AI Agent 服务...")
 
@@ -123,9 +123,18 @@ async def lifespan(app: FastAPI):
         v2_session = None
 
     try:
+        from app.storage.minio_client import MinioDocStore
+        v2_minio_store = MinioDocStore()
+        v2_minio_store.connect()
+        logger.info("Minio 文档存储连接成功")
+    except Exception as e:
+        logger.warning(f"Minio 连接跳过（文档仅写入本地）: {e}")
+        v2_minio_store = None
+
+    try:
         from app.outputs.writer import DocumentWriter
-        v2_doc_writer = DocumentWriter()
-        logger.info("v2 文档写入器初始化完成")
+        v2_doc_writer = DocumentWriter(minio_store=v2_minio_store)
+        logger.info("v2 文档写入器初始化完成", minio="enabled" if v2_minio_store else "disabled")
     except Exception as e:
         logger.warning(f"v2 文档写入器初始化跳过: {e}")
         v2_doc_writer = None
@@ -144,15 +153,13 @@ async def lifespan(app: FastAPI):
     try:
         from app.agents.requirement_agent import RequirementAgent
         from app.agents.design_agent import DesignAgent
-        from app.agents.task_agent import TaskAgent
         from app.agents.pm_agent import PMAgent
 
         if llm_router and v2_doc_writer:
             v2_requirement_agent = RequirementAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
             v2_design_agent = DesignAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
-            v2_task_agent = TaskAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
             v2_pm_agent = PMAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
-            logger.info("v2 四个文档型 Agent 初始化完成")
+            logger.info("v2 三个文档型 Agent 初始化完成（requirement, design, pm）")
     except Exception as e:
         logger.warning(f"v2 Agent 初始化跳过: {e}")
 
@@ -198,21 +205,23 @@ app = FastAPI(
 from app.routers import (
     requirement_router,
     design_router,
-    task_router,
     pm_router,
     pipeline_router,
     rating_router,
     match_router,
     chat_router,
+    lifecycle_router,
+    ears_router,
 )
 app.include_router(requirement_router.router)
 app.include_router(design_router.router)
-app.include_router(task_router.router)
 app.include_router(pm_router.router)
 app.include_router(pipeline_router.router)
 app.include_router(rating_router.router)
 app.include_router(match_router.router)
 app.include_router(chat_router.router)
+app.include_router(lifecycle_router.router)
+app.include_router(ears_router.router)
 
 # CORS 中间件
 app.add_middleware(

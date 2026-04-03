@@ -12,6 +12,7 @@ import structlog
 
 from app.agents.base_agent import BaseAgent
 from app.config import settings
+from app.db.repository import ProjectRepository
 from app.llm.router import LLMRouter
 from app.vectorizer.embedding_client import EmbeddingClient
 from app.storage.milvus_store import MilvusStore
@@ -53,6 +54,7 @@ class SmartMatcherAgent(BaseAgent):
         self.embedding_client = embedding_client
         self.milvus_store = milvus_store
         self.retriever = retriever
+        self._project_repo = ProjectRepository()
 
     async def _execute(
         self,
@@ -81,8 +83,17 @@ class SmartMatcherAgent(BaseAgent):
         page = (pagination or {}).get("page", 1)
         page_size = min((pagination or {}).get("page_size", 10), 20)
 
-        # 模拟获取需求信息（生产环境从数据库/gRPC 获取）
-        demand = self._get_demand_info(demand_id)
+        # 从数据库读取真实需求信息
+        demand = await self._get_demand_info(demand_id)
+        if demand is None:
+            return {
+                "demand_id": demand_id,
+                "match_type": match_type,
+                "recommendations": [],
+                "overall_suggestion": "",
+                "no_match_reason": f"需求 {demand_id} 不存在，无法进行匹配。",
+                "meta": {"total_candidates_scanned": 0, "processing_time_ms": 0, "rag_references_used": 0},
+            }
 
         # Step 1: 生成需求语义向量
         demand_text = (
@@ -109,10 +120,13 @@ class SmartMatcherAgent(BaseAgent):
             expr=expr,
         )
 
-        # Step 3: 多维评分
+        # Step 3: 批量从 MySQL 补全供给方数据 + 多维评分
+        candidate_uuids = [c.get("user_uuid", "") for c in candidates if c.get("user_uuid")]
+        user_profiles = await self._batch_enrich_providers(candidate_uuids)
+
         scored_candidates = []
         for candidate in candidates:
-            provider = self._parse_provider(candidate)
+            provider = self._parse_provider(candidate, user_profiles)
             score_result = self._calculate_match_score(
                 demand=demand,
                 provider=provider,
@@ -152,6 +166,10 @@ class SmartMatcherAgent(BaseAgent):
 
         processing_time = round((time.time() - start_time) * 1000)
 
+        # 撮合结果落库
+        if recommendations:
+            await self._save_match_results(demand_id, match_type, recommendations)
+
         return {
             "demand_id": demand_id,
             "match_type": match_type,
@@ -165,37 +183,59 @@ class SmartMatcherAgent(BaseAgent):
             },
         }
 
-    def _get_demand_info(self, demand_id: str) -> Dict[str, Any]:
+    async def _save_match_results(
+        self, demand_id: str, match_type: str, recommendations: List[Dict]
+    ) -> None:
+        """将撮合推荐结果持久化到 ai_match_results 表"""
+        try:
+            await self._project_repo.save_match_results(
+                project_id=demand_id,
+                recommendations=recommendations,
+                match_type=match_type,
+            )
+            self.logger.info("match_results_saved", demand_id=demand_id, count=len(recommendations))
+        except Exception as e:
+            self.logger.warning("save_match_results_failed", error=str(e))
+
+    async def _get_demand_info(self, demand_id: str) -> Optional[Dict[str, Any]]:
         """
-        获取需求信息（模拟数据，生产环境应通过 gRPC 从 demand-svc 获取）
+        从 MySQL projects 表读取真实需求信息
 
         Args:
-            demand_id: 需求 UUID
+            demand_id: 需求 UUID (Go 后端 projects.uuid)
 
         Returns:
-            需求信息字典
+            需求信息字典，项目不存在时返回 None
         """
-        return {
-            "demand_id": demand_id,
-            "title": "项目需求",
-            "description": "通过匹配系统检索到的需求",
-            "category": "web",
-            "complexity": "M",
-            "tech_stack": [],
-            "budget_min": 0,
-            "budget_max": 0,
-        }
+        try:
+            return await self._project_repo.get_project_for_matching(demand_id)
+        except Exception as e:
+            self.logger.error("get_demand_info_failed", demand_id=demand_id, error=str(e))
+            return None
 
-    def _parse_provider(self, candidate: Dict) -> Dict[str, Any]:
+    async def _batch_enrich_providers(self, uuids: list[str]) -> dict[str, dict]:
+        """批量从 MySQL users 表读取供给方真实数据"""
+        try:
+            return await self._project_repo.batch_get_users_by_uuids(uuids)
+        except Exception as e:
+            self.logger.warning("batch_enrich_providers_failed", error=str(e))
+            return {}
+
+    def _parse_provider(self, candidate: Dict, user_profiles: dict[str, dict] | None = None) -> Dict[str, Any]:
         """
-        解析从 Milvus 返回的候选供给方数据
+        解析候选供给方数据：Milvus 向量检索结果 + MySQL users 表真实数据
 
         Args:
             candidate: Milvus 检索结果
+            user_profiles: 批量查询的用户信息 {uuid: user_dict}
 
         Returns:
             供给方信息字典
         """
+        user_uuid = candidate.get("user_uuid", "")
+        db_user = (user_profiles or {}).get(user_uuid, {})
+
+        # 技能：优先 Milvus，MySQL 无此字段
         skills = []
         try:
             skills_raw = candidate.get("skills_json", "[]")
@@ -204,18 +244,43 @@ class SmartMatcherAgent(BaseAgent):
         except json.JSONDecodeError:
             pass
 
+        # 从 MySQL users 表取真实数据，Milvus 字段作为 fallback
+        avg_rating = db_user.get("avg_rating", candidate.get("avg_rating", 0))
+        credit_score = db_user.get("credit_score", candidate.get("credit_score", 500))
+
+        # 价格代理：使用 hourly_rate 作为 avg_price 的近似
+        hourly_rate = db_user.get("hourly_rate", 0)
+
+        # 响应速度：response_time_avg 单位是分钟，转换为小时
+        response_minutes = db_user.get("response_time_avg", 0)
+        avg_response_hours = response_minutes / 60.0 if response_minutes > 0 else 24
+
+        # 注册时间戳
+        register_timestamp = 0
+        if db_user.get("created_at"):
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(db_user["created_at"])
+                register_timestamp = dt.timestamp()
+            except (ValueError, TypeError):
+                pass
+
         return {
-            "user_uuid": candidate.get("user_uuid", ""),
+            "user_uuid": user_uuid,
+            "nickname": db_user.get("nickname", ""),
             "skills": skills,
-            "avg_rating": candidate.get("avg_rating", 0),
-            "credit_score": candidate.get("credit_score", 500),
-            "total_orders": 0,
-            "completion_rate": 0,
-            "positive_rate": 0,
-            "avg_price": 0,
-            "avg_response_hours": 24,
-            "last_order_timestamp": 0,
-            "register_timestamp": 0,
+            "avg_rating": avg_rating,
+            "credit_score": credit_score,
+            "total_orders": db_user.get("total_orders", 0),
+            "completed_orders": db_user.get("completed_orders", 0),
+            "completion_rate": db_user.get("completion_rate", 0),
+            "positive_rate": db_user.get("completion_rate", 0),  # 暂用完成率近似
+            "avg_price": hourly_rate,
+            "avg_response_hours": avg_response_hours,
+            "last_order_timestamp": 0,  # Go 后端暂无此字段
+            "register_timestamp": register_timestamp,
+            "is_verified": db_user.get("is_verified", False),
+            "available_status": db_user.get("available_status", 1),
         }
 
     def _calculate_match_score(

@@ -1,4 +1,6 @@
 -- 邀请码与入驻审核
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS invite_codes (
     id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
     uuid                VARCHAR(36) NOT NULL UNIQUE,

@@ -219,7 +219,7 @@ class _OnboardingPageState extends State<OnboardingPage>
 
                 // Description cross-fade
                 SizedBox(
-                  height: 62,
+                  height: 72,
                   child: Stack(
                     children: List.generate(_pages.length, (i) {
                       final rel = (_pageOffset - i).abs();
@@ -516,54 +516,282 @@ class _ContinuousMorphPainter extends CustomPainter {
     final h = size.height;
     final paint = Paint()..style = PaintingStyle.fill;
 
-    // Three column header groups
-    final cols = [
-      [nodes[0], const Color(0xFF1A1A1A)],
-      [nodes[1], const Color(0xFF7C3AED)],
-      [nodes[2], const Color(0xFF9CA3AF)],
+    final boardLeft = w * 0.06;
+    final boardW = w * 0.88;
+    final colW = boardW / 3 - 6;
+    const colGap = 9.0;
+    final boardTop = h * 0.14;
+    final boardH = h * 0.52;
+
+    final colColors = [
+      const Color(0xFF1A1A1A),
+      const Color(0xFF7C3AED),
+      const Color(0xFF22C55E),
+    ];
+    final colLabels = [3, 2, 4];
+    final progressSets = [
+      [0.0, 0.0, 0.0],
+      [0.35, 0.72, 0.55],
+      [1.0, 1.0, 1.0],
     ];
 
-    final cardYStarts = [h * 0.28, h * 0.46, h * 0.62];
-    final cardHeights = [h * 0.14, h * 0.12, h * 0.10];
+    // Board background — large rounded container
+    paint.color = const Color(0xFFFFFFFF).withValues(alpha: alpha * 0.55);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(boardLeft - 8, boardTop - 10, boardW + 16, boardH + 20),
+        const Radius.circular(18),
+      ),
+      paint,
+    );
 
-    for (int i = 0; i < cols.length; i++) {
-      final node = cols[i][0] as _Node;
-      final color = cols[i][1] as Color;
-      final nx = node.nx(t0, t1);
+    // Board border
+    final borderPaint = Paint()
+      ..color = const Color(0xFF1A1A1A).withValues(alpha: alpha * 0.04)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(boardLeft - 8, boardTop - 10, boardW + 16, boardH + 20),
+        const Radius.circular(18),
+      ),
+      borderPaint,
+    );
 
-      // Column bg strip
-      paint.color = const Color(0xFF1A1A1A).withValues(alpha: alpha * 0.03);
+    for (int i = 0; i < 3; i++) {
+      final cx = boardLeft + i * (colW + colGap);
+      final color = colColors[i];
+
+      // Column lane bg
+      paint.color = const Color(0xFFF6F6F6).withValues(alpha: alpha * 0.7);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(nx - 4, h * 0.18, w * 0.26, h * 0.58),
+          Rect.fromLTWH(cx, boardTop, colW, boardH),
           const Radius.circular(12),
         ),
         paint,
       );
 
-      // Cards
-      for (int j = 0; j < 3; j++) {
-        final cy = cardYStarts[j];
-        final ch = cardHeights[j];
-        paint.color = const Color(0xFFFFFFFF)
-            .withValues(alpha: alpha * (j == 0 ? 0.85 : 0.55));
+      // Column header bar
+      paint.color = color.withValues(alpha: alpha * 0.12);
+      canvas.drawRRect(
+        RRect.fromLTRBAndCorners(
+          cx, boardTop, cx + colW, boardTop + 28,
+          topLeft: const Radius.circular(12),
+          topRight: const Radius.circular(12),
+        ),
+        paint,
+      );
+
+      // Header label skeleton
+      paint.color = color.withValues(alpha: alpha * 0.4);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(cx + 10, boardTop + 9, colW * 0.4, 8),
+          const Radius.circular(4),
+        ),
+        paint,
+      );
+
+      // Count badge
+      paint.color = color.withValues(alpha: alpha * 0.2);
+      final badgeCx = cx + colW - 18;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(badgeCx - 6, boardTop + 6, 16, 14),
+          const Radius.circular(4),
+        ),
+        paint,
+      );
+
+      // Cards — 3 per column with varying detail
+      final cardCount = colLabels[i];
+      final availableH = boardH - 40;
+      final cardH = (availableH - (cardCount - 1) * 8) / cardCount;
+      final maxCards = cardCount.clamp(0, 3);
+
+      for (int j = 0; j < maxCards; j++) {
+        final cy = boardTop + 34 + j * (cardH + 8);
+        final ch = cardH.clamp(30.0, 100.0);
+        final stagger = alpha * (1.0 - j * 0.1).clamp(0.5, 1.0);
+
+        // Card shadow
+        paint.color =
+            const Color(0xFF000000).withValues(alpha: stagger * 0.035);
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromLTWH(nx - 4, cy, w * 0.24, ch),
+            Rect.fromLTWH(cx + 5, cy + 3, colW - 14, ch),
             const Radius.circular(8),
           ),
           paint,
         );
-        // Accent line
-        paint.color = color.withValues(alpha: alpha * 0.7);
+
+        // Card body
+        paint.color =
+            const Color(0xFFFFFFFF).withValues(alpha: stagger * 0.95);
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromLTWH(nx - 4, cy, 3, ch),
-            const Radius.circular(2),
+            Rect.fromLTWH(cx + 4, cy, colW - 12, ch),
+            const Radius.circular(8),
           ),
           paint,
         );
+
+        // Top accent bar
+        paint.color = color.withValues(alpha: stagger * 0.7);
+        canvas.drawRRect(
+          RRect.fromLTRBAndCorners(
+            cx + 4, cy, cx + colW - 8, cy + 3,
+            topLeft: const Radius.circular(8),
+            topRight: const Radius.circular(8),
+          ),
+          paint,
+        );
+
+        // Title skeleton (2 widths for variety)
+        paint.color =
+            const Color(0xFF1A1A1A).withValues(alpha: stagger * 0.14);
+        final titleW = (j % 2 == 0) ? colW * 0.52 : colW * 0.65;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(cx + 12, cy + 12, titleW, 6),
+            const Radius.circular(3),
+          ),
+          paint,
+        );
+
+        // Subtitle skeleton
+        if (ch > 50) {
+          paint.color =
+              const Color(0xFF1A1A1A).withValues(alpha: stagger * 0.07);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(cx + 12, cy + 24, colW * 0.38, 5),
+              const Radius.circular(3),
+            ),
+            paint,
+          );
+        }
+
+        // Progress bar
+        if (ch > 60) {
+          final barY = cy + ch - 18;
+          final barW = colW - 32;
+          paint.color =
+              const Color(0xFF1A1A1A).withValues(alpha: stagger * 0.06);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(cx + 12, barY, barW, 4),
+              const Radius.circular(2),
+            ),
+            paint,
+          );
+          paint.color = color.withValues(alpha: stagger * 0.5);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(
+                cx + 12,
+                barY,
+                barW * progressSets[i][j.clamp(0, 2)],
+                4,
+              ),
+              const Radius.circular(2),
+            ),
+            paint,
+          );
+        }
+
+        // Bottom-right avatar dot (assignee indicator)
+        if (ch > 55) {
+          paint.color = color.withValues(alpha: stagger * 0.25);
+          canvas.drawCircle(
+            Offset(cx + colW - 22, cy + ch - 14),
+            5,
+            paint,
+          );
+        }
       }
+    }
+
+    // Flow arrows between columns
+    if (alpha > 0.15) {
+      final arrowPaint = Paint()
+        ..color = const Color(0xFF1A1A1A).withValues(alpha: alpha * 0.08)
+        ..strokeWidth = 1.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      for (int i = 0; i < 2; i++) {
+        final fromX = boardLeft + (i + 1) * (colW + colGap) - colGap / 2;
+        final arrowY = boardTop + boardH * 0.35;
+        canvas.drawLine(
+          Offset(fromX - 4, arrowY),
+          Offset(fromX + 4, arrowY),
+          arrowPaint,
+        );
+        // Arrow head
+        final headPaint = Paint()
+          ..color = const Color(0xFF1A1A1A).withValues(alpha: alpha * 0.08)
+          ..strokeWidth = 1.2
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
+        canvas.drawLine(
+          Offset(fromX + 1, arrowY - 3),
+          Offset(fromX + 4, arrowY),
+          headPaint,
+        );
+        canvas.drawLine(
+          Offset(fromX + 1, arrowY + 3),
+          Offset(fromX + 4, arrowY),
+          headPaint,
+        );
+      }
+    }
+
+    // AI warning badge — floating element near the second column
+    if (alpha > 0.3) {
+      final badgeX = boardLeft + colW + colGap + colW * 0.15;
+      final badgeY = boardTop + boardH - 18;
+      final badgeW = colW * 0.7;
+      final badgeAlpha = (alpha - 0.3) / 0.7;
+
+      // Badge shadow
+      paint.color =
+          const Color(0xFFF59E0B).withValues(alpha: badgeAlpha * 0.08);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(badgeX - 1, badgeY + 2, badgeW + 2, 20),
+          const Radius.circular(6),
+        ),
+        paint,
+      );
+
+      // Badge body
+      paint.color =
+          const Color(0xFFFFFBEB).withValues(alpha: badgeAlpha * 0.92);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(badgeX, badgeY, badgeW, 18),
+          const Radius.circular(5),
+        ),
+        paint,
+      );
+
+      // Warning dot
+      paint.color =
+          const Color(0xFFF59E0B).withValues(alpha: badgeAlpha * 0.8);
+      canvas.drawCircle(Offset(badgeX + 8, badgeY + 9), 3, paint);
+
+      // Warning text skeleton
+      paint.color =
+          const Color(0xFFF59E0B).withValues(alpha: badgeAlpha * 0.3);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(badgeX + 16, badgeY + 6, badgeW * 0.5, 5),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
     }
   }
 

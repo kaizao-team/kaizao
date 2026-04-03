@@ -7,7 +7,7 @@ Anthropic tool use 格式
 
 ASK_CLARIFICATION_TOOL = {
     "name": "ask_clarification",
-    "description": "向用户提出结构化澄清问题，帮助补全需求。包含完整度评分。",
+    "description": "向用户提出一个结构化澄清问题，帮助补全需求。每次调用只提一个问题（questions 数组长度为 1），支持选择题和文本输入等交互方式，包含完整度评分和各维度覆盖度。",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -17,37 +17,151 @@ ASK_CLARIFICATION_TOOL = {
             },
             "completeness_score": {
                 "type": "integer",
-                "description": "当前需求完整度评分 0-100",
+                "description": "当前需求完整度评分 0-100，计算公式: sum(dimension_i × weight_i)，所有维度 ≥ 60% 且总分 ≥ 80 才触发 PRD",
                 "minimum": 0,
                 "maximum": 100,
             },
             "questions": {
                 "type": "array",
+                "description": "结构化问题列表，每次只放 1 个问题",
                 "items": {
                     "type": "object",
                     "properties": {
-                        "question": {"type": "string"},
+                        "id": {
+                            "type": "string",
+                            "description": "问题唯一标识，如 q1, q2",
+                        },
+                        "question": {
+                            "type": "string",
+                            "description": "问题文本",
+                        },
                         "category": {
                             "type": "string",
-                            "enum": ["scope", "user", "tech", "business", "priority"],
+                            "enum": [
+                                "product_scope",
+                                "target_users",
+                                "core_features",
+                                "tech_preference",
+                                "business_goal",
+                                "mvp_scope",
+                                "constraints",
+                            ],
+                            "description": "问题所属需求维度",
+                        },
+                        "input_type": {
+                            "type": "string",
+                            "enum": ["single_choice", "multi_choice", "free_text", "number"],
+                            "description": "交互类型: single_choice=单选, multi_choice=多选, free_text=自由文本输入, number=数字输入",
+                        },
+                        "min_select": {
+                            "type": "integer",
+                            "description": "多选最少选几个（仅 multi_choice 时有效），默认 1",
+                            "minimum": 1,
+                        },
+                        "max_select": {
+                            "type": "integer",
+                            "description": "多选最多选几个（仅 multi_choice 时有效），不填则不限",
+                            "minimum": 1,
                         },
                         "options": {
                             "type": "array",
-                            "items": {"type": "string"},
+                            "description": "选择题选项列表（input_type 为 single_choice 或 multi_choice 时必填）",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "label": {
+                                        "type": "string",
+                                        "description": "选项显示文本",
+                                    },
+                                    "value": {
+                                        "type": "string",
+                                        "description": "选项提交值",
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "选项补充说明（可选）",
+                                    },
+                                    "is_custom": {
+                                        "type": "boolean",
+                                        "description": "是否为自定义输入项（默认 false）",
+                                    },
+                                },
+                                "required": ["label", "value"],
+                            },
+                        },
+                        "allow_custom": {
+                            "type": "boolean",
+                            "description": "是否允许用户自定义输入（默认 true）",
+                        },
+                        "placeholder": {
+                            "type": "string",
+                            "description": "free_text/number 类型的输入提示语",
+                        },
+                        "required": {
+                            "type": "boolean",
+                            "description": "是否必填",
                         },
                     },
-                    "required": ["question", "category"],
+                    "required": ["id", "question", "category", "input_type", "required"],
+                },
+            },
+            "dimension_coverage": {
+                "type": "object",
+                "description": "各需求维度的覆盖度（0-100），用于展示进度",
+                "properties": {
+                    "product_scope": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "产品定位与边界（权重 20%）",
+                    },
+                    "target_users": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "用户画像（权重 15%）",
+                    },
+                    "core_features": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "核心功能列表（权重 20%）",
+                    },
+                    "tech_preference": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "技术偏好（权重 10%）",
+                    },
+                    "business_goal": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "商业目标（权重 10%）",
+                    },
+                    "mvp_scope": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "MVP 范围与优先级（权重 15%）",
+                    },
+                    "constraints": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "约束条件（权重 10%）",
+                    },
                 },
             },
         },
-        "required": ["agent_message", "completeness_score", "questions"],
+        "required": ["agent_message", "completeness_score", "questions", "dimension_coverage"],
     },
 }
 
 
 GENERATE_PRD_TOOL = {
     "name": "generate_prd",
-    "description": "根据已收集的需求信息，生成结构化 PRD 文档及 Markdown 预览。",
+    "description": "根据已收集的需求信息，生成结构化 PRD 文档。包含项目复杂度定级和需求条目（Feature Items）列表。",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -60,13 +174,43 @@ GENERATE_PRD_TOOL = {
                 "minimum": 0,
                 "maximum": 100,
             },
+            "complexity": {
+                "type": "string",
+                "enum": ["S", "M", "L", "XL"],
+                "description": "项目复杂度等级: S(1-3天) / M(3-7天) / L(7-15天) / XL(15-30天)",
+            },
             "prd": {
                 "type": "object",
                 "properties": {
                     "title": {"type": "string"},
                     "summary": {"type": "string"},
                     "target_users": {"type": "array", "items": {"type": "object"}},
-                    "feature_modules": {"type": "array", "items": {"type": "object"}},
+                    "feature_modules": {
+                        "type": "array",
+                        "description": "功能模块列表，每个模块包含需求条目",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "module_name": {"type": "string"},
+                                "description": {"type": "string"},
+                                "feature_items": {
+                                    "type": "array",
+                                    "description": "需求条目列表（发起人可感知的进度单元）",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "item_id": {"type": "string", "description": "编号如 F-1.1"},
+                                            "title": {"type": "string"},
+                                            "description": {"type": "string"},
+                                            "priority": {"type": "string", "enum": ["P0", "P1", "P2"]},
+                                            "acceptance_summary": {"type": "string", "description": "用户视角的验收标准"},
+                                        },
+                                        "required": ["item_id", "title", "description", "priority", "acceptance_summary"],
+                                    },
+                                },
+                            },
+                        },
+                    },
                     "tech_requirements": {"type": "object"},
                     "non_functional_requirements": {"type": "object"},
                 },
@@ -77,14 +221,14 @@ GENERATE_PRD_TOOL = {
                 "description": "完整的 Markdown 格式 PRD 文档预览",
             },
         },
-        "required": ["agent_message", "completeness_score", "prd", "markdown_preview"],
+        "required": ["agent_message", "completeness_score", "complexity", "prd", "markdown_preview"],
     },
 }
 
 
 DECOMPOSE_TO_EARS_TOOL = {
     "name": "decompose_to_ears",
-    "description": "将确认的 PRD 拆解为 EARS 最小任务单元列表。",
+    "description": "将确认的 PRD 拆解为 EARS 任务单元。每个 EARS 卡片必须归属于一个需求条目（feature_item_id）。",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -96,22 +240,24 @@ DECOMPOSE_TO_EARS_TOOL = {
                 "items": {
                     "type": "object",
                     "properties": {
-                        "task_id": {"type": "string"},
+                        "task_id": {"type": "string", "description": "如 T-001"},
+                        "feature_item_id": {"type": "string", "description": "归属的需求条目 ID，如 F-1.1"},
                         "ears_type": {
                             "type": "string",
                             "enum": ["ubiquitous", "event", "state", "optional", "unwanted"],
                         },
-                        "ears_statement": {"type": "string"},
+                        "ears_statement": {"type": "string", "description": "EARS 完整语句"},
                         "module": {"type": "string"},
                         "role_tag": {
                             "type": "string",
                             "enum": ["frontend", "backend", "fullstack", "design", "testing"],
                         },
                         "priority": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "estimated_hours": {"type": "number", "description": "预估工时（Vibe Coding 模式）"},
                         "acceptance_criteria": {"type": "array", "items": {"type": "string"}},
                         "dependencies": {"type": "array", "items": {"type": "string"}},
                     },
-                    "required": ["task_id", "ears_type", "ears_statement", "module", "role_tag", "priority", "acceptance_criteria"],
+                    "required": ["task_id", "feature_item_id", "ears_type", "ears_statement", "module", "role_tag", "priority", "acceptance_criteria"],
                 },
             },
             "markdown_preview": {

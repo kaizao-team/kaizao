@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -30,6 +31,14 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		maxMB = 32
 	}
 	r.MaxMultipartMemory = int64(maxMB) << 20
+
+	if dir := strings.TrimSpace(cfg.OSS.LocalUploadDir); dir != "" {
+		urlPath := strings.TrimSpace(cfg.OSS.LocalURLPath)
+		if urlPath == "" {
+			urlPath = "/api/v1/upload-files"
+		}
+		r.Static(urlPath, dir)
+	}
 
 	r.Use(middleware.Recovery(log))
 	r.Use(middleware.RequestLogger(log))
@@ -80,7 +89,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	}
 
 	v1.GET("/skills", placeholder)
-	v1.POST("/upload", middleware.JWTAuth(services.JWT), placeholder)
+	v1.POST("/upload", middleware.JWTAuth(services.JWT), handlers.Upload.Post)
 
 	// ==================== 首页模块 ====================
 	home := v1.Group("/home", middleware.JWTAuth(services.JWT))
@@ -120,8 +129,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		projects.POST("/:id/bids", middleware.JWTAuth(services.JWT), handlers.Bid.CreateBid)
 		projects.GET("/:id/bids", middleware.JWTAuth(services.JWT), handlers.Bid.ListBids)
 		projects.GET("/:id/ai-suggestion", middleware.JWTAuth(services.JWT), handlers.Bid.AISuggestion)
-		projects.GET("/:id/recommendations", middleware.JWTAuth(services.JWT), placeholder)
-		projects.POST("/:id/quick-match", middleware.JWTAuth(services.JWT), placeholder)
+		projects.GET("/:id/recommendations", middleware.JWTAuth(services.JWT), handlers.Bid.Recommendations)
+		projects.POST("/:id/quick-match", middleware.JWTAuth(services.JWT), handlers.Bid.QuickMatch)
 		// v7.0 评价 (GET)
 		projects.GET("/:id/reviews", middleware.OptionalJWTAuth(services.JWT), handlers.Review.ListByProject)
 		projects.POST("/:id/ai-assist", middleware.JWTAuth(services.JWT), placeholder)
@@ -183,7 +192,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	// ==================== 支付模块 ====================
 	orders := v1.Group("/orders")
 	{
-		orders.POST("", middleware.JWTAuth(services.JWT), placeholder)
+		orders.POST("", middleware.JWTAuth(services.JWT), handlers.Order.Create)
 		orders.GET("/:id", middleware.JWTAuth(services.JWT), handlers.Order.GetDetail)
 		orders.POST("/:id/prepay", middleware.JWTAuth(services.JWT), handlers.Order.Prepay)
 		orders.GET("/:id/status", middleware.JWTAuth(services.JWT), handlers.Order.GetStatus)
@@ -211,10 +220,10 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	// ==================== 通知模块 ====================
 	notifications := v1.Group("/notifications", middleware.JWTAuth(services.JWT))
 	{
-		notifications.GET("", placeholder)
-		notifications.PUT("/:uuid/read", placeholder)
-		notifications.PUT("/read-all", placeholder)
-		notifications.GET("/unread-count", placeholder)
+		notifications.GET("", handlers.Notification.List)
+		notifications.GET("/unread-count", handlers.Notification.UnreadCount)
+		notifications.PUT("/read-all", handlers.Notification.MarkAllRead)
+		notifications.PUT("/:uuid/read", handlers.Notification.MarkRead)
 	}
 
 	v1.POST("/devices", middleware.JWTAuth(services.JWT), placeholder)

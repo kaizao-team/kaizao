@@ -433,7 +433,7 @@ final _debugPreviewProject = ProjectModel(
   teamId: null,
   title: 'AI 招聘助手小程序',
   description: '已完成项目对接，当前进入核心流程开发。',
-  category: 'miniprogram',
+  category: 'dev',
   budgetMin: 5000,
   budgetMax: 8000,
   agreedPrice: 6800,

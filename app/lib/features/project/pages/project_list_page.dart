@@ -77,9 +77,10 @@ class ProjectListPage extends ConsumerWidget {
                           return VccCard(
                             onTap: () {
                               if (proj.status == 5) {
-                                context.push('/projects/${proj.id}/manage');
+                                context.push(
+                                    '/projects/${proj.routingId}/manage');
                               } else {
-                                context.push('/projects/${proj.id}');
+                                context.push('/projects/${proj.routingId}');
                               }
                             },
                             child: Column(

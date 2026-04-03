@@ -33,6 +33,8 @@ type Services struct {
 	Wallet       *WalletService
 	Review       *ReviewService
 	Team         *TeamService
+	Notification *NotificationService
+	Upload       *UploadService
 	JWT          *jwtpkg.Manager
 }
 
@@ -50,19 +52,24 @@ func NewServices(repos *repository.Repositories, rdb *redis.Client, cfg *config.
 		log.Fatal("object storage init failed", zap.Error(err))
 	}
 
+	userSvc := NewUserService(repos, log)
+	orderSvc := NewOrderService(repos, log)
+	uploadSvc := NewUploadService(objClient, cfg, log)
 	return &Services{
 		Auth:         NewAuthService(repos, rdb, jwtManager, cfg, log),
-		User:         NewUserService(repos, log),
+		User:         userSvc,
 		Project:      NewProjectService(repos, log),
 		Home:         NewHomeService(repos, log),
-		Bid:          NewBidService(repos, log),
+		Bid:          NewBidService(repos, orderSvc, log),
 		Task:         NewTaskService(repos, log),
 		Milestone:    NewMilestoneService(repos, log),
 		Conversation: NewConversationService(repos, log),
-		Order:        NewOrderService(repos, log),
+		Order:        orderSvc,
 		Wallet:       NewWalletService(repos, log),
 		Review:       NewReviewService(repos, log),
 		Team:         NewTeamService(repos, objClient, log),
+		Notification: NewNotificationService(repos, log),
+		Upload:       uploadSvc,
 		JWT:          jwtManager,
 	}
 }

@@ -188,7 +188,7 @@ class ProfilePage extends ConsumerWidget {
         Text(
           profile.tagline.isNotEmpty
               ? profile.tagline
-              : '${profile.roleName} · 开造平台',
+              : '${profile.roleName} · KAIZO',
           style: const TextStyle(
             fontSize: 14,
             color: AppColors.gray400,
@@ -264,7 +264,7 @@ class ProfilePage extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           _buildMenuItem('帮助与反馈', onTap: () {}),
-          _buildMenuItem('关于开造', onTap: () {}),
+          _buildMenuItem('关于 KAIZO', onTap: () {}),
         ],
       ),
     );
