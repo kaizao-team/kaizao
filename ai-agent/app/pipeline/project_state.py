@@ -9,22 +9,21 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-STAGES = ["requirement", "design", "task"]
+STAGES = ["requirement", "design"]
 STAGE_FILENAMES = {
     "requirement": "requirement.md",
     "design": "design.md",
-    "task": "task.md",
-    "pm": "project-plan.md",  # PM 不参与流水线守卫，由 lifecycle hook 触发
+    "pm": "project-plan.md",  # PM 不参与流水线守卫，EARS 完成后自动触发
 }
 
 # 包含 pm 在内的所有阶段（用于文档查询等非守卫场景）
-ALL_STAGES = ["requirement", "design", "task", "pm"]
+ALL_STAGES = ["requirement", "design", "pm"]
 
 
 class StageState(BaseModel):
     """单个阶段状态"""
     status: str = "pending"  # pending / running / awaiting_confirmation / confirmed / error
-    sub_stage: Optional[str] = None  # requirement 特有：clarifying / prd_draft / prd_confirmed / tasks_ready
+    sub_stage: Optional[str] = None  # requirement 特有：clarifying / prd_draft / prd_confirmed / ears_decomposing / tasks_ready
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     document_path: Optional[str] = None

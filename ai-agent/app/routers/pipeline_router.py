@@ -108,6 +108,36 @@ async def download_document(project_id: str, filename: str, request: Request):
 
 
 @router.get(
+    "/{project_id}/overview",
+    response_model=APIResponse,
+    summary="查询项目概览（PRD 确认后可用）",
+)
+async def get_project_overview(project_id: str, request: Request):
+    """
+    查询项目概览，返回项目级摘要信息 + PRD 需求条目。
+
+    PRD 生成时自动持久化，前端用于项目卡片、项目概览页展示。
+    """
+    from app.db.repository import ProjectRepository
+
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
+
+    try:
+        repo = ProjectRepository()
+        overview = await repo.get_project_overview(project_id)
+        if not overview:
+            return APIResponse(code=40402, message="项目概览尚未生成（PRD 未完成）", request_id=request_id)
+
+        items = await repo.get_prd_items(project_id)
+        overview["prd_items"] = items
+
+        return APIResponse(code=0, data=overview, request_id=request_id)
+    except Exception as e:
+        logger.error("get_project_overview_error", error=str(e), request_id=request_id)
+        return APIResponse(code=50002, message=f"查询失败: {e}", request_id=request_id)
+
+
+@router.get(
     "/{project_id}/prd-items",
     response_model=APIResponse,
     summary="查询 PRD 需求条目列表",

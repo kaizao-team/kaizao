@@ -86,10 +86,13 @@ class RequirementAgent(ToolUseBaseAgent):
         elif tool_name == "generate_prd":
             self._completeness_score = tool_input.get("completeness_score", self._completeness_score)
             self._sub_stage = "prd_draft"
-            # 解析 PRD feature_modules → 写入 ai_prd_items
             if self._project_id:
                 prd = tool_input.get("prd", {})
+                complexity = tool_input.get("complexity")
+                # 解析 PRD feature_modules → 写入 ai_prd_items
                 self._persist_prd_items(self._project_id, prd)
+                # 持久化项目级概览信息 → 写入 ai_project_overview
+                self._persist_project_overview(self._project_id, prd, complexity)
             return "PRD 已生成，等待用户确认。"
 
         elif tool_name == "decompose_to_ears":
@@ -142,6 +145,39 @@ class RequirementAgent(ToolUseBaseAgent):
                 await repo.save_prd_items(project_id, items)
             except Exception as e:
                 logger.warning("persist_prd_items_failed", error=str(e))
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_do())
+        except RuntimeError:
+            pass
+
+    @staticmethod
+    def _persist_project_overview(project_id: str, prd: dict, complexity: str | None = None) -> None:
+        """持久化项目级概览信息，异步写入 ai_project_overview"""
+        import asyncio
+
+        modules = prd.get("feature_modules", [])
+        item_count = sum(len(m.get("feature_items", [])) for m in modules)
+
+        overview = {
+            "title": prd.get("title", ""),
+            "summary": prd.get("summary", ""),
+            "target_users": prd.get("target_users"),
+            "complexity": complexity,
+            "tech_requirements": prd.get("tech_requirements"),
+            "non_functional_requirements": prd.get("non_functional_requirements"),
+            "module_count": len(modules),
+            "item_count": item_count,
+        }
+
+        async def _do():
+            try:
+                from app.db.repository import ProjectRepository
+                repo = ProjectRepository()
+                await repo.save_project_overview(project_id, overview)
+            except Exception as e:
+                logger.warning("persist_project_overview_failed", error=str(e))
 
         try:
             loop = asyncio.get_running_loop()

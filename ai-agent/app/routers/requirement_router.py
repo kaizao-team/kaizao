@@ -218,9 +218,14 @@ async def decompose_ears(project_id: str, request: Request):
                     if sub_stage == "tasks_ready":
                         bg_state.set_stage_status("requirement", "confirmed", sub_stage=sub_stage,
                                                    document_path=f"outputs/{project_id}/v1/requirement.md")
+                        await v2_orchestrator.save_project(bg_state)
+                        # EARS 完成后并行自动触发 design + PM
+                        logger.info("ears_ready_auto_trigger", project_id=project_id)
+                        asyncio.create_task(_auto_generate_design(project_id))
+                        asyncio.create_task(_auto_generate_pm(project_id))
                     else:
                         bg_state.set_stage_status("requirement", "running", sub_stage=sub_stage)
-                    await v2_orchestrator.save_project(bg_state)
+                        await v2_orchestrator.save_project(bg_state)
                 logger.info("ears_decompose_complete", project_id=project_id, sub_stage=sub_stage)
             except Exception as e:
                 logger.error("ears_decompose_failed", project_id=project_id, error=str(e))
@@ -244,6 +249,90 @@ async def decompose_ears(project_id: str, request: Request):
     except Exception as e:
         logger.error("ears_decompose_error", error=str(e), request_id=request_id)
         return APIResponse(code=50001, message=f"EARS 拆解启动失败: {e}", request_id=request_id)
+
+
+async def _auto_generate_design(project_id: str) -> None:
+    """EARS 完成后自动生成 design.md"""
+    from app.main import v2_orchestrator, v2_design_agent, v2_doc_writer
+
+    try:
+        state = await v2_orchestrator.get_project(project_id)
+        if not state:
+            return
+
+        # 读取 requirement.md
+        req_content = v2_doc_writer.read_document(project_id, "requirement.md")
+        if not req_content:
+            logger.warning("auto_design_skip_no_requirement", project_id=project_id)
+            return
+
+        state.set_stage_status("design", "running")
+        await v2_orchestrator.save_project(state)
+
+        await v2_design_agent.generate(
+            project_id=project_id,
+            requirement_content=req_content,
+        )
+
+        # 检查文档是否生成
+        doc_content = v2_doc_writer.read_document(project_id, "design.md")
+        state = await v2_orchestrator.get_project(project_id)
+        if state and doc_content:
+            state.set_stage_status("design", "confirmed",
+                                   document_path=f"outputs/{project_id}/v1/design.md")
+            await v2_orchestrator.save_project(state)
+            logger.info("auto_design_complete", project_id=project_id)
+        else:
+            logger.warning("auto_design_no_output", project_id=project_id)
+    except Exception as e:
+        logger.error("auto_design_failed", project_id=project_id, error=str(e))
+        err_state = await v2_orchestrator.get_project(project_id)
+        if err_state:
+            err_state.set_stage_status("design", "error", error_message=str(e))
+            await v2_orchestrator.save_project(err_state)
+
+
+async def _auto_generate_pm(project_id: str) -> None:
+    """EARS 完成后自动生成 project-plan.md（首次不含商定价格，on-matched 时重新生成）"""
+    from app.main import v2_orchestrator, v2_pm_agent, v2_doc_writer
+
+    try:
+        state = await v2_orchestrator.get_project(project_id)
+        if not state:
+            return
+
+        req_content = v2_doc_writer.read_document(project_id, "requirement.md")
+        if not req_content:
+            logger.warning("auto_pm_skip_no_requirement", project_id=project_id)
+            return
+
+        design_content = v2_doc_writer.read_document(project_id, "design.md") or ""
+
+        state.set_stage_status("pm", "running")
+        await v2_orchestrator.save_project(state)
+
+        await v2_pm_agent.generate(
+            project_id=project_id,
+            requirement_content=req_content,
+            design_content=design_content,
+            task_content="",
+        )
+
+        doc_content = v2_doc_writer.read_document(project_id, "project-plan.md")
+        state = await v2_orchestrator.get_project(project_id)
+        if state and doc_content:
+            state.set_stage_status("pm", "confirmed",
+                                   document_path=f"outputs/{project_id}/v1/project-plan.md")
+            await v2_orchestrator.save_project(state)
+            logger.info("auto_pm_complete", project_id=project_id)
+        else:
+            logger.warning("auto_pm_no_output", project_id=project_id)
+    except Exception as e:
+        logger.error("auto_pm_failed", project_id=project_id, error=str(e))
+        err_state = await v2_orchestrator.get_project(project_id)
+        if err_state:
+            err_state.set_stage_status("pm", "error", error_message=str(e))
+            await v2_orchestrator.save_project(err_state)
 
 
 @router.get("/{project_id}/document", response_model=APIResponse)
@@ -368,6 +457,7 @@ async def decompose_ears_stream(project_id: str, request: Request):
 
             # 保存状态
             if hasattr(v2_requirement_agent, '_stream_result'):
+                import asyncio
                 updated_msgs, _ = v2_requirement_agent._stream_result
                 await v2_session.save_history(session_id, updated_msgs)
 
@@ -375,9 +465,14 @@ async def decompose_ears_stream(project_id: str, request: Request):
                 if sub_stage == "tasks_ready":
                     state.set_stage_status("requirement", "confirmed", sub_stage=sub_stage,
                                            document_path=f"outputs/{project_id}/v1/requirement.md")
+                    await v2_orchestrator.save_project(state)
+                    # EARS 完成后并行自动触发 design + PM
+                    logger.info("ears_stream_ready_auto_trigger", project_id=project_id)
+                    asyncio.create_task(_auto_generate_design(project_id))
+                    asyncio.create_task(_auto_generate_pm(project_id))
                 else:
                     state.set_stage_status("requirement", "running", sub_stage=sub_stage)
-                await v2_orchestrator.save_project(state)
+                    await v2_orchestrator.save_project(state)
 
         except Exception as e:
             logger.error("ears_decompose_stream_error", error=str(e))

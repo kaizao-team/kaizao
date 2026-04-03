@@ -106,10 +106,10 @@ class PipelineOrchestrator:
         Returns:
             {filename: content} 字典
         """
-        # PM 阶段需要读取流水线全部 3 份文档
+        # PM 阶段需要读取 requirement.md + design.md（如果存在）
         if stage_name == "pm":
             context = {}
-            for prev_stage in STAGES:
+            for prev_stage in ["requirement", "design"]:
                 filename = STAGE_FILENAMES[prev_stage]
                 content = self.writer.read_document(project_id, filename)
                 if content:
@@ -146,10 +146,10 @@ class PipelineOrchestrator:
         if not state:
             return False, f"项目 {project_id} 不存在", None
 
-        # 校验流水线 task 阶段已完成
-        task_stage = state.get_stage("task")
-        if task_stage.status != "confirmed":
-            return False, f"流水线 task 阶段尚未确认（当前状态: {task_stage.status}），无法生成 PM 方案", None
+        # 校验流水线 requirement 阶段已完成（EARS 拆解完成）
+        req_stage = state.get_stage("requirement")
+        if req_stage.status != "confirmed":
+            return False, f"流水线 requirement 阶段尚未确认（当前状态: {req_stage.status}），无法生成 PM 方案", None
 
         # 加载前序文档
         context = self.load_stage_context(project_id, "pm")
@@ -162,7 +162,7 @@ class PipelineOrchestrator:
                 project_id=project_id,
                 requirement_content=context.get("requirement.md", ""),
                 design_content=context.get("design.md", ""),
-                task_content=context.get("task.md", ""),
+                task_content="",
                 agreed_price=agreed_price,
                 agreed_days=agreed_days,
                 provider_info=provider_info,

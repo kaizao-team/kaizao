@@ -32,7 +32,6 @@ v2_minio_store: Optional[Any] = None
 v2_orchestrator: Optional[Any] = None
 v2_requirement_agent: Optional[Any] = None
 v2_design_agent: Optional[Any] = None
-v2_task_agent: Optional[Any] = None
 v2_pm_agent: Optional[Any] = None
 v2_rating_agent: Optional[Any] = None
 
@@ -43,7 +42,7 @@ async def lifespan(app: FastAPI):
     global llm_router, embedding_client, milvus_store, retriever
     global smart_matcher, chat_assistant
     global v2_session, v2_doc_writer, v2_minio_store, v2_orchestrator
-    global v2_requirement_agent, v2_design_agent, v2_task_agent, v2_pm_agent, v2_rating_agent
+    global v2_requirement_agent, v2_design_agent, v2_pm_agent, v2_rating_agent
 
     logger.info("正在启动 VibeBuild AI Agent 服务...")
 
@@ -154,15 +153,13 @@ async def lifespan(app: FastAPI):
     try:
         from app.agents.requirement_agent import RequirementAgent
         from app.agents.design_agent import DesignAgent
-        from app.agents.task_agent import TaskAgent
         from app.agents.pm_agent import PMAgent
 
         if llm_router and v2_doc_writer:
             v2_requirement_agent = RequirementAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
             v2_design_agent = DesignAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
-            v2_task_agent = TaskAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
             v2_pm_agent = PMAgent(llm_router=llm_router, doc_writer=v2_doc_writer)
-            logger.info("v2 四个文档型 Agent 初始化完成")
+            logger.info("v2 三个文档型 Agent 初始化完成（requirement, design, pm）")
     except Exception as e:
         logger.warning(f"v2 Agent 初始化跳过: {e}")
 
@@ -208,7 +205,6 @@ app = FastAPI(
 from app.routers import (
     requirement_router,
     design_router,
-    task_router,
     pm_router,
     pipeline_router,
     rating_router,
@@ -219,7 +215,6 @@ from app.routers import (
 )
 app.include_router(requirement_router.router)
 app.include_router(design_router.router)
-app.include_router(task_router.router)
 app.include_router(pm_router.router)
 app.include_router(pipeline_router.router)
 app.include_router(rating_router.router)

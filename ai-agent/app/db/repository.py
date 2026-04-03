@@ -20,6 +20,7 @@ from app.db.models import (
     AIMilestone,
     AIMatchResult,
     AIPrdItem,
+    AIProjectOverview,
     AIProjectStage,
     AIProviderProfile,
     AIVibePowerLog,
@@ -355,6 +356,69 @@ class ProjectRepository:
                 }
                 for r in q.scalars().all()
             ]
+
+    # ---- 项目概览 ----
+
+    async def save_project_overview(self, project_id: str, overview: dict) -> None:
+        """写入/更新项目概览（PRD 生成时调用）"""
+        async with get_session_factory()() as session:
+            async with session.begin():
+                stmt = mysql_insert(AIProjectOverview).values(
+                    project_id=project_id,
+                    title=overview.get("title", ""),
+                    summary=overview.get("summary", ""),
+                    target_users=json.dumps(overview.get("target_users", []), ensure_ascii=False) if overview.get("target_users") else None,
+                    complexity=overview.get("complexity"),
+                    tech_requirements=json.dumps(overview.get("tech_requirements", {}), ensure_ascii=False) if overview.get("tech_requirements") else None,
+                    non_functional_requirements=json.dumps(overview.get("non_functional_requirements", {}), ensure_ascii=False) if overview.get("non_functional_requirements") else None,
+                    module_count=overview.get("module_count", 0),
+                    item_count=overview.get("item_count", 0),
+                )
+                stmt = stmt.on_duplicate_key_update(
+                    title=stmt.inserted.title,
+                    summary=stmt.inserted.summary,
+                    target_users=stmt.inserted.target_users,
+                    complexity=stmt.inserted.complexity,
+                    tech_requirements=stmt.inserted.tech_requirements,
+                    non_functional_requirements=stmt.inserted.non_functional_requirements,
+                    module_count=stmt.inserted.module_count,
+                    item_count=stmt.inserted.item_count,
+                )
+                await session.execute(stmt)
+
+    async def get_project_overview(self, project_id: str) -> Optional[dict]:
+        """查询项目概览"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(AIProjectOverview).where(AIProjectOverview.project_id == project_id)
+            )
+            r = q.scalar_one_or_none()
+            if not r:
+                return None
+            # 解析 JSON 字段
+            def _parse_json(val):
+                if val is None:
+                    return None
+                if isinstance(val, str):
+                    try:
+                        return json.loads(val)
+                    except (json.JSONDecodeError, TypeError):
+                        return val
+                return val
+
+            return {
+                "project_id": r.project_id,
+                "title": r.title,
+                "summary": r.summary,
+                "target_users": _parse_json(r.target_users),
+                "complexity": r.complexity,
+                "tech_requirements": _parse_json(r.tech_requirements),
+                "non_functional_requirements": _parse_json(r.non_functional_requirements),
+                "module_count": r.module_count,
+                "item_count": r.item_count,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+            }
 
     # ---- PRD 条目 ----
 

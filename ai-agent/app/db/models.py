@@ -255,6 +255,24 @@ class AIMatchResult(Base):
     )
 
 
+class AIProjectOverview(Base):
+    """AI 项目概览（PRD 生成时持久化的项目级信息）"""
+    __tablename__ = "ai_project_overview"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    project_id: Mapped[str] = mapped_column(String(36), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(200), default="")
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    target_users: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    complexity: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)  # S/M/L/XL
+    tech_requirements: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    non_functional_requirements: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    module_count: Mapped[int] = mapped_column(Integer, default=0)
+    item_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
 class AIPrdItem(Base):
     """AI PRD 需求条目（Feature Items）"""
     __tablename__ = "ai_prd_items"

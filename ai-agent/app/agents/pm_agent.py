@@ -111,7 +111,7 @@ class PMAgent(ToolUseBaseAgent):
         except RuntimeError:
             pass
 
-    async def generate_stream(self, project_id: str, requirement_content: str, design_content: str, task_content: str, feedback: str = ""):
+    async def generate_stream(self, project_id: str, requirement_content: str, design_content: str, task_content: str = "", feedback: str = ""):
         """流式生成项目管理方案，yield SSE 事件"""
         self._project_id = project_id
         user_msg = "请基于所有前序文档，使用 produce_project_plan 工具生成完整的项目管理方案。"
@@ -126,7 +126,7 @@ class PMAgent(ToolUseBaseAgent):
         project_id: str,
         requirement_content: str,
         design_content: str,
-        task_content: str,
+        task_content: str = "",
         feedback: str = "",
         agreed_price: float | None = None,
         agreed_days: int | None = None,

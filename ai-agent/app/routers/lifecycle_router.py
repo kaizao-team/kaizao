@@ -60,8 +60,8 @@ async def on_matched(req: OnMatchedRequest, request: Request):
     撮合完成 Hook — 发起人选定造物者后由 Go 后端调用。
 
     内部逻辑：
-    1. 验证 project_id 存在且 task 阶段已 confirmed
-    2. 加载 3 份前序文档
+    1. 验证 project_id 存在且 requirement 阶段已 confirmed
+    2. 加载前序文档（requirement.md + design.md）
     3. 将 agreed_price / agreed_days 注入 PM Agent 上下文
     4. 调用 PM Agent 生成 project-plan.md
     5. 标记 pm 阶段为 confirmed
