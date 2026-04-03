@@ -157,14 +157,94 @@ class RecommendedTeam {
   });
 
   factory RecommendedTeam.fromJson(Map<String, dynamic> json) {
+    String firstNonEmpty(List<dynamic> values) {
+      for (final value in values) {
+        final text = value?.toString().trim();
+        if (text != null && text.isNotEmpty) {
+          return text;
+        }
+      }
+      return '';
+    }
+
+    final resolvedId = firstNonEmpty([
+      json['team_id'],
+      json['provider_id'],
+      json['user_id'],
+      json['id'],
+    ]);
+    if (resolvedId.isEmpty) {
+      throw const FormatException(
+        'recommendation payload missing team_id/provider_id',
+      );
+    }
+
+    final resolvedName = firstNonEmpty([
+      json['team_name'],
+      json['name'],
+      json['nickname'],
+      json['user_name'],
+    ]);
+    if (resolvedName.isEmpty) {
+      throw const FormatException(
+        'recommendation payload missing display name',
+      );
+    }
+
+    final rawScore = json['match_score'];
+    final resolvedScore = switch (rawScore) {
+      final num value => value.round(),
+      final String value =>
+        int.tryParse(value) ?? double.tryParse(value)?.round() ?? -1,
+      _ => -1,
+    };
+    if (resolvedScore < 0) {
+      throw const FormatException(
+        'recommendation payload missing match_score',
+      );
+    }
+
+    final skills = <String>[];
+    final skillSet = <String>{};
+    void addSkill(dynamic value) {
+      final skill = value?.toString().trim();
+      if (skill != null && skill.isNotEmpty && skillSet.add(skill)) {
+        skills.add(skill);
+      }
+    }
+
+    for (final skill in (json['highlight_skills'] as List?) ?? const []) {
+      addSkill(skill);
+    }
+    addSkill(json['primary_skill']);
+    addSkill(json['skill']);
+
+    final resolvedLevel = firstNonEmpty([
+      json['level'],
+      json['primary_skill'],
+      json['skill'],
+      json['bid_type'] == 'team' ? '团队' : null,
+      '推荐服务方',
+    ]);
+    final avatar = firstNonEmpty([json['avatar_url'], json['avatar']]);
+    final reason = firstNonEmpty([
+      json['recommendation_reason'],
+      json['reason'],
+    ]);
+
     return RecommendedTeam(
-      teamId: json['team_id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      avatar: json['avatar'] as String?,
-      matchScore: json['match_score'] as int? ?? 0,
-      skills: (json['skills'] as List?)?.whereType<String>().toList() ?? [],
-      level: json['level'] as String? ?? '',
-      reason: json['reason'] as String?,
+      teamId: resolvedId,
+      name: resolvedName,
+      avatar: avatar.isEmpty ? null : avatar,
+      matchScore: resolvedScore,
+      skills: skills.isNotEmpty
+          ? skills
+          : (json['skills'] as List?)
+                  ?.map((item) => item.toString())
+                  .toList() ??
+              const <String>[],
+      level: resolvedLevel,
+      reason: reason.isEmpty ? null : reason,
     );
   }
 }

@@ -1,7 +1,9 @@
+import 'package:dio/dio.dart';
+
 import '../../../core/network/ai_agent_client.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
-import '../models/ai_agent_response.dart';
+import '../../../core/network/sse_client.dart';
 
 class PostRepository {
   final ApiClient _client;
@@ -67,36 +69,34 @@ class PostRepository {
     return response.data ?? const {};
   }
 
-  /// First turn: create a requirement session.
-  Future<AiAgentResponse> startRequirement(
+  /// First turn: create a requirement session via SSE.
+  Stream<SseEvent> startRequirementStream(
     String projectId,
     String message, {
     String? title,
-  }) async {
-    final body = await _aiAgent.post(
-      ApiEndpoints.aiAgentStart,
+    CancelToken? cancelToken,
+  }) {
+    return _aiAgent.postSseStream(
+      ApiEndpoints.aiAgentStartStream,
       data: {
         'project_id': projectId,
         'message': message,
         if (title != null) 'title': title,
       },
-    );
-    return AiAgentResponse.fromJson(
-      _unwrapAiAgentEnvelope(body, operation: 'Start requirement'),
+      cancelToken: cancelToken,
     );
   }
 
-  /// Subsequent turns: continue the conversation.
-  Future<AiAgentResponse> sendMessage(
+  /// Subsequent turns: continue the conversation via SSE.
+  Stream<SseEvent> sendRequirementMessageStream(
     String projectId,
-    String message,
-  ) async {
-    final body = await _aiAgent.post(
-      ApiEndpoints.aiAgentMessage(projectId),
+    String message, {
+    CancelToken? cancelToken,
+  }) {
+    return _aiAgent.postSseStream(
+      ApiEndpoints.aiAgentMessageStream(projectId),
       data: {'message': message},
-    );
-    return AiAgentResponse.fromJson(
-      _unwrapAiAgentEnvelope(body, operation: 'Send requirement message'),
+      cancelToken: cancelToken,
     );
   }
 
@@ -135,27 +135,51 @@ class PostRepository {
     );
   }
 
-  /// POST match/recommend — get recommended teams.
+  /// Publish the draft project so Go-side matching can proceed.
+  Future<Map<String, dynamic>> publishDraftProject(String projectId) async {
+    final response = await _client.post<Map<String, dynamic>>(
+      ApiEndpoints.projectPublish(projectId),
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+    return response.data ?? const {};
+  }
+
+  /// GET project recommendations from the Go backend.
   Future<Map<String, dynamic>> recommendTeam(
     String projectId, {
     int pageSize = 1,
   }) async {
-    final body = await _aiAgent.post(
-      ApiEndpoints.matchRecommend,
-      data: {
-        'demand_id': projectId,
+    final response = await _client.get<Map<String, dynamic>>(
+      ApiEndpoints.projectRecommendations(projectId),
+      queryParameters: {
+        'page': 1,
         'page_size': pageSize,
       },
+      fromJson: (data) => data as Map<String, dynamic>,
     );
-    return _unwrapAiAgentEnvelope(body, operation: 'Recommend team');
+    return response.data ?? const {};
   }
 
-  /// No real backend endpoint exists yet for confirming a matched team.
+  /// Confirm the recommended team by triggering Go quick-match.
   Future<Map<String, dynamic>> confirmMatch(
     String projectId,
     String teamId,
   ) async {
-    throw UnimplementedError('缺少真实的确认撮合接口，无法继续提交 team_id=$teamId');
+    final response = await _client.post<Map<String, dynamic>>(
+      ApiEndpoints.quickMatch(projectId),
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+    final data = response.data ?? const {};
+    final providerId = data['provider_id']?.toString().trim();
+    if (teamId.trim().isNotEmpty &&
+        providerId != null &&
+        providerId.isNotEmpty &&
+        providerId != teamId.trim()) {
+      throw StateError(
+        'quick-match 返回 provider_id=$providerId，与当前确认项 $teamId 不一致',
+      );
+    }
+    return data;
   }
 
   // ============================================================

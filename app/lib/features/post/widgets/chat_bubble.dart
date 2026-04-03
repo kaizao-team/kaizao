@@ -215,7 +215,7 @@ class _ChatBubbleState extends State<ChatBubble> {
   void _submitMulti() {
     if (widget.isReadOnly) return;
     final selected = _collectMultiOptions();
-    if (selected.isEmpty) return;
+    if (selected.isEmpty || !_isMultiSelectionValid) return;
     widget.onMultiOptionsSubmitted?.call(widget.message.id, selected);
   }
 

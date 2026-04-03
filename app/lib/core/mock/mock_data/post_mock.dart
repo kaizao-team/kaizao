@@ -6,7 +6,9 @@ class PostMock {
   PostMock._();
 
   static int _draftCount = 0;
+  static int _legacyConversationSeed = 0;
   static final _conversationStates = <String, _MockConversationState>{};
+  static final _activeLegacyConversationKeys = <String, String>{};
 
   static void register(Map<String, MockHandler> handlers) {
     handlers['POST:/api/v1/projects/ai-chat'] = MockHandler(
@@ -184,19 +186,23 @@ class PostMock {
     final userMessage = data['message'] as String? ?? '';
     final category = _normalizeCategory(data['category'] as String?);
     final scripts = _categoryScripts[category] ?? _categoryScripts['dev']!;
-    final conversationKey = _resolveConversationKey(data);
+    final safeMessage = userMessage.trim().isEmpty
+        ? _defaultUserMessage(category)
+        : userMessage.trim();
+    final conversationKey = _resolveConversationKey(
+      data,
+      category: category,
+      userMessage: safeMessage,
+    );
     final turnCount = conversationKey == null
         ? 1
         : _nextConversationTurn(
             conversationKey: conversationKey,
             category: category,
-            userMessage: userMessage,
           );
     final scriptIndex =
         turnCount <= scripts.length ? turnCount - 1 : scripts.length - 1;
     final script = scripts[scriptIndex];
-    final safeMessage =
-        userMessage.trim().isEmpty ? _defaultUserMessage(category) : userMessage.trim();
     final reply = (script['reply'] as String? ?? '')
         .replaceAll('{{userMessage}}', safeMessage);
     final completenessScore = script['completeness_score'] as int? ?? 0;
@@ -240,7 +246,11 @@ class PostMock {
     return 'dev';
   }
 
-  static String? _resolveConversationKey(Map<String, dynamic> data) {
+  static String? _resolveConversationKey(
+    Map<String, dynamic> data, {
+    required String category,
+    required String userMessage,
+  }) {
     final candidates = [
       data['project_id'],
       data['draft_id'],
@@ -254,22 +264,45 @@ class PostMock {
         return key;
       }
     }
-    return 'legacy:${data['category']?.toString().trim().toLowerCase() ?? 'dev'}';
+
+    return _resolveLegacyConversationKey(
+      category: category,
+      userMessage: userMessage,
+    );
+  }
+
+  static String _resolveLegacyConversationKey({
+    required String category,
+    required String userMessage,
+  }) {
+    final currentKey = _activeLegacyConversationKeys[category];
+    final shouldStartNew =
+        currentKey == null || _isLegacyConversationStart(userMessage);
+    if (!shouldStartNew) {
+      return currentKey;
+    }
+
+    if (currentKey != null) {
+      _conversationStates.remove(currentKey);
+    }
+
+    _legacyConversationSeed += 1;
+    final newKey = 'legacy:$category:$_legacyConversationSeed';
+    _activeLegacyConversationKeys[category] = newKey;
+    return newKey;
+  }
+
+  static bool _isLegacyConversationStart(String userMessage) {
+    final normalized = userMessage.trim();
+    return normalized.startsWith('我想做一个') && normalized.endsWith('类的项目');
   }
 
   static int _nextConversationTurn({
     required String conversationKey,
     required String category,
-    required String userMessage,
   }) {
     final current = _conversationStates[conversationKey];
-    final shouldResetLegacyConversation =
-        conversationKey.startsWith('legacy:') &&
-        userMessage.trim().startsWith('我想做一个') &&
-        userMessage.trim().endsWith('类的项目');
-    final nextTurn = current == null ||
-            current.category != category ||
-            shouldResetLegacyConversation
+    final nextTurn = current == null || current.category != category
         ? 1
         : current.turnCount + 1;
     _conversationStates[conversationKey] = _MockConversationState(
@@ -346,7 +379,8 @@ class PostMock {
           'budget_suggestion': {
             'min': 12000,
             'max': 24000,
-            'reason': '围绕「$focus」的数据项目通常包含数据接入、指标建模与结果展示三层工作，建议预算控制在 ¥12,000 - ¥24,000。',
+            'reason':
+                '围绕「$focus」的数据项目通常包含数据接入、指标建模与结果展示三层工作，建议预算控制在 ¥12,000 - ¥24,000。',
           },
         };
       case 'design':
@@ -357,7 +391,8 @@ class PostMock {
           'budget_suggestion': {
             'min': 8000,
             'max': 18000,
-            'reason': '结合「$focus」的品牌与界面交付范围，建议预算区间为 ¥8,000 - ¥18,000，能覆盖视觉探索、页面输出与规范沉淀。',
+            'reason':
+                '结合「$focus」的品牌与界面交付范围，建议预算区间为 ¥8,000 - ¥18,000，能覆盖视觉探索、页面输出与规范沉淀。',
           },
         };
       case 'solution':
@@ -368,7 +403,8 @@ class PostMock {
           'budget_suggestion': {
             'min': 12000,
             'max': 28000,
-            'reason': '围绕「$focus」的咨询方案通常需要研究诊断、策略设计与实施路径三段投入，建议预算区间为 ¥12,000 - ¥28,000。',
+            'reason':
+                '围绕「$focus」的咨询方案通常需要研究诊断、策略设计与实施路径三段投入，建议预算区间为 ¥12,000 - ¥28,000。',
           },
         };
       case 'dev':
@@ -380,7 +416,8 @@ class PostMock {
           'budget_suggestion': {
             'min': 18000,
             'max': 48000,
-            'reason': '结合「$focus」的软件研发范围，建议预算区间为 ¥18,000 - ¥48,000，可覆盖认证、核心功能与后台管理交付。',
+            'reason':
+                '结合「$focus」的软件研发范围，建议预算区间为 ¥18,000 - ¥48,000，可覆盖认证、核心功能与后台管理交付。',
           },
         };
     }

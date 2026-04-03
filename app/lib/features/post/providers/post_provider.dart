@@ -4,8 +4,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/ai_agent_client.dart';
-import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/sse_client.dart';
 import '../models/post_models.dart';
 import '../repositories/post_repository.dart';
@@ -60,6 +58,7 @@ class PostState {
   final double? budgetMin;
   final double? budgetMax;
   final BudgetSuggestion? budgetSuggestion;
+  final bool isProjectPublished;
 
   // Team matching
   final RecommendedTeam? recommendedTeam;
@@ -85,6 +84,7 @@ class PostState {
     this.budgetMin,
     this.budgetMax,
     this.budgetSuggestion,
+    this.isProjectPublished = false,
     this.recommendedTeam,
     this.isLoadingMatch = false,
     this.isConfirmingMatch = false,
@@ -110,6 +110,7 @@ class PostState {
     double? Function()? budgetMin,
     double? Function()? budgetMax,
     BudgetSuggestion? Function()? budgetSuggestion,
+    bool? isProjectPublished,
     RecommendedTeam? Function()? recommendedTeam,
     bool? isLoadingMatch,
     bool? isConfirmingMatch,
@@ -136,6 +137,7 @@ class PostState {
       budgetMax: budgetMax != null ? budgetMax() : this.budgetMax,
       budgetSuggestion:
           budgetSuggestion != null ? budgetSuggestion() : this.budgetSuggestion,
+      isProjectPublished: isProjectPublished ?? this.isProjectPublished,
       recommendedTeam:
           recommendedTeam != null ? recommendedTeam() : this.recommendedTeam,
       isLoadingMatch: isLoadingMatch ?? this.isLoadingMatch,
@@ -148,16 +150,13 @@ class PostState {
 
 class PostNotifier extends StateNotifier<PostState> {
   final PostRepository _repository;
-  final AiAgentClient _aiAgent;
   CancelToken? _sseCancelToken;
   int _requestGeneration = 0;
   int _streamingGeneration = 0; // cancel stale _simulateStreaming loops
   bool _expectsFreshAiMessage = false;
   String? _pendingCategory;
 
-  PostNotifier(this._repository, {AiAgentClient? aiAgent})
-      : _aiAgent = aiAgent ?? AiAgentClient(),
-        super(const PostState());
+  PostNotifier(this._repository) : super(const PostState());
 
   @override
   void dispose() {
@@ -207,6 +206,40 @@ class PostNotifier extends StateNotifier<PostState> {
     if (!mounted) return projectId;
     state = state.copyWith(projectId: () => projectId);
     return projectId;
+  }
+
+  Future<String> _publishProjectForMatch() async {
+    if (state.isProjectPublished) {
+      final existingProjectId = state.projectId?.trim();
+      if (existingProjectId != null && existingProjectId.isNotEmpty) {
+        return existingProjectId;
+      }
+    }
+
+    final draftProjectId = await _ensureRealProjectId(
+      step: state.currentStep == 0 ? 1 : state.currentStep,
+    );
+    final published = await _repository.publishDraftProject(draftProjectId);
+    final publishedProjectId = _readProjectId(published);
+    if (publishedProjectId == null) {
+      throw const FormatException(
+        'Go /api/v1/projects/{id}/publish 未返回可用 project id',
+      );
+    }
+
+    final status = _asInt(published['status']);
+    if (status != 2) {
+      throw const FormatException(
+        'Go /api/v1/projects/{id}/publish 未返回 status=2',
+      );
+    }
+
+    if (!mounted) return publishedProjectId;
+    state = state.copyWith(
+      projectId: () => publishedProjectId,
+      isProjectPublished: true,
+    );
+    return publishedProjectId;
   }
 
   // ---------------------------------------------------------------------------
@@ -264,6 +297,7 @@ class PostNotifier extends StateNotifier<PostState> {
       budgetMin: () => null,
       budgetMax: () => null,
       budgetSuggestion: () => null,
+      isProjectPublished: false,
       recommendedTeam: () => null,
       isLoadingMatch: false,
       isConfirmingMatch: false,
@@ -311,9 +345,9 @@ class PostNotifier extends StateNotifier<PostState> {
 
     final pid = state.projectId!;
     try {
-      final stream = _aiAgent.postSseStream(
-        ApiEndpoints.aiAgentStartStream,
-        data: {'project_id': pid, 'message': initialMessage},
+      final stream = _repository.startRequirementStream(
+        pid,
+        initialMessage,
         cancelToken: _sseCancelToken,
       );
 
@@ -513,11 +547,9 @@ class PostNotifier extends StateNotifier<PostState> {
 
     _sseCancelToken?.cancel('new message');
     _sseCancelToken = CancelToken();
+    final hadProjectId = state.projectId?.trim().isNotEmpty == true;
 
-    final String path;
-    final Map<String, dynamic> data;
-
-    if (state.projectId == null) {
+    if (!hadProjectId) {
       try {
         final newProjectId = await _ensureRealProjectId(
           step: state.currentStep == 0 ? 1 : state.currentStep,
@@ -533,21 +565,20 @@ class PostNotifier extends StateNotifier<PostState> {
         );
         return;
       }
-      final pid = state.projectId!;
-      path = ApiEndpoints.aiAgentStartStream;
-      data = {'project_id': pid, 'message': content};
-    } else {
-      path = ApiEndpoints.aiAgentMessageStream(state.projectId!);
-      data = {'message': content};
     }
 
     try {
-      debugPrint('[SSE] Starting stream to $path');
-      final stream = _aiAgent.postSseStream(
-        path,
-        data: data,
-        cancelToken: _sseCancelToken,
-      );
+      final stream = !hadProjectId
+          ? _repository.startRequirementStream(
+              state.projectId!,
+              content,
+              cancelToken: _sseCancelToken,
+            )
+          : _repository.sendRequirementMessageStream(
+              state.projectId!,
+              content,
+              cancelToken: _sseCancelToken,
+            );
 
       await for (final event in stream) {
         debugPrint(
@@ -1077,25 +1108,34 @@ class PostNotifier extends StateNotifier<PostState> {
     );
 
     try {
-      final pid = state.projectId;
-      if (pid == null) throw Exception('No project ID');
+      final pid = await _publishProjectForMatch();
 
       final result = await _repository.recommendTeam(pid);
       if (!mounted) return;
 
-      final teams = result['teams'] as List? ?? result['data'] as List? ?? [];
-      if (teams.isNotEmpty) {
+      final recommendations = result['recommendations'];
+      if (recommendations is! List) {
+        throw const FormatException(
+          'GET /api/v1/projects/{id}/recommendations 未返回 recommendations 列表',
+        );
+      }
+
+      if (recommendations.isNotEmpty) {
         final team = RecommendedTeam.fromJson(
-          teams.first as Map<String, dynamic>,
+          Map<String, dynamic>.from(
+            recommendations.first as Map<dynamic, dynamic>,
+          ),
         );
         state = state.copyWith(
           isLoadingMatch: false,
           recommendedTeam: () => team,
         );
       } else {
+        final noMatchReason = result['no_match_reason']?.toString().trim();
         state = state.copyWith(
           isLoadingMatch: false,
-          errorMessage: () => 'match/recommend 未返回可用团队',
+          errorMessage: () =>
+              noMatchReason?.isNotEmpty == true ? noMatchReason : '未匹配到可用团队',
         );
       }
     } catch (e) {

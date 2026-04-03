@@ -121,7 +121,7 @@ Widget? _buildFooter({
       );
     case 3:
       return VccFlowFooterBar(
-        label: '下一步',
+        label: '发布项目并匹配',
         onPressed: state.budgetMin != null && state.budgetMax != null
             ? () {
                 ref.read(postStateProvider.notifier)
@@ -1063,8 +1063,8 @@ class _MatchTeamStage extends StatelessWidget {
         children: [
           _InlineStepIntro(
             eyebrow: '匹配中',
-            title: '正在为你匹配团队',
-            body: '平台正在根据项目特征筛选最合适的团队。',
+            title: '正在发布项目并匹配团队',
+            body: '平台正在先发布项目，再根据项目特征筛选最合适的团队。',
           ),
           SizedBox(height: 32),
           Center(
@@ -1080,7 +1080,7 @@ class _MatchTeamStage extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
                 Text(
-                  '正在匹配…',
+                  '正在发布并匹配…',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppColors.gray500,
