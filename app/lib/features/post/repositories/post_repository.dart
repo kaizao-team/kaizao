@@ -30,6 +30,10 @@ class PostRepository {
       return data;
     }
 
+    if (data != null) {
+      return {'data': data};
+    }
+
     return const {};
   }
 
@@ -126,13 +130,14 @@ class PostRepository {
     String projectId, {
     int pageSize = 1,
   }) async {
-    return await _aiAgent.post(
+    final body = await _aiAgent.post(
       ApiEndpoints.matchRecommend,
       data: {
         'demand_id': projectId,
         'page_size': pageSize,
       },
     );
+    return _unwrapAiAgentEnvelope(body, operation: 'Recommend team');
   }
 
   /// No real backend endpoint exists yet for confirming a matched team.

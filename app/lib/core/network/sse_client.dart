@@ -27,18 +27,20 @@ class SseClient {
   static Stream<SseEvent> parse(Stream<List<int>> byteStream) async* {
     String currentEvent = 'message';
     final dataBuffer = StringBuffer();
+    bool hasPendingDispatch = false;
 
     await for (final line
         in utf8.decoder.bind(byteStream).transform(const LineSplitter())) {
       // Empty line = dispatch the accumulated event
       if (line.isEmpty) {
-        if (dataBuffer.isNotEmpty) {
+        if (hasPendingDispatch) {
           yield SseEvent(
             event: currentEvent,
             data: dataBuffer.toString(),
           );
           dataBuffer.clear();
           currentEvent = 'message';
+          hasPendingDispatch = false;
         }
         continue;
       }
@@ -60,10 +62,12 @@ class SseClient {
       switch (field) {
         case 'event':
           currentEvent = value;
+          hasPendingDispatch = true;
           break;
         case 'data':
           if (dataBuffer.isNotEmpty) dataBuffer.write('\n');
           dataBuffer.write(value);
+          hasPendingDispatch = true;
           break;
         // 'id' and 'retry' are part of SSE spec but unused here
         default:
@@ -72,7 +76,7 @@ class SseClient {
     }
 
     // Flush any trailing event without a final empty line
-    if (dataBuffer.isNotEmpty) {
+    if (hasPendingDispatch) {
       yield SseEvent(event: currentEvent, data: dataBuffer.toString());
     }
   }

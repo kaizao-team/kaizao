@@ -177,6 +177,7 @@ class PostMock {
     'data': '数据分析',
     'dev': '软件研发',
     'design': '视觉设计',
+    'visual': '视觉设计',
     'solution': '解决方案',
   };
 
@@ -233,7 +234,10 @@ class PostMock {
   }
 
   static String _normalizeCategory(String? category) {
-    final normalized = category?.trim();
+    final normalized = category?.trim().toLowerCase();
+    if (normalized == 'visual') {
+      return 'design';
+    }
     if (_categoryScripts.containsKey(normalized)) {
       return normalized!;
     }

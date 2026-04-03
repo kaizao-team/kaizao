@@ -14,8 +14,24 @@ const _categoryLabels = <String, String>{
   'data': '数据',
   'dev': '研发',
   'design': '视觉设计',
+  'visual': '视觉设计',
   'solution': '解决方案',
 };
+
+String _normalizePostCategoryKey(String? value) {
+  final normalized = value?.trim().toLowerCase() ?? '';
+  switch (normalized) {
+    case 'visual':
+    case 'design':
+      return 'design';
+    case 'data':
+    case 'dev':
+    case 'solution':
+      return normalized;
+    default:
+      return normalized;
+  }
+}
 
 class PostState {
   final int currentStep;
@@ -191,8 +207,11 @@ class PostNotifier extends StateNotifier<PostState> {
   // ---------------------------------------------------------------------------
 
   void selectCategory(String category) {
+    final normalizedCategory = _normalizePostCategoryKey(category);
+    if (normalizedCategory.isEmpty) return;
+
     state = state.copyWith(
-      category: () => category,
+      category: () => normalizedCategory,
       currentStep: 1,
       projectId: () => null,
       sessionId: () => null,
@@ -214,7 +233,7 @@ class PostNotifier extends StateNotifier<PostState> {
       validationErrors: const {},
     );
 
-    _initConversation(category);
+    _initConversation(normalizedCategory);
   }
 
   Future<void> _initConversation(String category) async {

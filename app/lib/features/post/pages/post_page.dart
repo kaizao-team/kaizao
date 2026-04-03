@@ -431,6 +431,7 @@ class _PostPageState extends ConsumerState<PostPage> {
               'data': '数据',
               'dev': '研发',
               'design': '视觉设计',
+              'visual': '视觉设计',
               'solution': '解决方案',
             }[postState.category] ??
             '项目方向')

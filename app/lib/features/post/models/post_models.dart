@@ -10,6 +10,7 @@ enum AiChatInputType {
   unknown('unknown'),
   singleChoice('single_choice'),
   multiChoice('multi_choice'),
+  customInput('custom_input'),
   freeText('free_text');
 
   const AiChatInputType(this.backendValue);
@@ -22,6 +23,8 @@ enum AiChatInputType {
         return AiChatInputType.singleChoice;
       case 'multi_choice':
         return AiChatInputType.multiChoice;
+      case 'custom_input':
+        return AiChatInputType.customInput;
       case 'free_text':
       case 'text':
         return AiChatInputType.freeText;
@@ -107,7 +110,9 @@ class AiChatMessage {
   bool get hasOptions => options != null && options!.isNotEmpty;
 
   bool get usesMultiChoice => inputType == AiChatInputType.multiChoice;
-  bool get usesFreeText => inputType == AiChatInputType.freeText;
+  bool get usesFreeText =>
+      inputType == AiChatInputType.freeText ||
+      inputType == AiChatInputType.customInput;
 
   bool get allowsQuickSelect => hasOptions && !usesMultiChoice;
 

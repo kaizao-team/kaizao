@@ -43,11 +43,16 @@ class PostCategoryStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final normalizedSelected = switch (selected) {
+      'visual' => 'design',
+      _ => selected,
+    };
+
     return Column(
       children: _categories.asMap().entries.map((entry) {
         final index = entry.key;
         final category = entry.value;
-        final isSelected = selected == category.key;
+        final isSelected = normalizedSelected == category.key;
 
         return Padding(
           padding: EdgeInsets.only(
