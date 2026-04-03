@@ -145,7 +145,15 @@ async def send_message(project_id: str, req: MessageRequest, request: Request):
 
 @router.post("/{project_id}/confirm", response_model=APIResponse)
 async def confirm_prd(project_id: str, req: ConfirmRequest, request: Request):
-    """确认 PRD → 触发 EARS 拆解"""
+    """
+    确认 PRD — 轻量操作，立即返回。
+
+    1. 标记 requirement 阶段为 prd_confirmed
+    2. 后台异步触发 EARS 拆解（不阻塞响应）
+    3. 前端通过 GET /pipeline/{project_id}/status 轮询 sub_stage 变为 tasks_ready
+       或改用 POST /confirm/stream 获取实时进度
+    """
+    import asyncio
     from app.main import v2_orchestrator, v2_session, v2_requirement_agent
 
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
@@ -155,33 +163,47 @@ async def confirm_prd(project_id: str, req: ConfirmRequest, request: Request):
         if not state:
             return APIResponse(code=40401, message=f"项目 {project_id} 不存在", request_id=request_id)
 
-        session_id = state.session_id or f"req-{project_id}"
-        history = await v2_session.get_history(session_id)
-
-        updated_msgs, tool_result, sub_stage, score = await v2_requirement_agent.confirm_prd(
-            project_id=project_id,
-            messages=history,
-        )
-
-        await v2_session.save_history(session_id, updated_msgs)
-        state.set_stage_status("requirement", "awaiting_confirmation", sub_stage=sub_stage)
-        if sub_stage == "tasks_ready":
-            state.set_stage_status("requirement", "confirmed", sub_stage=sub_stage,
-                                   document_path=f"outputs/{project_id}/v1/requirement.md")
+        # 立即标记 PRD 已确认
+        state.set_stage_status("requirement", "running", sub_stage="prd_confirmed")
         await v2_orchestrator.save_project(state)
 
-        agent_text = v2_requirement_agent.extract_text_response(updated_msgs)
+        session_id = state.session_id or f"req-{project_id}"
+
+        # 后台异步执行 EARS 拆解（不阻塞响应）
+        async def _background_ears_decompose():
+            try:
+                history = await v2_session.get_history(session_id)
+                updated_msgs, tool_result, sub_stage, score = await v2_requirement_agent.confirm_prd(
+                    project_id=project_id,
+                    messages=history,
+                )
+                await v2_session.save_history(session_id, updated_msgs)
+                bg_state = await v2_orchestrator.get_project(project_id)
+                if bg_state:
+                    bg_state.set_stage_status("requirement", "awaiting_confirmation", sub_stage=sub_stage)
+                    if sub_stage == "tasks_ready":
+                        bg_state.set_stage_status("requirement", "confirmed", sub_stage=sub_stage,
+                                                   document_path=f"outputs/{project_id}/v1/requirement.md")
+                    await v2_orchestrator.save_project(bg_state)
+                logger.info("background_ears_complete", project_id=project_id, sub_stage=sub_stage)
+            except Exception as e:
+                logger.error("background_ears_failed", project_id=project_id, error=str(e))
+                # 标记错误状态，前端轮询时可感知
+                err_state = await v2_orchestrator.get_project(project_id)
+                if err_state:
+                    err_state.set_stage_status("requirement", "error", error_message=str(e))
+                    await v2_orchestrator.save_project(err_state)
+
+        asyncio.create_task(_background_ears_decompose())
 
         return APIResponse(
             code=0,
-            message="success",
+            message="PRD 已确认，EARS 拆解进行中",
             data={
                 "project_id": project_id,
-                "agent_message": agent_text,
-                "sub_stage": sub_stage,
-                "completeness_score": score,
-                "tool_name": tool_result.get("tool_name", ""),
-                "document_path": f"outputs/{project_id}/v1/requirement.md" if sub_stage == "tasks_ready" else None,
+                "sub_stage": "prd_confirmed",
+                "completeness_score": 100,
+                "ears_status": "processing",
             },
             request_id=request_id,
         )
