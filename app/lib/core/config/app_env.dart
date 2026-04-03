@@ -18,6 +18,14 @@ class AppEnv {
         AppEnvironment.prod => 'wss://ws.vibebuild.com',
       };
 
+  /// AI Agent (Python) service base URL.
+  /// Route through the API gateway to avoid sending bearer tokens to the raw AI agent host.
+  static String get aiAgentBaseUrl => switch (current) {
+        AppEnvironment.dev => baseUrl,
+        AppEnvironment.staging => baseUrl,
+        AppEnvironment.prod => baseUrl,
+      };
+
   static bool get useMock =>
       current == AppEnvironment.dev &&
       const bool.fromEnvironment('USE_MOCK', defaultValue: false);

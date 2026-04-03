@@ -20,6 +20,16 @@ class MatchMock {
       handler: (_) => _acceptBid(),
     );
 
+    handlers['GET:/api/v1/projects/:id/recommendations'] = MockHandler(
+      delayMs: 700,
+      handler: (options) => _recommendations(options),
+    );
+
+    handlers['POST:/api/v1/projects/:id/quick-match'] = MockHandler(
+      delayMs: 700,
+      handler: (options) => _quickMatch(options),
+    );
+
     handlers['GET:/api/v1/projects/:id/ai-suggestion'] = MockHandler(
       delayMs: 500,
       handler: (_) => _aiSuggestion(),
@@ -127,6 +137,93 @@ class MatchMock {
       'code': 0,
       'message': '已选定团队',
       'data': {'status': 'accepted'},
+    };
+  }
+
+  static List<Map<String, dynamic>> _mockRecommendations() {
+    return [
+      {
+        'provider_id': 'user_201',
+        'user_id': 'user_201',
+        'rank': 1,
+        'match_score': 95,
+        'recommendation_reason': '技能栈与项目高度匹配，历史交付稳定。',
+        'highlight_skills': ['Flutter', 'Go', 'WebSocket'],
+        'team_id': null,
+        'team_name': null,
+        'nickname': '张开发',
+        'avatar_url': null,
+        'rating': 4.9,
+        'completion_rate': 98,
+        'primary_skill': 'Flutter',
+        'skill': 'Flutter',
+        'bid_type': 'personal',
+      },
+      {
+        'provider_id': 'user_203',
+        'user_id': 'user_203',
+        'rank': 2,
+        'match_score': 88,
+        'recommendation_reason': '适合需要更完整协作配合的项目。',
+        'highlight_skills': ['Flutter', 'Go', 'PostgreSQL'],
+        'team_id': null,
+        'team_name': '创新工作室',
+        'nickname': '创新工作室',
+        'avatar_url': null,
+        'rating': 4.8,
+        'completion_rate': 97,
+        'primary_skill': 'Flutter',
+        'skill': 'Flutter',
+        'bid_type': 'team',
+      },
+    ];
+  }
+
+  static Map<String, dynamic> _recommendations(RequestOptions options) {
+    final pathSegments = options.path.split('/');
+    final projectId = pathSegments.length >= 5
+        ? pathSegments[pathSegments.length - 2]
+        : 'proj_001';
+    final items = _mockRecommendations();
+
+    return {
+      'code': 0,
+      'message': 'ok',
+      'data': {
+        'demand_id': projectId,
+        'match_type': 'recommend_providers',
+        'experts': items,
+        'recommendations': items,
+        'overall_suggestion': '建议优先联系排名靠前的服务方。',
+        'no_match_reason': null,
+        'meta': {
+          'total_candidates_scanned': 12,
+          'processing_time_ms': 680,
+        },
+      },
+    };
+  }
+
+  static Map<String, dynamic> _quickMatch(RequestOptions options) {
+    final chosen = _mockRecommendations().first;
+    return {
+      'code': 0,
+      'message': '快速匹配完成，已选定服务方',
+      'data': {
+        'status': 'accepted',
+        'bid_id': 'bid_quick_001',
+        'provider_id': chosen['provider_id'],
+        'match_score': chosen['match_score'],
+        'recommendation_reason': chosen['recommendation_reason'],
+        'highlight_skills': chosen['highlight_skills'],
+        'dimension_scores': {
+          'skill_match': 95,
+          'rating': 90,
+          'price_match': 84,
+        },
+        'agreed_price': 6800,
+        'estimated_duration_days': 14,
+      },
     };
   }
 

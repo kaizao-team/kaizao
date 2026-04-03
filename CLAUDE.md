@@ -21,6 +21,8 @@
 - 如果任务明确落在前端，默认只改 `app/`
 - 不要顺手修改 `server/` 或 `ai-agent/`，除非用户明确要求
 - 生成文件、缓存文件、临时脚本不要提交进 PR
+- 前端开发阶段禁止拉起 Web 端预览或验收
+- 前端默认使用移动端模拟器调试，优先 iOS Simulator
 
 ---
 
@@ -100,8 +102,8 @@
 ```bash
 # Flutter app
 cd app && flutter analyze
-cd app && flutter run -d chrome
-cd app && flutter run -d macos
+cd app && flutter devices
+cd app && flutter run -d "iPhone 16 Pro"
 
 # Git
 git fetch origin
@@ -115,3 +117,4 @@ git status -sb
 - 文档、代码、PR 描述口径必须一致
 - 提 PR 默认使用中文，写清楚“做了什么 / 怎么验证 / 不包含什么”
 - analyze 通过不等于完成，涉及 UI 的改动要实际看页面
+- 涉及 UI 的验证默认在移动端模拟器完成，不以 Web 预览代替

@@ -1,12 +1,49 @@
-enum MatchMode {
-  ai('ai', 'AI 智能撮合', '系统根据项目特征自动匹配最合适的团队'),
-  manual('manual', '手动选择', '在项目广场公开发布，团队主动投标'),
-  invite('invite', '定向邀请', '指定邀请特定团队参与项目');
+/// Tracks the current phase of an AI SSE stream.
+enum AiStreamPhase {
+  idle,
+  thinking,
+  receiving,
+  toolCall,
+}
 
-  const MatchMode(this.value, this.label, this.description);
-  final String value;
+enum AiChatInputType {
+  unknown('unknown'),
+  singleChoice('single_choice'),
+  multiChoice('multi_choice'),
+  customInput('custom_input'),
+  freeText('free_text');
+
+  const AiChatInputType(this.backendValue);
+
+  final String backendValue;
+
+  static AiChatInputType fromBackend(String? value) {
+    switch (value) {
+      case 'single_choice':
+        return AiChatInputType.singleChoice;
+      case 'multi_choice':
+        return AiChatInputType.multiChoice;
+      case 'custom_input':
+        return AiChatInputType.customInput;
+      case 'free_text':
+      case 'text':
+        return AiChatInputType.freeText;
+      default:
+        return AiChatInputType.unknown;
+    }
+  }
+}
+
+class AiChatOption {
+  final String key;
   final String label;
-  final String description;
+  final bool isCustom;
+
+  const AiChatOption({
+    required this.key,
+    required this.label,
+    this.isCustom = false,
+  });
 }
 
 class AiChatMessage {
@@ -14,82 +51,218 @@ class AiChatMessage {
   final String content;
   final bool isUser;
   final DateTime timestamp;
+  final AiChatInputType inputType;
+  final List<AiChatOption>? options;
+  final AiChatOption? optionSelected;
+  final List<AiChatOption>? optionsSelected;
+  final String? freeTextAnswer;
+  final int? minSelections;
+  final int? maxSelections;
+  final String? placeholder;
 
   const AiChatMessage({
     required this.id,
     required this.content,
     required this.isUser,
     required this.timestamp,
+    this.inputType = AiChatInputType.unknown,
+    this.options,
+    this.optionSelected,
+    this.optionsSelected,
+    this.freeTextAnswer,
+    this.minSelections,
+    this.maxSelections,
+    this.placeholder,
   });
+
+  AiChatMessage copyWith({
+    String? content,
+    AiChatInputType? inputType,
+    List<AiChatOption>? Function()? options,
+    AiChatOption? Function()? optionSelected,
+    List<AiChatOption>? Function()? optionsSelected,
+    String? Function()? freeTextAnswer,
+    int? Function()? minSelections,
+    int? Function()? maxSelections,
+    String? Function()? placeholder,
+  }) {
+    return AiChatMessage(
+      id: id,
+      content: content ?? this.content,
+      isUser: isUser,
+      timestamp: timestamp,
+      inputType: inputType ?? this.inputType,
+      options: options != null ? options() : this.options,
+      optionSelected:
+          optionSelected != null ? optionSelected() : this.optionSelected,
+      optionsSelected:
+          optionsSelected != null ? optionsSelected() : this.optionsSelected,
+      freeTextAnswer:
+          freeTextAnswer != null ? freeTextAnswer() : this.freeTextAnswer,
+      minSelections:
+          minSelections != null ? minSelections() : this.minSelections,
+      maxSelections:
+          maxSelections != null ? maxSelections() : this.maxSelections,
+      placeholder: placeholder != null ? placeholder() : this.placeholder,
+    );
+  }
+
+  bool get hasOptions => options != null && options!.isNotEmpty;
+
+  bool get usesMultiChoice => inputType == AiChatInputType.multiChoice;
+  bool get usesFreeText =>
+      inputType == AiChatInputType.freeText ||
+      inputType == AiChatInputType.customInput;
+
+  bool get allowsQuickSelect => hasOptions && !usesMultiChoice;
+
+  bool get isAnswered => usesMultiChoice
+      ? optionsSelected != null && optionsSelected!.isNotEmpty
+      : usesFreeText
+          ? freeTextAnswer?.trim().isNotEmpty == true
+          : optionSelected != null;
+}
+
+class ProjectOverviewData {
+  final String projectId;
+  final String title;
+  final String summary;
+  final BudgetSuggestion? budgetSuggestion;
+
+  const ProjectOverviewData({
+    required this.projectId,
+    required this.title,
+    required this.summary,
+    this.budgetSuggestion,
+  });
+}
+
+class RecommendedTeam {
+  final String teamId;
+  final String name;
+  final String? avatar;
+  final int matchScore;
+  final List<String> skills;
+  final String level;
+  final String? reason;
+
+  const RecommendedTeam({
+    required this.teamId,
+    required this.name,
+    this.avatar,
+    required this.matchScore,
+    required this.skills,
+    required this.level,
+    this.reason,
+  });
+
+  factory RecommendedTeam.fromJson(Map<String, dynamic> json) {
+    String firstNonEmpty(List<dynamic> values) {
+      for (final value in values) {
+        final text = value?.toString().trim();
+        if (text != null && text.isNotEmpty) {
+          return text;
+        }
+      }
+      return '';
+    }
+
+    final resolvedId = firstNonEmpty([
+      json['team_id'],
+      json['provider_id'],
+      json['user_id'],
+      json['id'],
+    ]);
+    if (resolvedId.isEmpty) {
+      throw const FormatException(
+        'recommendation payload missing team_id/provider_id',
+      );
+    }
+
+    final resolvedName = firstNonEmpty([
+      json['team_name'],
+      json['name'],
+      json['nickname'],
+      json['user_name'],
+    ]);
+    if (resolvedName.isEmpty) {
+      throw const FormatException(
+        'recommendation payload missing display name',
+      );
+    }
+
+    final rawScore = json['match_score'];
+    final resolvedScore = switch (rawScore) {
+      final num value => value.round(),
+      final String value =>
+        int.tryParse(value) ?? double.tryParse(value)?.round() ?? -1,
+      _ => -1,
+    };
+    if (resolvedScore < 0) {
+      throw const FormatException(
+        'recommendation payload missing match_score',
+      );
+    }
+
+    final skills = <String>[];
+    final skillSet = <String>{};
+    void addSkill(dynamic value) {
+      final skill = value?.toString().trim();
+      if (skill != null && skill.isNotEmpty && skillSet.add(skill)) {
+        skills.add(skill);
+      }
+    }
+
+    for (final skill in (json['highlight_skills'] as List?) ?? const []) {
+      addSkill(skill);
+    }
+    addSkill(json['primary_skill']);
+    addSkill(json['skill']);
+
+    final resolvedLevel = firstNonEmpty([
+      json['level'],
+      json['primary_skill'],
+      json['skill'],
+      json['bid_type'] == 'team' ? '团队' : null,
+      '推荐服务方',
+    ]);
+    final avatar = firstNonEmpty([json['avatar_url'], json['avatar']]);
+    final reason = firstNonEmpty([
+      json['recommendation_reason'],
+      json['reason'],
+    ]);
+
+    return RecommendedTeam(
+      teamId: resolvedId,
+      name: resolvedName,
+      avatar: avatar.isEmpty ? null : avatar,
+      matchScore: resolvedScore,
+      skills: skills.isNotEmpty
+          ? skills
+          : (json['skills'] as List?)
+                  ?.map((item) => item.toString())
+                  .toList() ??
+              const <String>[],
+      level: resolvedLevel,
+      reason: reason.isEmpty ? null : reason,
+    );
+  }
 }
 
 class PostDraft {
   final String? category;
   final List<AiChatMessage> messages;
-  final PrdGeneratedData? prdData;
+  final ProjectOverviewData? overviewData;
   final double? budgetMin;
   final double? budgetMax;
-  final MatchMode? matchMode;
 
   const PostDraft({
     this.category,
     this.messages = const [],
-    this.prdData,
+    this.overviewData,
     this.budgetMin,
     this.budgetMax,
-    this.matchMode,
   });
-}
-
-class PrdGeneratedData {
-  final String prdId;
-  final String title;
-  final List<PrdModuleSummary> modules;
-  final BudgetSuggestion? budgetSuggestion;
-
-  const PrdGeneratedData({
-    required this.prdId,
-    required this.title,
-    required this.modules,
-    this.budgetSuggestion,
-  });
-
-  factory PrdGeneratedData.fromJson(Map<String, dynamic> json) {
-    return PrdGeneratedData(
-      prdId: json['prd_id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      modules: (json['modules'] as List?)
-              ?.whereType<Map<String, dynamic>>()
-              .map((m) => PrdModuleSummary.fromJson(m))
-              .toList() ??
-          [],
-      budgetSuggestion: json['budget_suggestion'] != null
-          ? BudgetSuggestion.fromJson(
-              json['budget_suggestion'] as Map<String, dynamic>)
-          : null,
-    );
-  }
-}
-
-class PrdModuleSummary {
-  final String id;
-  final String name;
-  final int cardCount;
-
-  const PrdModuleSummary({
-    required this.id,
-    required this.name,
-    required this.cardCount,
-  });
-
-  factory PrdModuleSummary.fromJson(Map<String, dynamic> json) {
-    final cards = json['cards'] as List?;
-    return PrdModuleSummary(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      cardCount: cards?.length ?? 0,
-    );
-  }
 }
 
 class BudgetSuggestion {

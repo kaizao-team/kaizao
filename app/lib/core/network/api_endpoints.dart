@@ -186,6 +186,38 @@ class ApiEndpoints {
       '/api/v1/agent-sessions/$id/message';
 
   // ============================================================
+  // Pipeline v2 (project lifecycle)
+  // ============================================================
+  static const String pipelineStart = '/api/v2/pipeline/start';
+  static String pipelineStatus(String projectId) =>
+      '/api/v2/pipeline/$projectId/status';
+
+  // ============================================================
+  // AI Agent v2 (Python service, direct connection)
+  // ============================================================
+  static const String aiAgentStart = '/api/v2/requirement/start';
+  static String aiAgentMessage(String projectId) =>
+      '/api/v2/requirement/$projectId/message';
+  static String aiAgentConfirm(String projectId) =>
+      '/api/v2/requirement/$projectId/confirm';
+  static String aiAgentDecompose(String projectId) =>
+      '/api/v2/requirement/$projectId/decompose';
+
+  // SSE streaming variants
+  static const String aiAgentStartStream = '/api/v2/requirement/start/stream';
+  static String aiAgentMessageStream(String projectId) =>
+      '/api/v2/requirement/$projectId/message/stream';
+  static String aiAgentDecomposeStream(String projectId) =>
+      '/api/v2/requirement/$projectId/decompose/stream';
+
+  // Requirement document
+  static String requirementDocument(String projectId) =>
+      '/api/v2/requirement/$projectId/document';
+
+  // Match / recommend
+  static const String matchRecommend = '/api/v2/match/recommend';
+
+  // ============================================================
   // 文件上传
   // ============================================================
   static const String uploadFile = '/api/v1/upload';
