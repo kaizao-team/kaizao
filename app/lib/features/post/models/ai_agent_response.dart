@@ -22,14 +22,38 @@ class AiAgentResponse {
         ? json['data'] as Map<String, dynamic>
         : json;
 
+    final String projectId = data['project_id']?.toString().trim() ?? '';
+    final String sessionId = data['session_id']?.toString().trim() ?? '';
+    final String agentMessage = data['agent_message']?.toString().trim() ??
+        data['message']?.toString().trim() ??
+        '';
+    final int? completenessScore = switch (data['completeness_score']) {
+      final int value => value,
+      final num value => value.toInt(),
+      _ => null,
+    };
+
+    if (projectId.isEmpty) {
+      throw const FormatException('AI Agent response missing project_id');
+    }
+    if (sessionId.isEmpty) {
+      throw const FormatException('AI Agent response missing session_id');
+    }
+    if (agentMessage.isEmpty) {
+      throw const FormatException('AI Agent response missing agent_message');
+    }
+    if (completenessScore == null) {
+      throw const FormatException(
+        'AI Agent response missing completeness_score',
+      );
+    }
+
     return AiAgentResponse(
-      projectId: data['project_id'] as String? ?? '',
-      sessionId: data['session_id'] as String? ?? '',
-      agentMessage: data['agent_message'] as String? ??
-          data['message'] as String? ??
-          '',
+      projectId: projectId,
+      sessionId: sessionId,
+      agentMessage: agentMessage,
       subStage: data['sub_stage'] as String? ?? 'clarifying',
-      completenessScore: data['completeness_score'] as int? ?? 0,
+      completenessScore: completenessScore,
       analysisComplete: data['analysis_complete'] as bool?,
     );
   }

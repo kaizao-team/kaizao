@@ -16,13 +16,19 @@ class PostRepository {
     required String operation,
   }) {
     if (!body.containsKey('code')) {
-      return body;
+      throw FormatException(
+        '$operation expected AI envelope with code/message/data',
+      );
     }
 
     final code = body['code'] as int? ?? -1;
     if (code != 0) {
       final message = body['message'] as String? ?? '$operation failed';
       throw Exception(message);
+    }
+
+    if (!body.containsKey('data')) {
+      throw FormatException('$operation expected AI envelope data field');
     }
 
     final data = body['data'];

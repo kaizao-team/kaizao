@@ -190,6 +190,7 @@ class PostMock {
         : _nextConversationTurn(
             conversationKey: conversationKey,
             category: category,
+            userMessage: userMessage,
           );
     final scriptIndex =
         turnCount <= scripts.length ? turnCount - 1 : scripts.length - 1;
@@ -259,9 +260,16 @@ class PostMock {
   static int _nextConversationTurn({
     required String conversationKey,
     required String category,
+    required String userMessage,
   }) {
     final current = _conversationStates[conversationKey];
-    final nextTurn = current == null || current.category != category
+    final shouldResetLegacyConversation =
+        conversationKey.startsWith('legacy:') &&
+        userMessage.trim().startsWith('我想做一个') &&
+        userMessage.trim().endsWith('类的项目');
+    final nextTurn = current == null ||
+            current.category != category ||
+            shouldResetLegacyConversation
         ? 1
         : current.turnCount + 1;
     _conversationStates[conversationKey] = _MockConversationState(

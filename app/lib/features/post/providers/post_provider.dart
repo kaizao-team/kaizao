@@ -153,6 +153,7 @@ class PostNotifier extends StateNotifier<PostState> {
   int _requestGeneration = 0;
   int _streamingGeneration = 0; // cancel stale _simulateStreaming loops
   bool _expectsFreshAiMessage = false;
+  String? _pendingCategory;
 
   PostNotifier(this._repository, {AiAgentClient? aiAgent})
       : _aiAgent = aiAgent ?? AiAgentClient(),
@@ -215,7 +216,38 @@ class PostNotifier extends StateNotifier<PostState> {
   void selectCategory(String category) {
     final normalizedCategory = _normalizePostCategoryKey(category);
     if (normalizedCategory.isEmpty) return;
+    if (state.category == normalizedCategory) return;
 
+    final hasProgressToLose = state.messages.isNotEmpty ||
+        state.overviewData != null ||
+        state.budgetMin != null ||
+        state.budgetMax != null ||
+        state.recommendedTeam != null;
+
+    if (hasProgressToLose) {
+      _pendingCategory = normalizedCategory;
+      state = state.copyWith(
+        errorMessage: () => '__confirm_category_change__',
+      );
+      return;
+    }
+
+    _applyCategory(normalizedCategory);
+  }
+
+  void confirmCategoryChange() {
+    final pendingCategory = _pendingCategory;
+    if (pendingCategory == null) return;
+    _pendingCategory = null;
+    _applyCategory(pendingCategory);
+  }
+
+  void cancelCategoryChange() {
+    _pendingCategory = null;
+    state = state.copyWith(errorMessage: () => null);
+  }
+
+  void _applyCategory(String normalizedCategory) {
     state = state.copyWith(
       category: () => normalizedCategory,
       currentStep: 1,

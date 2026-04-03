@@ -420,6 +420,43 @@ class _PostPageState extends ConsumerState<PostPage> {
     _confirmClose(state);
   }
 
+  void _showCategoryChangeConfirm() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            '切换分类？',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          content: const Text('切换后会清空当前已整理的需求、预算和匹配结果。'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                ref.read(postStateProvider.notifier).cancelCategoryChange();
+              },
+              child: const Text(
+                '继续当前分类',
+                style: TextStyle(color: AppColors.gray500),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                ref.read(postStateProvider.notifier).confirmCategoryChange();
+              },
+              child: const Text(
+                '确认切换',
+                style: TextStyle(color: AppColors.error),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final postState = ref.watch(postStateProvider);
@@ -453,6 +490,12 @@ class _PostPageState extends ConsumerState<PostPage> {
       }
 
       final error = next.errorMessage;
+      if (error == '__confirm_category_change__' &&
+          error != previous?.errorMessage &&
+          mounted) {
+        _showCategoryChangeConfirm();
+        return;
+      }
       if (error != null && error != previous?.errorMessage && mounted) {
         VccToast.show(context, message: error, type: VccToastType.error);
       }
