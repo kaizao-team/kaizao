@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/repository"
@@ -36,6 +37,32 @@ func expertEligibleForFavorite(u *model.User) bool {
 		u.OnboardingStatus == model.OnboardingApproved
 }
 
+// isMySQLDuplicateKey 唯一约束冲突（并发插入同一条收藏等）
+func isMySQLDuplicateKey(err error) bool {
+	var me *mysql.MySQLError
+	return errors.As(err, &me) && me.Number == 1062
+}
+
+func mapFindProjectErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	return err
+}
+
+func mapFindUserErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	return err
+}
+
 // AddFavorite 新增收藏；target_id 为项目或专家用户 UUID
 func (s *FavoriteService) AddFavorite(userID int64, targetType, targetID string) (*AddFavoriteOutcome, error) {
 	if targetType != "project" && targetType != "expert" {
@@ -59,30 +86,50 @@ func (s *FavoriteService) AddFavorite(userID int64, targetType, targetID string)
 	if targetType == "project" {
 		project, err := s.repos.Project.FindByUUID(targetID)
 		if err != nil {
-			return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+			return nil, mapFindProjectErr(err)
 		}
-		if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
+
+		var outcome *AddFavoriteOutcome
+		err = s.repos.DB().Transaction(func(tx *gorm.DB) error {
 			txRepos := repository.NewRepositories(tx)
 			if err := txRepos.Favorite.Create(fav); err != nil {
+				if isMySQLDuplicateKey(err) {
+					ex, err2 := txRepos.Favorite.FindByUserAndTarget(userID, targetType, targetID)
+					if err2 != nil {
+						return err2
+					}
+					outcome = &AddFavoriteOutcome{UUID: ex.UUID, AlreadyFavorited: true}
+					return nil
+				}
 				return err
 			}
-			return txRepos.Project.UpdateFields(project.ID, map[string]interface{}{
-				"favorite_count": project.FavoriteCount + 1,
-			})
-		}); err != nil {
+			if err := txRepos.Project.AddFavoriteCountDelta(project.ID, 1); err != nil {
+				return err
+			}
+			outcome = &AddFavoriteOutcome{UUID: fav.UUID}
+			return nil
+		})
+		if err != nil {
 			return nil, err
 		}
-		return &AddFavoriteOutcome{UUID: fav.UUID}, nil
+		return outcome, nil
 	}
 
 	expert, err := s.repos.User.FindByUUID(targetID)
 	if err != nil {
-		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+		return nil, mapFindUserErr(err)
 	}
 	if !expertEligibleForFavorite(expert) {
 		return nil, fmt.Errorf("%d", errcode.ErrFavoriteExpertInvalid)
 	}
 	if err := s.repos.Favorite.Create(fav); err != nil {
+		if isMySQLDuplicateKey(err) {
+			ex, err2 := s.repos.Favorite.FindByUserAndTarget(userID, targetType, targetID)
+			if err2 != nil {
+				return nil, err2
+			}
+			return &AddFavoriteOutcome{UUID: ex.UUID, AlreadyFavorited: true}, nil
+		}
 		return nil, err
 	}
 	return &AddFavoriteOutcome{UUID: fav.UUID}, nil
@@ -115,13 +162,7 @@ func (s *FavoriteService) RemoveFavorite(userID int64, targetType, targetID stri
 			if err := txRepos.Favorite.Delete(userID, targetType, targetID); err != nil {
 				return err
 			}
-			newCount := project.FavoriteCount - 1
-			if newCount < 0 {
-				newCount = 0
-			}
-			return txRepos.Project.UpdateFields(project.ID, map[string]interface{}{
-				"favorite_count": newCount,
-			})
+			return txRepos.Project.AddFavoriteCountDelta(project.ID, -1)
 		})
 	}
 
