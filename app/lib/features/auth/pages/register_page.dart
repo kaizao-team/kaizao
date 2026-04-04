@@ -9,6 +9,7 @@ import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_button.dart';
+import '../../../shared/widgets/vcc_input.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_form_sections.dart';
@@ -22,8 +23,15 @@ class RegisterPage extends ConsumerStatefulWidget {
 
 class _RegisterPageState extends ConsumerState<RegisterPage>
     with TickerProviderStateMixin {
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
+
+  final _usernameFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _confirmPasswordFocus = FocusNode();
   final _phoneFocus = FocusNode();
   final _codeFocus = FocusNode();
 
@@ -36,6 +44,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   bool _phoneValid = false;
   bool _isSendingCode = false;
   bool _agreedToTerms = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+  bool _showPhoneBind = false;
+
+  static final _usernameRegex = RegExp(r'^[a-zA-Z0-9_]{4,32}$');
 
   @override
   void initState() {
@@ -66,8 +79,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     _phoneController.removeListener(_validatePhone);
     _countdownTimer?.cancel();
     _heroController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _phoneController.dispose();
     _codeController.dispose();
+    _usernameFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
     _phoneFocus.dispose();
     _codeFocus.dispose();
     super.dispose();
@@ -110,7 +129,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     setState(() => _isSendingCode = true);
     final success = await ref
         .read(authStateProvider.notifier)
-        .sendSmsCode(_phoneController.text.trim());
+        .sendSmsCode(_phoneController.text.trim(), purpose: 1);
     if (!mounted) return;
     setState(() => _isSendingCode = false);
     if (success) {
@@ -125,20 +144,67 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       _showToast('请先同意服务协议', type: VccToastType.warning);
       return;
     }
-    if (!_phoneValid) {
-      _showToast('请输入正确的手机号', type: VccToastType.warning);
+
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (username.isEmpty) {
+      _showToast('请输入用户名', type: VccToastType.warning);
       return;
     }
-    if (_codeController.text.trim().length != 6) {
-      _showToast('请输入 6 位短信验证码', type: VccToastType.warning);
+    if (!_usernameRegex.hasMatch(username)) {
+      _showToast('用户名仅支持 4-32 位字母、数字、下划线', type: VccToastType.warning);
+      return;
+    }
+    if (password.isEmpty) {
+      _showToast('请输入密码', type: VccToastType.warning);
+      return;
+    }
+    if (password.length < 8) {
+      _showToast('密码至少 8 位', type: VccToastType.warning);
+      return;
+    }
+    if (confirmPassword != password) {
+      _showToast('两次输入的密码不一致', type: VccToastType.warning);
       return;
     }
 
-    final success = await ref.read(authStateProvider.notifier).loginWithPhone(
-          _phoneController.text.trim(),
-          _codeController.text.trim(),
-        );
-    if (!success || !mounted) return;
+    String? phone;
+    String? smsCode;
+
+    if (_showPhoneBind) {
+      final phoneText = _phoneController.text.trim();
+      final codeText = _codeController.text.trim();
+      if (phoneText.isNotEmpty || codeText.isNotEmpty) {
+        if (!_phoneValid) {
+          _showToast('请输入正确的手机号', type: VccToastType.warning);
+          return;
+        }
+        if (codeText.length != 6) {
+          _showToast('请输入 6 位短信验证码', type: VccToastType.warning);
+          return;
+        }
+        phone = phoneText;
+        smsCode = codeText;
+      }
+    }
+
+    final success =
+        await ref.read(authStateProvider.notifier).registerWithPassword(
+              username: username,
+              password: password,
+              phone: phone,
+              smsCode: smsCode,
+            );
+
+    if (!success || !mounted) {
+      if (mounted) {
+        final error = ref.read(authStateProvider).errorMessage;
+        if (error != null) _showToast(error, type: VccToastType.error);
+      }
+      return;
+    }
 
     final authState = ref.read(authStateProvider);
     if (authState.userRole == 0) {
@@ -197,7 +263,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                             const Text('新用户注册', style: AppTextStyles.h2),
                             const SizedBox(height: AppSpacing.xs),
                             Text(
-                              '使用手机号验证码完成注册，首次登录后选择你的身份即可开始使用 KAIZO。',
+                              '创建账号密码即可使用 KAIZO，首次登录后选择你的身份即可开始。',
                               style: AppTextStyles.body2.copyWith(
                                 color: AppColors.gray500,
                               ),
@@ -205,33 +271,43 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                             SizedBox(
                               height: compact ? AppSpacing.lg : AppSpacing.xl,
                             ),
-                            AuthPhonePanel(
+                            _RegisterForm(
+                              usernameController: _usernameController,
+                              passwordController: _passwordController,
+                              confirmPasswordController:
+                                  _confirmPasswordController,
                               phoneController: _phoneController,
                               codeController: _codeController,
+                              usernameFocus: _usernameFocus,
+                              passwordFocus: _passwordFocus,
+                              confirmPasswordFocus: _confirmPasswordFocus,
                               phoneFocus: _phoneFocus,
                               codeFocus: _codeFocus,
+                              obscurePassword: _obscurePassword,
+                              obscureConfirm: _obscureConfirm,
+                              onPasswordToggle: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                              onConfirmToggle: () => setState(
+                                () => _obscureConfirm = !_obscureConfirm,
+                              ),
+                              showPhoneBind: _showPhoneBind,
+                              onTogglePhoneBind: () => setState(
+                                () => _showPhoneBind = !_showPhoneBind,
+                              ),
                               countdown: _countdown,
                               isPhoneValid: _phoneValid,
                               isSendingCode: _isSendingCode,
                               onSendCode: _sendCode,
                               compact: compact,
                             ),
-                            if (authState.errorMessage != null) ...[
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                authState.errorMessage!,
-                                style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.error,
-                                ),
-                              ),
-                            ],
                             SizedBox(
                               height: keyboardInset > 0
                                   ? AppSpacing.xl
-                                  : (compact ? AppSpacing.xxl : 72),
+                                  : (compact ? AppSpacing.xxl : 48),
                             ),
                             VccButton(
-                              text: '登录 / 注册',
+                              text: '注册',
                               onPressed: _submit,
                               isLoading: isSubmitting,
                             ),
@@ -271,6 +347,248 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _RegisterForm extends StatelessWidget {
+  final TextEditingController usernameController;
+  final TextEditingController passwordController;
+  final TextEditingController confirmPasswordController;
+  final TextEditingController phoneController;
+  final TextEditingController codeController;
+  final FocusNode usernameFocus;
+  final FocusNode passwordFocus;
+  final FocusNode confirmPasswordFocus;
+  final FocusNode phoneFocus;
+  final FocusNode codeFocus;
+  final bool obscurePassword;
+  final bool obscureConfirm;
+  final VoidCallback onPasswordToggle;
+  final VoidCallback onConfirmToggle;
+  final bool showPhoneBind;
+  final VoidCallback onTogglePhoneBind;
+  final int countdown;
+  final bool isPhoneValid;
+  final bool isSendingCode;
+  final VoidCallback onSendCode;
+  final bool compact;
+
+  const _RegisterForm({
+    required this.usernameController,
+    required this.passwordController,
+    required this.confirmPasswordController,
+    required this.phoneController,
+    required this.codeController,
+    required this.usernameFocus,
+    required this.passwordFocus,
+    required this.confirmPasswordFocus,
+    required this.phoneFocus,
+    required this.codeFocus,
+    required this.obscurePassword,
+    required this.obscureConfirm,
+    required this.onPasswordToggle,
+    required this.onConfirmToggle,
+    required this.showPhoneBind,
+    required this.onTogglePhoneBind,
+    required this.countdown,
+    required this.isPhoneValid,
+    required this.isSendingCode,
+    required this.onSendCode,
+    required this.compact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = compact ? AppSpacing.md : AppSpacing.base;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AuthFieldShell(
+          label: '用户名',
+          child: VccInput(
+            hint: '4-32 位字母、数字或下划线',
+            controller: usernameController,
+            focusNode: usernameFocus,
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.next,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_]')),
+              LengthLimitingTextInputFormatter(32),
+            ],
+            onSubmitted: (_) => passwordFocus.requestFocus(),
+          ),
+        ),
+        SizedBox(height: spacing),
+        AuthFieldShell(
+          label: '密码',
+          child: VccInput(
+            hint: '至少 8 位',
+            controller: passwordController,
+            focusNode: passwordFocus,
+            obscureText: obscurePassword,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => confirmPasswordFocus.requestFocus(),
+            suffixIcon: _EyeToggle(
+              obscure: obscurePassword,
+              onTap: onPasswordToggle,
+            ),
+          ),
+        ),
+        SizedBox(height: spacing),
+        AuthFieldShell(
+          label: '确认密码',
+          child: VccInput(
+            hint: '再次输入密码',
+            controller: confirmPasswordController,
+            focusNode: confirmPasswordFocus,
+            obscureText: obscureConfirm,
+            textInputAction:
+                showPhoneBind ? TextInputAction.next : TextInputAction.done,
+            onSubmitted: (_) {
+              if (showPhoneBind) phoneFocus.requestFocus();
+            },
+            suffixIcon: _EyeToggle(
+              obscure: obscureConfirm,
+              onTap: onConfirmToggle,
+            ),
+          ),
+        ),
+        SizedBox(height: spacing + 4),
+        _PhoneBindSection(
+          showPhoneBind: showPhoneBind,
+          onToggle: onTogglePhoneBind,
+          phoneController: phoneController,
+          codeController: codeController,
+          phoneFocus: phoneFocus,
+          codeFocus: codeFocus,
+          countdown: countdown,
+          isPhoneValid: isPhoneValid,
+          isSendingCode: isSendingCode,
+          onSendCode: onSendCode,
+          compact: compact,
+        ),
+      ],
+    );
+  }
+}
+
+class _EyeToggle extends StatelessWidget {
+  final bool obscure;
+  final VoidCallback onTap;
+
+  const _EyeToggle({required this.obscure, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Icon(
+          obscure ? Icons.visibility_off_outlined : Icons.remove_red_eye_outlined,
+          size: 18,
+          color: AppColors.gray500,
+        ),
+      ),
+    );
+  }
+}
+
+class _PhoneBindSection extends StatelessWidget {
+  final bool showPhoneBind;
+  final VoidCallback onToggle;
+  final TextEditingController phoneController;
+  final TextEditingController codeController;
+  final FocusNode phoneFocus;
+  final FocusNode codeFocus;
+  final int countdown;
+  final bool isPhoneValid;
+  final bool isSendingCode;
+  final VoidCallback onSendCode;
+  final bool compact;
+
+  const _PhoneBindSection({
+    required this.showPhoneBind,
+    required this.onToggle,
+    required this.phoneController,
+    required this.codeController,
+    required this.phoneFocus,
+    required this.codeFocus,
+    required this.countdown,
+    required this.isPhoneValid,
+    required this.isSendingCode,
+    required this.onSendCode,
+    required this.compact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GestureDetector(
+          onTap: onToggle,
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            children: [
+              Icon(
+                showPhoneBind
+                    ? Icons.keyboard_arrow_up_rounded
+                    : Icons.keyboard_arrow_down_rounded,
+                size: 20,
+                color: AppColors.gray500,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '绑定手机号（可选）',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.gray500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        AnimatedCrossFade(
+          duration: AppDurations.normal,
+          crossFadeState: showPhoneBind
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          firstChild: const SizedBox.shrink(),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Text(
+                    '涉及后续推进流程请绑定本人使用的手机号',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.gray400,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                AuthPhonePanel(
+                  phoneController: phoneController,
+                  codeController: codeController,
+                  phoneFocus: phoneFocus,
+                  codeFocus: codeFocus,
+                  countdown: countdown,
+                  isPhoneValid: isPhoneValid,
+                  isSendingCode: isSendingCode,
+                  onSendCode: onSendCode,
+                  compact: compact,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
