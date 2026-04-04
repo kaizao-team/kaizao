@@ -9,6 +9,8 @@ import (
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/repository"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // MaxPortfoliosPerUser 单用户活跃作品集数量上限（status=1）
@@ -81,14 +83,21 @@ func (s *UserService) ListUserPortfolios(userID int64) ([]*model.Portfolio, erro
 }
 
 func (s *UserService) CreatePortfolio(p *model.Portfolio) error {
-	n, err := s.repos.User.CountActivePortfoliosByUserID(p.UserID)
-	if err != nil {
-		return err
-	}
-	if n >= MaxPortfoliosPerUser {
-		return fmt.Errorf("%d", errcode.ErrPortfolioExceedLimit)
-	}
-	return s.repos.User.CreatePortfolio(p)
+	// 事务内锁定用户行再计数 + 插入，避免并发下同时通过「未满」检查导致超上限
+	return s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		var lock model.User
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", p.UserID).First(&lock).Error; err != nil {
+			return err
+		}
+		var n int64
+		if err := tx.Model(&model.Portfolio{}).Where("user_id = ? AND status = 1", p.UserID).Count(&n).Error; err != nil {
+			return err
+		}
+		if n >= MaxPortfoliosPerUser {
+			return fmt.Errorf("%d", errcode.ErrPortfolioExceedLimit)
+		}
+		return tx.Create(p).Error
+	})
 }
 
 func (s *UserService) FindPortfolioByUUID(uuid string) (*model.Portfolio, error) {

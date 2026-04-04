@@ -54,7 +54,8 @@ type CreatePortfolioReq struct {
 type UpdatePortfolioReq struct {
 	Title        *string      `json:"title" binding:"omitempty,max=200"`
 	Description  *string      `json:"description"`
-	Category     *string      `json:"category" binding:"omitempty,oneof=app web miniprogram design data other"`
+	// 若传 category 则不可为空字符串，且须为 Handler 中枚举之一
+	Category     *string      `json:"category" binding:"omitempty"`
 	CoverURL     *string      `json:"cover_url"`
 	PreviewURL   *string      `json:"preview_url"`
 	TechStack    *[]string    `json:"tech_stack"`

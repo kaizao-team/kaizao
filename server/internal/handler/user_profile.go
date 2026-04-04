@@ -19,6 +19,16 @@ import (
 
 var cnMobilePattern = regexp.MustCompile(`^1[3-9]\d{9}$`)
 
+// isPortfolioCategoryEnum 作品 category 合法枚举值（更新时若传 category 字段则不可为空串，且须命中其一）
+func isPortfolioCategoryEnum(cat string) bool {
+	switch cat {
+	case "app", "web", "miniprogram", "design", "data", "other":
+		return true
+	default:
+		return false
+	}
+}
+
 // maskContactPhonePublic 公开资料中的联系电话脱敏（与登录手机号展示规则一致；非 11 位做保守遮挡）
 func maskContactPhonePublic(p *string) string {
 	if p == nil {
@@ -401,7 +411,16 @@ func (h *UserHandler) UpdatePortfolio(c *gin.Context) {
 		fields["description"] = *req.Description
 	}
 	if req.Category != nil {
-		fields["category"] = strings.TrimSpace(*req.Category)
+		cat := strings.TrimSpace(*req.Category)
+		if cat == "" {
+			response.ErrorBadRequest(c, errcode.ErrParamInvalid, "category 不能为空")
+			return
+		}
+		if !isPortfolioCategoryEnum(cat) {
+			response.ErrorBadRequest(c, errcode.ErrParamInvalid, "category 无效")
+			return
+		}
+		fields["category"] = cat
 	}
 	if req.CoverURL != nil {
 		if strings.TrimSpace(*req.CoverURL) == "" {
