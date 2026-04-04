@@ -77,6 +77,18 @@ func (s *UserService) ListUserPortfolios(userID int64) ([]*model.Portfolio, erro
 	return s.repos.User.ListUserPortfolios(userID)
 }
 
+func (s *UserService) CreatePortfolio(p *model.Portfolio) error {
+	return s.repos.User.CreatePortfolio(p)
+}
+
+func (s *UserService) FindPortfolioByUUID(uuid string) (*model.Portfolio, error) {
+	return s.repos.User.FindPortfolioByUUID(uuid)
+}
+
+func (s *UserService) UpdatePortfolioFields(id int64, fields map[string]interface{}) error {
+	return s.repos.User.UpdatePortfolioFields(id, fields)
+}
+
 func (s *UserService) ListExperts(page, pageSize int) ([]*model.User, int64, error) {
 	if page < 1 {
 		page = 1

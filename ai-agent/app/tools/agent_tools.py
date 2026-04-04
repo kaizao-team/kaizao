@@ -17,7 +17,7 @@ ASK_CLARIFICATION_TOOL = {
             },
             "completeness_score": {
                 "type": "integer",
-                "description": "当前需求完整度评分 0-100，计算公式: sum(dimension_i × weight_i)，所有维度 ≥ 60% 且总分 ≥ 80 才触发 PRD",
+                "description": "当前需求完整度评分 0-100，计算公式: sum(dimension_i × weight_i)，所有维度 ≥ 50% 且总分 ≥ 70 才触发 PRD",
                 "minimum": 0,
                 "maximum": 100,
             },

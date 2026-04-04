@@ -12,6 +12,8 @@ import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_input.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/auth_provider.dart';
+import '../repositories/auth_repository.dart';
+import '../widgets/captcha_field.dart';
 
 enum _AuthMode { password, phone }
 
@@ -28,11 +30,13 @@ class _LoginPageState extends ConsumerState<LoginPage>
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
+  final _captchaCodeController = TextEditingController();
 
   final _usernameFocus = FocusNode();
   final _passwordFocus = FocusNode();
   final _phoneFocus = FocusNode();
   final _codeFocus = FocusNode();
+  final _captchaFocus = FocusNode();
 
   late final AnimationController _heroController;
   late final Animation<double> _heroScale;
@@ -45,6 +49,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
   bool _phoneValid = false;
   bool _isSendingCode = false;
   _AuthMode _mode = _AuthMode.password;
+
+  CaptchaResult? _captcha;
+  bool _isLoadingCaptcha = false;
 
   @override
   void initState() {
@@ -68,6 +75,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
     _heroLift = Tween<double>(begin: 3, end: -5).animate(
       CurvedAnimation(parent: _heroController, curve: AppCurves.easeInOut),
     );
+    _loadCaptcha();
   }
 
   @override
@@ -79,10 +87,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
     _passwordController.dispose();
     _phoneController.dispose();
     _codeController.dispose();
+    _captchaCodeController.dispose();
     _usernameFocus.dispose();
     _passwordFocus.dispose();
     _phoneFocus.dispose();
     _codeFocus.dispose();
+    _captchaFocus.dispose();
     super.dispose();
   }
 
@@ -105,6 +115,19 @@ class _LoginPageState extends ConsumerState<LoginPage>
     if (_mode == mode) return;
     FocusScope.of(context).unfocus();
     setState(() => _mode = mode);
+  }
+
+  Future<void> _loadCaptcha() async {
+    if (_isLoadingCaptcha) return;
+    setState(() => _isLoadingCaptcha = true);
+    final result =
+        await ref.read(authStateProvider.notifier).getCaptcha();
+    if (!mounted) return;
+    setState(() {
+      _captcha = result;
+      _isLoadingCaptcha = false;
+      _captchaCodeController.clear();
+    });
   }
 
   void _startCountdown() {
@@ -149,24 +172,60 @@ class _LoginPageState extends ConsumerState<LoginPage>
     }
 
     if (_mode == _AuthMode.password) {
-      _showToast('账号密码登录暂未开放', type: VccToastType.info);
-      return;
-    }
+      final username = _usernameController.text.trim();
+      final password = _passwordController.text;
+      final captchaCode = _captchaCodeController.text.trim();
 
-    if (!_phoneValid) {
-      _showToast('请输入正确的手机号', type: VccToastType.warning);
-      return;
-    }
-    if (_codeController.text.trim().length != 6) {
-      _showToast('请输入 6 位短信验证码', type: VccToastType.warning);
-      return;
-    }
+      if (username.isEmpty) {
+        _showToast('请输入用户名', type: VccToastType.warning);
+        return;
+      }
+      if (password.isEmpty) {
+        _showToast('请输入密码', type: VccToastType.warning);
+        return;
+      }
+      if (_captcha == null || _captcha!.captchaId.isEmpty) {
+        _showToast('请先获取验证码', type: VccToastType.warning);
+        return;
+      }
+      if (captchaCode.isEmpty) {
+        _showToast('请输入图形验证码', type: VccToastType.warning);
+        return;
+      }
 
-    final success = await ref.read(authStateProvider.notifier).loginWithPhone(
-          _phoneController.text.trim(),
-          _codeController.text.trim(),
-        );
-    if (!success || !mounted) return;
+      final success =
+          await ref.read(authStateProvider.notifier).loginWithPassword(
+                identity: username,
+                password: password,
+                captchaId: _captcha!.captchaId,
+                captchaCode: captchaCode,
+              );
+
+      if (!success || !mounted) {
+        _loadCaptcha();
+        if (mounted) {
+          final error = ref.read(authStateProvider).errorMessage;
+          if (error != null) _showToast(error, type: VccToastType.error);
+        }
+        return;
+      }
+    } else {
+      if (!_phoneValid) {
+        _showToast('请输入正确的手机号', type: VccToastType.warning);
+        return;
+      }
+      if (_codeController.text.trim().length != 6) {
+        _showToast('请输入 6 位短信验证码', type: VccToastType.warning);
+        return;
+      }
+
+      final success =
+          await ref.read(authStateProvider.notifier).loginWithPhone(
+                _phoneController.text.trim(),
+                _codeController.text.trim(),
+              );
+      if (!success || !mounted) return;
+    }
 
     final authState = ref.read(authStateProvider);
     if (authState.userRole == 0) {
@@ -243,8 +302,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                         key: const ValueKey('password-panel'),
                                         usernameController: _usernameController,
                                         passwordController: _passwordController,
+                                        captchaCodeController:
+                                            _captchaCodeController,
                                         usernameFocus: _usernameFocus,
                                         passwordFocus: _passwordFocus,
+                                        captchaFocus: _captchaFocus,
                                         obscurePassword: _obscurePassword,
                                         onPasswordToggle: () {
                                           setState(
@@ -253,6 +315,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                           );
                                         },
                                         compact: compact,
+                                        captcha: _captcha,
+                                        isLoadingCaptcha: _isLoadingCaptcha,
+                                        onRefreshCaptcha: _loadCaptcha,
                                       )
                                     : _PhonePanel(
                                         key: const ValueKey('phone-panel'),
@@ -466,21 +531,31 @@ class _ModeTabButton extends StatelessWidget {
 class _PasswordPanel extends StatelessWidget {
   final TextEditingController usernameController;
   final TextEditingController passwordController;
+  final TextEditingController captchaCodeController;
   final FocusNode usernameFocus;
   final FocusNode passwordFocus;
+  final FocusNode captchaFocus;
   final bool obscurePassword;
   final VoidCallback onPasswordToggle;
   final bool compact;
+  final CaptchaResult? captcha;
+  final bool isLoadingCaptcha;
+  final VoidCallback onRefreshCaptcha;
 
   const _PasswordPanel({
     super.key,
     required this.usernameController,
     required this.passwordController,
+    required this.captchaCodeController,
     required this.usernameFocus,
     required this.passwordFocus,
+    required this.captchaFocus,
     required this.obscurePassword,
     required this.onPasswordToggle,
     required this.compact,
+    required this.captcha,
+    required this.isLoadingCaptcha,
+    required this.onRefreshCaptcha,
   });
 
   @override
@@ -489,12 +564,12 @@ class _PasswordPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _FieldShell(
-          label: '账号',
+          label: '用户名',
           child: VccInput(
-            hint: '用户名或邮箱',
+            hint: '请输入用户名',
             controller: usernameController,
             focusNode: usernameFocus,
-            keyboardType: TextInputType.emailAddress,
+            keyboardType: TextInputType.text,
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => passwordFocus.requestFocus(),
           ),
@@ -507,7 +582,8 @@ class _PasswordPanel extends StatelessWidget {
             controller: passwordController,
             focusNode: passwordFocus,
             obscureText: obscurePassword,
-            textInputAction: TextInputAction.done,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => captchaFocus.requestFocus(),
             suffixIcon: GestureDetector(
               onTap: onPasswordToggle,
               behavior: HitTestBehavior.opaque,
@@ -521,6 +597,15 @@ class _PasswordPanel extends StatelessWidget {
               ),
             ),
           ),
+        ),
+        SizedBox(height: compact ? AppSpacing.md : AppSpacing.base),
+        CaptchaField(
+          captcha: captcha,
+          controller: captchaCodeController,
+          focusNode: captchaFocus,
+          onRefresh: onRefreshCaptcha,
+          isLoading: isLoadingCaptcha,
+          compact: compact,
         ),
       ],
     );
@@ -826,8 +911,7 @@ class _LoginFooter extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.md)
-        
+        const SizedBox(height: AppSpacing.md),
       ],
     );
   }

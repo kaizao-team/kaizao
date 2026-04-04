@@ -45,9 +45,9 @@ class Settings(BaseSettings):
     embedding_provider: str = Field(
         default="dashscope", description="embedding 供应商: dashscope / local"
     )
-    dashscope_embedding_model: str = "text-embedding-v3"
+    dashscope_embedding_model: str = "text-embedding-v4"
     local_embedding_model_path: str = "BAAI/bge-m3"
-    embedding_dimension: int = 768
+    embedding_dimension: int = 1024
 
     # Milvus 向量数据库配置
     milvus_host: str = "localhost"
@@ -79,7 +79,7 @@ class Settings(BaseSettings):
     max_conversation_turns: int = 20
     max_context_tokens: int = 8000
     summary_threshold_turns: int = 10
-    completeness_threshold: int = 80
+    completeness_threshold: int = 70
 
     # v2 Pipeline 配置
     output_dir: str = "outputs"

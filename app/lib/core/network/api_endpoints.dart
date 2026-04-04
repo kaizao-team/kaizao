@@ -17,6 +17,10 @@ class ApiEndpoints {
   static const String wechatLogin = '/api/v1/auth/wechat';
   static const String refreshToken = '/api/v1/auth/refresh';
   static const String logout = '/api/v1/auth/logout';
+  static const String passwordKey = '/api/v1/auth/password-key';
+  static const String captcha = '/api/v1/auth/captcha';
+  static const String loginPassword = '/api/v1/auth/login-password';
+  static const String registerPassword = '/api/v1/auth/register-password';
 
   // ============================================================
   // 用户模块 /api/v1/users

@@ -185,30 +185,22 @@ func (h *ProjectHandler) Publish(c *gin.Context) {
 	uuid := c.Param("id")
 	userUUID := c.GetString("user_uuid")
 
-	project, err := h.projectService.PublishDraft(uuid, userUUID)
+	project, err := h.projectService.Publish(uuid, userUUID)
 	if err != nil {
-		code, convErr := strconv.Atoi(err.Error())
-		if convErr == nil && code > 0 {
-			if code == errcode.ErrProjectOwnerOnly {
-				response.ErrorForbidden(c, code, errcode.GetMessage(code))
-				return
-			}
+		code, parseErr := strconv.Atoi(err.Error())
+		if parseErr == nil && code > 0 {
 			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
 			return
 		}
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			response.ErrorNotFound(c, errcode.ErrProjectNotFound, errcode.GetMessage(errcode.ErrProjectNotFound))
-			return
-		}
-		h.log.Error("publish draft failed", zap.Error(err))
-		response.ErrorInternal(c, "发布失败")
+		response.ErrorInternal(c, "发布项目失败")
 		return
 	}
 
-	response.SuccessMsg(c, "项目发布成功", gin.H{
-		"id":     project.UUID,
-		"uuid":   project.UUID,
-		"status": project.Status,
+	response.SuccessMsg(c, "项目已发布", gin.H{
+		"id":           project.UUID,
+		"uuid":         project.UUID,
+		"status":       project.Status,
+		"published_at": project.PublishedAt,
 	})
 }
 

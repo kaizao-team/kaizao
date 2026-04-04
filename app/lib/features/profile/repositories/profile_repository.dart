@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../models/profile_models.dart';
@@ -7,12 +9,17 @@ class ProfileRepository {
 
   Future<UserProfile> fetchProfile(String userId) async {
     final response = await _client.get(ApiEndpoints.userInfo(userId));
-    return UserProfile.fromJson(response.data as Map<String, dynamic>? ?? {});
+    final raw = response.data as Map<String, dynamic>? ?? {};
+    debugPrint('[ProfileRepo] fetchProfile($userId) raw role: ${raw['role']}');
+    return UserProfile.fromJson(raw);
   }
 
   Future<UserProfile> fetchCurrentUser() async {
     final response = await _client.get(ApiEndpoints.currentUser);
-    return UserProfile.fromJson(response.data as Map<String, dynamic>? ?? {});
+    final raw = response.data as Map<String, dynamic>? ?? {};
+    debugPrint('[ProfileRepo] fetchCurrentUser raw data keys: ${raw.keys.toList()}');
+    debugPrint('[ProfileRepo] fetchCurrentUser raw role: ${raw['role']} (type: ${raw['role'].runtimeType})');
+    return UserProfile.fromJson(raw);
   }
 
   Future<void> updateProfile(String userId, Map<String, dynamic> data) async {

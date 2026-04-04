@@ -302,6 +302,41 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 	return bid, nil
 }
 
+// Withdraw 撤回投标（仅 pending 状态可撤回，且仅投标者本人可操作）
+func (s *BidService) Withdraw(bidUUID, userUUID string) error {
+	bid, err := s.repos.Bid.FindByUUID(bidUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	if bid.BidderID == nil || *bid.BidderID != user.ID {
+		return fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+	if bid.Status != 1 {
+		return fmt.Errorf("%d", errcode.ErrBidClosed)
+	}
+
+	project, err := s.repos.Project.FindByID(bid.ProjectID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+
+	return s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		txRepos := repository.NewRepositories(tx)
+		if err := txRepos.Bid.UpdateFields(bid.ID, map[string]interface{}{"status": 4}); err != nil {
+			return err
+		}
+		newCount := project.BidCount - 1
+		if newCount < 0 {
+			newCount = 0
+		}
+		return txRepos.Project.UpdateFields(project.ID, map[string]interface{}{"bid_count": newCount})
+	})
+}
+
 func pickQuickMatchPrice(p *model.Project) float64 {
 	if p.BudgetMin != nil && p.BudgetMax != nil && *p.BudgetMax >= *p.BudgetMin && *p.BudgetMin > 0 {
 		return (*p.BudgetMin + *p.BudgetMax) / 2
