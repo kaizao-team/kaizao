@@ -157,6 +157,15 @@ class RecommendedTeam {
   });
 
   factory RecommendedTeam.fromJson(Map<String, dynamic> json) {
+    List<dynamic> readListField(String field) {
+      final value = json[field];
+      if (value == null) return const <dynamic>[];
+      if (value is List) return value;
+      throw FormatException(
+        'recommendation payload field $field expected List but got ${value.runtimeType}',
+      );
+    }
+
     String firstNonEmpty(List<dynamic> values) {
       for (final value in values) {
         final text = value?.toString().trim();
@@ -213,7 +222,7 @@ class RecommendedTeam {
       }
     }
 
-    for (final skill in (json['highlight_skills'] as List?) ?? const []) {
+    for (final skill in readListField('highlight_skills')) {
       addSkill(skill);
     }
     addSkill(json['primary_skill']);
@@ -237,12 +246,7 @@ class RecommendedTeam {
       name: resolvedName,
       avatar: avatar.isEmpty ? null : avatar,
       matchScore: resolvedScore,
-      skills: skills.isNotEmpty
-          ? skills
-          : (json['skills'] as List?)
-                  ?.map((item) => item.toString())
-                  .toList() ??
-              const <String>[],
+      skills: skills,
       level: resolvedLevel,
       reason: reason.isEmpty ? null : reason,
     );
