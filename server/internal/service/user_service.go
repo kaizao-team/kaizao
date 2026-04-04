@@ -11,6 +11,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// MaxPortfoliosPerUser 单用户活跃作品集数量上限（status=1）
+const MaxPortfoliosPerUser = 50
+
 // UserService 用户资料、技能、入驻与统计
 type UserService struct {
 	repos *repository.Repositories
@@ -78,6 +81,13 @@ func (s *UserService) ListUserPortfolios(userID int64) ([]*model.Portfolio, erro
 }
 
 func (s *UserService) CreatePortfolio(p *model.Portfolio) error {
+	n, err := s.repos.User.CountActivePortfoliosByUserID(p.UserID)
+	if err != nil {
+		return err
+	}
+	if n >= MaxPortfoliosPerUser {
+		return fmt.Errorf("%d", errcode.ErrPortfolioExceedLimit)
+	}
 	return s.repos.User.CreatePortfolio(p)
 }
 

@@ -177,6 +177,12 @@ func (r *userRepository) ListUserPortfolios(userID int64) ([]*model.Portfolio, e
 	return portfolios, err
 }
 
+func (r *userRepository) CountActivePortfoliosByUserID(userID int64) (int64, error) {
+	var n int64
+	err := r.db.Model(&model.Portfolio{}).Where("user_id = ? AND status = 1", userID).Count(&n).Error
+	return n, err
+}
+
 func (r *userRepository) CreatePortfolio(p *model.Portfolio) error {
 	return r.db.Create(p).Error
 }
