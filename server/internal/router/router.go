@@ -119,6 +119,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		projects.POST("/ai-chat", middleware.JWTAuth(services.JWT), handlers.PRD.AIChat)
 		projects.POST("/generate-prd", middleware.JWTAuth(services.JWT), handlers.PRD.GeneratePRD)
 		projects.POST("/draft", middleware.JWTAuth(services.JWT), handlers.PRD.SaveDraft)
+		projects.POST("/:id/publish", middleware.JWTAuth(services.JWT), handlers.Project.Publish)
 		projects.GET("/:id", middleware.OptionalJWTAuth(services.JWT), handlers.Project.Get)
 		projects.PUT("/:id", middleware.JWTAuth(services.JWT), handlers.Project.Update)
 		projects.POST("/:id/publish", middleware.JWTAuth(services.JWT), handlers.Project.Publish)

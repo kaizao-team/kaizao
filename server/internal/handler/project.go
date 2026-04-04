@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/vibebuild/server/internal/repository"
 	"github.com/vibebuild/server/internal/service"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // ProjectHandler 项目处理器
@@ -159,6 +161,9 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 	if req.BudgetMax != nil {
 		fields["budget_max"] = *req.BudgetMax
 	}
+	if req.MatchMode != nil {
+		fields["match_mode"] = int16(*req.MatchMode)
+	}
 
 	project, err := h.projectService.Update(uuid, fields)
 	if err != nil {
@@ -174,7 +179,7 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 	})
 }
 
-// Publish 发布草稿项目（status 1 → 2）
+// Publish 发布草稿项目（草稿 status=1 → 已发布 status=2）
 // POST /api/v1/projects/:id/publish
 func (h *ProjectHandler) Publish(c *gin.Context) {
 	uuid := c.Param("id")

@@ -1,13 +1,33 @@
 package handler
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
+	"github.com/vibebuild/server/internal/dto"
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
 	"github.com/vibebuild/server/internal/service"
 	"go.uber.org/zap"
 )
+
+// normalizeDraftCategory 将前端/历史分类值归一为 data|dev|visual|solution
+func normalizeDraftCategory(cat string) (string, bool) {
+	c := strings.ToLower(strings.TrimSpace(cat))
+	switch c {
+	case "":
+		return "dev", true
+	case "data", "dev", "visual", "solution":
+		return c, true
+	case "design":
+		return "visual", true
+	case "app", "web", "miniprogram", "backend":
+		return "dev", true
+	default:
+		return "", false
+	}
+}
 
 type PRDHandler struct {
 	projectService *service.ProjectService
@@ -80,32 +100,47 @@ func (h *PRDHandler) GeneratePRD(c *gin.Context) {
 }
 
 func (h *PRDHandler) SaveDraft(c *gin.Context) {
-	var req struct {
-		Category  string   `json:"category"`
-		BudgetMin *float64 `json:"budget_min"`
-		BudgetMax *float64 `json:"budget_max"`
-		MatchMode string   `json:"match_mode"`
-		Step      int      `json:"step"`
+	var req dto.SaveDraftReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败: "+err.Error())
+		return
 	}
-	c.ShouldBindJSON(&req)
+
+	cat, ok := normalizeDraftCategory(req.Category)
+	if !ok {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "category 不合法")
+		return
+	}
+
+	if req.BudgetMin != nil && req.BudgetMax != nil && *req.BudgetMax < *req.BudgetMin {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "budget_max 不能小于 budget_min")
+		return
+	}
 
 	userUUID := c.GetString("user_uuid")
-	title := "草稿-" + req.Category
-	if req.Category == "" {
-		title = "未命名草稿"
+
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		title = "草稿-" + cat
 	}
-	desc := "需求草稿，待完善"
-	cat := req.Category
-	if cat == "" {
-		cat = "dev"
+	desc := strings.TrimSpace(req.Description)
+	if desc == "" {
+		desc = "需求草稿，待完善"
 	}
-	project, err := h.projectService.Create(userUUID, title, desc, cat, req.BudgetMin, req.BudgetMax, nil, 0, true)
+
+	matchMode := req.MatchMode
+	if matchMode == 0 {
+		matchMode = 1
+	}
+
+	project, err := h.projectService.Create(userUUID, title, desc, cat, req.BudgetMin, req.BudgetMax, nil, matchMode, true)
 	if err != nil {
 		response.ErrorInternal(c, "保存草稿失败")
 		return
 	}
 	response.SuccessMsg(c, "草稿已保存", gin.H{
 		"draft_id": project.UUID,
+		"uuid":     project.UUID,
 		"saved_at": project.CreatedAt,
 	})
 }
