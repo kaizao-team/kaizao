@@ -87,6 +87,9 @@ func (s *TaskService) Create(projectUUID, actorUserUUID string, req *dto.CreateT
 		if err != nil {
 			return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
 		}
+		if !isAllowedTaskAssignee(p, au.ID, s.repos) {
+			return nil, fmt.Errorf("%d", errcode.ErrTaskAssigneeInvalid)
+		}
 		assigneeID = &au.ID
 	}
 
@@ -173,12 +176,33 @@ func (s *MilestoneService) ListByProject(projectUUID string) ([]*model.Milestone
 	return s.repos.Milestone.ListByProjectID(project.ID)
 }
 
+// MilestoneUUIDByID 将里程碑主键解析为 UUID（用于 API 响应）。
+func (s *MilestoneService) MilestoneUUIDByID(id int64) (string, error) {
+	m, err := s.repos.Milestone.FindByID(id)
+	if err != nil {
+		return "", err
+	}
+	return m.UUID, nil
+}
+
 func isProjectParticipant(p *model.Project, userID int64) bool {
 	if p.OwnerID == userID {
 		return true
 	}
 	if p.ProviderID != nil && *p.ProviderID == userID {
 		return true
+	}
+	return false
+}
+
+// isAllowedTaskAssignee 任务指派人须为需求方、已选服务方，或（项目绑定团队时）该团队 active 成员。
+func isAllowedTaskAssignee(p *model.Project, assigneeUserID int64, repos *repository.Repositories) bool {
+	if isProjectParticipant(p, assigneeUserID) {
+		return true
+	}
+	if p.TeamID != nil {
+		_, err := repos.Team.FindMember(*p.TeamID, assigneeUserID)
+		return err == nil
 	}
 	return false
 }

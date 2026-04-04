@@ -54,7 +54,7 @@ func respondTaskCreateError(c *gin.Context, err error) {
 		response.ErrorNotFound(c, code, msg)
 	case errcode.ErrProjectParticipantOnly:
 		response.ErrorForbidden(c, code, msg)
-	case errcode.ErrParamInvalid, errcode.ErrEarsTypeInvalid:
+	case errcode.ErrParamInvalid, errcode.ErrEarsTypeInvalid, errcode.ErrTaskAssigneeInvalid:
 		response.ErrorBadRequest(c, code, msg)
 	default:
 		response.ErrorBadRequest(c, code, msg)
@@ -70,6 +70,7 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 	}
 	statusMap := map[int16]string{1: "todo", 2: "in_progress", 3: "completed"}
 	priorityMap := map[int16]string{0: "P2", 1: "P0", 2: "P1", 3: "P2"}
+	msUUIDCache := make(map[int64]string)
 	list := make([]gin.H, 0, len(tasks))
 	for _, t := range tasks {
 		status := statusMap[t.Status]
@@ -86,7 +87,16 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 		}
 		msID := ""
 		if t.MilestoneID != nil {
-			msID = strconv.FormatInt(*t.MilestoneID, 10)
+			mid := *t.MilestoneID
+			if u, ok := msUUIDCache[mid]; ok {
+				msID = u
+			} else {
+				uuid, err := h.milestoneService.MilestoneUUIDByID(mid)
+				if err == nil {
+					msUUIDCache[mid] = uuid
+					msID = uuid
+				}
+			}
 		}
 		list = append(list, gin.H{
 			"id":             t.UUID,
@@ -118,9 +128,11 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		respondTaskCreateError(c, err)
 		return
 	}
-	msID := ""
+	msUUIDStr := ""
 	if t.MilestoneID != nil {
-		msID = strconv.FormatInt(*t.MilestoneID, 10)
+		if u, err := h.milestoneService.MilestoneUUIDByID(*t.MilestoneID); err == nil {
+			msUUIDStr = u
+		}
 	}
 	response.SuccessMsg(c, "任务创建成功", gin.H{
 		"id":              t.UUID,
@@ -129,7 +141,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		"task_code":       t.TaskCode,
 		"title":           t.Title,
 		"ears_type":       t.EarsType,
-		"milestone_id":    msID,
+		"milestone_id":    msUUIDStr,
 		"priority":        t.Priority,
 		"status":          t.Status,
 		"sort_order":      t.SortOrder,

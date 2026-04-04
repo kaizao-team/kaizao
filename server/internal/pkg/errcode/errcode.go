@@ -71,6 +71,7 @@ const (
 	ErrProjectParticipantOnly    = 21008
 	ErrDeliveryAlreadySubmitted  = 21009
 	ErrPredecessorTaskIncomplete = 21010
+	ErrTaskAssigneeInvalid       = 21011
 )
 
 // 匹配模块 30001-30999
@@ -196,6 +197,7 @@ var ErrorMessages = map[int]string{
 	ErrMilestonePaymentRatioSum:   "里程碑付款比例累计不可超过100%",
 	ErrProjectParticipantOnly:     "仅项目需求方或已选服务方可操作",
 	ErrTaskNotFound:         "任务卡片不存在",
+	ErrTaskAssigneeInvalid:  "任务指派人须为项目需求方、已选服务方或项目团队成员",
 	ErrEarsTypeInvalid:     "EARS 类型不合法",
 	ErrBidNotFound:          "投标不存在",
 	ErrBidOwnProject:        "不能对自己的需求投标",
