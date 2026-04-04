@@ -122,7 +122,6 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		projects.POST("/:id/publish", middleware.JWTAuth(services.JWT), handlers.Project.Publish)
 		projects.GET("/:id", middleware.OptionalJWTAuth(services.JWT), handlers.Project.Get)
 		projects.PUT("/:id", middleware.JWTAuth(services.JWT), handlers.Project.Update)
-		projects.POST("/:id/publish", middleware.JWTAuth(services.JWT), handlers.Project.Publish)
 		projects.PUT("/:id/close", middleware.JWTAuth(services.JWT), handlers.Project.Close)
 		projects.GET("/:id/overview", middleware.JWTAuth(services.JWT), placeholder)
 		// Phase 4 项目管理

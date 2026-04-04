@@ -1,10 +1,7 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vibebuild/server/internal/dto"
@@ -14,7 +11,6 @@ import (
 	"github.com/vibebuild/server/internal/repository"
 	"github.com/vibebuild/server/internal/service"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
 // ProjectHandler 项目处理器
@@ -185,7 +181,7 @@ func (h *ProjectHandler) Publish(c *gin.Context) {
 	uuid := c.Param("id")
 	userUUID := c.GetString("user_uuid")
 
-	project, err := h.projectService.Publish(uuid, userUUID)
+	project, err := h.projectService.PublishDraft(uuid, userUUID)
 	if err != nil {
 		code, parseErr := strconv.Atoi(err.Error())
 		if parseErr == nil && code > 0 {
@@ -258,85 +254,28 @@ func (h *ProjectHandler) ListMarket(c *gin.Context) {
 
 // ---- 辅助函数 ----
 
-func parseTechReqs(raw model.JSON) []string {
-	var result []string
-	if len(raw) > 0 {
-		json.Unmarshal([]byte(raw), &result)
-	}
-	if result == nil {
-		return []string{}
-	}
-	return result
-}
-
-type projectItem struct {
-	ID               string     `json:"id"`
-	UUID             string     `json:"uuid"`
-	OwnerID          string     `json:"owner_id"`
-	OwnerName        string     `json:"owner_name,omitempty"`
-	Title            string     `json:"title"`
-	Description      string     `json:"description"`
-	Category         string     `json:"category"`
-	BudgetMin        *float64   `json:"budget_min"`
-	BudgetMax        *float64   `json:"budget_max"`
-	Progress         int16      `json:"progress"`
-	Status           int16      `json:"status"`
-	TechRequirements []string   `json:"tech_requirements"`
-	ViewCount        int        `json:"view_count"`
-	BidCount         int        `json:"bid_count"`
-	CreatedAt        time.Time  `json:"created_at"`
-	MatchScore       *int       `json:"match_score,omitempty"`
-}
-
-func toProjectItem(p *model.Project) projectItem {
-	ownerID := ""
-	ownerName := ""
-	if p.Owner != nil {
-		ownerID = p.Owner.UUID
-		ownerName = p.Owner.Nickname
-	}
-	return projectItem{
-		ID:               p.UUID,
-		UUID:             p.UUID,
-		OwnerID:          ownerID,
-		OwnerName:        ownerName,
-		Title:            p.Title,
-		Description:      p.Description,
-		Category:         p.Category,
-		BudgetMin:        p.BudgetMin,
-		BudgetMax:        p.BudgetMax,
-		Progress:         p.Progress,
-		Status:           p.Status,
-		TechRequirements: parseTechReqs(p.TechRequirements),
-		ViewCount:        p.ViewCount,
-		BidCount:         p.BidCount,
-		CreatedAt:        p.CreatedAt,
-	}
-}
-
-func toProjectRespList(projects []*model.Project) []projectItem {
-	list := make([]projectItem, 0, len(projects))
+func toProjectRespList(projects []*model.Project) []service.ProjectListItem {
+	list := make([]service.ProjectListItem, 0, len(projects))
 	for _, p := range projects {
-		list = append(list, toProjectItem(p))
+		list = append(list, service.NewProjectListItem(p))
 	}
 	return list
 }
 
-func toMarketProjectList(projects []*model.Project) []projectItem {
+func toMarketProjectList(projects []*model.Project) []service.ProjectListItem {
 	return toProjectRespList(projects)
 }
 
 type projectDetail struct {
-	projectItem
+	service.ProjectListItem
 	PrdSummary string      `json:"prd_summary"`
 	Milestones interface{} `json:"milestones"`
 }
 
 func toProjectDetail(p *model.Project) projectDetail {
-	item := toProjectItem(p)
 	return projectDetail{
-		projectItem: item,
-		PrdSummary:  "",
-		Milestones:  []interface{}{},
+		ProjectListItem: service.NewProjectListItem(p),
+		PrdSummary:      "",
+		Milestones:      []interface{}{},
 	}
 }
