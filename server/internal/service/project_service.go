@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
@@ -147,6 +148,92 @@ func (s *ProjectService) Update(uuid string, fields map[string]interface{}) (*mo
 		return nil, err
 	}
 	return s.repos.Project.FindByUUID(uuid)
+}
+
+func truncateRunes(s string, max int) string {
+	if utf8.RuneCountInString(s) <= max {
+		return s
+	}
+	r := []rune(s)
+	return string(r[:max])
+}
+
+// normalizePublishCategory 对齐 dto.CreateProjectReq.category：data / dev / visual / solution
+func normalizePublishCategory(cat string) string {
+	c := strings.ToLower(strings.TrimSpace(cat))
+	switch c {
+	case "design", "visual":
+		return "visual"
+	case "data", "dev", "solution":
+		return c
+	case "":
+		return "dev"
+	case "app", "web", "miniprogram", "backend":
+		return "dev"
+	default:
+		return "dev"
+	}
+}
+
+func ensurePublishTitle(title, category string) string {
+	t := strings.TrimSpace(title)
+	if utf8.RuneCountInString(t) >= 5 {
+		return truncateRunes(t, 200)
+	}
+	cat := normalizePublishCategory(category)
+	short := "草稿-" + cat
+	if utf8.RuneCountInString(short) < 5 {
+		short = short + "需求"
+	}
+	return truncateRunes(short, 200)
+}
+
+func ensurePublishDescription(desc string) string {
+	d := strings.TrimSpace(desc)
+	if utf8.RuneCountInString(d) >= 20 {
+		return d
+	}
+	if d == "" {
+		return "需求说明：本项目由发布流程在草稿阶段生成，发布后将补充更完整需求描述与交付范围。"
+	}
+	out := d + "（需求细节已在对话与确认流程中完善。）"
+	for utf8.RuneCountInString(out) < 20 {
+		out = out + "。"
+	}
+	return out
+}
+
+// PublishDraft 将草稿发布为已发布状态（仅 owner、且 status=1）。
+// 发布前补全 title/description 并归一化 category，与 CreateProjectReq 校验一致（前端未 PUT 时仍可通过发布接口落库）。
+func (s *ProjectService) PublishDraft(projectUUID, ownerUserUUID string) (*model.Project, error) {
+	p, err := s.GetPeekIfOwner(projectUUID, ownerUserUUID)
+	if err != nil {
+		return nil, err
+	}
+	if p.Status == 4 {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectAlreadyClosed)
+	}
+	if p.Status == 2 {
+		return p, nil
+	}
+	if p.Status != 1 {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
+	}
+	now := time.Now()
+	title := ensurePublishTitle(p.Title, p.Category)
+	desc := ensurePublishDescription(p.Description)
+	cat := normalizePublishCategory(p.Category)
+	fields := map[string]interface{}{
+		"title":        title,
+		"description":  desc,
+		"category":     cat,
+		"status":       int16(2),
+		"published_at": now,
+	}
+	if err := s.repos.Project.UpdateFields(p.ID, fields); err != nil {
+		return nil, err
+	}
+	return s.repos.Project.FindByUUID(projectUUID)
 }
 
 // Close 关闭需求（已发布/草稿均可关闭；已撮合进行中不可关闭）

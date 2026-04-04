@@ -159,6 +159,9 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 	if req.BudgetMax != nil {
 		fields["budget_max"] = *req.BudgetMax
 	}
+	if req.MatchMode != nil {
+		fields["match_mode"] = int16(*req.MatchMode)
+	}
 
 	project, err := h.projectService.Update(uuid, fields)
 	if err != nil {
@@ -171,6 +174,34 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 		"title":    project.Title,
 		"category": project.Category,
 		"status":   project.Status,
+	})
+}
+
+// Publish 发布草稿项目（草稿 status=1 → 已发布 status=2）
+// POST /api/v1/projects/:id/publish
+func (h *ProjectHandler) Publish(c *gin.Context) {
+	uuid := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+
+	project, err := h.projectService.PublishDraft(uuid, userUUID)
+	if err != nil {
+		code, convErr := strconv.Atoi(err.Error())
+		if convErr == nil && code > 0 {
+			if code == errcode.ErrProjectOwnerOnly {
+				response.ErrorForbidden(c, code, errcode.GetMessage(code))
+				return
+			}
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorNotFound(c, errcode.ErrProjectNotFound, errcode.GetMessage(errcode.ErrProjectNotFound))
+		return
+	}
+
+	response.SuccessMsg(c, "项目发布成功", gin.H{
+		"id":     project.UUID,
+		"uuid":   project.UUID,
+		"status": project.Status,
 	})
 }
 

@@ -2,6 +2,19 @@ package dto
 
 import "time"
 
+// SaveDraftReq 保存需求草稿（POST /api/v1/projects/draft）
+// category 须为 data / dev / visual / solution（可与前端约定将 design 归一为 visual）。
+// title、description 可选；缺省时由服务端生成占位文案，与 CreateProjectReq 语义一致。
+type SaveDraftReq struct {
+	Category    string   `json:"category"`
+	BudgetMin   *float64 `json:"budget_min"`
+	BudgetMax   *float64 `json:"budget_max"`
+	MatchMode   int      `json:"match_mode"`
+	Step        int      `json:"step"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+}
+
 // CreateProjectReq 创建项目请求
 type CreateProjectReq struct {
 	Title            string           `json:"title" binding:"required,min=5,max=200"`
