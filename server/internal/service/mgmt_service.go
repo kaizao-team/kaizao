@@ -323,7 +323,9 @@ func (s *MilestoneService) Deliver(msUUID, actorUserUUID string, req *dto.Delive
 		return nil, fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
 	case 5:
 		return nil, fmt.Errorf("%d", errcode.ErrDeliveryAlreadySubmitted)
-	case 1, 2, 4:
+	case 1:
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneDeliverNotReady)
+	case 2, 4:
 	default:
 		return nil, fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
 	}
@@ -382,10 +384,21 @@ func (s *MilestoneService) Deliver(msUUID, actorUserUUID string, req *dto.Delive
 	return out, nil
 }
 
-func (s *MilestoneService) Accept(msUUID string) (*model.Milestone, error) {
+func (s *MilestoneService) Accept(msUUID, actorUserUUID string) (*model.Milestone, error) {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
 	ms, err := s.repos.Milestone.FindByUUID(msUUID)
 	if err != nil {
 		return nil, fmt.Errorf("%d", errcode.ErrMilestoneNotFound)
+	}
+	p, err := s.repos.Project.FindByID(ms.ProjectID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if p.OwnerID != u.ID {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectOwnerOnly)
 	}
 	if ms.Status != 5 {
 		return nil, fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
@@ -399,10 +412,21 @@ func (s *MilestoneService) Accept(msUUID string) (*model.Milestone, error) {
 	return ms, nil
 }
 
-func (s *MilestoneService) RequestRevision(msUUID, description string, relatedItems []string) (string, error) {
+func (s *MilestoneService) RequestRevision(msUUID, actorUserUUID, description string, relatedItems []string) (string, error) {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return "", fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
 	ms, err := s.repos.Milestone.FindByUUID(msUUID)
 	if err != nil {
 		return "", fmt.Errorf("%d", errcode.ErrMilestoneNotFound)
+	}
+	p, err := s.repos.Project.FindByID(ms.ProjectID)
+	if err != nil {
+		return "", fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if p.OwnerID != u.ID {
+		return "", fmt.Errorf("%d", errcode.ErrProjectOwnerOnly)
 	}
 	if ms.Status != 5 {
 		return "", fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)

@@ -53,7 +53,7 @@ func respondDeliverError(c *gin.Context, err error) {
 		response.ErrorNotFound(c, code, msg)
 	case errcode.ErrMilestoneDeliverProviderOnly:
 		response.ErrorForbidden(c, code, msg)
-	case errcode.ErrParamInvalid, errcode.ErrDeliveryAlreadySubmitted, errcode.ErrMilestoneStatusInvalid:
+	case errcode.ErrParamInvalid, errcode.ErrDeliveryAlreadySubmitted, errcode.ErrMilestoneStatusInvalid, errcode.ErrMilestoneDeliverNotReady:
 		response.ErrorBadRequest(c, code, msg)
 	default:
 		response.ErrorBadRequest(c, code, msg)
@@ -68,6 +68,10 @@ func respondMilestoneAcceptanceError(c *gin.Context, err error) {
 	}
 	msg := errcode.GetMessage(code)
 	switch code {
+	case errcode.ErrUserNotFound, errcode.ErrProjectNotFound:
+		response.ErrorNotFound(c, code, msg)
+	case errcode.ErrProjectOwnerOnly:
+		response.ErrorForbidden(c, code, msg)
 	case errcode.ErrMilestoneNotFound:
 		response.ErrorNotFound(c, code, msg)
 	case errcode.ErrMilestoneStatusInvalid:
@@ -340,7 +344,8 @@ func (h *TaskHandler) GetAcceptance(c *gin.Context) {
 
 func (h *TaskHandler) AcceptMilestone(c *gin.Context) {
 	msID := c.Param("id")
-	ms, err := h.milestoneService.Accept(msID)
+	userUUID := c.GetString("user_uuid")
+	ms, err := h.milestoneService.Accept(msID, userUUID)
 	if err != nil {
 		respondMilestoneAcceptanceError(c, err)
 		return
@@ -357,6 +362,7 @@ func (h *TaskHandler) AcceptMilestone(c *gin.Context) {
 
 func (h *TaskHandler) RequestRevision(c *gin.Context) {
 	msID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
 	var req struct {
 		Description  string   `json:"description" binding:"required"`
 		RelatedItems []string `json:"related_items"`
@@ -365,7 +371,7 @@ func (h *TaskHandler) RequestRevision(c *gin.Context) {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
 		return
 	}
-	revID, err := h.milestoneService.RequestRevision(msID, req.Description, req.RelatedItems)
+	revID, err := h.milestoneService.RequestRevision(msID, userUUID, req.Description, req.RelatedItems)
 	if err != nil {
 		respondMilestoneAcceptanceError(c, err)
 		return
