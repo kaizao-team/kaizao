@@ -182,6 +182,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _saveLoginResult(LoginResult result) async {
+    debugPrint('[Auth] _saveLoginResult: userId=${result.userId}, userRole=${result.userRole}, isNewUser=${result.isNewUser}');
     await _storage.saveAccessToken(result.accessToken);
     await _storage.saveRefreshToken(result.refreshToken);
     await _storage.saveUserId(result.userId);
