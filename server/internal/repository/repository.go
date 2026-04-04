@@ -20,6 +20,14 @@ type TeamStaticAssetRepository interface {
 	ListByTeamID(teamID int64, offset, limit int) ([]*model.TeamStaticAsset, int64, error)
 }
 
+// FavoriteRepository 收藏数据访问接口
+type FavoriteRepository interface {
+	Create(fav *model.Favorite) error
+	Delete(userID int64, targetType, targetID string) error
+	FindByUserAndTarget(userID int64, targetType, targetID string) (*model.Favorite, error)
+	ListByUserID(userID int64, targetType string, offset, limit int) ([]*model.Favorite, int64, error)
+}
+
 // Repositories 所有 Repository 的集合
 type Repositories struct {
 	db *gorm.DB
@@ -38,6 +46,7 @@ type Repositories struct {
 	Coupon       CouponRepository
 	InviteCode       InviteCodeRepository
 	TeamStaticAsset  TeamStaticAssetRepository
+	Favorite     FavoriteRepository
 }
 
 // DB 返回构造时使用的 *gorm.DB（用于开启事务等）
@@ -67,6 +76,7 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Coupon:       NewCouponRepository(db),
 		InviteCode:      NewInviteCodeRepository(db),
 		TeamStaticAsset: NewTeamStaticAssetRepository(db),
+		Favorite:        NewFavoriteRepository(db),
 	}
 }
 
@@ -91,6 +101,9 @@ type UserRepository interface {
 	FindSkillByID(id int64) (*model.Skill, error)
 	EnsureSkill(name, category string) (*model.Skill, error)
 	ListUserPortfolios(userID int64) ([]*model.Portfolio, error)
+	CreatePortfolio(p *model.Portfolio) error
+	FindPortfolioByUUID(uuid string) (*model.Portfolio, error)
+	UpdatePortfolioFields(id int64, fields map[string]interface{}) error
 }
 
 // ProjectFilter 项目列表筛选条件

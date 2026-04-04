@@ -47,6 +47,7 @@ type Services struct {
 	Notification *NotificationService
 	Upload       *UploadService
 	JWT          *jwtpkg.Manager
+	Repos        *repository.Repositories
 }
 
 // NewServices 创建所有 Service；passwordRSA 用于账号密码注册/登录（RSA-OAEP 解密），不可为 nil。
@@ -82,6 +83,7 @@ func NewServices(repos *repository.Repositories, rdb *redis.Client, cfg *config.
 		Notification: NewNotificationService(repos, log),
 		Upload:       uploadSvc,
 		JWT:          jwtManager,
+		Repos:        repos,
 	}
 }
 

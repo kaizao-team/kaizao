@@ -177,6 +177,23 @@ func (r *userRepository) ListUserPortfolios(userID int64) ([]*model.Portfolio, e
 	return portfolios, err
 }
 
+func (r *userRepository) CreatePortfolio(p *model.Portfolio) error {
+	return r.db.Create(p).Error
+}
+
+func (r *userRepository) FindPortfolioByUUID(uuid string) (*model.Portfolio, error) {
+	var p model.Portfolio
+	err := r.db.Where("uuid = ? AND status = 1", uuid).First(&p).Error
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *userRepository) UpdatePortfolioFields(id int64, fields map[string]interface{}) error {
+	return r.db.Model(&model.Portfolio{}).Where("id = ?", id).Updates(fields).Error
+}
+
 func (r *userRepository) CountPortfoliosByUserAndUUIDs(userID int64, uuids []string) (int64, error) {
 	if len(uuids) == 0 {
 		return 0, nil

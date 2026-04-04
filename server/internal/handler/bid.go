@@ -106,6 +106,21 @@ func (h *BidHandler) AcceptBid(c *gin.Context) {
 	})
 }
 
+func (h *BidHandler) WithdrawBid(c *gin.Context) {
+	bidID := c.Param("bidId")
+	userUUID := c.GetString("user_uuid")
+	if err := h.bidService.Withdraw(bidID, userUUID); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrBidNotFound, err.Error())
+		return
+	}
+	response.SuccessMsg(c, "投标已撤回", gin.H{"status": "withdrawn"})
+}
+
 func (h *BidHandler) AISuggestion(c *gin.Context) {
 	projectID := c.Param("id")
 	_ = projectID

@@ -80,14 +80,14 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		users.PUT("/me/skills", middleware.JWTAuth(services.JWT), handlers.User.UpdateSkills)
 		users.PUT("/:id/skills", middleware.JWTAuth(services.JWT), handlers.User.UpdateSkills)
 		users.GET("/:id/portfolios", middleware.OptionalJWTAuth(services.JWT), handlers.User.GetPortfolios)
-		users.POST("/me/portfolios", middleware.JWTAuth(services.JWT), placeholder)
-		users.PUT("/me/portfolios/:uuid", middleware.JWTAuth(services.JWT), placeholder)
-		users.DELETE("/me/portfolios/:uuid", middleware.JWTAuth(services.JWT), placeholder)
+		users.POST("/me/portfolios", middleware.JWTAuth(services.JWT), handlers.User.CreatePortfolio)
+		users.PUT("/me/portfolios/:uuid", middleware.JWTAuth(services.JWT), handlers.User.UpdatePortfolio)
+		users.DELETE("/me/portfolios/:uuid", middleware.JWTAuth(services.JWT), handlers.User.DeletePortfolio)
 		users.POST("/me/verification", middleware.JWTAuth(services.JWT), placeholder)
 		users.POST("/me/certifications", middleware.JWTAuth(services.JWT), placeholder)
 		users.GET("/me/projects", middleware.JWTAuth(services.JWT), placeholder)
 		users.GET("/me/recommended-projects", middleware.JWTAuth(services.JWT), placeholder)
-		users.GET("/me/favorites", middleware.JWTAuth(services.JWT), placeholder)
+		users.GET("/me/favorites", middleware.JWTAuth(services.JWT), handlers.User.ListMyFavorites)
 		users.GET("/:id/reviews", placeholder)
 		users.GET("/:id/credit", placeholder)
 	}
@@ -166,14 +166,14 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	bids := v1.Group("/bids")
 	{
 		bids.POST("/:bidId/accept", middleware.JWTAuth(services.JWT), handlers.Bid.AcceptBid)
-		bids.PUT("/:bidId/withdraw", middleware.JWTAuth(services.JWT), placeholder)
+		bids.PUT("/:bidId/withdraw", middleware.JWTAuth(services.JWT), handlers.Bid.WithdrawBid)
 	}
 
 	// ==================== 收藏模块 ====================
 	favorites := v1.Group("/favorites")
 	{
-		favorites.POST("", middleware.JWTAuth(services.JWT), placeholder)
-		favorites.DELETE("", middleware.JWTAuth(services.JWT), placeholder)
+		favorites.POST("", middleware.JWTAuth(services.JWT), handlers.User.AddFavorite)
+		favorites.DELETE("", middleware.JWTAuth(services.JWT), handlers.User.RemoveFavorite)
 	}
 
 	// ==================== 沟通模块 ====================

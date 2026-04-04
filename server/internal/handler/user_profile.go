@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"regexp"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
+	"github.com/vibebuild/server/internal/repository"
 	"github.com/vibebuild/server/internal/service"
 	"gorm.io/gorm"
 )
@@ -225,6 +227,134 @@ func (h *UserHandler) GetPortfolios(c *gin.Context) {
 	response.Success(c, list)
 }
 
+// CreatePortfolio POST /api/v1/users/me/portfolios
+func (h *UserHandler) CreatePortfolio(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	user, err := h.userService.GetByUUID(userUUID)
+	if err != nil {
+		response.ErrorNotFound(c, errcode.ErrUserNotFound, "用户不存在")
+		return
+	}
+	var req struct {
+		Title       string   `json:"title" binding:"required"`
+		Description *string  `json:"description"`
+		Category    string   `json:"category"`
+		CoverURL    *string  `json:"cover_url"`
+		TechStack   []string `json:"tech_stack"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	if req.Category == "" {
+		req.Category = "other"
+	}
+	var techStackJSON model.JSON
+	if len(req.TechStack) > 0 {
+		b, _ := json.Marshal(req.TechStack)
+		techStackJSON = model.JSON(b)
+	}
+	p := &model.Portfolio{
+		UserID:      user.ID,
+		Title:       req.Title,
+		Description: req.Description,
+		Category:    req.Category,
+		CoverURL:    req.CoverURL,
+		TechStack:   techStackJSON,
+		Status:      1,
+	}
+	if err := h.userService.CreatePortfolio(p); err != nil {
+		response.ErrorInternal(c, "创建作品失败")
+		return
+	}
+	response.SuccessMsg(c, "作品创建成功", gin.H{
+		"id":    p.UUID,
+		"title": p.Title,
+	})
+}
+
+// UpdatePortfolio PUT /api/v1/users/me/portfolios/:uuid
+func (h *UserHandler) UpdatePortfolio(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	portfolioUUID := c.Param("uuid")
+	user, err := h.userService.GetByUUID(userUUID)
+	if err != nil {
+		response.ErrorNotFound(c, errcode.ErrUserNotFound, "用户不存在")
+		return
+	}
+	portfolio, err := h.userService.FindPortfolioByUUID(portfolioUUID)
+	if err != nil {
+		response.ErrorNotFound(c, errcode.ErrParamInvalid, "作品不存在")
+		return
+	}
+	if portfolio.UserID != user.ID {
+		response.ErrorForbidden(c, errcode.ErrParamInvalid, "无权操作他人作品")
+		return
+	}
+	var req struct {
+		Title       *string  `json:"title"`
+		Description *string  `json:"description"`
+		Category    *string  `json:"category"`
+		CoverURL    *string  `json:"cover_url"`
+		TechStack   []string `json:"tech_stack"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	fields := make(map[string]interface{})
+	if req.Title != nil {
+		fields["title"] = *req.Title
+	}
+	if req.Description != nil {
+		fields["description"] = *req.Description
+	}
+	if req.Category != nil {
+		fields["category"] = *req.Category
+	}
+	if req.CoverURL != nil {
+		fields["cover_url"] = *req.CoverURL
+	}
+	if req.TechStack != nil {
+		b, _ := json.Marshal(req.TechStack)
+		fields["tech_stack"] = model.JSON(b)
+	}
+	if len(fields) == 0 {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "无可更新字段")
+		return
+	}
+	if err := h.userService.UpdatePortfolioFields(portfolio.ID, fields); err != nil {
+		response.ErrorInternal(c, "更新失败")
+		return
+	}
+	response.SuccessMsg(c, "作品更新成功", gin.H{"id": portfolio.UUID})
+}
+
+// DeletePortfolio DELETE /api/v1/users/me/portfolios/:uuid
+func (h *UserHandler) DeletePortfolio(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	portfolioUUID := c.Param("uuid")
+	user, err := h.userService.GetByUUID(userUUID)
+	if err != nil {
+		response.ErrorNotFound(c, errcode.ErrUserNotFound, "用户不存在")
+		return
+	}
+	portfolio, err := h.userService.FindPortfolioByUUID(portfolioUUID)
+	if err != nil {
+		response.ErrorNotFound(c, errcode.ErrParamInvalid, "作品不存在")
+		return
+	}
+	if portfolio.UserID != user.ID {
+		response.ErrorForbidden(c, errcode.ErrParamInvalid, "无权操作他人作品")
+		return
+	}
+	if err := h.userService.UpdatePortfolioFields(portfolio.ID, map[string]interface{}{"status": 0}); err != nil {
+		response.ErrorInternal(c, "删除失败")
+		return
+	}
+	response.SuccessMsg(c, "作品已删除", nil)
+}
+
 // SubmitOnboardingApplication POST /api/v1/users/me/onboarding/application
 func (h *UserHandler) SubmitOnboardingApplication(c *gin.Context) {
 	userUUID := c.GetString("user_uuid")
@@ -318,4 +448,168 @@ func (h *UserHandler) ListExperts(c *gin.Context) {
 	}
 
 	response.SuccessWithMeta(c, expertList, response.BuildMeta(page, pageSize, total))
+}
+
+// AddFavorite POST /api/v1/favorites
+func (h *UserHandler) AddFavorite(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	user, err := h.userService.GetByUUID(userUUID)
+	if err != nil {
+		response.ErrorNotFound(c, errcode.ErrUserNotFound, "用户不存在")
+		return
+	}
+	var req struct {
+		TargetType string `json:"target_type" binding:"required"`
+		TargetID   string `json:"target_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	if req.TargetType != "project" && req.TargetType != "expert" {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "target_type 仅支持 project / expert")
+		return
+	}
+
+	// 幂等：已收藏则直接返回成功
+	existing, _ := h.repos.Favorite.FindByUserAndTarget(user.ID, req.TargetType, req.TargetID)
+	if existing != nil {
+		response.SuccessMsg(c, "已收藏", gin.H{"id": existing.UUID})
+		return
+	}
+
+	fav := &model.Favorite{
+		UserID:     user.ID,
+		TargetType: req.TargetType,
+		TargetID:   req.TargetID,
+	}
+
+	if req.TargetType == "project" {
+		project, err := h.repos.Project.FindByUUID(req.TargetID)
+		if err != nil {
+			response.ErrorNotFound(c, errcode.ErrProjectNotFound, "项目不存在")
+			return
+		}
+		if err := h.repos.DB().Transaction(func(tx *gorm.DB) error {
+			txRepos := repository.NewRepositories(tx)
+			if err := txRepos.Favorite.Create(fav); err != nil {
+				return err
+			}
+			return txRepos.Project.UpdateFields(project.ID, map[string]interface{}{
+				"favorite_count": project.FavoriteCount + 1,
+			})
+		}); err != nil {
+			response.ErrorInternal(c, "收藏失败")
+			return
+		}
+	} else {
+		if err := h.repos.Favorite.Create(fav); err != nil {
+			response.ErrorInternal(c, "收藏失败")
+			return
+		}
+	}
+
+	response.SuccessMsg(c, "收藏成功", gin.H{"id": fav.UUID})
+}
+
+// RemoveFavorite DELETE /api/v1/favorites
+func (h *UserHandler) RemoveFavorite(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	user, err := h.userService.GetByUUID(userUUID)
+	if err != nil {
+		response.ErrorNotFound(c, errcode.ErrUserNotFound, "用户不存在")
+		return
+	}
+	var req struct {
+		TargetType string `json:"target_type" binding:"required"`
+		TargetID   string `json:"target_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+
+	existing, _ := h.repos.Favorite.FindByUserAndTarget(user.ID, req.TargetType, req.TargetID)
+	if existing == nil {
+		response.SuccessMsg(c, "已取消收藏", nil)
+		return
+	}
+
+	if req.TargetType == "project" {
+		project, _ := h.repos.Project.FindByUUID(req.TargetID)
+		if project != nil {
+			_ = h.repos.DB().Transaction(func(tx *gorm.DB) error {
+				txRepos := repository.NewRepositories(tx)
+				if err := txRepos.Favorite.Delete(user.ID, req.TargetType, req.TargetID); err != nil {
+					return err
+				}
+				newCount := project.FavoriteCount - 1
+				if newCount < 0 {
+					newCount = 0
+				}
+				return txRepos.Project.UpdateFields(project.ID, map[string]interface{}{
+					"favorite_count": newCount,
+				})
+			})
+		} else {
+			_ = h.repos.Favorite.Delete(user.ID, req.TargetType, req.TargetID)
+		}
+	} else {
+		_ = h.repos.Favorite.Delete(user.ID, req.TargetType, req.TargetID)
+	}
+
+	response.SuccessMsg(c, "已取消收藏", nil)
+}
+
+// ListMyFavorites GET /api/v1/users/me/favorites
+func (h *UserHandler) ListMyFavorites(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	user, err := h.userService.GetByUUID(userUUID)
+	if err != nil {
+		response.ErrorNotFound(c, errcode.ErrUserNotFound, "用户不存在")
+		return
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 20
+	}
+	targetType := c.Query("target_type")
+
+	favs, total, err := h.repos.Favorite.ListByUserID(user.ID, targetType, (page-1)*pageSize, pageSize)
+	if err != nil {
+		response.ErrorInternal(c, "获取收藏列表失败")
+		return
+	}
+
+	list := make([]gin.H, 0, len(favs))
+	for _, f := range favs {
+		item := gin.H{
+			"id":          f.UUID,
+			"target_type": f.TargetType,
+			"target_id":   f.TargetID,
+			"created_at":  f.CreatedAt,
+		}
+		if f.TargetType == "project" {
+			if p, err := h.repos.Project.FindByUUID(f.TargetID); err == nil {
+				item["title"] = p.Title
+				item["status"] = p.Status
+				item["category"] = p.Category
+				item["budget_min"] = p.BudgetMin
+				item["budget_max"] = p.BudgetMax
+			}
+		} else if f.TargetType == "expert" {
+			if u, err := h.repos.User.FindByUUID(f.TargetID); err == nil {
+				item["nickname"] = u.Nickname
+				item["avatar_url"] = u.AvatarURL
+				item["rating"] = u.AvgRating
+			}
+		}
+		list = append(list, item)
+	}
+
+	response.SuccessWithMeta(c, list, response.BuildMeta(page, pageSize, total))
 }
