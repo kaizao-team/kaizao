@@ -7,6 +7,7 @@ set -e
 # 本地部署（在 WSL 中执行，构建镜像并推送到远程服务器）:
 #   bash deploy.sh push
 # 可选环境变量: REMOTE_HOST（默认 kaizao）、PROD_HTTP_PORT（默认 39527，须与 docker-compose.prod.yml 一致）、SCP_OPTS
+#   USE_DOCKERFILE_BUILDKIT=1  使用 Dockerfile.buildkit 构建（需 docker buildx / BuildKit，go 依赖增量缓存）
 #
 # 生产必备：本地须存在 configs/auth_password_rsa.pem（首次: bash scripts/gen_auth_password_rsa.sh，勿提交 git）
 # 可选：deploy/.env.prod 存在时同步为远程 ~/kaizao-server/.env，用于覆盖 VB_JWT_SECRET、VB_OSS_BASE_URL 等（见 deploy/env.prod.example）
@@ -37,7 +38,12 @@ do_push() {
     cd "$SCRIPT_DIR"
 
     echo "==> [1/5] 构建镜像..."
-    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+    if [ "${USE_DOCKERFILE_BUILDKIT:-0}" = "1" ]; then
+      export DOCKER_BUILDKIT=1
+      docker build -f Dockerfile.buildkit -t ${IMAGE_NAME}:${IMAGE_TAG} .
+    else
+      docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+    fi
 
     echo "==> [2/5] 导出镜像..."
     docker save ${IMAGE_NAME}:${IMAGE_TAG} | gzip > /tmp/${IMAGE_NAME}.tar.gz

@@ -1,0 +1,2 @@
+# 宿主机 Go 缓存（docker_go_test.sh），勿打进镜像构建上下文
+.docker-cache/

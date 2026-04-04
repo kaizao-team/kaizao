@@ -3,6 +3,11 @@
 # 用法：在仓库 kaizao/server 目录执行  bash scripts/wsl_deploy_test.sh
 # 若本机 8080 已被占用：SERVER_HOST_PORT=18080 bash scripts/wsl_deploy_test.sh
 # 跳过 Go 单测：RUN_GO_TEST=0 bash scripts/wsl_deploy_test.sh
+#
+# Go 缓存：
+#   - go test：模块/构建缓存映射到宿主机 .docker-cache/（scripts/docker_go_test.sh）
+#   - 镜像构建：默认 Dockerfile；若已安装 docker buildx，可设 USE_DOCKERFILE_BUILDKIT=1 使用
+#     Dockerfile.buildkit（BuildKit 缓存卷，改 go.mod 后多为增量下载）
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -10,15 +15,24 @@ cd "$ROOT"
 export SERVER_HOST_PORT="${SERVER_HOST_PORT:-8080}"
 BASE="http://127.0.0.1:${SERVER_HOST_PORT}"
 
+COMPOSE_FILES=(-f docker-compose.yml)
+if [ "${USE_DOCKERFILE_BUILDKIT:-0}" = "1" ]; then
+  export DOCKER_BUILDKIT=1
+  export COMPOSE_DOCKER_CLI_BUILD=1
+  COMPOSE_FILES+=(-f docker-compose.buildkit.yml)
+  echo "INFO: using Dockerfile.buildkit (BuildKit go mod/build cache)"
+fi
+
 # 在 Docker 内 golang 镜像跑 go test（脚本内单引号包裹，避免从 Windows 直接传参时 ./... 被拆坏）
+# 模块与构建缓存默认映射到宿主机 .docker-cache/（见 scripts/docker_go_test.sh）
 if [ "${RUN_GO_TEST:-1}" = "1" ]; then
   echo "=== go test (docker: golang:1.22-bookworm, see scripts/docker_go_test.sh) ==="
   bash "$ROOT/scripts/docker_go_test.sh"
 fi
 
 echo "=== compose build & up (API -> ${BASE}) ==="
-docker compose build server
-docker compose up -d
+docker compose "${COMPOSE_FILES[@]}" build server
+docker compose "${COMPOSE_FILES[@]}" up -d
 
 # 旧数据卷若早于 002/003/004 迁移，需补跑 DDL（重复执行可能报 Duplicate column，可忽略）；005 为分类数据清洗可重复执行
 if [ "${APPLY_SQL_MIGRATIONS:-1}" = "1" ]; then
@@ -35,7 +49,7 @@ for i in $(seq 1 60); do
   fi
   if [ "$i" -eq 60 ]; then
     echo "FATAL: server not healthy on ${BASE}"
-    docker compose logs --tail=80 server
+    docker compose "${COMPOSE_FILES[@]}" logs --tail=80 server
     exit 1
   fi
   sleep 2

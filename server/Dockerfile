@@ -1,4 +1,8 @@
 # ============ 构建阶段 ============
+# go.mod/go.sum 未变时，Docker 会复用「go mod download」层。
+# 若已安装 docker buildx，可用 Dockerfile.buildkit（BuildKit 缓存卷，改依赖后多为增量）：
+#   USE_DOCKERFILE_BUILDKIT=1 bash scripts/wsl_deploy_test.sh
+#   或 USE_DOCKERFILE_BUILDKIT=1 bash deploy.sh push
 FROM golang:1.22-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates tzdata
