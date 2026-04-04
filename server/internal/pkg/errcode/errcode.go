@@ -96,6 +96,7 @@ const (
 	ErrTeamBidLeaderOnly   = 30007
 	ErrFavoriteExceedLimit   = 30008
 	ErrQuickMatchNoCandidate = 30009
+	ErrFavoriteExpertInvalid = 30010
 )
 
 // 交易/支付模块 40001-40999
@@ -229,6 +230,7 @@ var ErrorMessages = map[int]string{
 	ErrBidClosed:               "投标已关闭或已处理",
 	ErrProjectAlreadyMatched:   "项目已撮合或已选定服务方",
 	ErrQuickMatchNoCandidate:   "未找到可撮合的造物者，请稍后再试或手动选标",
+	ErrFavoriteExpertInvalid:   "该用户不是可收藏的专家",
 	ErrOrderNotFound:        "订单不存在",
 	ErrOrderStatusInvalid:   "订单状态不允许当前操作",
 	ErrOrderAlreadyExists:   "该项目已有待支付订单",

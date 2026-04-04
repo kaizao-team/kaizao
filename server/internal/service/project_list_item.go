@@ -27,6 +27,7 @@ type ProjectListItem struct {
 	TechRequirements  []string   `json:"tech_requirements"`
 	ViewCount         int        `json:"view_count"`
 	BidCount          int        `json:"bid_count"`
+	FavoriteCount     int        `json:"favorite_count"`
 	CreatedAt         time.Time  `json:"created_at"`
 	ProviderID        *string    `json:"provider_id,omitempty"`
 	ProviderName      *string    `json:"provider_name,omitempty"`
@@ -83,6 +84,7 @@ func NewProjectListItem(p *model.Project) ProjectListItem {
 		TechRequirements:  parseProjectTechRequirements(p.TechRequirements),
 		ViewCount:         p.ViewCount,
 		BidCount:          p.BidCount,
+		FavoriteCount:     p.FavoriteCount,
 		CreatedAt:         p.CreatedAt,
 		ProviderID:        providerID,
 		ProviderName:      providerName,

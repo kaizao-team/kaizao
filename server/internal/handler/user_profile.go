@@ -12,7 +12,6 @@ import (
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
-	"github.com/vibebuild/server/internal/repository"
 	"github.com/vibebuild/server/internal/service"
 	"gorm.io/gorm"
 )
@@ -611,45 +610,31 @@ func (h *UserHandler) AddFavorite(c *gin.Context) {
 		return
 	}
 
-	// 幂等：已收藏则直接返回成功
-	existing, _ := h.repos.Favorite.FindByUserAndTarget(user.ID, req.TargetType, req.TargetID)
-	if existing != nil {
-		response.SuccessMsg(c, "已收藏", gin.H{"id": existing.UUID})
+	outcome, err := h.favoriteService.AddFavorite(user.ID, req.TargetType, req.TargetID)
+	if err != nil {
+		if code, convErr := strconv.Atoi(err.Error()); convErr == nil && code > 0 {
+			switch code {
+			case errcode.ErrProjectNotFound:
+				response.ErrorNotFound(c, code, errcode.GetMessage(code))
+			case errcode.ErrUserNotFound:
+				response.ErrorNotFound(c, code, errcode.GetMessage(code))
+			case errcode.ErrFavoriteExpertInvalid:
+				response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			case errcode.ErrParamInvalid:
+				response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			default:
+				response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			}
+			return
+		}
+		response.ErrorInternal(c, "收藏失败")
 		return
 	}
-
-	fav := &model.Favorite{
-		UserID:     user.ID,
-		TargetType: req.TargetType,
-		TargetID:   req.TargetID,
+	if outcome.AlreadyFavorited {
+		response.SuccessMsg(c, "已收藏", gin.H{"id": outcome.UUID})
+		return
 	}
-
-	if req.TargetType == "project" {
-		project, err := h.repos.Project.FindByUUID(req.TargetID)
-		if err != nil {
-			response.ErrorNotFound(c, errcode.ErrProjectNotFound, "项目不存在")
-			return
-		}
-		if err := h.repos.DB().Transaction(func(tx *gorm.DB) error {
-			txRepos := repository.NewRepositories(tx)
-			if err := txRepos.Favorite.Create(fav); err != nil {
-				return err
-			}
-			return txRepos.Project.UpdateFields(project.ID, map[string]interface{}{
-				"favorite_count": project.FavoriteCount + 1,
-			})
-		}); err != nil {
-			response.ErrorInternal(c, "收藏失败")
-			return
-		}
-	} else {
-		if err := h.repos.Favorite.Create(fav); err != nil {
-			response.ErrorInternal(c, "收藏失败")
-			return
-		}
-	}
-
-	response.SuccessMsg(c, "收藏成功", gin.H{"id": fav.UUID})
+	response.SuccessMsg(c, "收藏成功", gin.H{"id": outcome.UUID})
 }
 
 // RemoveFavorite DELETE /api/v1/favorites
@@ -669,35 +654,15 @@ func (h *UserHandler) RemoveFavorite(c *gin.Context) {
 		return
 	}
 
-	existing, _ := h.repos.Favorite.FindByUserAndTarget(user.ID, req.TargetType, req.TargetID)
-	if existing == nil {
-		response.SuccessMsg(c, "已取消收藏", nil)
+	err = h.favoriteService.RemoveFavorite(user.ID, req.TargetType, req.TargetID)
+	if err != nil {
+		if code, convErr := strconv.Atoi(err.Error()); convErr == nil && code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "取消收藏失败")
 		return
 	}
-
-	if req.TargetType == "project" {
-		project, _ := h.repos.Project.FindByUUID(req.TargetID)
-		if project != nil {
-			_ = h.repos.DB().Transaction(func(tx *gorm.DB) error {
-				txRepos := repository.NewRepositories(tx)
-				if err := txRepos.Favorite.Delete(user.ID, req.TargetType, req.TargetID); err != nil {
-					return err
-				}
-				newCount := project.FavoriteCount - 1
-				if newCount < 0 {
-					newCount = 0
-				}
-				return txRepos.Project.UpdateFields(project.ID, map[string]interface{}{
-					"favorite_count": newCount,
-				})
-			})
-		} else {
-			_ = h.repos.Favorite.Delete(user.ID, req.TargetType, req.TargetID)
-		}
-	} else {
-		_ = h.repos.Favorite.Delete(user.ID, req.TargetType, req.TargetID)
-	}
-
 	response.SuccessMsg(c, "已取消收藏", nil)
 }
 
