@@ -41,7 +41,7 @@ for i in $(seq 1 60); do
   sleep 2
 done
 
-echo "=== API tests (可选: RUN_FULL_ONBOARDING=1 / RUN_TEST_NEW_APIS=1) ==="
+echo "=== API tests (含 §8.3d 里程碑交付 deliver；可选: RUN_FULL_ONBOARDING=1 / RUN_TEST_NEW_APIS=1) ==="
 PY_ARGS=(--base "${BASE}")
 [ "${RUN_FULL_ONBOARDING:-0}" = "1" ] && PY_ARGS+=(--full-onboarding)
 [ "${RUN_TEST_NEW_APIS:-0}" = "1" ] && PY_ARGS+=(--test-new-apis)

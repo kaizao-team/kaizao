@@ -154,7 +154,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	milestones := v1.Group("/milestones")
 	{
 		milestones.PUT("/:id", middleware.JWTAuth(services.JWT), placeholder)
-		milestones.POST("/:id/deliver", middleware.JWTAuth(services.JWT), placeholder)
+		milestones.POST("/:id/deliver", middleware.JWTAuth(services.JWT), handlers.Task.DeliverMilestone)
 		// Phase 5 验收
 		milestones.GET("/:id/acceptance", middleware.JWTAuth(services.JWT), handlers.Task.GetAcceptance)
 		milestones.POST("/:id/accept", middleware.JWTAuth(services.JWT), handlers.Task.AcceptMilestone)
