@@ -20,7 +20,7 @@ func (r *projectRepository) Create(project *model.Project) error {
 
 func (r *projectRepository) FindByID(id int64) (*model.Project, error) {
 	var project model.Project
-	err := r.db.Preload("Owner").Where("id = ?", id).First(&project).Error
+	err := r.db.Preload("Owner").Preload("Provider").Where("id = ?", id).First(&project).Error
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (r *projectRepository) FindByID(id int64) (*model.Project, error) {
 
 func (r *projectRepository) FindByUUID(uuid string) (*model.Project, error) {
 	var project model.Project
-	err := r.db.Preload("Owner").Where("uuid = ?", uuid).First(&project).Error
+	err := r.db.Preload("Owner").Preload("Provider").Where("uuid = ?", uuid).First(&project).Error
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (r *projectRepository) List(offset, limit int, conditions map[string]interf
 	var projects []*model.Project
 	var total int64
 
-	query := r.db.Model(&model.Project{}).Preload("Owner")
+	query := r.db.Model(&model.Project{}).Preload("Owner").Preload("Provider")
 	for k, v := range conditions {
 		query = query.Where(k+" = ?", v)
 	}
@@ -81,7 +81,7 @@ func (r *projectRepository) ListMarket(offset, limit int, filter ProjectFilter) 
 	var projects []*model.Project
 	var total int64
 
-	query := r.db.Model(&model.Project{}).Preload("Owner").Where("status = 2")
+	query := r.db.Model(&model.Project{}).Preload("Owner").Preload("Provider").Where("status = 2")
 
 	if filter.Category != "" && filter.Category != "all" {
 		query = query.Where("category = ?", filter.Category)

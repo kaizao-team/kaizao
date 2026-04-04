@@ -1,9 +1,6 @@
 package service
 
 import (
-	"encoding/json"
-
-	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/repository"
 	"go.uber.org/zap"
 )
@@ -17,17 +14,6 @@ type HomeService struct {
 // NewHomeService 创建首页服务
 func NewHomeService(repos *repository.Repositories, log *zap.Logger) *HomeService {
 	return &HomeService{repos: repos, log: log}
-}
-
-func parseTechStack(raw model.JSON) []string {
-	var result []string
-	if len(raw) > 0 {
-		_ = json.Unmarshal([]byte(raw), &result)
-	}
-	if result == nil {
-		return []string{}
-	}
-	return result
 }
 
 // GetDemanderHome GET /api/v1/home/demander
@@ -47,21 +33,9 @@ func (s *HomeService) GetDemanderHome(userUUID string) (map[string]interface{}, 
 		})
 	}
 
-	myList := make([]map[string]interface{}, 0, len(myProjects))
+	myList := make([]ProjectListItem, 0, len(myProjects))
 	for _, p := range myProjects {
-		ownerID := ""
-		if p.Owner != nil {
-			ownerID = p.Owner.UUID
-		}
-		myList = append(myList, map[string]interface{}{
-			"id": p.UUID, "uuid": p.UUID, "owner_id": ownerID,
-			"title": p.Title, "description": p.Description, "category": p.Category,
-			"budget_min": p.BudgetMin, "budget_max": p.BudgetMax,
-			"progress": p.Progress, "status": p.Status,
-			"tech_requirements": parseTechStack(p.TechRequirements),
-			"view_count": p.ViewCount, "bid_count": p.BidCount,
-			"created_at": p.CreatedAt,
-		})
+		myList = append(myList, NewProjectListItem(p))
 	}
 
 	recExperts := make([]map[string]interface{}, 0, len(experts))
@@ -95,24 +69,13 @@ func (s *HomeService) GetExpertHome(userUUID string) (map[string]interface{}, er
 	}
 	demands, _, _ := s.repos.Project.ListMarket(0, 10, repository.ProjectFilter{Sort: "latest"})
 
-	rec := make([]map[string]interface{}, 0, len(demands))
+	rec := make([]ProjectListItem, 0, len(demands))
 	for _, p := range demands {
-		ownerID := ""
-		if p.Owner != nil {
-			ownerID = p.Owner.UUID
-		}
-		item := map[string]interface{}{
-			"id": p.UUID, "uuid": p.UUID, "owner_id": ownerID,
-			"title": p.Title, "description": p.Description, "category": p.Category,
-			"budget_min": p.BudgetMin, "budget_max": p.BudgetMax,
-			"status": p.Status,
-			"tech_requirements": parseTechStack(p.TechRequirements),
-			"view_count": p.ViewCount, "bid_count": p.BidCount,
-			"created_at": p.CreatedAt,
-		}
+		item := NewProjectListItem(p)
 		skills, _ := s.repos.User.ListUserSkills(u.ID)
 		if len(skills) > 0 && len(p.TechRequirements) > 0 {
-			item["match_score"] = 75
+			ms := 75
+			item.MatchScore = &ms
 		}
 		rec = append(rec, item)
 	}
