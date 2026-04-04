@@ -41,6 +41,26 @@ func respondMilestoneCreateError(c *gin.Context, err error) {
 	}
 }
 
+// respondTaskCreateError 创建任务卡片错误响应（HTTP 与业务码对齐）。
+func respondTaskCreateError(c *gin.Context, err error) {
+	code, convErr := strconv.Atoi(err.Error())
+	if convErr != nil || code <= 0 {
+		response.ErrorInternal(c, "创建任务失败")
+		return
+	}
+	msg := errcode.GetMessage(code)
+	switch code {
+	case errcode.ErrUserNotFound, errcode.ErrProjectNotFound, errcode.ErrMilestoneNotFound:
+		response.ErrorNotFound(c, code, msg)
+	case errcode.ErrProjectParticipantOnly:
+		response.ErrorForbidden(c, code, msg)
+	case errcode.ErrParamInvalid, errcode.ErrEarsTypeInvalid, errcode.ErrTaskAssigneeInvalid:
+		response.ErrorBadRequest(c, code, msg)
+	default:
+		response.ErrorBadRequest(c, code, msg)
+	}
+}
+
 func (h *TaskHandler) ListTasks(c *gin.Context) {
 	projectID := c.Param("id")
 	tasks, err := h.taskService.ListByProject(projectID)
@@ -50,6 +70,7 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 	}
 	statusMap := map[int16]string{1: "todo", 2: "in_progress", 3: "completed"}
 	priorityMap := map[int16]string{0: "P2", 1: "P0", 2: "P1", 3: "P2"}
+	msUUIDCache := make(map[int64]string)
 	list := make([]gin.H, 0, len(tasks))
 	for _, t := range tasks {
 		status := statusMap[t.Status]
@@ -66,7 +87,16 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 		}
 		msID := ""
 		if t.MilestoneID != nil {
-			msID = strconv.FormatInt(*t.MilestoneID, 10)
+			mid := *t.MilestoneID
+			if u, ok := msUUIDCache[mid]; ok {
+				msID = u
+			} else {
+				uuid, err := h.milestoneService.MilestoneUUIDByID(mid)
+				if err == nil {
+					msUUIDCache[mid] = uuid
+					msID = uuid
+				}
+			}
 		}
 		list = append(list, gin.H{
 			"id":             t.UUID,
@@ -83,6 +113,41 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 		})
 	}
 	response.Success(c, list)
+}
+
+func (h *TaskHandler) CreateTask(c *gin.Context) {
+	projectUUID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	var req dto.CreateTaskReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败: "+err.Error())
+		return
+	}
+	t, err := h.taskService.Create(projectUUID, userUUID, &req)
+	if err != nil {
+		respondTaskCreateError(c, err)
+		return
+	}
+	msUUIDStr := ""
+	if t.MilestoneID != nil {
+		if u, err := h.milestoneService.MilestoneUUIDByID(*t.MilestoneID); err == nil {
+			msUUIDStr = u
+		}
+	}
+	response.SuccessMsg(c, "任务创建成功", gin.H{
+		"id":              t.UUID,
+		"uuid":            t.UUID,
+		"project_id":      projectUUID,
+		"task_code":       t.TaskCode,
+		"title":           t.Title,
+		"ears_type":       t.EarsType,
+		"milestone_id":    msUUIDStr,
+		"priority":        t.Priority,
+		"status":          t.Status,
+		"sort_order":      t.SortOrder,
+		"is_ai_generated": t.IsAIGenerated,
+		"created_at":      t.CreatedAt,
+	})
 }
 
 func (h *TaskHandler) UpdateTaskStatus(c *gin.Context) {

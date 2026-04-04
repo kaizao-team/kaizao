@@ -1,13 +1,20 @@
 #!/bin/bash
-# WSL 下一键：构建并启动栈，健康检查后跑 API 集成测试
-# 用法：在仓库 server 目录执行  bash scripts/wsl_deploy_test.sh
+# WSL + Docker 下一键：Go 单测（可选）→ 构建并启动栈 → 健康检查 → API 集成测试（test_api_v2.py）
+# 用法：在仓库 kaizao/server 目录执行  bash scripts/wsl_deploy_test.sh
 # 若本机 8080 已被占用：SERVER_HOST_PORT=18080 bash scripts/wsl_deploy_test.sh
+# 跳过 Go 单测：RUN_GO_TEST=0 bash scripts/wsl_deploy_test.sh
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 export SERVER_HOST_PORT="${SERVER_HOST_PORT:-8080}"
 BASE="http://127.0.0.1:${SERVER_HOST_PORT}"
+
+# 在 Docker 内 golang 镜像跑 go test（脚本内单引号包裹，避免从 Windows 直接传参时 ./... 被拆坏）
+if [ "${RUN_GO_TEST:-1}" = "1" ]; then
+  echo "=== go test (docker: golang:1.22-bookworm, see scripts/docker_go_test.sh) ==="
+  bash "$ROOT/scripts/docker_go_test.sh"
+fi
 
 echo "=== compose build & up (API -> ${BASE}) ==="
 docker compose build server

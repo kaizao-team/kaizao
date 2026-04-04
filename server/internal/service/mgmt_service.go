@@ -58,6 +58,107 @@ func (s *TaskService) UpdateStatus(taskUUID string, status string) (*model.Task,
 	return s.repos.Task.FindByUUID(taskUUID)
 }
 
+// Create 手动创建任务卡片（仅需求方或已选服务方）；事务内锁项目行并生成 project 内唯一 task_code（T{序号}）。
+func (s *TaskService) Create(projectUUID, actorUserUUID string, req *dto.CreateTaskReq) (*model.Task, error) {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	p, err := s.repos.Project.FindByUUID(projectUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if !isProjectParticipant(p, u.ID) {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectParticipantOnly)
+	}
+
+	var milestoneID *int64
+	if req.MilestoneID != nil && strings.TrimSpace(*req.MilestoneID) != "" {
+		ms, err := s.repos.Milestone.FindByUUID(strings.TrimSpace(*req.MilestoneID))
+		if err != nil || ms.ProjectID != p.ID {
+			return nil, fmt.Errorf("%d", errcode.ErrMilestoneNotFound)
+		}
+		milestoneID = &ms.ID
+	}
+
+	var assigneeID *int64
+	if req.AssigneeID != nil && strings.TrimSpace(*req.AssigneeID) != "" {
+		au, err := s.repos.User.FindByUUID(strings.TrimSpace(*req.AssigneeID))
+		if err != nil {
+			return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+		}
+		if !isAllowedTaskAssignee(p, au.ID, s.repos) {
+			return nil, fmt.Errorf("%d", errcode.ErrTaskAssigneeInvalid)
+		}
+		assigneeID = &au.ID
+	}
+
+	priority := int16(2)
+	if req.Priority != nil {
+		priority = *req.Priority
+	}
+
+	sortOrder := 0
+	if req.SortOrder != nil {
+		sortOrder = *req.SortOrder
+	}
+
+	fullText := req.EarsBehavior
+	if req.EarsFullText != nil && strings.TrimSpace(*req.EarsFullText) != "" {
+		fullText = strings.TrimSpace(*req.EarsFullText)
+	}
+
+	emptyArr := model.JSON([]byte("[]"))
+	var out *model.Task
+	err = s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		var proj model.Project
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", p.ID).First(&proj).Error; err != nil {
+			return err
+		}
+
+		var cnt int64
+		if err := tx.Model(&model.Task{}).Where("project_id = ?", p.ID).Count(&cnt).Error; err != nil {
+			return err
+		}
+		seq := cnt + 1
+		taskCode := fmt.Sprintf("T%d", seq)
+		if len(taskCode) > 20 {
+			taskCode = taskCode[:20]
+		}
+
+		t := &model.Task{
+			ProjectID:          p.ID,
+			MilestoneID:        milestoneID,
+			TaskCode:           taskCode,
+			Title:              req.Title,
+			EarsType:           req.EarsType,
+			EarsTrigger:        req.EarsTrigger,
+			EarsBehavior:       req.EarsBehavior,
+			EarsFullText:       fullText,
+			Module:             req.Module,
+			RoleTag:            req.RoleTag,
+			AssigneeID:         assigneeID,
+			Priority:           priority,
+			EstimatedHours:     req.EstimatedHours,
+			AcceptanceCriteria: emptyArr,
+			Dependencies:       emptyArr,
+			Blockers:           emptyArr,
+			Status:             1,
+			SortOrder:          sortOrder,
+			IsAIGenerated:      false,
+		}
+		if err := tx.Create(t).Error; err != nil {
+			return err
+		}
+		out = t
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type MilestoneService struct {
 	repos *repository.Repositories
 	log   *zap.Logger
@@ -75,12 +176,33 @@ func (s *MilestoneService) ListByProject(projectUUID string) ([]*model.Milestone
 	return s.repos.Milestone.ListByProjectID(project.ID)
 }
 
+// MilestoneUUIDByID 将里程碑主键解析为 UUID（用于 API 响应）。
+func (s *MilestoneService) MilestoneUUIDByID(id int64) (string, error) {
+	m, err := s.repos.Milestone.FindByID(id)
+	if err != nil {
+		return "", err
+	}
+	return m.UUID, nil
+}
+
 func isProjectParticipant(p *model.Project, userID int64) bool {
 	if p.OwnerID == userID {
 		return true
 	}
 	if p.ProviderID != nil && *p.ProviderID == userID {
 		return true
+	}
+	return false
+}
+
+// isAllowedTaskAssignee 任务指派人须为需求方、已选服务方，或（项目绑定团队时）该团队 active 成员。
+func isAllowedTaskAssignee(p *model.Project, assigneeUserID int64, repos *repository.Repositories) bool {
+	if isProjectParticipant(p, assigneeUserID) {
+		return true
+	}
+	if p.TeamID != nil {
+		_, err := repos.Team.FindMember(*p.TeamID, assigneeUserID)
+		return err == nil
 	}
 	return false
 }
