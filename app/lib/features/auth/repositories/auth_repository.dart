@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 
@@ -51,6 +53,7 @@ class AuthRepository {
   LoginResult _parseLoginResult(Map<String, dynamic> data) {
     final user = data['user'] as Map<String, dynamic>? ?? const {};
     final userRole = user['role'] as int? ?? data['role'] as int? ?? 0;
+    debugPrint('[AuthRepo] _parseLoginResult: user=$user, userRole=$userRole, user[role]=${user['role']} (${user['role'].runtimeType}), data[role]=${data['role']}');
 
     return LoginResult(
       accessToken: data['access_token'] as String? ?? '',

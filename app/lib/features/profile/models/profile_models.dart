@@ -36,21 +36,23 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      id: json['id'] as String? ?? '',
-      nickname: json['nickname'] as String? ?? '',
-      avatar: json['avatar'] as String?,
-      tagline: json['tagline'] as String? ?? '',
+      id: json['id']?.toString() ?? json['uuid']?.toString() ?? '',
+      nickname: json['nickname']?.toString() ?? '',
+      avatar: (json['avatar_url'] ?? json['avatar'])?.toString(),
+      tagline: json['tagline']?.toString() ?? '',
       role: json['role'] as int? ?? 1,
-      rating: (json['rating'] as num?)?.toDouble() ?? 0,
+      rating: (json['avg_rating'] as num?)?.toDouble() ??
+          (json['rating'] as num?)?.toDouble() ??
+          0,
       creditScore: json['credit_score'] as int? ?? 0,
       isVerified: json['is_verified'] as bool? ?? false,
-      phone: json['phone'] as String?,
+      phone: (json['contact_phone'] ?? json['phone'])?.toString(),
       wechatBound: json['wechat_bound'] as bool? ?? false,
       stats: json['stats'] != null
           ? UserStats.fromJson(json['stats'] as Map<String, dynamic>)
           : const UserStats(),
-      bio: json['bio'] as String? ?? '',
-      createdAt: json['created_at'] as String? ?? '',
+      bio: json['bio']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 }
@@ -102,9 +104,9 @@ class SkillTag {
 
   factory SkillTag.fromJson(Map<String, dynamic> json) {
     return SkillTag(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      category: json['category'] as String? ?? '',
+      id: json['id']?.toString() ?? json['skill_id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
     );
   }
 
@@ -134,16 +136,16 @@ class PortfolioItem {
 
   factory PortfolioItem.fromJson(Map<String, dynamic> json) {
     return PortfolioItem(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      coverUrl: json['cover_url'] as String?,
-      description: json['description'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      coverUrl: json['cover_url']?.toString(),
+      description: json['description']?.toString() ?? '',
       tags: (json['tags'] as List?)
               ?.map((e) => e?.toString() ?? '')
               .where((s) => s.isNotEmpty)
               .toList() ??
           [],
-      createdAt: json['created_at'] as String? ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 }

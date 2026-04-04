@@ -8,7 +8,4 @@ class AssetsRes {
 
   static const String PROJECT_NAME = 'vibebuild_app';
   static const String PROJECT_VERSION = '1.0.0+1';
-  static const String LANUCH = 'assets/branding/lanuch.mp4';
-  static const String LANUCH = 'assets/branding/lanuch.webm';
-  static const String LANUCH_ANIM = 'assets/branding/lanuch_anim.webp';
 }
