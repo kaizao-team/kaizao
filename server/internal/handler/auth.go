@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -182,6 +185,139 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
 		ExpiresIn:    tokenPair.ExpiresIn,
+	})
+}
+
+// PasswordKey GET /api/v1/auth/password-key
+func (h *AuthHandler) PasswordKey(c *gin.Context) {
+	r := h.authService.PasswordPublicKey()
+	if r == nil {
+		response.ErrorInternal(c, "密码加密未配置")
+		return
+	}
+	response.Success(c, r)
+}
+
+// Captcha GET /api/v1/auth/captcha
+func (h *AuthHandler) Captcha(c *gin.Context) {
+	id, img, exp, err := h.authService.GenerateCaptcha()
+	if err != nil {
+		response.ErrorInternal(c, "验证码生成失败")
+		return
+	}
+	response.Success(c, dto.CaptchaResp{
+		CaptchaID:   id,
+		ImageBase64: img,
+		ExpiresIn:   exp,
+	})
+}
+
+var errPlaintextPasswordField = errors.New("plaintext password field")
+
+func authJSONForbidPlaintextPassword(body []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["password"]; ok {
+		return errPlaintextPasswordField
+	}
+	return nil
+}
+
+// RegisterByPassword POST /api/v1/auth/register-password
+func (h *AuthHandler) RegisterByPassword(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "读取请求体失败")
+		return
+	}
+	if err := authJSONForbidPlaintextPassword(body); err != nil {
+		if errors.Is(err, errPlaintextPasswordField) {
+			response.ErrorBadRequest(c, errcode.ErrPasswordPlaintextForbidden, errcode.GetMessage(errcode.ErrPasswordPlaintextForbidden))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数格式错误")
+		return
+	}
+	var req dto.RegisterByPasswordReq
+	if err := json.Unmarshal(body, &req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	if req.Username == "" || req.PasswordCipher == "" {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+
+	user, tokenPair, err := h.authService.RegisterByPassword(c.Request.Context(), &req)
+	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+		} else {
+			response.ErrorInternal(c, "注册失败")
+		}
+		return
+	}
+	userBrief := dto.UserBriefResp{
+		UUID:        user.UUID,
+		Nickname:    user.Nickname,
+		AvatarURL:   user.AvatarURL,
+		Role:        user.Role,
+		Level:       user.Level,
+		CreditScore: user.CreditScore,
+		IsVerified:  user.IsVerified,
+	}
+	response.Success(c, dto.AuthResp{
+		User:         userBrief,
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    tokenPair.ExpiresIn,
+	})
+}
+
+// LoginByPassword POST /api/v1/auth/login-password
+func (h *AuthHandler) LoginByPassword(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "读取请求体失败")
+		return
+	}
+	if err := authJSONForbidPlaintextPassword(body); err != nil {
+		if errors.Is(err, errPlaintextPasswordField) {
+			response.ErrorBadRequest(c, errcode.ErrPasswordPlaintextForbidden, errcode.GetMessage(errcode.ErrPasswordPlaintextForbidden))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数格式错误")
+		return
+	}
+	var req dto.LoginByPasswordReq
+	if err := json.Unmarshal(body, &req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	if req.LoginType == "" || req.Identity == "" || req.PasswordCipher == "" || req.CaptchaID == "" || req.CaptchaCode == "" {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+
+	user, tokenPair, err := h.authService.LoginByPassword(c.Request.Context(), &req)
+	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+		} else {
+			response.ErrorInternal(c, "登录失败")
+		}
+		return
+	}
+	response.SuccessMsg(c, "登录成功", gin.H{
+		"access_token":  tokenPair.AccessToken,
+		"refresh_token": tokenPair.RefreshToken,
+		"user_id":       user.UUID,
+		"role":          user.Role,
+		"is_new_user":   false,
 	})
 }
 

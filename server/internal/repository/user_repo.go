@@ -47,6 +47,15 @@ func (r *userRepository) FindByPhoneHash(phoneHash string) (*model.User, error) 
 	return &user, nil
 }
 
+func (r *userRepository) FindByUsername(username string) (*model.User, error) {
+	var user model.User
+	err := r.db.Where("username = ? AND status != 3", username).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *userRepository) FindByWechatOpenID(openID string) (*model.User, error) {
 	var user model.User
 	err := r.db.Where("wechat_openid = ?", openID).First(&user).Error

@@ -12,6 +12,7 @@ import (
 	"github.com/vibebuild/server/internal/config"
 	"github.com/vibebuild/server/internal/handler"
 	"github.com/vibebuild/server/internal/pkg/logger"
+	"github.com/vibebuild/server/internal/pkg/passwordrsa"
 	"github.com/vibebuild/server/internal/repository"
 	"github.com/vibebuild/server/internal/router"
 	"github.com/vibebuild/server/internal/service"
@@ -84,7 +85,15 @@ func main() {
 
 	// 初始化各层依赖
 	repos := repository.NewRepositories(db)
-	services := service.NewServices(repos, rdb, cfg, log)
+	passwordRSA, err := passwordrsa.LoadOrGeneratePrivateKey(
+		cfg.AuthPassword.RSAPrivateKeyPEM,
+		cfg.AuthPassword.RSAPrivateKeyPath,
+		cfg.Server.Mode,
+	)
+	if err != nil {
+		log.Fatal("auth_password RSA 私钥加载失败（开发可设 VB_AUTH_PASSWORD_DEV_AUTO_KEY=1）", zap.Error(err))
+	}
+	services := service.NewServices(repos, rdb, cfg, log, passwordRSA)
 	handlers := handler.NewHandlers(services, cfg, log)
 
 	// 初始化路由

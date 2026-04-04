@@ -19,6 +19,15 @@ type Config struct {
 	SMS          SMSConfig          `mapstructure:"sms"`
 	Registration RegistrationConfig `mapstructure:"registration"`
 	AIAgent      AIAgentConfig      `mapstructure:"ai_agent"`
+	AuthPassword AuthPasswordConfig `mapstructure:"auth_password"`
+}
+
+// AuthPasswordConfig 账号密码注册/登录（RSA-OAEP + 图形验证码）
+type AuthPasswordConfig struct {
+	RSAPrivateKeyPEM  string `mapstructure:"rsa_private_key_pem"`
+	RSAPrivateKeyPath string `mapstructure:"rsa_private_key_path"`
+	KeyID             string `mapstructure:"key_id"`
+	CaptchaTTLSec     int    `mapstructure:"captcha_ttl_sec"`
 }
 
 // AIAgentConfig 开造 AI-Agent 服务（智能匹配等），与 api/API_DOC.md 中 /api/v2 一致
@@ -179,6 +188,8 @@ func Load() (*Config, error) {
 	v.SetDefault("oss.local_url_path", "/api/v1/upload-files")
 	v.SetDefault("ai_agent.base_url", "")
 	v.SetDefault("ai_agent.timeout_sec", 120)
+	v.SetDefault("auth_password.key_id", "v1")
+	v.SetDefault("auth_password.captcha_ttl_sec", 180)
 
 	// 配置文件
 	v.SetConfigName("config")

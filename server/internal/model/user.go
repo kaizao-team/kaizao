@@ -10,6 +10,7 @@ import (
 type User struct {
 	ID              int64      `gorm:"primaryKey;autoIncrement" json:"id"`
 	UUID            string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
+	Username        *string    `gorm:"type:varchar(50);uniqueIndex" json:"-"`
 	Phone           *string    `gorm:"type:varchar(20);uniqueIndex" json:"-"`
 	PhoneHash       *string    `gorm:"type:varchar(64);index" json:"-"`
 	PasswordHash    *string    `gorm:"type:varchar(255)" json:"-"`

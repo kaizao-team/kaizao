@@ -73,3 +73,11 @@ registration:
 ai_agent:
   base_url: ""
   timeout_sec: 120
+
+# 账号密码注册/登录：RSA 私钥 PEM（或通过 VB_AUTH_PASSWORD_RSA_PRIVATE_KEY_PEM / 文件 configs/auth_password_rsa.pem）
+# 本地开发可设环境变量 VB_AUTH_PASSWORD_DEV_AUTO_KEY=1（debug 模式下临时生成密钥，重启后公钥会变）
+auth_password:
+  rsa_private_key_pem: ""
+  rsa_private_key_path: "configs/auth_password_rsa.pem"
+  key_id: "v1"
+  captcha_ttl_sec: 180

@@ -21,6 +21,14 @@ const (
 	ErrRegisterRequired            = 10017
 	ErrOnboardingAlreadyApproved = 10018
 	ErrOnboardingNeedExpertRole  = 10019
+	ErrUsernameInvalid           = 10020
+	ErrUsernameTaken             = 10021
+	ErrPasswordWeak              = 10022
+	ErrPasswordPlaintextForbidden = 10023
+	ErrPasswordCipherInvalid     = 10024
+	ErrPasswordNotSet            = 10025
+	ErrCaptchaInvalid            = 10026
+	ErrCaptchaExpired            = 10027
 )
 
 // 用户模块 11001-11999
@@ -173,6 +181,14 @@ var ErrorMessages = map[int]string{
 	ErrRegisterRequired:            "请先完成注册后再登录",
 	ErrOnboardingAlreadyApproved:   "已完成入驻审核",
 	ErrOnboardingNeedExpertRole:    "仅专家角色可提交入驻或兑换团队邀请码",
+	ErrUsernameInvalid:             "用户名格式不正确（4-32位字母数字下划线）",
+	ErrUsernameTaken:               "用户名已被占用",
+	ErrPasswordWeak:                "密码强度不足（8-72位且须含字母与数字）",
+	ErrPasswordPlaintextForbidden:  "禁止在请求体中传输明文密码字段",
+	ErrPasswordCipherInvalid:       "密码密文无效或无法解密",
+	ErrPasswordNotSet:              "该账号未设置密码登录",
+	ErrCaptchaInvalid:              "图形验证码错误",
+	ErrCaptchaExpired:              "图形验证码已过期",
 	ErrOnboardingApplicationInvalid: "请至少提供简历链接或有效作品集",
 	ErrTeamNotFound:                "团队不存在",
 	ErrObjectStorageDisabled:       "对象存储未启用或配置不完整",
