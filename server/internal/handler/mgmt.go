@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vibebuild/server/internal/dto"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
 	"github.com/vibebuild/server/internal/service"
@@ -18,6 +19,26 @@ type TaskHandler struct {
 
 func NewTaskHandler(taskService *service.TaskService, milestoneService *service.MilestoneService, log *zap.Logger) *TaskHandler {
 	return &TaskHandler{taskService: taskService, milestoneService: milestoneService, log: log}
+}
+
+// respondMilestoneCreateError 按业务码区分 HTTP 状态，避免鉴权/资源不存在与参数错误混为 400。
+func respondMilestoneCreateError(c *gin.Context, err error) {
+	code, convErr := strconv.Atoi(err.Error())
+	if convErr != nil || code <= 0 {
+		response.ErrorInternal(c, "创建里程碑失败")
+		return
+	}
+	msg := errcode.GetMessage(code)
+	switch code {
+	case errcode.ErrUserNotFound, errcode.ErrProjectNotFound:
+		response.ErrorNotFound(c, code, msg)
+	case errcode.ErrProjectParticipantOnly:
+		response.ErrorForbidden(c, code, msg)
+	case errcode.ErrParamInvalid, errcode.ErrMilestonePaymentRatioSum:
+		response.ErrorBadRequest(c, code, msg)
+	default:
+		response.ErrorBadRequest(c, code, msg)
+	}
 }
 
 func (h *TaskHandler) ListTasks(c *gin.Context) {
@@ -115,6 +136,38 @@ func (h *TaskHandler) ListMilestones(c *gin.Context) {
 		})
 	}
 	response.Success(c, list)
+}
+
+func (h *TaskHandler) CreateMilestone(c *gin.Context) {
+	projectUUID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	var req dto.CreateMilestoneReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败: "+err.Error())
+		return
+	}
+	ms, err := h.milestoneService.Create(projectUUID, userUUID, &req)
+	if err != nil {
+		respondMilestoneCreateError(c, err)
+		return
+	}
+	var amount interface{}
+	if ms.PaymentAmount != nil {
+		amount = *ms.PaymentAmount
+	}
+	response.SuccessMsg(c, "里程碑创建成功", gin.H{
+		"id":             ms.UUID,
+		"uuid":           ms.UUID,
+		"project_id":     projectUUID,
+		"title":          ms.Title,
+		"description":    ms.Description,
+		"sort_order":     ms.SortOrder,
+		"due_date":       ms.DueDate,
+		"payment_ratio":  ms.PaymentRatio,
+		"payment_amount": amount,
+		"status":         ms.Status,
+		"created_at":     ms.CreatedAt,
+	})
 }
 
 func (h *TaskHandler) GetDailyReports(c *gin.Context) {
