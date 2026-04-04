@@ -20,6 +20,11 @@ class MatchMock {
       handler: (_) => _acceptBid(),
     );
 
+    handlers['PUT:/api/v1/bids/:id/withdraw'] = MockHandler(
+      delayMs: 400,
+      handler: (_) => _withdrawBid(),
+    );
+
     handlers['GET:/api/v1/projects/:id/recommendations'] = MockHandler(
       delayMs: 700,
       handler: (options) => _recommendations(options),
@@ -58,6 +63,7 @@ class MatchMock {
           'is_ai_recommended': true,
           'skills': ['Flutter', 'Go', 'WebSocket'],
           'created_at': '2026-03-20T10:00:00Z',
+          'status': 1,
         },
         {
           'id': 'bid_002',
@@ -76,6 +82,7 @@ class MatchMock {
           'is_ai_recommended': false,
           'skills': ['Flutter', 'Vue.js', 'Node.js'],
           'created_at': '2026-03-20T12:00:00Z',
+          'status': 1,
         },
         {
           'id': 'bid_003',
@@ -90,6 +97,7 @@ class MatchMock {
           'proposal': '我们是一支3人全栈团队，能够并行开发前后端，大幅缩短交付时间。',
           'bid_type': 'team',
           'team_name': '创新工作室',
+          'status': 2,
           'team_members': [
             {'name': '王前端', 'role': '前端开发'},
             {'name': '赵后端', 'role': '后端开发'},
@@ -116,6 +124,7 @@ class MatchMock {
           'is_ai_recommended': false,
           'skills': ['Flutter', 'Python'],
           'created_at': '2026-03-21T09:00:00Z',
+          'status': 1,
         },
       ],
     };
@@ -137,6 +146,14 @@ class MatchMock {
       'code': 0,
       'message': '已选定团队',
       'data': {'status': 'accepted'},
+    };
+  }
+
+  static Map<String, dynamic> _withdrawBid() {
+    return {
+      'code': 0,
+      'message': '投标已撤回',
+      'data': {'status': 'withdrawn'},
     };
   }
 

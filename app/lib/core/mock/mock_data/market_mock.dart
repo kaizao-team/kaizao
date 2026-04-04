@@ -511,6 +511,7 @@ class MarketMock {
     ];
     detail['prd_summary'] =
         '本项目需要实现${project['title']}的核心功能，技术栈包括${(project['tech_requirements'] as List).join("、")}。项目周期预计4-6周。';
+    detail['is_favorited'] = const ['10', '17', '19', 'proj_010', 'proj_017', 'proj_019'].contains(id);
 
     return {
       'code': 0,

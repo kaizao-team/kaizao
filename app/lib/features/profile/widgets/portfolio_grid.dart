@@ -4,8 +4,17 @@ import '../models/profile_models.dart';
 
 class PortfolioGrid extends StatelessWidget {
   final List<PortfolioItem> items;
+  final bool editable;
+  final void Function(PortfolioItem item)? onEdit;
+  final void Function(PortfolioItem item)? onDelete;
 
-  const PortfolioGrid({super.key, required this.items});
+  const PortfolioGrid({
+    super.key,
+    required this.items,
+    this.editable = false,
+    this.onEdit,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +46,10 @@ class PortfolioGrid extends StatelessWidget {
               return _PortfolioCard(
                 item: items[index],
                 onDoubleTap: () => _openFullscreen(context, index),
+                editable: editable,
+                onEdit: onEdit != null ? () => onEdit!(items[index]) : null,
+                onDelete:
+                    onDelete != null ? () => onDelete!(items[index]) : null,
               );
             },
           ),
@@ -66,8 +79,104 @@ class PortfolioGrid extends StatelessWidget {
 class _PortfolioCard extends StatelessWidget {
   final PortfolioItem item;
   final VoidCallback onDoubleTap;
+  final bool editable;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
-  const _PortfolioCard({required this.item, required this.onDoubleTap});
+  const _PortfolioCard({
+    required this.item,
+    required this.onDoubleTap,
+    this.editable = false,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  void _confirmDelete(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '确定删除「${item.title}」？',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.black,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '删除后无法恢复',
+                style: TextStyle(fontSize: 13, color: AppColors.gray400),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: TextButton.styleFrom(
+                          backgroundColor: AppColors.gray100,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          '取消',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: AppColors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          onDelete?.call();
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: AppColors.error,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          '删除',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,22 +193,60 @@ class _PortfolioCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Container(
-                width: double.infinity,
-                color: AppColors.gray100,
-                child: item.coverUrl != null
-                    ? Image.network(
-                        item.coverUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Center(
-                          child: Icon(Icons.image_outlined,
-                              size: 32, color: AppColors.gray300),
+              child: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: AppColors.gray100,
+                    child: item.coverUrl != null
+                        ? Image.network(
+                            item.coverUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: Icon(Icons.image_outlined,
+                                  size: 32, color: AppColors.gray300),
+                            ),
+                          )
+                        : const Center(
+                            child: Icon(Icons.image_outlined,
+                                size: 32, color: AppColors.gray300),
+                          ),
+                  ),
+                  if (editable)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        iconSize: 20,
+                        icon: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(Icons.more_horiz,
+                              size: 14, color: Colors.white),
                         ),
-                      )
-                    : const Center(
-                        child: Icon(Icons.image_outlined,
-                            size: 32, color: AppColors.gray300),
+                        onSelected: (v) {
+                          if (v == 'edit') onEdit?.call();
+                          if (v == 'delete') _confirmDelete(context);
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Text('编辑', style: TextStyle(fontSize: 14)),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('删除',
+                                style: TextStyle(
+                                    fontSize: 14, color: AppColors.error)),
+                          ),
+                        ],
                       ),
+                    ),
+                ],
               ),
             ),
             Padding(
@@ -119,7 +266,7 @@ class _PortfolioCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    item.tags.join(' · '),
+                    item.techStack.join(' · '),
                     style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.gray400,

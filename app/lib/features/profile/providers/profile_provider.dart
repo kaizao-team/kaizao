@@ -101,6 +101,53 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       return false;
     }
   }
+
+  Future<bool> createPortfolio(Map<String, dynamic> data) async {
+    try {
+      await _repository.createPortfolio(data);
+      if (!mounted) return false;
+      final userId = state.profile?.id ?? _userId;
+      final portfolios = await _repository.fetchPortfolios(userId);
+      if (!mounted) return false;
+      state = state.copyWith(portfolios: portfolios);
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(errorMessage: () => e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> updatePortfolio(String uuid, Map<String, dynamic> data) async {
+    try {
+      await _repository.updatePortfolio(uuid, data);
+      if (!mounted) return false;
+      final userId = state.profile?.id ?? _userId;
+      final portfolios = await _repository.fetchPortfolios(userId);
+      if (!mounted) return false;
+      state = state.copyWith(portfolios: portfolios);
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(errorMessage: () => e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> deletePortfolio(String uuid) async {
+    try {
+      await _repository.deletePortfolio(uuid);
+      if (!mounted) return false;
+      state = state.copyWith(
+        portfolios: state.portfolios.where((p) => p.id != uuid).toList(),
+      );
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(errorMessage: () => e.toString());
+      return false;
+    }
+  }
 }
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {

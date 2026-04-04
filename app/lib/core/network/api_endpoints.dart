@@ -36,6 +36,9 @@ class ApiEndpoints {
   static String userSkills(String id) => '/api/v1/users/$id/skills';
   static String userPortfolios(String id) => '/api/v1/users/$id/portfolios';
   static const String currentUser = '/api/v1/users/me';
+  static const String myPortfolios = '/api/v1/users/me/portfolios';
+  static String myPortfolio(String uuid) =>
+      '/api/v1/users/me/portfolios/$uuid';
 
   // ============================================================
   // 首页聚合 /api/v1/home
@@ -113,6 +116,7 @@ class ApiEndpoints {
       '/api/v1/projects/$projectId/bids';
   static String bidAccept(String id) => '/api/v1/bids/$id/accept';
   static String bidReject(String id) => '/api/v1/bids/$id/reject';
+  static String bidWithdraw(String id) => '/api/v1/bids/$id/withdraw';
   static String projectRecommendations(String projectId) =>
       '/api/v1/projects/$projectId/recommendations';
   static String recommendedProjects(String userId) =>
@@ -180,6 +184,7 @@ class ApiEndpoints {
   // 收藏
   // ============================================================
   static const String favorites = '/api/v1/favorites';
+  static const String myFavorites = '/api/v1/users/me/favorites';
 
   // ============================================================
   // AI Agent 会话

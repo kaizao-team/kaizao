@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'routes.dart';
 import 'theme/app_theme.dart';
+import '../core/auth/auth_session_manager.dart';
 import '../shared/widgets/network_status_bar.dart';
 
 class VccApp extends ConsumerWidget {
@@ -10,6 +11,7 @@ class VccApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    AuthSessionManager().init(ref);
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(

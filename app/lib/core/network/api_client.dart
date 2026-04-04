@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'api_endpoints.dart';
 import 'api_response.dart';
+import '../auth/auth_session_manager.dart';
 import '../storage/storage_service.dart';
 import '../mock/mock_interceptor.dart';
 
@@ -92,7 +93,7 @@ class ApiClient {
               return;
             }
           }
-          await _storage.clearTokens();
+          await AuthSessionManager().forceLogout();
         }
         handler.next(error);
       },
@@ -250,9 +251,10 @@ class ApiClient {
 
   Future<ApiResponse<T>> delete<T>(
     String path, {
+    dynamic data,
     T Function(dynamic)? fromJson,
   }) async {
-    final response = await _dio.delete(path);
+    final response = await _dio.delete(path, data: data);
     return ApiResponse.fromJson(response.data, fromJson);
   }
 

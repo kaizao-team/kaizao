@@ -122,7 +122,8 @@ class PortfolioItem {
   final String title;
   final String? coverUrl;
   final String description;
-  final List<String> tags;
+  final String category;
+  final List<String> techStack;
   final String createdAt;
 
   const PortfolioItem({
@@ -130,17 +131,20 @@ class PortfolioItem {
     required this.title,
     this.coverUrl,
     this.description = '',
-    this.tags = const [],
+    this.category = 'other',
+    this.techStack = const [],
     this.createdAt = '',
   });
 
   factory PortfolioItem.fromJson(Map<String, dynamic> json) {
+    final techStackRaw = json['tech_stack'] as List? ?? json['tags'] as List?;
     return PortfolioItem(
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       coverUrl: json['cover_url']?.toString(),
       description: json['description']?.toString() ?? '',
-      tags: (json['tags'] as List?)
+      category: json['category']?.toString() ?? 'other',
+      techStack: techStackRaw
               ?.map((e) => e?.toString() ?? '')
               .where((s) => s.isNotEmpty)
               .toList() ??
@@ -148,4 +152,12 @@ class PortfolioItem {
       createdAt: json['created_at']?.toString() ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        if (description.isNotEmpty) 'description': description,
+        'category': category,
+        if (coverUrl != null) 'cover_url': coverUrl,
+        if (techStack.isNotEmpty) 'tech_stack': techStack,
+      };
 }

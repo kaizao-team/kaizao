@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../auth/auth_session_manager.dart';
 import '../config/app_env.dart';
 import '../storage/storage_service.dart';
 import 'sse_client.dart';
@@ -38,6 +39,12 @@ class AiAgentClient {
               defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
           options.headers['X-App-Version'] = '1.0.0';
           handler.next(options);
+        },
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401) {
+            await AuthSessionManager().forceLogout();
+          }
+          handler.next(error);
         },
       ),
     );

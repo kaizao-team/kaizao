@@ -30,6 +30,21 @@ class ProfileMock {
       delayMs: 300,
       handler: (_) => _getPortfolios(),
     );
+
+    handlers['POST:/api/v1/users/me/portfolios'] = MockHandler(
+      delayMs: 500,
+      handler: (options) => _createPortfolio(options),
+    );
+
+    handlers['PUT:/api/v1/users/me/portfolios/:uuid'] = MockHandler(
+      delayMs: 400,
+      handler: (options) => _updatePortfolio(options),
+    );
+
+    handlers['DELETE:/api/v1/users/me/portfolios/:uuid'] = MockHandler(
+      delayMs: 300,
+      handler: (_) => _deletePortfolio(),
+    );
   }
 
   static Map<String, dynamic> _getUserProfile(RequestOptions options) {
@@ -111,7 +126,8 @@ class ProfileMock {
           'title': '智能客服系统',
           'cover_url': 'https://picsum.photos/seed/pf01/400/300',
           'description': '基于 GPT-4 的多轮对话客服系统',
-          'tags': ['Flutter', 'AI', 'WebSocket'],
+          'category': 'web-app',
+          'tech_stack': ['Flutter', 'AI', 'WebSocket'],
           'created_at': '2026-01-15T10:00:00Z',
         },
         {
@@ -119,7 +135,8 @@ class ProfileMock {
           'title': '企业 SaaS 平台',
           'cover_url': 'https://picsum.photos/seed/pf02/400/300',
           'description': '面向中小企业的项目管理和协作工具',
-          'tags': ['React', 'Go', 'PostgreSQL'],
+          'category': 'web-app',
+          'tech_stack': ['React', 'Go', 'PostgreSQL'],
           'created_at': '2025-11-20T10:00:00Z',
         },
         {
@@ -127,7 +144,8 @@ class ProfileMock {
           'title': '短视频社区 App',
           'cover_url': 'https://picsum.photos/seed/pf03/400/300',
           'description': '日活10万+的短视频UGC社区',
-          'tags': ['Flutter', 'FFmpeg', 'CDN'],
+          'category': 'mobile-app',
+          'tech_stack': ['Flutter', 'FFmpeg', 'CDN'],
           'created_at': '2025-08-10T10:00:00Z',
         },
         {
@@ -135,10 +153,40 @@ class ProfileMock {
           'title': '智慧物流调度系统',
           'cover_url': 'https://picsum.photos/seed/pf04/400/300',
           'description': 'AI驱动的物流路径优化和订单调度',
-          'tags': ['Go', 'ML', 'GIS'],
+          'category': 'backend',
+          'tech_stack': ['Go', 'ML', 'GIS'],
           'created_at': '2025-05-01T10:00:00Z',
         },
       ],
+    };
+  }
+
+  static Map<String, dynamic> _createPortfolio(RequestOptions options) {
+    return {
+      'code': 0,
+      'message': '作品创建成功',
+      'data': {
+        'id': 'pf_new_${DateTime.now().millisecondsSinceEpoch}',
+        'title': (options.data as Map?)?['title'] ?? '',
+      },
+    };
+  }
+
+  static Map<String, dynamic> _updatePortfolio(RequestOptions options) {
+    return {
+      'code': 0,
+      'message': '作品更新成功',
+      'data': {
+        'id': options.path.split('/').last,
+      },
+    };
+  }
+
+  static Map<String, dynamic> _deletePortfolio() {
+    return {
+      'code': 0,
+      'message': '作品已删除',
+      'data': null,
     };
   }
 }
