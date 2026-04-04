@@ -76,14 +76,41 @@ func (s *BidService) Create(bidderUUID, projectUUID string, amount float64, dura
 		Proposal:      &proposal,
 		Status:        1,
 	}
-	if err := s.repos.Bid.Create(bid); err != nil {
-		return nil, err
+	targetType := "project"
+	tid := project.ID
+	content := formatNewBidNotificationContent(bidder.Nickname, project.Title, amount)
+	n := &model.Notification{
+		UserID:           project.OwnerID,
+		Title:            "收到新投标",
+		Content:          content,
+		NotificationType: model.NotificationTypeNewBid,
+		TargetType:       &targetType,
+		TargetID:         &tid,
 	}
 
-	s.repos.Project.UpdateFields(project.ID, map[string]interface{}{
-		"bid_count": project.BidCount + 1,
-	})
+	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		txRepos := repository.NewRepositories(tx)
+		if err := txRepos.Bid.Create(bid); err != nil {
+			return err
+		}
+		if err := txRepos.Project.UpdateFields(project.ID, map[string]interface{}{
+			"bid_count": project.BidCount + 1,
+		}); err != nil {
+			return err
+		}
+		return txRepos.Notification.Create(n)
+	}); err != nil {
+		return nil, err
+	}
 	return bid, nil
+}
+
+func formatNewBidNotificationContent(expertName, projectTitle string, amount float64) string {
+	// 使用 \u00a5 避免编辑器将「¥」误写为全角 U+FFE5，与客户端/测试字面量一致
+	return fmt.Sprintf(
+		"「%s」对您的项目「%s」提交了投标，报价 \u00a5%.2f",
+		expertName, projectTitle, amount,
+	)
 }
 
 func displayPhoneForNotify(u *model.User) string {

@@ -154,6 +154,7 @@ const (
 	NotificationTypeMatchSuccess       int16 = 20 // 撮合成功
 	NotificationTypePayReminder        int16 = 21 // 待支付提醒
 	NotificationTypeMilestoneDelivered int16 = 22 // 里程碑待验收
+	NotificationTypeNewBid             int16 = 23 // 收到新投标
 )
 
 func (n *Notification) BeforeCreate(tx *gorm.DB) error {
