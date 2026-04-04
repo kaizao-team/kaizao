@@ -1,0 +1,6 @@
+# 与 docker-compose.yml 合并使用：server 改用 Dockerfile.buildkit（BuildKit 缓存 go mod/build）
+# USE_DOCKERFILE_BUILDKIT=1 bash scripts/wsl_deploy_test.sh
+services:
+  server:
+    build:
+      dockerfile: Dockerfile.buildkit

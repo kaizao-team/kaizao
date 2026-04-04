@@ -4,12 +4,21 @@ import (
 	"testing"
 
 	"github.com/vibebuild/server/internal/model"
+	"github.com/vibebuild/server/internal/pkg/errcode"
 )
 
 func TestNotificationTypeNewBidValue(t *testing.T) {
 	t.Parallel()
 	if model.NotificationTypeNewBid != 23 {
 		t.Fatalf("NotificationTypeNewBid=%d, want 23 (API 与集成测试 type=23 一致)", model.NotificationTypeNewBid)
+	}
+}
+
+// TestErrBidClosedMatchesWithdrawRejection 与 api/test_api_v2.py §7.2b4 / §7.4w 中 code=30003 断言一致（非 pending 不可撤回）。
+func TestErrBidClosedMatchesWithdrawRejection(t *testing.T) {
+	t.Parallel()
+	if errcode.ErrBidClosed != 30003 {
+		t.Fatalf("ErrBidClosed=%d, want 30003 for accepted/withdrawn bid", errcode.ErrBidClosed)
 	}
 }
 

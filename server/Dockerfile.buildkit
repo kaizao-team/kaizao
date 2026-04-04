@@ -1,0 +1,42 @@
+# syntax=docker/dockerfile:1
+# 需 Docker BuildKit（docker buildx / DOCKER_BUILDKIT=1），将 go mod 与 go build 缓存在 BuildKit 缓存卷中，改 go.mod 后仍多为增量。
+# 用法：USE_DOCKERFILE_BUILDKIT=1 bash scripts/wsl_deploy_test.sh
+# 或：DOCKER_BUILDKIT=1 docker build -f Dockerfile.buildkit -t kaizao-server:latest .
+FROM golang:1.22-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates tzdata
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    GOPROXY=https://goproxy.cn,direct \
+    GOMODCACHE=/go/pkg/mod \
+    GOCACHE=/root/.cache/go-build \
+    go mod download
+
+COPY . .
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    GOPROXY=https://goproxy.cn,direct \
+    GOMODCACHE=/go/pkg/mod \
+    GOCACHE=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags="-w -s" -o /app/kaizao-server ./cmd/server
+
+FROM alpine:3.19
+
+RUN apk add --no-cache ca-certificates tzdata wget
+
+ENV TZ=Asia/Shanghai
+
+WORKDIR /app
+
+COPY --from=builder /app/kaizao-server .
+COPY --from=builder /app/configs ./configs
+
+EXPOSE 8080
+
+ENTRYPOINT ["./kaizao-server"]

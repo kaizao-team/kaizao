@@ -4,3 +4,5 @@ configs/*_rsa.pem
 # 本地覆盖 compose 变量（可选）
 .env
 deploy/.env.prod
+# docker_go_test.sh 映射到宿主机的 Go 模块/构建缓存（勿提交）
+.docker-cache/
