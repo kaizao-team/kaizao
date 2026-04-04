@@ -149,6 +149,33 @@ func (s *ProjectService) Update(uuid string, fields map[string]interface{}) (*mo
 	return s.repos.Project.FindByUUID(uuid)
 }
 
+// Publish 将草稿项目发布（status 1 → 2）
+func (s *ProjectService) Publish(projectUUID, ownerUserUUID string) (*model.Project, error) {
+	p, err := s.repos.Project.FindByUUID(projectUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	owner, err := s.repos.User.FindByUUID(ownerUserUUID)
+	if err != nil {
+		return nil, err
+	}
+	if p.OwnerID != owner.ID {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectOwnerOnly)
+	}
+	if p.Status != 1 {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
+	}
+	now := time.Now()
+	fields := map[string]interface{}{
+		"status":       int16(2),
+		"published_at": &now,
+	}
+	if err := s.repos.Project.UpdateFields(p.ID, fields); err != nil {
+		return nil, err
+	}
+	return s.repos.Project.FindByUUID(projectUUID)
+}
+
 // Close 关闭需求（已发布/草稿均可关闭；已撮合进行中不可关闭）
 func (s *ProjectService) Close(uuid string, reason string) error {
 	p, err := s.repos.Project.FindByUUID(uuid)

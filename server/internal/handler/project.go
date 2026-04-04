@@ -174,6 +174,31 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 	})
 }
 
+// Publish 发布草稿项目（status 1 → 2）
+// POST /api/v1/projects/:id/publish
+func (h *ProjectHandler) Publish(c *gin.Context) {
+	uuid := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+
+	project, err := h.projectService.Publish(uuid, userUUID)
+	if err != nil {
+		code, parseErr := strconv.Atoi(err.Error())
+		if parseErr == nil && code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "发布项目失败")
+		return
+	}
+
+	response.SuccessMsg(c, "项目已发布", gin.H{
+		"id":           project.UUID,
+		"uuid":         project.UUID,
+		"status":       project.Status,
+		"published_at": project.PublishedAt,
+	})
+}
+
 // Close 关闭项目
 func (h *ProjectHandler) Close(c *gin.Context) {
 	uuid := c.Param("id")

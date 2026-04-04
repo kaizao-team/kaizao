@@ -6,6 +6,7 @@
 """
 
 import json
+import time
 import uuid
 from typing import Optional
 
@@ -24,6 +25,43 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v2/rating", tags=["v2-团队方评分定级"])
 
 rating_repo = RatingRepository()
+
+
+async def _sync_provider_to_milvus(provider_id: str, profile_data: dict) -> None:
+    """评级完成后，将专家画像向量化并写入 Milvus（供撮合检索）"""
+    from app.main import embedding_client, milvus_store
+
+    if not embedding_client or not milvus_store:
+        logger.warning("milvus_sync_skip", reason="embedding_client 或 milvus_store 未初始化")
+        return
+
+    try:
+        skills = profile_data.get("skills") or []
+        ai_tools = profile_data.get("ai_tools") or []
+        resume_summary = profile_data.get("resume_summary", "")
+
+        # 构建画像文本用于向量化
+        profile_text = (
+            f"技能: {', '.join(skills)}. "
+            f"AI工具: {', '.join(ai_tools)}. "
+            f"{resume_summary}"
+        )
+
+        vector = embedding_client.encode(profile_text)
+
+        milvus_store.upsert_provider_vector(
+            user_uuid=provider_id,
+            vector=vector,
+            skills_json=json.dumps(skills, ensure_ascii=False),
+            category_tags=json.dumps(ai_tools[:5], ensure_ascii=False),
+            avg_rating=0.0,
+            credit_score=profile_data.get("vibe_power", 0),
+            is_active=True,
+            updated_at=int(time.time()),
+        )
+        logger.info("milvus_provider_synced", provider_id=provider_id)
+    except Exception as e:
+        logger.error("milvus_provider_sync_failed", provider_id=provider_id, error=str(e))
 
 
 # ============================================================
@@ -127,6 +165,8 @@ async def _do_evaluate(
             points=vibe_power,
             reason="AI 简历解析初始化定级",
         )
+        # 同步专家画像到 Milvus 供撮合检索
+        await _sync_provider_to_milvus(pid, profile_data)
     except Exception as db_err:
         logger.warning("rating_db_save_skip", error=str(db_err))
 
@@ -307,6 +347,7 @@ async def evaluate_provider_stream_file(
                         points=profile_data["vibe_power"],
                         reason="AI 简历解析初始化定级",
                     )
+                    await _sync_provider_to_milvus(pid, profile_data)
                 except Exception as db_err:
                     logger.warning("rating_stream_db_save_skip", error=str(db_err))
 
@@ -368,6 +409,7 @@ async def evaluate_provider_stream_text(
                         points=profile_data["vibe_power"],
                         reason="AI 简历解析初始化定级",
                     )
+                    await _sync_provider_to_milvus(pid, profile_data)
                 except Exception as db_err:
                     logger.warning("rating_stream_db_save_skip", error=str(db_err))
 
