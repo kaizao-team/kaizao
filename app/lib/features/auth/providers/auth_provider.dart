@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/auth_repository.dart';
 import '../../../core/storage/storage_service.dart';
+import '../../../core/utils/rsa_cipher.dart';
 
 /// 认证状态
 class AuthState {
@@ -85,10 +86,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     changeNotifier.notify();
   }
 
-  Future<bool> sendSmsCode(String phone) async {
+  Future<bool> sendSmsCode(String phone, {int purpose = 2}) async {
     state = state.copyWith(isLoading: true, errorMessage: () => null);
     try {
-      await _repository.sendSmsCode(phone);
+      await _repository.sendSmsCode(phone, purpose: purpose);
       if (!mounted) return false;
       state = state.copyWith(isLoading: false);
       return true;
@@ -104,20 +105,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, errorMessage: () => null);
     try {
       final result = await _repository.loginWithPhone(phone, code);
-      await _storage.saveAccessToken(result.accessToken);
-      await _storage.saveRefreshToken(result.refreshToken);
-      await _storage.saveUserId(result.userId);
-      await _storage.saveUserRole(result.userRole);
-      if (!mounted) return false;
-
-      state = AuthState(
-        isInitialized: true,
-        isLoggedIn: true,
-        userId: result.userId,
-        userRole: result.userRole,
-        isNewUser: result.isNewUser,
-      );
-      changeNotifier.notify();
+      await _saveLoginResult(result);
       return true;
     } catch (e) {
       if (!mounted) return false;
@@ -125,6 +113,89 @@ class AuthNotifier extends StateNotifier<AuthState> {
           state.copyWith(isLoading: false, errorMessage: () => e.toString());
       return false;
     }
+  }
+
+  /// 账号密码登录
+  Future<bool> loginWithPassword({
+    required String identity,
+    required String password,
+    required String captchaId,
+    required String captchaCode,
+  }) async {
+    state = state.copyWith(isLoading: true, errorMessage: () => null);
+    try {
+      final keyResult = await _repository.getPasswordKey();
+      final cipher = RsaCipher.encrypt(password, keyResult.publicKeyPem);
+      final result = await _repository.loginWithPassword(
+        loginType: 'username',
+        identity: identity,
+        passwordCipher: cipher,
+        captchaId: captchaId,
+        captchaCode: captchaCode,
+      );
+      await _saveLoginResult(result);
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state =
+          state.copyWith(isLoading: false, errorMessage: () => e.toString());
+      return false;
+    }
+  }
+
+  /// 账号密码注册
+  Future<bool> registerWithPassword({
+    required String username,
+    required String password,
+    String? nickname,
+    String? phone,
+    String? smsCode,
+  }) async {
+    state = state.copyWith(isLoading: true, errorMessage: () => null);
+    try {
+      final keyResult = await _repository.getPasswordKey();
+      final cipher = RsaCipher.encrypt(password, keyResult.publicKeyPem);
+      final result = await _repository.registerWithPassword(
+        username: username,
+        passwordCipher: cipher,
+        nickname: nickname,
+        phone: phone,
+        smsCode: smsCode,
+      );
+      await _saveLoginResult(result);
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state =
+          state.copyWith(isLoading: false, errorMessage: () => e.toString());
+      return false;
+    }
+  }
+
+  /// 获取图形验证码
+  Future<CaptchaResult?> getCaptcha() async {
+    try {
+      return await _repository.getCaptcha();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _saveLoginResult(LoginResult result) async {
+    await _storage.saveAccessToken(result.accessToken);
+    await _storage.saveRefreshToken(result.refreshToken);
+    await _storage.saveUserId(result.userId);
+    await _storage.saveUserRole(result.userRole);
+    if (!mounted) return;
+
+    state = AuthState(
+      isInitialized: true,
+      isLoggedIn: true,
+      userId: result.userId,
+      userRole: result.userRole,
+      isNewUser: result.isNewUser,
+    );
+    changeNotifier.notify();
   }
 
   Future<bool> selectRole(int role) async {

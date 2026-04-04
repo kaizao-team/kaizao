@@ -53,6 +53,10 @@ class ApiClient {
           ApiEndpoints.login,
           ApiEndpoints.register,
           ApiEndpoints.refreshToken,
+          ApiEndpoints.passwordKey,
+          ApiEndpoints.captcha,
+          ApiEndpoints.loginPassword,
+          ApiEndpoints.registerPassword,
         ];
 
         final needsAuth = !noAuthPaths.any(
