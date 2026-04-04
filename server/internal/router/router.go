@@ -79,6 +79,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		users.GET("/:id/skills", middleware.OptionalJWTAuth(services.JWT), handlers.User.GetSkills)
 		users.PUT("/me/skills", middleware.JWTAuth(services.JWT), handlers.User.UpdateSkills)
 		users.PUT("/:id/skills", middleware.JWTAuth(services.JWT), handlers.User.UpdateSkills)
+		users.GET("/me/portfolios", middleware.JWTAuth(services.JWT), handlers.User.GetMyPortfolios)
 		users.GET("/:id/portfolios", middleware.OptionalJWTAuth(services.JWT), handlers.User.GetPortfolios)
 		users.POST("/me/portfolios", middleware.JWTAuth(services.JWT), handlers.User.CreatePortfolio)
 		users.PUT("/me/portfolios/:uuid", middleware.JWTAuth(services.JWT), handlers.User.UpdatePortfolio)

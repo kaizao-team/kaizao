@@ -1,13 +1,12 @@
 #!/bin/bash
-# WSL + Docker 下一键：Go 单测（可选）→ 构建并启动栈 → 健康检查 → API 集成测试（test_api_v2.py）
+# WSL + Docker 下一键：Go 单测（可选，WSL 本机 go）→ 构建并启动栈 → 健康检查 → API 集成测试（test_api_v2.py）
 # 用法：在仓库 kaizao/server 目录执行  bash scripts/wsl_deploy_test.sh
 # 若本机 8080 已被占用：SERVER_HOST_PORT=18080 bash scripts/wsl_deploy_test.sh
 # 跳过 Go 单测：RUN_GO_TEST=0 bash scripts/wsl_deploy_test.sh
 #
-# Go 缓存：
-#   - go test：模块/构建缓存映射到宿主机 .docker-cache/（scripts/docker_go_test.sh）
-#   - 镜像构建：默认 Dockerfile；若已安装 docker buildx，可设 USE_DOCKERFILE_BUILDKIT=1 使用
-#     Dockerfile.buildkit（BuildKit 缓存卷，改 go.mod 后多为增量下载）
+# Go 单测：在 WSL 内使用 PATH 中的 `go`（与 docker_go_test.sh 无关；模块/构建缓存为 Go 默认目录）。
+# 镜像构建：默认 Dockerfile；若已安装 docker buildx，可设 USE_DOCKERFILE_BUILDKIT=1 使用
+#   Dockerfile.buildkit（BuildKit 缓存卷，改 go.mod 后多为增量下载）
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -23,11 +22,14 @@ if [ "${USE_DOCKERFILE_BUILDKIT:-0}" = "1" ]; then
   echo "INFO: using Dockerfile.buildkit (BuildKit go mod/build cache)"
 fi
 
-# 在 Docker 内 golang 镜像跑 go test（脚本内单引号包裹，避免从 Windows 直接传参时 ./... 被拆坏）
-# 模块与构建缓存默认映射到宿主机 .docker-cache/（见 scripts/docker_go_test.sh）
 if [ "${RUN_GO_TEST:-1}" = "1" ]; then
-  echo "=== go test (docker: golang:1.22-bookworm, see scripts/docker_go_test.sh) ==="
-  bash "$ROOT/scripts/docker_go_test.sh"
+  echo "=== go test (WSL local) ==="
+  if ! command -v go >/dev/null 2>&1; then
+    echo "FATAL: go not found in PATH. Install Go in WSL or set RUN_GO_TEST=0 to skip."
+    exit 1
+  fi
+  go version
+  go test -count=1 ./...
 fi
 
 echo "=== compose build & up (API -> ${BASE}) ==="

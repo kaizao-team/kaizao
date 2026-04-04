@@ -101,6 +101,7 @@ type UserRepository interface {
 	FindSkillByID(id int64) (*model.Skill, error)
 	EnsureSkill(name, category string) (*model.Skill, error)
 	ListUserPortfolios(userID int64) ([]*model.Portfolio, error)
+	CountActivePortfoliosByUserID(userID int64) (int64, error)
 	CreatePortfolio(p *model.Portfolio) error
 	FindPortfolioByUUID(uuid string) (*model.Portfolio, error)
 	UpdatePortfolioFields(id int64, fields map[string]interface{}) error

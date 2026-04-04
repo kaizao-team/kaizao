@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vibebuild/server/internal/dto"
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
@@ -17,6 +18,16 @@ import (
 )
 
 var cnMobilePattern = regexp.MustCompile(`^1[3-9]\d{9}$`)
+
+// isPortfolioCategoryEnum 作品 category 合法枚举值（更新时若传 category 字段则不可为空串，且须命中其一）
+func isPortfolioCategoryEnum(cat string) bool {
+	switch cat {
+	case "app", "web", "miniprogram", "design", "data", "other":
+		return true
+	default:
+		return false
+	}
+}
 
 // maskContactPhonePublic 公开资料中的联系电话脱敏（与登录手机号展示规则一致；非 11 位做保守遮挡）
 func maskContactPhonePublic(p *string) string {
@@ -205,9 +216,57 @@ func (h *UserHandler) UpdateSkills(c *gin.Context) {
 	response.SuccessMsg(c, "技能更新成功", nil)
 }
 
-func (h *UserHandler) GetPortfolios(c *gin.Context) {
-	userID := c.Param("id")
-	user, err := h.userService.GetByUUID(userID)
+func portfolioTechToSlice(raw model.JSON) []string {
+	if len(raw) == 0 {
+		return []string{}
+	}
+	var out []string
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return []string{}
+	}
+	return out
+}
+
+func portfolioImagesForResponse(raw model.JSON) []dto.ImageItem {
+	if len(raw) == 0 {
+		return []dto.ImageItem{}
+	}
+	var out []dto.ImageItem
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return []dto.ImageItem{}
+	}
+	return out
+}
+
+func (h *UserHandler) portfolioListItem(p *model.Portfolio) gin.H {
+	tech := portfolioTechToSlice(p.TechStack)
+	return gin.H{
+		"id":             p.UUID,
+		"title":          p.Title,
+		"cover_url":      p.CoverURL,
+		"description":    p.Description,
+		"category":       p.Category,
+		"tags":           tech,
+		"tech_stack":     tech,
+		"preview_url":    p.PreviewURL,
+		"demo_video_url": p.DemoVideoURL,
+		"images":         portfolioImagesForResponse(p.Images),
+		"created_at":     p.CreatedAt,
+	}
+}
+
+// GetMyPortfolios GET /api/v1/users/me/portfolios（须登录）
+func (h *UserHandler) GetMyPortfolios(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	if userUUID == "" {
+		response.ErrorUnauthorized(c, errcode.ErrTokenInvalid, "缺少认证信息")
+		return
+	}
+	h.respondPortfoliosForUser(c, userUUID)
+}
+
+func (h *UserHandler) respondPortfoliosForUser(c *gin.Context, userUUID string) {
+	user, err := h.userService.GetByUUID(userUUID)
 	if err != nil {
 		response.ErrorNotFound(c, errcode.ErrUserNotFound, "用户不存在")
 		return
@@ -215,16 +274,22 @@ func (h *UserHandler) GetPortfolios(c *gin.Context) {
 	portfolios, _ := h.userService.ListUserPortfolios(user.ID)
 	list := make([]gin.H, 0, len(portfolios))
 	for _, p := range portfolios {
-		list = append(list, gin.H{
-			"id":          p.UUID,
-			"title":       p.Title,
-			"cover_url":   p.CoverURL,
-			"description": p.Description,
-			"tags":        p.TechStack,
-			"created_at":  p.CreatedAt,
-		})
+		list = append(list, h.portfolioListItem(p))
 	}
 	response.Success(c, list)
+}
+
+// GetPortfolios GET /api/v1/users/:id/portfolios；:id 为 me 时需携带 Token
+func (h *UserHandler) GetPortfolios(c *gin.Context) {
+	userID := strings.TrimSpace(c.Param("id"))
+	if userID == "me" {
+		userID = c.GetString("user_uuid")
+		if userID == "" {
+			response.ErrorUnauthorized(c, errcode.ErrTokenInvalid, "查看自己的作品集需要登录")
+			return
+		}
+	}
+	h.respondPortfoliosForUser(c, userID)
 }
 
 // CreatePortfolio POST /api/v1/users/me/portfolios
@@ -235,35 +300,72 @@ func (h *UserHandler) CreatePortfolio(c *gin.Context) {
 		response.ErrorNotFound(c, errcode.ErrUserNotFound, "用户不存在")
 		return
 	}
-	var req struct {
-		Title       string   `json:"title" binding:"required"`
-		Description *string  `json:"description"`
-		Category    string   `json:"category"`
-		CoverURL    *string  `json:"cover_url"`
-		TechStack   []string `json:"tech_stack"`
-	}
+	var req dto.CreatePortfolioReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
 		return
 	}
-	if req.Category == "" {
-		req.Category = "other"
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "标题不能为空")
+		return
+	}
+	category := strings.TrimSpace(req.Category)
+	if category == "" {
+		category = "other"
+	}
+	var descPtr *string
+	if t := strings.TrimSpace(req.Description); t != "" {
+		descPtr = &t
+	}
+	var coverPtr *string
+	if t := strings.TrimSpace(req.CoverURL); t != "" {
+		coverPtr = &t
+	}
+	var previewPtr *string
+	if t := strings.TrimSpace(req.PreviewURL); t != "" {
+		previewPtr = &t
+	}
+	var demoPtr *string
+	if t := strings.TrimSpace(req.DemoVideoURL); t != "" {
+		demoPtr = &t
 	}
 	var techStackJSON model.JSON
 	if len(req.TechStack) > 0 {
-		b, _ := json.Marshal(req.TechStack)
+		b, err := json.Marshal(req.TechStack)
+		if err != nil {
+			response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+			return
+		}
 		techStackJSON = model.JSON(b)
 	}
+	var imagesJSON model.JSON
+	if len(req.Images) > 0 {
+		b, err := json.Marshal(req.Images)
+		if err != nil {
+			response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+			return
+		}
+		imagesJSON = model.JSON(b)
+	}
 	p := &model.Portfolio{
-		UserID:      user.ID,
-		Title:       req.Title,
-		Description: req.Description,
-		Category:    req.Category,
-		CoverURL:    req.CoverURL,
-		TechStack:   techStackJSON,
-		Status:      1,
+		UserID:       user.ID,
+		Title:        title,
+		Description:  descPtr,
+		Category:     category,
+		CoverURL:     coverPtr,
+		PreviewURL:   previewPtr,
+		TechStack:    techStackJSON,
+		Images:       imagesJSON,
+		DemoVideoURL: demoPtr,
+		Status:       1,
 	}
 	if err := h.userService.CreatePortfolio(p); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code == errcode.ErrPortfolioExceedLimit {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
 		response.ErrorInternal(c, "创建作品失败")
 		return
 	}
@@ -291,33 +393,71 @@ func (h *UserHandler) UpdatePortfolio(c *gin.Context) {
 		response.ErrorForbidden(c, errcode.ErrParamInvalid, "无权操作他人作品")
 		return
 	}
-	var req struct {
-		Title       *string  `json:"title"`
-		Description *string  `json:"description"`
-		Category    *string  `json:"category"`
-		CoverURL    *string  `json:"cover_url"`
-		TechStack   []string `json:"tech_stack"`
-	}
+	var req dto.UpdatePortfolioReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
 		return
 	}
 	fields := make(map[string]interface{})
 	if req.Title != nil {
-		fields["title"] = *req.Title
+		t := strings.TrimSpace(*req.Title)
+		if t == "" {
+			response.ErrorBadRequest(c, errcode.ErrParamInvalid, "标题不能为空")
+			return
+		}
+		fields["title"] = t
 	}
 	if req.Description != nil {
 		fields["description"] = *req.Description
 	}
 	if req.Category != nil {
-		fields["category"] = *req.Category
+		cat := strings.TrimSpace(*req.Category)
+		if cat == "" {
+			response.ErrorBadRequest(c, errcode.ErrParamInvalid, "category 不能为空")
+			return
+		}
+		if !isPortfolioCategoryEnum(cat) {
+			response.ErrorBadRequest(c, errcode.ErrParamInvalid, "category 无效")
+			return
+		}
+		fields["category"] = cat
 	}
 	if req.CoverURL != nil {
-		fields["cover_url"] = *req.CoverURL
+		if strings.TrimSpace(*req.CoverURL) == "" {
+			fields["cover_url"] = nil
+		} else {
+			fields["cover_url"] = strings.TrimSpace(*req.CoverURL)
+		}
+	}
+	if req.PreviewURL != nil {
+		if strings.TrimSpace(*req.PreviewURL) == "" {
+			fields["preview_url"] = nil
+		} else {
+			fields["preview_url"] = strings.TrimSpace(*req.PreviewURL)
+		}
+	}
+	if req.DemoVideoURL != nil {
+		if strings.TrimSpace(*req.DemoVideoURL) == "" {
+			fields["demo_video_url"] = nil
+		} else {
+			fields["demo_video_url"] = strings.TrimSpace(*req.DemoVideoURL)
+		}
 	}
 	if req.TechStack != nil {
-		b, _ := json.Marshal(req.TechStack)
+		b, err := json.Marshal(*req.TechStack)
+		if err != nil {
+			response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+			return
+		}
 		fields["tech_stack"] = model.JSON(b)
+	}
+	if req.Images != nil {
+		b, err := json.Marshal(*req.Images)
+		if err != nil {
+			response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+			return
+		}
+		fields["images"] = model.JSON(b)
 	}
 	if len(fields) == 0 {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "无可更新字段")

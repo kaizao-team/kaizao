@@ -38,16 +38,29 @@ type CertificationReq struct {
 	CertificationType string `json:"certification_type" binding:"required,oneof=test portfolio_review"`
 }
 
-// CreatePortfolioReq 创建作品请求
+// CreatePortfolioReq 创建作品请求（category 省略时服务端默认为 other）
 type CreatePortfolioReq struct {
 	Title        string      `json:"title" binding:"required,max=200"`
 	Description  string      `json:"description" binding:"omitempty"`
-	Category     string      `json:"category" binding:"required,oneof=app web miniprogram design data other"`
+	Category     string      `json:"category" binding:"omitempty,oneof=app web miniprogram design data other"`
 	CoverURL     string      `json:"cover_url" binding:"omitempty"`
 	PreviewURL   string      `json:"preview_url" binding:"omitempty"`
 	TechStack    []string    `json:"tech_stack" binding:"omitempty"`
 	Images       []ImageItem `json:"images" binding:"omitempty"`
 	DemoVideoURL string      `json:"demo_video_url" binding:"omitempty"`
+}
+
+// UpdatePortfolioReq 更新作品请求（仅非空字段写入；tech_stack/images 传 null 表示不更新）
+type UpdatePortfolioReq struct {
+	Title        *string      `json:"title" binding:"omitempty,max=200"`
+	Description  *string      `json:"description"`
+	// 若传 category 则不可为空字符串，且须为 Handler 中枚举之一
+	Category     *string      `json:"category" binding:"omitempty"`
+	CoverURL     *string      `json:"cover_url"`
+	PreviewURL   *string      `json:"preview_url"`
+	TechStack    *[]string    `json:"tech_stack"`
+	Images       *[]ImageItem `json:"images"`
+	DemoVideoURL *string      `json:"demo_video_url"`
 }
 
 // ImageItem 图片项

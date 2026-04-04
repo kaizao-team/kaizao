@@ -203,6 +203,7 @@ var ErrorMessages = map[int]string{
 	ErrUserNotFound:         "用户不存在",
 	ErrNicknameUsed:         "昵称已被使用",
 	ErrSkillsExceedLimit:    "技能标签数量超过上限",
+	ErrPortfolioExceedLimit: "作品集数量超过上限",
 	ErrBioTooLong:           "个人简介长度超限",
 	ErrUserDeactivated:      "用户已注销",
 	ErrProjectNotFound:       "项目不存在",
