@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/auth/auth_session_manager.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_input.dart';
 import '../../../shared/widgets/vcc_toast.dart';
@@ -65,6 +66,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
       ),
     );
     _phoneController.addListener(_validatePhone);
+    _showSessionExpiredToast();
     _heroController = AnimationController(
       duration: const Duration(milliseconds: 2400),
       vsync: this,
@@ -94,6 +96,16 @@ class _LoginPageState extends ConsumerState<LoginPage>
     _codeFocus.dispose();
     _captchaFocus.dispose();
     super.dispose();
+  }
+
+  void _showSessionExpiredToast() {
+    final message = AuthSessionManager().consumePendingMessage();
+    if (message != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        VccToast.show(context, message: message);
+      });
+    }
   }
 
   void _validatePhone() {

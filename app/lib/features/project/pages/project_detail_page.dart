@@ -5,7 +5,9 @@ import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_tag.dart';
+import '../../../shared/widgets/vcc_toast.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../favorite/providers/favorite_provider.dart';
 import '../providers/project_detail_provider.dart';
 
 class ProjectDetailPage extends ConsumerWidget {
@@ -38,7 +40,9 @@ class ProjectDetailPage extends ConsumerWidget {
             color: Color(0xFF1A1C1C),
           ),
         ),
-        actions: const [],
+        actions: [
+          _FavoriteButton(projectId: id),
+        ],
       ),
       body: state.isLoading
           ? const Center(
@@ -532,6 +536,71 @@ class _SectionLabel extends StatelessWidget {
         fontWeight: FontWeight.w600,
         color: Color(0xFF1A1C1C),
         letterSpacing: -0.2,
+      ),
+    );
+  }
+}
+
+class _FavoriteButton extends ConsumerStatefulWidget {
+  final String projectId;
+  const _FavoriteButton({required this.projectId});
+
+  @override
+  ConsumerState<_FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
+  bool _initialized = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final projectId = widget.projectId;
+    final detailState = ref.watch(projectDetailProvider(projectId));
+    final toggleState = ref.watch(favoriteToggleProvider);
+
+    if (!_initialized && detailState.data != null) {
+      _initialized = true;
+      if (detailState.isFavorited) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(favoriteToggleProvider.notifier).markFavorited(projectId);
+        });
+      }
+    }
+
+    final isFav = toggleState.isFavorited(projectId);
+    final isLoading = toggleState.isLoading(projectId);
+
+    return GestureDetector(
+      onTap: isLoading
+          ? null
+          : () async {
+              final ok = await ref
+                  .read(favoriteToggleProvider.notifier)
+                  .toggle(targetType: 'project', targetId: projectId);
+              if (!context.mounted) return;
+              if (ok) {
+                final newFav =
+                    ref.read(favoriteToggleProvider).isFavorited(projectId);
+                VccToast.show(context, message: newFav ? '已收藏' : '已取消收藏');
+              }
+            },
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.gray400),
+                ),
+              )
+            : Icon(
+                isFav ? Icons.bookmark : Icons.bookmark_border,
+                size: 22,
+                color: isFav ? AppColors.black : AppColors.gray400,
+              ),
       ),
     );
   }

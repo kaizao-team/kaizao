@@ -226,6 +226,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     changeNotifier.notify();
   }
 
+  /// 由 AuthSessionManager 在 token 不可恢复时调用。
+  /// 不调用后端 logout API（token 已失效），只重置内存状态并触发路由跳转。
+  void forceReset() {
+    if (!mounted) return;
+    state = AuthState(
+      isInitialized: true,
+      isFirstLaunch: state.isFirstLaunch,
+    );
+    changeNotifier.notify();
+  }
+
   Future<void> resetForFreshStart() async {
     final isFirstLaunch = await _storage.isFirstLaunch();
     await _storage.clearAuthSession();

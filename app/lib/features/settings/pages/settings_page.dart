@@ -169,6 +169,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 _buildSectionLabel('GENERAL'),
                 const SizedBox(height: 10),
                 _buildCard([
+                  _SettingsRow(
+                    label: '我的收藏',
+                    onTap: () => context.push(RoutePaths.favorites),
+                  ),
                   _SettingsSwitchRow(
                     label: '消息通知',
                     value: _notificationsEnabled,

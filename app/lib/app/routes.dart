@@ -39,6 +39,7 @@ import '../features/team/pages/create_team_post_page.dart';
 import '../features/team/pages/team_confirm_page.dart';
 import '../features/rate/pages/rate_page.dart';
 import '../features/notification/pages/notification_page.dart';
+import '../features/favorite/pages/favorite_list_page.dart';
 import '../shared/widgets/vcc_bottom_nav.dart';
 
 class RoutePaths {
@@ -88,6 +89,7 @@ class RoutePaths {
   static const String teamConfirm = '/team/:teamId/confirm';
   static const String rate = '/rate';
   static const String notifications = '/notifications';
+  static const String favorites = '/favorites';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -385,6 +387,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.notifications,
         pageBuilder: (_, __) => _cupertinoPage(const NotificationPage()),
+      ),
+      GoRoute(
+        path: RoutePaths.favorites,
+        pageBuilder: (_, __) => _cupertinoPage(const FavoriteListPage()),
       ),
       GoRoute(
         path: RoutePaths.rate,

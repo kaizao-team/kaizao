@@ -8,12 +8,16 @@ class BidCard extends StatelessWidget {
   final BidItem bid;
   final VoidCallback? onViewDetail;
   final VoidCallback? onAccept;
+  final VoidCallback? onWithdraw;
+  final bool isOwner;
 
   const BidCard({
     super.key,
     required this.bid,
     this.onViewDetail,
     this.onAccept,
+    this.onWithdraw,
+    this.isOwner = false,
   });
 
   @override
@@ -168,6 +172,10 @@ class BidCard extends StatelessWidget {
             const SizedBox(height: 10),
             _TeamMemberRow(members: bid.teamMembers),
           ],
+          if (!bid.isPending) ...[
+            const SizedBox(height: 10),
+            _BidStatusBadge(status: bid.status),
+          ],
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -177,12 +185,22 @@ class BidCard extends StatelessWidget {
                 isPrimary: false,
                 onTap: onViewDetail,
               ),
-              const SizedBox(width: 8),
-              _ActionButton(
-                label: '选 TA',
-                isPrimary: true,
-                onTap: onAccept,
-              ),
+              if (isOwner && bid.canWithdraw) ...[
+                const SizedBox(width: 8),
+                _ActionButton(
+                  label: '撤回',
+                  isPrimary: false,
+                  onTap: onWithdraw,
+                ),
+              ],
+              if (!isOwner && bid.isPending) ...[
+                const SizedBox(width: 8),
+                _ActionButton(
+                  label: '选 TA',
+                  isPrimary: true,
+                  onTap: onAccept,
+                ),
+              ],
             ],
           ),
         ],
@@ -209,6 +227,35 @@ class _TeamMemberRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _BidStatusBadge extends StatelessWidget {
+  final BidStatus status;
+  const _BidStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    if (status == BidStatus.pending) return const SizedBox.shrink();
+
+    final (Color bg, Color fg) = switch (status) {
+      BidStatus.accepted => (const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
+      BidStatus.rejected => (const Color(0xFFFBE9E7), const Color(0xFFC62828)),
+      BidStatus.withdrawn => (AppColors.gray100, AppColors.gray500),
+      _ => (AppColors.gray100, AppColors.gray500),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        status.label,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: fg),
+      ),
     );
   }
 }

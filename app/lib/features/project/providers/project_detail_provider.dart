@@ -72,6 +72,8 @@ class ProjectDetailState {
     }
   }
 
+  bool get isFavorited => data?['is_favorited'] as bool? ?? false;
+
   String get budgetDisplay =>
       '¥${budgetMin.toStringAsFixed(0)}-${budgetMax.toStringAsFixed(0)}';
 

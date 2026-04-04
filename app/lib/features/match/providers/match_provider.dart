@@ -61,6 +61,24 @@ class BidListNotifier extends StateNotifier<BidListState> {
       await _repository.acceptBid(bidId);
     } catch (_) {}
   }
+
+  Future<bool> withdrawBid(String bidId) async {
+    try {
+      await _repository.withdrawBid(bidId);
+      if (!mounted) return false;
+      state = state.copyWith(
+        bids: state.bids
+            .map((b) =>
+                b.id == bidId ? b.copyWith(status: BidStatus.withdrawn) : b)
+            .toList(),
+      );
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(errorMessage: () => e.toString());
+      return false;
+    }
+  }
 }
 
 final bidListProvider = StateNotifierProvider.autoDispose

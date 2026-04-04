@@ -19,6 +19,7 @@ import 'mock_data/team_mock.dart';
 import 'mock_data/rate_mock.dart';
 import 'mock_data/comment_mock.dart';
 import 'mock_data/notification_mock.dart';
+import 'mock_data/favorite_mock.dart';
 
 /// Mock 拦截器 — 开发环境拦截 API 请求并返回模拟数据
 /// 通过 useMock 参数控制是否启用
@@ -50,6 +51,7 @@ class MockInterceptor extends Interceptor {
     RateMock.register(_handlers);
     CommentMock.register(_handlers);
     NotificationMock.register(_handlers);
+    FavoriteMock.register(_handlers);
   }
 
   @override

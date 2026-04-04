@@ -50,4 +50,18 @@ class ProfileRepository {
         .map((e) => PortfolioItem.fromJson(e))
         .toList();
   }
+
+  Future<String> createPortfolio(Map<String, dynamic> data) async {
+    final response = await _client.post(ApiEndpoints.myPortfolios, data: data);
+    final result = response.data as Map<String, dynamic>? ?? {};
+    return result['id']?.toString() ?? '';
+  }
+
+  Future<void> updatePortfolio(String uuid, Map<String, dynamic> data) async {
+    await _client.put(ApiEndpoints.myPortfolio(uuid), data: data);
+  }
+
+  Future<void> deletePortfolio(String uuid) async {
+    await _client.delete(ApiEndpoints.myPortfolio(uuid));
+  }
 }
