@@ -8,3 +8,9 @@ type CreateMilestoneReq struct {
 	DueDate      *string  `json:"due_date" binding:"omitempty"` // YYYY-MM-DD
 	PaymentRatio *float64 `json:"payment_ratio" binding:"omitempty,gte=0,lte=100"`
 }
+
+// DeliverMilestoneReq 里程碑交付提交
+type DeliverMilestoneReq struct {
+	DeliveryNote *string `json:"delivery_note" binding:"omitempty"`
+	PreviewURL   *string `json:"preview_url" binding:"omitempty"`
+}

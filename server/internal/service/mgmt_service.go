@@ -301,10 +301,94 @@ func (s *MilestoneService) GetAcceptance(msUUID string) (*model.Milestone, []*mo
 	return ms, tasks, nil
 }
 
+// Deliver 服务方提交里程碑交付物；成功后状态为待验收（5），并通知需求方。
+func (s *MilestoneService) Deliver(msUUID, actorUserUUID string, req *dto.DeliverMilestoneReq) (*model.Milestone, error) {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	ms, err := s.repos.Milestone.FindByUUID(msUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneNotFound)
+	}
+	p, err := s.repos.Project.FindByID(ms.ProjectID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if p.ProviderID == nil || *p.ProviderID != u.ID {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneDeliverProviderOnly)
+	}
+	switch ms.Status {
+	case 3:
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
+	case 5:
+		return nil, fmt.Errorf("%d", errcode.ErrDeliveryAlreadySubmitted)
+	case 1, 2, 4:
+	default:
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
+	}
+	note := ""
+	if req != nil && req.DeliveryNote != nil {
+		note = strings.TrimSpace(*req.DeliveryNote)
+	}
+	url := ""
+	if req != nil && req.PreviewURL != nil {
+		url = strings.TrimSpace(*req.PreviewURL)
+	}
+	if note == "" && url == "" {
+		return nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
+	}
+	now := time.Now()
+	ms.Status = 5
+	ms.DeliveredAt = &now
+	ms.RejectionReason = nil
+	if note != "" {
+		ms.DeliveryNote = &note
+	} else {
+		ms.DeliveryNote = nil
+	}
+	if url != "" {
+		ms.PreviewURL = &url
+	} else {
+		ms.PreviewURL = nil
+	}
+
+	var out *model.Milestone
+	err = s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		txRepos := repository.NewRepositories(tx)
+		if err := txRepos.Milestone.Update(ms); err != nil {
+			return err
+		}
+		targetType := "milestone"
+		mid := ms.ID
+		n := &model.Notification{
+			UserID:           p.OwnerID,
+			Title:            "里程碑待验收",
+			Content:          fmt.Sprintf("项目「%s」的里程碑「%s」已提交交付，请及时验收。", p.Title, ms.Title),
+			NotificationType: model.NotificationTypeMilestoneDelivered,
+			TargetType:       &targetType,
+			TargetID:         &mid,
+		}
+		if err := txRepos.Notification.Create(n); err != nil {
+			s.log.Error("Deliver: notify owner", zap.Error(err))
+			return err
+		}
+		out = ms
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (s *MilestoneService) Accept(msUUID string) (*model.Milestone, error) {
 	ms, err := s.repos.Milestone.FindByUUID(msUUID)
 	if err != nil {
 		return nil, fmt.Errorf("%d", errcode.ErrMilestoneNotFound)
+	}
+	if ms.Status != 5 {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
 	}
 	now := time.Now()
 	ms.Status = 3
@@ -319,6 +403,9 @@ func (s *MilestoneService) RequestRevision(msUUID, description string, relatedIt
 	ms, err := s.repos.Milestone.FindByUUID(msUUID)
 	if err != nil {
 		return "", fmt.Errorf("%d", errcode.ErrMilestoneNotFound)
+	}
+	if ms.Status != 5 {
+		return "", fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
 	}
 	ms.Status = 4
 	note := description

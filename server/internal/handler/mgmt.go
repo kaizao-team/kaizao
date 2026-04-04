@@ -41,6 +41,42 @@ func respondMilestoneCreateError(c *gin.Context, err error) {
 	}
 }
 
+func respondDeliverError(c *gin.Context, err error) {
+	code, convErr := strconv.Atoi(err.Error())
+	if convErr != nil || code <= 0 {
+		response.ErrorInternal(c, "提交交付失败")
+		return
+	}
+	msg := errcode.GetMessage(code)
+	switch code {
+	case errcode.ErrUserNotFound, errcode.ErrProjectNotFound, errcode.ErrMilestoneNotFound:
+		response.ErrorNotFound(c, code, msg)
+	case errcode.ErrMilestoneDeliverProviderOnly:
+		response.ErrorForbidden(c, code, msg)
+	case errcode.ErrParamInvalid, errcode.ErrDeliveryAlreadySubmitted, errcode.ErrMilestoneStatusInvalid:
+		response.ErrorBadRequest(c, code, msg)
+	default:
+		response.ErrorBadRequest(c, code, msg)
+	}
+}
+
+func respondMilestoneAcceptanceError(c *gin.Context, err error) {
+	code, convErr := strconv.Atoi(err.Error())
+	if convErr != nil || code <= 0 {
+		response.ErrorInternal(c, "操作失败")
+		return
+	}
+	msg := errcode.GetMessage(code)
+	switch code {
+	case errcode.ErrMilestoneNotFound:
+		response.ErrorNotFound(c, code, msg)
+	case errcode.ErrMilestoneStatusInvalid:
+		response.ErrorBadRequest(c, code, msg)
+	default:
+		response.ErrorBadRequest(c, code, msg)
+	}
+}
+
 // respondTaskCreateError 创建任务卡片错误响应（HTTP 与业务码对齐）。
 func respondTaskCreateError(c *gin.Context, err error) {
 	code, convErr := strconv.Atoi(err.Error())
@@ -176,7 +212,13 @@ func (h *TaskHandler) ListMilestones(c *gin.Context) {
 		response.ErrorNotFound(c, errcode.ErrProjectNotFound, "项目不存在")
 		return
 	}
-	statusMap := map[int16]string{1: "pending", 2: "in_progress", 3: "completed"}
+	statusMap := map[int16]string{
+		1: "pending",
+		2: "in_progress",
+		3: "completed",
+		4: "revision_requested",
+		5: "delivered",
+	}
 	list := make([]gin.H, 0, len(milestones))
 	for _, m := range milestones {
 		status := statusMap[m.Status]
@@ -186,6 +228,8 @@ func (h *TaskHandler) ListMilestones(c *gin.Context) {
 		progress := 0
 		if m.Status == 3 {
 			progress = 100
+		} else if m.Status == 5 {
+			progress = 90
 		} else if m.Status == 2 {
 			progress = 50
 		}
@@ -245,6 +289,28 @@ func (h *TaskHandler) GetDailyReports(c *gin.Context) {
 	response.Success(c, reports)
 }
 
+func (h *TaskHandler) DeliverMilestone(c *gin.Context) {
+	msID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	var req dto.DeliverMilestoneReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败: "+err.Error())
+		return
+	}
+	ms, err := h.milestoneService.Deliver(msID, userUUID, &req)
+	if err != nil {
+		respondDeliverError(c, err)
+		return
+	}
+	response.SuccessMsg(c, "交付已提交", gin.H{
+		"milestone_id":    ms.UUID,
+		"status":        "delivered",
+		"delivery_note": ms.DeliveryNote,
+		"preview_url":   ms.PreviewURL,
+		"delivered_at":  ms.DeliveredAt,
+	})
+}
+
 func (h *TaskHandler) GetAcceptance(c *gin.Context) {
 	msID := c.Param("id")
 	ms, tasks, err := h.milestoneService.GetAcceptance(msID)
@@ -276,7 +342,7 @@ func (h *TaskHandler) AcceptMilestone(c *gin.Context) {
 	msID := c.Param("id")
 	ms, err := h.milestoneService.Accept(msID)
 	if err != nil {
-		response.ErrorNotFound(c, errcode.ErrMilestoneNotFound, "里程碑不存在")
+		respondMilestoneAcceptanceError(c, err)
 		return
 	}
 	var amount float64
@@ -301,7 +367,7 @@ func (h *TaskHandler) RequestRevision(c *gin.Context) {
 	}
 	revID, err := h.milestoneService.RequestRevision(msID, req.Description, req.RelatedItems)
 	if err != nil {
-		response.ErrorNotFound(c, errcode.ErrMilestoneNotFound, "里程碑不存在")
+		respondMilestoneAcceptanceError(c, err)
 		return
 	}
 	response.SuccessMsg(c, "修改请求已提交", gin.H{

@@ -41,6 +41,7 @@ EXTRA_PY_ARGS=""
 
 echo "=== 远程 API 测试 http://127.0.0.1:${PROD_HTTP_PORT} ==="
 # shellcheck disable=SC2029
-ssh "${REMOTE_HOST}" "cd ~/kaizao-server && python3 test_api_v2.py --base http://127.0.0.1:${PROD_HTTP_PORT} --redis-password redis_prod_2026 --mysql-password kaizao_prod_2026${EXTRA_PY_ARGS}"
+# EXTRA_PY_ARGS 前须有空格，避免与 mysql-password 粘连
+ssh "${REMOTE_HOST}" "cd ~/kaizao-server && python3 test_api_v2.py --base http://127.0.0.1:${PROD_HTTP_PORT} --redis-password redis_prod_2026 --mysql-password kaizao_prod_2026${EXTRA_PY_ARGS:+ }${EXTRA_PY_ARGS}"
 
 echo "=== 远程部署与测试完成 ==="
