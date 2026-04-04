@@ -53,7 +53,7 @@ func NewHandlers(services *service.Services, cfg *config.Config, log *zap.Logger
 	return &Handlers{
 		Auth:         NewAuthHandler(services.Auth, log),
 		Admin:        NewAdminHandler(services.Auth, services.User, log),
-		User:         NewUserHandler(services.User, services.Repos, log),
+		User:         NewUserHandler(services.User, services.Favorite, services.Repos, log),
 		Project:      NewProjectHandler(services.Project, log),
 		Home:         NewHomeHandler(services.Home, log),
 		PRD:          NewPRDHandler(services.Project, log),
@@ -364,14 +364,15 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 // UserHandler 用户处理器
 type UserHandler struct {
-	userService *service.UserService
-	repos       *repository.Repositories
-	log         *zap.Logger
+	userService     *service.UserService
+	favoriteService *service.FavoriteService
+	repos           *repository.Repositories
+	log             *zap.Logger
 }
 
 // NewUserHandler 创建用户处理器
-func NewUserHandler(userService *service.UserService, repos *repository.Repositories, log *zap.Logger) *UserHandler {
-	return &UserHandler{userService: userService, repos: repos, log: log}
+func NewUserHandler(userService *service.UserService, favoriteService *service.FavoriteService, repos *repository.Repositories, log *zap.Logger) *UserHandler {
+	return &UserHandler{userService: userService, favoriteService: favoriteService, repos: repos, log: log}
 }
 
 // GetMe 获取当前用户信息

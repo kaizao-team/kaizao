@@ -124,6 +124,8 @@ type ProjectRepository interface {
 	FindByUUID(uuid string) (*model.Project, error)
 	Update(project *model.Project) error
 	UpdateFields(id int64, fields map[string]interface{}) error
+	// AddFavoriteCountDelta 原子更新 favorite_count：delta>0 加仓，delta<0 减仓且不低于 0
+	AddFavoriteCountDelta(id int64, delta int) error
 	// LockByIDForUpdate 对项目行加悲观锁，用于与订单创建等同事务内串行化
 	LockByIDForUpdate(id int64) error
 	List(offset, limit int, conditions map[string]interface{}, sortBy, sortOrder string) ([]*model.Project, int64, error)

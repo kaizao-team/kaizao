@@ -21,6 +21,7 @@ services:
       - ./migrations/006_user_contact_phone.up.sql:/docker-entrypoint-initdb.d/006_user_contact_phone.sql:ro
       - ./migrations/007_table_column_comments.up.sql:/docker-entrypoint-initdb.d/007_table_column_comments.sql:ro
       - ./migrations/008_users_username.up.sql:/docker-entrypoint-initdb.d/008_users_username.sql:ro
+      - ./migrations/009_favorites.up.sql:/docker-entrypoint-initdb.d/009_favorites.sql:ro
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci

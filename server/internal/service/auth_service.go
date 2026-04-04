@@ -34,6 +34,7 @@ import (
 type Services struct {
 	Auth         *AuthService
 	User         *UserService
+	Favorite     *FavoriteService
 	Project      *ProjectService
 	Home         *HomeService
 	Bid          *BidService
@@ -65,11 +66,13 @@ func NewServices(repos *repository.Repositories, rdb *redis.Client, cfg *config.
 	}
 
 	userSvc := NewUserService(repos, log)
+	favoriteSvc := NewFavoriteService(repos)
 	orderSvc := NewOrderService(repos, log)
 	uploadSvc := NewUploadService(objClient, cfg, log)
 	return &Services{
 		Auth:         NewAuthService(repos, rdb, jwtManager, cfg, log, passwordRSA),
 		User:         userSvc,
+		Favorite:     favoriteSvc,
 		Project:      NewProjectService(repos, log),
 		Home:         NewHomeService(repos, log),
 		Bid:          NewBidService(repos, orderSvc, log),

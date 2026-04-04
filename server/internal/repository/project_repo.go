@@ -44,6 +44,17 @@ func (r *projectRepository) UpdateFields(id int64, fields map[string]interface{}
 	return r.db.Model(&model.Project{}).Where("id = ?", id).Updates(fields).Error
 }
 
+func (r *projectRepository) AddFavoriteCountDelta(id int64, delta int) error {
+	if delta == 0 {
+		return nil
+	}
+	q := r.db.Model(&model.Project{}).Where("id = ?", id)
+	if delta > 0 {
+		return q.UpdateColumn("favorite_count", gorm.Expr("favorite_count + ?", delta)).Error
+	}
+	return q.UpdateColumn("favorite_count", gorm.Expr("GREATEST(favorite_count - ?, 0)", -delta)).Error
+}
+
 func (r *projectRepository) LockByIDForUpdate(id int64) error {
 	return r.db.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", id).First(&model.Project{}).Error
 }
