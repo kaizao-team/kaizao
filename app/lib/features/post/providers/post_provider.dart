@@ -220,7 +220,17 @@ class PostNotifier extends StateNotifier<PostState> {
     final draftProjectId = await _ensureRealProjectId(
       step: state.currentStep == 0 ? 1 : state.currentStep,
     );
-    final published = await _repository.publishDraftProject(draftProjectId);
+    late final Map<String, dynamic> published;
+    try {
+      published = await _repository.publishDraftProject(draftProjectId);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) {
+        throw Exception(
+          'Go 后端未实现 POST /api/v1/projects/$draftProjectId/publish；当前草稿项目仍是 status=1，无法进入 quick-match',
+        );
+      }
+      rethrow;
+    }
     final publishedProjectId = _readProjectId(published);
     if (publishedProjectId == null) {
       throw const FormatException(
@@ -1114,7 +1124,9 @@ class PostNotifier extends StateNotifier<PostState> {
     );
 
     try {
-      final pid = await _publishProjectForMatch();
+      final pid = await _ensureRealProjectId(
+        step: state.currentStep == 0 ? 1 : state.currentStep,
+      );
 
       final result = await _repository.recommendTeam(pid);
       if (!mounted) return;
@@ -1166,7 +1178,8 @@ class PostNotifier extends StateNotifier<PostState> {
     state = state.copyWith(isConfirmingMatch: true, errorMessage: () => null);
 
     try {
-      await _repository.confirmMatch(state.projectId ?? '');
+      final publishedProjectId = await _publishProjectForMatch();
+      await _repository.confirmMatch(publishedProjectId);
       if (!mounted) return;
 
       state = state.copyWith(

@@ -6,9 +6,13 @@ enum AppEnvironment { dev, staging, prod }
 class AppEnv {
   static late AppEnvironment current;
 
+  static const String _defaultApiHost = '47.236.165.75';
+  static const String _defaultApiPort = '39527';
+  static const String _defaultAiAgentPort = '39528';
+
   static String get baseUrl => switch (current) {
-        AppEnvironment.dev => 'http://47.236.165.75:39527',
-        AppEnvironment.staging => 'http://47.236.165.75:39527',
+        AppEnvironment.dev => 'http://$_defaultApiHost:$_defaultApiPort',
+        AppEnvironment.staging => 'http://$_defaultApiHost:$_defaultApiPort',
         AppEnvironment.prod => 'https://api.vibebuild.com',
       };
 
@@ -19,12 +23,19 @@ class AppEnv {
       };
 
   /// AI Agent (Python) service base URL.
-  /// Route through the API gateway to avoid sending bearer tokens to the raw AI agent host.
-  static String get aiAgentBaseUrl => switch (current) {
-        AppEnvironment.dev => baseUrl,
-        AppEnvironment.staging => baseUrl,
-        AppEnvironment.prod => baseUrl,
-      };
+  /// Can be overridden with --dart-define=AI_AGENT_BASE_URL=...
+  static String get aiAgentBaseUrl {
+    const override = String.fromEnvironment('AI_AGENT_BASE_URL');
+    if (override.isNotEmpty) {
+      return override;
+    }
+
+    return switch (current) {
+      AppEnvironment.dev => 'http://$_defaultApiHost:$_defaultAiAgentPort',
+      AppEnvironment.staging => 'http://$_defaultApiHost:$_defaultAiAgentPort',
+      AppEnvironment.prod => baseUrl,
+    };
+  }
 
   static bool get useMock =>
       current == AppEnvironment.dev &&
