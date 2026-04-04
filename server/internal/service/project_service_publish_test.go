@@ -1,9 +1,12 @@
 package service
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/vibebuild/server/internal/pkg/errcode"
 )
 
 func TestNormalizePublishCategory(t *testing.T) {
@@ -91,5 +94,29 @@ func TestTruncateRunes(t *testing.T) {
 	got := truncateRunes(s, 2)
 	if got != "你好" {
 		t.Fatalf("got %q", got)
+	}
+}
+
+// PublishDraft 主流程中的状态门（与 handler Publish 的 strconv.Atoi 解析一致）
+func TestErrPublishDraftForStatus(t *testing.T) {
+	t.Parallel()
+	if err := errPublishDraftForStatus(1); err != nil {
+		t.Fatalf("status=1: %v", err)
+	}
+	err4 := errPublishDraftForStatus(4)
+	if err4 == nil {
+		t.Fatal("status=4 want error")
+	}
+	code4, _ := strconv.Atoi(err4.Error())
+	if code4 != errcode.ErrProjectAlreadyClosed {
+		t.Fatalf("status=4 code=%d want %d", code4, errcode.ErrProjectAlreadyClosed)
+	}
+	err3 := errPublishDraftForStatus(3)
+	if err3 == nil {
+		t.Fatal("status=3 want error")
+	}
+	code3, _ := strconv.Atoi(err3.Error())
+	if code3 != errcode.ErrProjectStatusInvalid {
+		t.Fatalf("status=3 code=%d want %d", code3, errcode.ErrProjectStatusInvalid)
 	}
 }

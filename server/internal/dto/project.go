@@ -5,14 +5,15 @@ import "time"
 // SaveDraftReq 保存需求草稿（POST /api/v1/projects/draft）
 // category 须为 data / dev / visual / solution（可与前端约定将 design 归一为 visual）。
 // title、description 可选；缺省时由服务端生成占位文案，与 CreateProjectReq 语义一致。
+// match_mode 与 CreateProjectReq 一致：0 或未传表示由服务端默认 1；仅允许 1/2/3。
 type SaveDraftReq struct {
 	Category    string   `json:"category"`
-	BudgetMin   *float64 `json:"budget_min"`
-	BudgetMax   *float64 `json:"budget_max"`
-	MatchMode   int      `json:"match_mode"`
-	Step        int      `json:"step"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
+	BudgetMin   *float64 `json:"budget_min" binding:"omitempty,min=0"`
+	BudgetMax   *float64 `json:"budget_max" binding:"omitempty,min=0"`
+	MatchMode   int      `json:"match_mode" binding:"omitempty,oneof=0 1 2 3"`
+	Step        int      `json:"step" binding:"omitempty,min=0,max=99"`
+	Title       string   `json:"title" binding:"omitempty,max=200"`
+	Description string   `json:"description" binding:"omitempty,max=20000"`
 }
 
 // CreateProjectReq 创建项目请求

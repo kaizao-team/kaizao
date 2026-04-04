@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/vibebuild/server/internal/repository"
 	"github.com/vibebuild/server/internal/service"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // ProjectHandler 项目处理器
@@ -194,7 +196,12 @@ func (h *ProjectHandler) Publish(c *gin.Context) {
 			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
 			return
 		}
-		response.ErrorNotFound(c, errcode.ErrProjectNotFound, errcode.GetMessage(errcode.ErrProjectNotFound))
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			response.ErrorNotFound(c, errcode.ErrProjectNotFound, errcode.GetMessage(errcode.ErrProjectNotFound))
+			return
+		}
+		h.log.Error("publish draft failed", zap.Error(err))
+		response.ErrorInternal(c, "发布失败")
 		return
 	}
 

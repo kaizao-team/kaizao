@@ -203,6 +203,18 @@ func ensurePublishDescription(desc string) string {
 	return out
 }
 
+// errPublishDraftForStatus 在已排除「已发布 idempotent」后，校验是否允许从草稿发布。
+func errPublishDraftForStatus(status int16) error {
+	switch status {
+	case 1:
+		return nil
+	case 4:
+		return fmt.Errorf("%d", errcode.ErrProjectAlreadyClosed)
+	default:
+		return fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
+	}
+}
+
 // PublishDraft 将草稿发布为已发布状态（仅 owner、且 status=1）。
 // 发布前补全 title/description 并归一化 category，与 CreateProjectReq 校验一致（前端未 PUT 时仍可通过发布接口落库）。
 func (s *ProjectService) PublishDraft(projectUUID, ownerUserUUID string) (*model.Project, error) {
@@ -210,14 +222,11 @@ func (s *ProjectService) PublishDraft(projectUUID, ownerUserUUID string) (*model
 	if err != nil {
 		return nil, err
 	}
-	if p.Status == 4 {
-		return nil, fmt.Errorf("%d", errcode.ErrProjectAlreadyClosed)
-	}
 	if p.Status == 2 {
 		return p, nil
 	}
-	if p.Status != 1 {
-		return nil, fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
+	if err := errPublishDraftForStatus(p.Status); err != nil {
+		return nil, err
 	}
 	now := time.Now()
 	title := ensurePublishTitle(p.Title, p.Category)

@@ -112,6 +112,11 @@ func (h *PRDHandler) SaveDraft(c *gin.Context) {
 		return
 	}
 
+	if req.BudgetMin != nil && req.BudgetMax != nil && *req.BudgetMax < *req.BudgetMin {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "budget_max 不能小于 budget_min")
+		return
+	}
+
 	userUUID := c.GetString("user_uuid")
 
 	title := strings.TrimSpace(req.Title)
