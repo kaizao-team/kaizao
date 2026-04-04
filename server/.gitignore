@@ -1,0 +1,6 @@
+# 生产 RSA 私钥（切勿提交）
+configs/auth_password_rsa.pem
+configs/*_rsa.pem
+# 本地覆盖 compose 变量（可选）
+.env
+deploy/.env.prod

@@ -1,13 +1,16 @@
+# 生产环境（远程 kaizao）
+# 前置条件：~/kaizao-server/configs/auth_password_rsa.pem（由 deploy.sh 同步，本地用 scripts/gen_auth_password_rsa.sh 生成）
+# 可选：同目录放置 .env，覆盖下方 ${VAR:-默认值}（见 deploy/env.prod.example）
 services:
   mysql:
     image: mysql:8.0
     container_name: kaizao-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: kaizao_prod_2026
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-kaizao_prod_2026}
       MYSQL_DATABASE: kaizao
       MYSQL_USER: kaizao
-      MYSQL_PASSWORD: kaizao_prod_2026
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-kaizao_prod_2026}
       TZ: Asia/Shanghai
     ports:
       - "127.0.0.1:3306:3306"
@@ -20,7 +23,7 @@ services:
       - --default-authentication-plugin=mysql_native_password
       - --max-connections=200
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pkaizao_prod_2026"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-kaizao_prod_2026}"]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -30,32 +33,30 @@ services:
     image: redis:7-alpine
     container_name: kaizao-redis
     restart: unless-stopped
-    command: redis-server --requirepass redis_prod_2026
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-redis_prod_2026}"]
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redis_prod_2026", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_prod_2026}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # 对象存储：仅绑定本机端口；公网访问请前置 Nginx/CDN，并改写 VB_OSS_BASE_URL
   minio:
     image: minio/minio:RELEASE.2024-05-10T01-41-38Z
     container_name: kaizao-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: kaizao_oss
-      MINIO_ROOT_PASSWORD: kaizao_minio_prod_oss_2026
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kaizao_oss}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-kaizao_minio_prod_oss_2026}
     ports:
-      - "127.0.0.1:39000:9000"
+      - "0.0.0.0:39000:9000"
       - "127.0.0.1:39001:9001"
     volumes:
       - minio_data:/data
-    # 官方镜像多为 scratch，无 curl/sh；server 启动后会对 MinIO 建桶/上传重试
 
   server:
     image: kaizao-server:latest
@@ -67,26 +68,28 @@ services:
       VB_DATABASE_HOST: mysql
       VB_DATABASE_PORT: "3306"
       VB_DATABASE_USER: kaizao
-      VB_DATABASE_PASSWORD: kaizao_prod_2026
+      VB_DATABASE_PASSWORD: ${MYSQL_PASSWORD:-kaizao_prod_2026}
       VB_DATABASE_DBNAME: kaizao
       VB_DATABASE_CHARSET: utf8mb4
       VB_DATABASE_PARSE_TIME: "true"
       VB_DATABASE_LOC: Local
       VB_REDIS_HOST: redis
       VB_REDIS_PORT: "6379"
-      VB_REDIS_PASSWORD: redis_prod_2026
-      VB_JWT_SECRET: kaizao-prod-jwt-secret-change-me
+      VB_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_prod_2026}
+      VB_JWT_SECRET: ${VB_JWT_SECRET:-kaizao-prod-jwt-secret-change-me}
       VB_OSS_ENABLED: "true"
       VB_OSS_ENDPOINT: minio:9000
       VB_OSS_USE_SSL: "false"
-      VB_OSS_ACCESS_KEY_ID: kaizao_oss
-      VB_OSS_ACCESS_KEY_SECRET: kaizao_minio_prod_oss_2026
+      VB_OSS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-kaizao_oss}
+      VB_OSS_ACCESS_KEY_SECRET: ${MINIO_ROOT_PASSWORD:-kaizao_minio_prod_oss_2026}
       VB_OSS_BUCKET_NAME: kaizao
-      # 与宿主机映射 127.0.0.1:39000 一致；外网域名/CDN 请改此值
-      VB_OSS_BASE_URL: http://127.0.0.1:39000/kaizao
+      VB_OSS_BASE_URL: ${VB_OSS_BASE_URL:-http://47.236.165.75:39000/kaizao}
       VB_OSS_MAX_UPLOAD_MB: "32"
-      # 智能匹配 AI-Agent（无尾斜杠）；生产可按实际改内网地址
-      VB_AI_AGENT_BASE_URL: http://47.236.165.75:39528
+      VB_AI_AGENT_BASE_URL: ${VB_AI_AGENT_BASE_URL:-http://47.236.165.75:39528}
+      VB_SERVER_PUBLIC_BASE_URL: ${VB_SERVER_PUBLIC_BASE_URL:-http://47.236.165.75:39527}
+    # 挂载整个 configs，避免「单文件 bind 源不存在时被 Docker 建成目录」导致 PEM 无法读取
+    volumes:
+      - ./configs:/app/configs:ro
     ports:
       - "0.0.0.0:39527:8080"
     depends_on:
@@ -101,7 +104,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 30s
 
 volumes:
   mysql_data:

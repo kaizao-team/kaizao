@@ -7,6 +7,9 @@ set -e
 # 本地部署（在 WSL 中执行，构建镜像并推送到远程服务器）:
 #   bash deploy.sh push
 # 可选环境变量: REMOTE_HOST（默认 kaizao）、PROD_HTTP_PORT（默认 39527，须与 docker-compose.prod.yml 一致）、SCP_OPTS
+#
+# 生产必备：本地须存在 configs/auth_password_rsa.pem（首次: bash scripts/gen_auth_password_rsa.sh，勿提交 git）
+# 可选：deploy/.env.prod 存在时同步为远程 ~/kaizao-server/.env，用于覆盖 VB_JWT_SECRET、VB_OSS_BASE_URL 等（见 deploy/env.prod.example）
 # 若 push 在「传输镜像包」阶段断连，可重试同条命令；若包已在远端 ~/kaizao-server.tar.gz，可 SSH 登录后执行:
 #   gunzip -c ~/kaizao-server.tar.gz | docker load && rm -f ~/kaizao-server.tar.gz && cd ~/kaizao-server && docker compose -f docker-compose.prod.yml up -d
 #
@@ -40,15 +43,29 @@ do_push() {
     docker save ${IMAGE_NAME}:${IMAGE_TAG} | gzip > /tmp/${IMAGE_NAME}.tar.gz
     echo "    大小: $(du -h /tmp/${IMAGE_NAME}.tar.gz | cut -f1)"
 
-    echo "==> [3/5] 同步 compose / migrations / scripts 到远程..."
+    echo "==> [3/5] 同步 compose / migrations / scripts / 生产 RSA 到远程..."
+    if [ ! -s "${SCRIPT_DIR}/configs/auth_password_rsa.pem" ]; then
+        echo "错误: 缺少非空 ${SCRIPT_DIR}/configs/auth_password_rsa.pem（生产必须挂载，禁止 DEV_AUTO_KEY）"
+        echo "请执行: bash scripts/gen_auth_password_rsa.sh  生成后妥善备份，勿提交 git"
+        exit 1
+    fi
     # 勿用 ssh "... ~/..." ：~ 会在**本地** shell 展开，远程目录可能未创建
-    ssh "${REMOTE_HOST}" 'mkdir -p "$HOME/kaizao-server/migrations" "$HOME/kaizao-server/scripts"'
+    ssh "${REMOTE_HOST}" 'mkdir -p "$HOME/kaizao-server/migrations" "$HOME/kaizao-server/scripts" "$HOME/kaizao-server/configs"'
+    # 旧版单文件 bind 若误建为目录，清掉以便 scp 写入 PEM
+    ssh "${REMOTE_HOST}" '[ -d "$HOME/kaizao-server/configs/auth_password_rsa.pem" ] && rm -rf "$HOME/kaizao-server/configs/auth_password_rsa.pem" || true'
     scp ${SCP_OPTS} docker-compose.prod.yml "${REMOTE_HOST}:~/kaizao-server/docker-compose.prod.yml"
     scp ${SCP_OPTS} scripts/apply_migrations.sh "${REMOTE_HOST}:~/kaizao-server/scripts/apply_migrations.sh"
     for f in migrations/*.up.sql; do
         [ -f "$f" ] || continue
         scp ${SCP_OPTS} "$f" "${REMOTE_HOST}:~/kaizao-server/migrations/$(basename "$f")"
     done
+    scp ${SCP_OPTS} "${SCRIPT_DIR}/configs/config.yaml" "${REMOTE_HOST}:~/kaizao-server/configs/config.yaml"
+    scp ${SCP_OPTS} "${SCRIPT_DIR}/configs/auth_password_rsa.pem" "${REMOTE_HOST}:~/kaizao-server/configs/auth_password_rsa.pem"
+    scp ${SCP_OPTS} "${SCRIPT_DIR}/deploy/env.prod.example" "${REMOTE_HOST}:~/kaizao-server/env.prod.example"
+    if [ -f "${SCRIPT_DIR}/deploy/.env.prod" ]; then
+        echo "    同步 deploy/.env.prod -> 远程 .env"
+        scp ${SCP_OPTS} "${SCRIPT_DIR}/deploy/.env.prod" "${REMOTE_HOST}:~/kaizao-server/.env"
+    fi
 
     echo "==> [4/5] 传输镜像包到远程..."
     scp ${SCP_OPTS} /tmp/${IMAGE_NAME}.tar.gz "${REMOTE_HOST}:~/${IMAGE_NAME}.tar.gz"
@@ -63,6 +80,11 @@ do_push() {
         rm -f ~/"${IMAGE_NAME}".tar.gz
 
         cd ~/kaizao-server
+        if [ -d "$HOME/kaizao-server/configs/auth_password_rsa.pem" ]; then
+            echo "错误: 远程 configs/auth_password_rsa.pem 为目录（旧版 bind 误建）。请 SSH 执行: rm -rf ~/kaizao-server/configs/auth_password_rsa.pem 后重新 push"
+            exit 1
+        fi
+        test -s "$HOME/kaizao-server/configs/auth_password_rsa.pem" || { echo "错误: 远程缺少非空 configs/auth_password_rsa.pem"; exit 1; }
         echo "    启动服务..."
         docker compose -f docker-compose.prod.yml up -d
 
@@ -98,6 +120,10 @@ do_sync() {
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     cd "$SCRIPT_DIR"
     echo "==> 同步配置文件到远程..."
+    if [ ! -s "${SCRIPT_DIR}/configs/auth_password_rsa.pem" ]; then
+        echo "错误: 缺少非空 configs/auth_password_rsa.pem，请 bash scripts/gen_auth_password_rsa.sh"
+        exit 1
+    fi
     ssh "${REMOTE_HOST}" 'mkdir -p "$HOME/kaizao-server/migrations" "$HOME/kaizao-server/configs" "$HOME/kaizao-server/scripts"'
     scp ${SCP_OPTS} docker-compose.prod.yml "${REMOTE_HOST}:~/kaizao-server/docker-compose.prod.yml"
     scp ${SCP_OPTS} deploy.sh "${REMOTE_HOST}:~/kaizao-server/deploy.sh"
@@ -106,6 +132,12 @@ do_sync() {
         [ -f "$f" ] || continue
         scp ${SCP_OPTS} "$f" "${REMOTE_HOST}:~/kaizao-server/migrations/$(basename "$f")"
     done
+    scp ${SCP_OPTS} "${SCRIPT_DIR}/configs/config.yaml" "${REMOTE_HOST}:~/kaizao-server/configs/config.yaml"
+    scp ${SCP_OPTS} "${SCRIPT_DIR}/configs/auth_password_rsa.pem" "${REMOTE_HOST}:~/kaizao-server/configs/auth_password_rsa.pem"
+    scp ${SCP_OPTS} "${SCRIPT_DIR}/deploy/env.prod.example" "${REMOTE_HOST}:~/kaizao-server/env.prod.example"
+    if [ -f "${SCRIPT_DIR}/deploy/.env.prod" ]; then
+        scp ${SCP_OPTS} "${SCRIPT_DIR}/deploy/.env.prod" "${REMOTE_HOST}:~/kaizao-server/.env"
+    fi
     echo "==> 同步完成"
 }
 

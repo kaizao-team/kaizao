@@ -88,10 +88,12 @@ func main() {
 	passwordRSA, err := passwordrsa.LoadOrGeneratePrivateKey(
 		cfg.AuthPassword.RSAPrivateKeyPEM,
 		cfg.AuthPassword.RSAPrivateKeyPath,
-		cfg.Server.Mode,
 	)
 	if err != nil {
 		log.Fatal("auth_password RSA 私钥加载失败（开发可设 VB_AUTH_PASSWORD_DEV_AUTO_KEY=1）", zap.Error(err))
+	}
+	if os.Getenv("VB_AUTH_PASSWORD_DEV_AUTO_KEY") == "1" {
+		log.Warn("password RSA: 使用 VB_AUTH_PASSWORD_DEV_AUTO_KEY 临时密钥；生产请配置 VB_AUTH_PASSWORD_RSA_PRIVATE_KEY_PEM")
 	}
 	services := service.NewServices(repos, rdb, cfg, log, passwordRSA)
 	handlers := handler.NewHandlers(services, cfg, log)

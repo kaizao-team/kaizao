@@ -76,8 +76,8 @@ func LoadPEMBytes(yamlPEM, yamlPath string) ([]byte, error) {
 	return b, nil
 }
 
-// LoadOrGeneratePrivateKey 优先从 PEM/文件加载；若失败且 mode=debug 且 VB_AUTH_PASSWORD_DEV_AUTO_KEY=1，则临时生成 2048 位密钥（仅本地开发）。
-func LoadOrGeneratePrivateKey(yamlPEM, yamlPath, serverMode string) (*rsa.PrivateKey, error) {
+// LoadOrGeneratePrivateKey 优先从 PEM/文件加载；若失败且 VB_AUTH_PASSWORD_DEV_AUTO_KEY=1，则临时生成 2048 位密钥（生产请改为正式 PEM）。
+func LoadOrGeneratePrivateKey(yamlPEM, yamlPath string) (*rsa.PrivateKey, error) {
 	b, err := LoadPEMBytes(yamlPEM, yamlPath)
 	if err == nil && len(strings.TrimSpace(string(b))) > 0 {
 		k, perr := ParsePrivateKeyFromPEM(b)
@@ -86,7 +86,8 @@ func LoadOrGeneratePrivateKey(yamlPEM, yamlPath, serverMode string) (*rsa.Privat
 		}
 		return k, nil
 	}
-	if serverMode == "debug" && os.Getenv("VB_AUTH_PASSWORD_DEV_AUTO_KEY") == "1" {
+	// 显式 VB_AUTH_PASSWORD_DEV_AUTO_KEY=1 时生成临时密钥（任意 mode）；生产务必改为 PEM/密钥管理。
+	if os.Getenv("VB_AUTH_PASSWORD_DEV_AUTO_KEY") == "1" {
 		return rsa.GenerateKey(rand.Reader, 2048)
 	}
 	if err != nil {
