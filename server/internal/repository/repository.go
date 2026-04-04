@@ -76,6 +76,7 @@ type UserRepository interface {
 	FindByID(id int64) (*model.User, error)
 	FindByUUID(uuid string) (*model.User, error)
 	FindByPhoneHash(phoneHash string) (*model.User, error)
+	FindByUsername(username string) (*model.User, error)
 	FindByWechatOpenID(openID string) (*model.User, error)
 	Update(user *model.User) error
 	UpdateFields(id int64, fields map[string]interface{}) error

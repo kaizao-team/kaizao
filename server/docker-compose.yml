@@ -20,6 +20,7 @@ services:
       - ./migrations/005_project_category_normalize.up.sql:/docker-entrypoint-initdb.d/005_project_category_normalize.sql:ro
       - ./migrations/006_user_contact_phone.up.sql:/docker-entrypoint-initdb.d/006_user_contact_phone.sql:ro
       - ./migrations/007_table_column_comments.up.sql:/docker-entrypoint-initdb.d/007_table_column_comments.sql:ro
+      - ./migrations/008_users_username.up.sql:/docker-entrypoint-initdb.d/008_users_username.sql:ro
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -91,6 +92,8 @@ services:
       VB_OSS_BASE_URL: http://localhost:9000/kaizao
       # 智能匹配：POST /api/v2/match/recommend（无尾斜杠）
       VB_AI_AGENT_BASE_URL: http://47.236.165.75:39528
+      # 无 configs/auth_password_rsa.pem 时 debug 下自动生成 RSA 密钥（重启后公钥会变）
+      VB_AUTH_PASSWORD_DEV_AUTO_KEY: "1"
     ports:
       - "${SERVER_HOST_PORT:-8080}:8080"
     depends_on:

@@ -65,3 +65,38 @@ type TokenResp struct {
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    int    `json:"expires_in"`
 }
+
+// PasswordKeyResp GET /auth/password-key
+type PasswordKeyResp struct {
+	KeyID         string `json:"key_id"`
+	Algorithm     string `json:"algorithm"`
+	PublicKeyPEM  string `json:"public_key_pem"`
+}
+
+// CaptchaResp GET /auth/captcha
+type CaptchaResp struct {
+	CaptchaID   string `json:"captcha_id"`
+	ImageBase64 string `json:"image_base64"`
+	ExpiresIn   int    `json:"expires_in"`
+}
+
+// RegisterByPasswordReq POST /auth/register-password（禁止 JSON 根字段 password）
+type RegisterByPasswordReq struct {
+	Username       string  `json:"username" binding:"required,min=4,max=32"`
+	PasswordCipher string  `json:"password_cipher" binding:"required"`
+	Nickname       *string `json:"nickname" binding:"omitempty,min=2,max=20"`
+	Role           int     `json:"role" binding:"oneof=0 1 2 3"`
+	Phone          *string `json:"phone"`
+	SMSCode        *string `json:"sms_code"`
+	InviteCode     string  `json:"invite_code" binding:"omitempty"`
+}
+
+// LoginByPasswordReq POST /auth/login-password
+type LoginByPasswordReq struct {
+	LoginType      string `json:"login_type" binding:"required,oneof=username phone"`
+	Identity       string `json:"identity" binding:"required,min=1,max=64"`
+	PasswordCipher string `json:"password_cipher" binding:"required"`
+	CaptchaID      string `json:"captcha_id" binding:"required"`
+	CaptchaCode    string `json:"captcha_code" binding:"required"`
+	DeviceType     string `json:"device_type" binding:"omitempty,oneof=android ios web"`
+}

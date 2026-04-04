@@ -54,6 +54,10 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	// ==================== 认证模块 ====================
 	auth := v1.Group("/auth")
 	{
+		auth.GET("/password-key", handlers.Auth.PasswordKey)
+		auth.GET("/captcha", handlers.Auth.Captcha)
+		auth.POST("/register-password", handlers.Auth.RegisterByPassword)
+		auth.POST("/login-password", handlers.Auth.LoginByPassword)
 		auth.POST("/sms-code", handlers.Auth.SendSMSCode)
 		auth.POST("/login", handlers.Auth.Login)
 		auth.POST("/register", handlers.Auth.Register)
