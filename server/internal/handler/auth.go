@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -240,12 +241,9 @@ func (h *AuthHandler) RegisterByPassword(c *gin.Context) {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数格式错误")
 		return
 	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(body))
 	var req dto.RegisterByPasswordReq
-	if err := json.Unmarshal(body, &req); err != nil {
-		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
-		return
-	}
-	if req.Username == "" || req.PasswordCipher == "" {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
 		return
 	}
@@ -292,12 +290,9 @@ func (h *AuthHandler) LoginByPassword(c *gin.Context) {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数格式错误")
 		return
 	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(body))
 	var req dto.LoginByPasswordReq
-	if err := json.Unmarshal(body, &req); err != nil {
-		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
-		return
-	}
-	if req.LoginType == "" || req.Identity == "" || req.PasswordCipher == "" || req.CaptchaID == "" || req.CaptchaCode == "" {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
 		return
 	}

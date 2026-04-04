@@ -40,7 +40,7 @@ func (r *userRepository) FindByUUID(uuid string) (*model.User, error) {
 
 func (r *userRepository) FindByPhoneHash(phoneHash string) (*model.User, error) {
 	var user model.User
-	err := r.db.Where("phone_hash = ?", phoneHash).First(&user).Error
+	err := r.db.Where("phone_hash = ? AND status != 3", phoneHash).First(&user).Error
 	if err != nil {
 		return nil, err
 	}

@@ -370,6 +370,10 @@ func (s *AuthService) RegisterByPassword(ctx context.Context, req *dto.RegisterB
 	if s.passwordRSA == nil {
 		return nil, nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
 	}
+	reg := s.cfg.Registration
+	if reg.DisableAutoRegister {
+		return nil, nil, fmt.Errorf("%d", errcode.ErrRegisterRequired)
+	}
 	u := strings.TrimSpace(req.Username)
 	if !usernamePattern.MatchString(u) {
 		return nil, nil, fmt.Errorf("%d", errcode.ErrUsernameInvalid)
@@ -415,6 +419,20 @@ func (s *AuthService) RegisterByPassword(ctx context.Context, req *dto.RegisterB
 		return nil, nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
 	}
 
+	role := req.Role
+	if reg.RoleNeedsInvite(role) && strings.TrimSpace(req.InviteCode) == "" {
+		return nil, nil, fmt.Errorf("%d", errcode.ErrInviteRequired)
+	}
+	var inviteID *int64
+	if reg.RoleNeedsInvite(role) {
+		consumed, _, ierr := s.repos.InviteCode.ConsumeTeamInviteAndRotate(strings.TrimSpace(req.InviteCode))
+		if ierr != nil {
+			return nil, nil, ierr
+		}
+		id := consumed.ID
+		inviteID = &id
+	}
+
 	hashB, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, nil, err
@@ -425,12 +443,8 @@ func (s *AuthService) RegisterByPassword(ctx context.Context, req *dto.RegisterB
 	if req.Nickname != nil && strings.TrimSpace(*req.Nickname) != "" {
 		nickname = strings.TrimSpace(*req.Nickname)
 	}
-	role := 0
-	if req.Role != nil {
-		role = *req.Role
-	}
 	onboard := model.OnboardingApproved
-	if role == 2 || role == 3 {
+	if role == 2 || role == 3 || reg.RoleNeedsApproval(role) {
 		onboard = model.OnboardingPending
 	}
 
@@ -445,6 +459,7 @@ func (s *AuthService) RegisterByPassword(ctx context.Context, req *dto.RegisterB
 		Level:            1,
 		Status:           1,
 		OnboardingStatus: onboard,
+		InviteCodeID:     inviteID,
 		LastLoginAt:      model.NowPtr(),
 	}
 	if err := s.repos.User.Create(user); err != nil {
@@ -453,6 +468,9 @@ func (s *AuthService) RegisterByPassword(ctx context.Context, req *dto.RegisterB
 	user, err = s.repos.User.FindByUUID(user.UUID)
 	if err != nil {
 		return nil, nil, err
+	}
+	if reg.RoleNeedsApproval(role) {
+		return nil, nil, fmt.Errorf("%d", errcode.ErrOnboardingPending)
 	}
 	tokenPair, err := s.jwtManager.GenerateTokenPair(user.UUID, int(user.Role), "android")
 	if err != nil {

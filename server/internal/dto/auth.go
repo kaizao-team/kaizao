@@ -82,12 +82,13 @@ type CaptchaResp struct {
 
 // RegisterByPasswordReq POST /auth/register-password（禁止 JSON 根字段 password）
 type RegisterByPasswordReq struct {
-	Username        string  `json:"username" binding:"required,min=4,max=32"`
-	PasswordCipher  string  `json:"password_cipher" binding:"required"`
-	Nickname        *string `json:"nickname"`
-	Role            *int    `json:"role"`
-	Phone           *string `json:"phone"`
-	SMSCode         *string `json:"sms_code"`
+	Username       string  `json:"username" binding:"required,min=4,max=32"`
+	PasswordCipher string  `json:"password_cipher" binding:"required"`
+	Nickname       *string `json:"nickname" binding:"omitempty,min=2,max=20"`
+	Role           int     `json:"role" binding:"oneof=0 1 2 3"`
+	Phone          *string `json:"phone"`
+	SMSCode        *string `json:"sms_code"`
+	InviteCode     string  `json:"invite_code" binding:"omitempty"`
 }
 
 // LoginByPasswordReq POST /auth/login-password
