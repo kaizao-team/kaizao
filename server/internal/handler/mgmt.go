@@ -21,6 +21,26 @@ func NewTaskHandler(taskService *service.TaskService, milestoneService *service.
 	return &TaskHandler{taskService: taskService, milestoneService: milestoneService, log: log}
 }
 
+// respondMilestoneCreateError 按业务码区分 HTTP 状态，避免鉴权/资源不存在与参数错误混为 400。
+func respondMilestoneCreateError(c *gin.Context, err error) {
+	code, convErr := strconv.Atoi(err.Error())
+	if convErr != nil || code <= 0 {
+		response.ErrorInternal(c, "创建里程碑失败")
+		return
+	}
+	msg := errcode.GetMessage(code)
+	switch code {
+	case errcode.ErrUserNotFound, errcode.ErrProjectNotFound:
+		response.ErrorNotFound(c, code, msg)
+	case errcode.ErrProjectParticipantOnly:
+		response.ErrorForbidden(c, code, msg)
+	case errcode.ErrParamInvalid, errcode.ErrMilestonePaymentRatioSum:
+		response.ErrorBadRequest(c, code, msg)
+	default:
+		response.ErrorBadRequest(c, code, msg)
+	}
+}
+
 func (h *TaskHandler) ListTasks(c *gin.Context) {
 	projectID := c.Param("id")
 	tasks, err := h.taskService.ListByProject(projectID)
@@ -128,12 +148,7 @@ func (h *TaskHandler) CreateMilestone(c *gin.Context) {
 	}
 	ms, err := h.milestoneService.Create(projectUUID, userUUID, &req)
 	if err != nil {
-		code, convErr := strconv.Atoi(err.Error())
-		if convErr == nil && code > 0 {
-			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
-			return
-		}
-		response.ErrorInternal(c, "创建里程碑失败")
+		respondMilestoneCreateError(c, err)
 		return
 	}
 	var amount interface{}

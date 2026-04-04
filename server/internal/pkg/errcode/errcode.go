@@ -193,6 +193,7 @@ var ErrorMessages = map[int]string{
 	ErrProjectOwnerOnly:     "仅需求发布者可操作",
 	ErrProjectAlreadyClosed: "需求已关闭",
 	ErrMilestoneNotFound:          "里程碑不存在",
+	ErrMilestonePaymentRatioSum:   "里程碑付款比例累计不可超过100%",
 	ErrProjectParticipantOnly:     "仅项目需求方或已选服务方可操作",
 	ErrTaskNotFound:         "任务卡片不存在",
 	ErrBidNotFound:          "投标不存在",

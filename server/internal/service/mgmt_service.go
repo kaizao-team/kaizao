@@ -11,6 +11,8 @@ import (
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/repository"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TaskService struct {
@@ -84,6 +86,7 @@ func isProjectParticipant(p *model.Project, userID int64) bool {
 }
 
 // Create 创建里程碑（仅需求方或已选服务方可操作）；若项目有 agreed_price 且传入 payment_ratio（0–100），则 payment_amount = agreed_price × payment_ratio / 100。
+// 默认 sort_order 在事务内对项目行加锁后计算，避免并发下重复序号；项目内 payment_ratio（非空）累计不可超过 100%。
 func (s *MilestoneService) Create(projectUUID, actorUserUUID string, req *dto.CreateMilestoneReq) (*model.Milestone, error) {
 	u, err := s.repos.User.FindByUUID(actorUserUUID)
 	if err != nil {
@@ -97,43 +100,71 @@ func (s *MilestoneService) Create(projectUUID, actorUserUUID string, req *dto.Cr
 		return nil, fmt.Errorf("%d", errcode.ErrProjectParticipantOnly)
 	}
 
-	sortOrder := 0
-	if req.SortOrder != nil {
-		sortOrder = *req.SortOrder
-	} else {
-		sortOrder, err = s.repos.Milestone.NextSortOrder(p.ID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	ms := &model.Milestone{
-		ProjectID:    p.ID,
-		Title:        req.Title,
-		Description:  req.Description,
-		SortOrder:    sortOrder,
-		PaymentRatio: req.PaymentRatio,
-		Status:       1,
-	}
-
+	var due *time.Time
 	if req.DueDate != nil && strings.TrimSpace(*req.DueDate) != "" {
 		t, err := time.ParseInLocation("2006-01-02", strings.TrimSpace(*req.DueDate), time.Local)
 		if err != nil {
 			return nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
 		}
-		ms.DueDate = &t
+		due = &t
 	}
 
-	if req.PaymentRatio != nil && p.AgreedPrice != nil && *p.AgreedPrice > 0 {
-		ratio := *req.PaymentRatio
-		amt := *p.AgreedPrice * ratio / 100.0
-		ms.PaymentAmount = &amt
-	}
+	var out *model.Milestone
+	err = s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		var proj model.Project
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", p.ID).First(&proj).Error; err != nil {
+			return err
+		}
 
-	if err := s.repos.Milestone.Create(ms); err != nil {
-		return nil, err
-	}
-	return ms, nil
+		var existing []*model.Milestone
+		if err := tx.Where("project_id = ?", p.ID).Find(&existing).Error; err != nil {
+			return err
+		}
+		var sumRatio float64
+		for _, m := range existing {
+			if m.PaymentRatio != nil {
+				sumRatio += *m.PaymentRatio
+			}
+		}
+		if req.PaymentRatio != nil {
+			sumRatio += *req.PaymentRatio
+		}
+		if sumRatio > 100.0+1e-4 {
+			return fmt.Errorf("%d", errcode.ErrMilestonePaymentRatioSum)
+		}
+
+		sortOrder := 0
+		if req.SortOrder != nil {
+			sortOrder = *req.SortOrder
+		} else {
+			var next int
+			if err := tx.Raw(`SELECT COALESCE(MAX(sort_order), -1) + 1 FROM milestones WHERE project_id = ?`, p.ID).Scan(&next).Error; err != nil {
+				return err
+			}
+			sortOrder = next
+		}
+
+		ms := &model.Milestone{
+			ProjectID:    p.ID,
+			Title:        req.Title,
+			Description:  req.Description,
+			SortOrder:    sortOrder,
+			PaymentRatio: req.PaymentRatio,
+			Status:       1,
+			DueDate:      due,
+		}
+		if req.PaymentRatio != nil && proj.AgreedPrice != nil && *proj.AgreedPrice > 0 {
+			ratio := *req.PaymentRatio
+			amt := *proj.AgreedPrice * ratio / 100.0
+			ms.PaymentAmount = &amt
+		}
+		if err := tx.Create(ms).Error; err != nil {
+			return err
+		}
+		out = ms
+		return nil
+	})
+	return out, err
 }
 
 func (s *MilestoneService) GetAcceptance(msUUID string) (*model.Milestone, []*model.Task, error) {

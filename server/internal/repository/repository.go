@@ -148,8 +148,6 @@ type MilestoneRepository interface {
 	FindByUUID(uuid string) (*model.Milestone, error)
 	Update(milestone *model.Milestone) error
 	ListByProjectID(projectID int64) ([]*model.Milestone, error)
-	// NextSortOrder 返回该项目下建议的下一个 sort_order（当前最大 +1，无记录则为 0）
-	NextSortOrder(projectID int64) (int, error)
 }
 
 // OrderRepository 订单数据访问接口
