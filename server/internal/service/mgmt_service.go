@@ -3,8 +3,10 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/vibebuild/server/internal/dto"
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/repository"
@@ -69,6 +71,69 @@ func (s *MilestoneService) ListByProject(projectUUID string) ([]*model.Milestone
 		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
 	}
 	return s.repos.Milestone.ListByProjectID(project.ID)
+}
+
+func isProjectParticipant(p *model.Project, userID int64) bool {
+	if p.OwnerID == userID {
+		return true
+	}
+	if p.ProviderID != nil && *p.ProviderID == userID {
+		return true
+	}
+	return false
+}
+
+// Create 创建里程碑（仅需求方或已选服务方可操作）；若项目有 agreed_price 且传入 payment_ratio（0–100），则 payment_amount = agreed_price × payment_ratio / 100。
+func (s *MilestoneService) Create(projectUUID, actorUserUUID string, req *dto.CreateMilestoneReq) (*model.Milestone, error) {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	p, err := s.repos.Project.FindByUUID(projectUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if !isProjectParticipant(p, u.ID) {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectParticipantOnly)
+	}
+
+	sortOrder := 0
+	if req.SortOrder != nil {
+		sortOrder = *req.SortOrder
+	} else {
+		sortOrder, err = s.repos.Milestone.NextSortOrder(p.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	ms := &model.Milestone{
+		ProjectID:    p.ID,
+		Title:        req.Title,
+		Description:  req.Description,
+		SortOrder:    sortOrder,
+		PaymentRatio: req.PaymentRatio,
+		Status:       1,
+	}
+
+	if req.DueDate != nil && strings.TrimSpace(*req.DueDate) != "" {
+		t, err := time.ParseInLocation("2006-01-02", strings.TrimSpace(*req.DueDate), time.Local)
+		if err != nil {
+			return nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
+		}
+		ms.DueDate = &t
+	}
+
+	if req.PaymentRatio != nil && p.AgreedPrice != nil && *p.AgreedPrice > 0 {
+		ratio := *req.PaymentRatio
+		amt := *p.AgreedPrice * ratio / 100.0
+		ms.PaymentAmount = &amt
+	}
+
+	if err := s.repos.Milestone.Create(ms); err != nil {
+		return nil, err
+	}
+	return ms, nil
 }
 
 func (s *MilestoneService) GetAcceptance(msUUID string) (*model.Milestone, []*model.Task, error) {

@@ -301,6 +301,15 @@ func (r *milestoneRepository) ListByProjectID(projectID int64) ([]*model.Milesto
 	return milestones, err
 }
 
+func (r *milestoneRepository) NextSortOrder(projectID int64) (int, error) {
+	var next int
+	err := r.db.Raw(`
+		SELECT COALESCE(MAX(sort_order), -1) + 1 AS n
+		FROM milestones WHERE project_id = ?
+	`, projectID).Scan(&next).Error
+	return next, err
+}
+
 // --- Order Repository ---
 
 type orderRepository struct {

@@ -123,7 +123,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		projects.GET("/:id/tasks", middleware.JWTAuth(services.JWT), handlers.Task.ListTasks)
 		projects.POST("/:id/tasks", middleware.JWTAuth(services.JWT), placeholder)
 		projects.GET("/:id/milestones", middleware.JWTAuth(services.JWT), handlers.Task.ListMilestones)
-		projects.POST("/:id/milestones", middleware.JWTAuth(services.JWT), placeholder)
+		projects.POST("/:id/milestones", middleware.JWTAuth(services.JWT), handlers.Task.CreateMilestone)
 		projects.GET("/:id/daily-reports", middleware.JWTAuth(services.JWT), handlers.Task.GetDailyReports)
 		// Phase 4 投标
 		projects.POST("/:id/bids", middleware.JWTAuth(services.JWT), handlers.Bid.CreateBid)
