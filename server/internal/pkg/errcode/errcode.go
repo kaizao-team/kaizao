@@ -196,6 +196,7 @@ var ErrorMessages = map[int]string{
 	ErrMilestonePaymentRatioSum:   "里程碑付款比例累计不可超过100%",
 	ErrProjectParticipantOnly:     "仅项目需求方或已选服务方可操作",
 	ErrTaskNotFound:         "任务卡片不存在",
+	ErrEarsTypeInvalid:     "EARS 类型不合法",
 	ErrBidNotFound:          "投标不存在",
 	ErrBidOwnProject:        "不能对自己的需求投标",
 	ErrBidDuplicate:         "已对该需求投标，不可重复",

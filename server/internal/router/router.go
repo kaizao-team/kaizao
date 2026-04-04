@@ -121,7 +121,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		projects.GET("/:id/overview", middleware.JWTAuth(services.JWT), placeholder)
 		// Phase 4 项目管理
 		projects.GET("/:id/tasks", middleware.JWTAuth(services.JWT), handlers.Task.ListTasks)
-		projects.POST("/:id/tasks", middleware.JWTAuth(services.JWT), placeholder)
+		projects.POST("/:id/tasks", middleware.JWTAuth(services.JWT), handlers.Task.CreateTask)
 		projects.GET("/:id/milestones", middleware.JWTAuth(services.JWT), handlers.Task.ListMilestones)
 		projects.POST("/:id/milestones", middleware.JWTAuth(services.JWT), handlers.Task.CreateMilestone)
 		projects.GET("/:id/daily-reports", middleware.JWTAuth(services.JWT), handlers.Task.GetDailyReports)

@@ -58,6 +58,104 @@ func (s *TaskService) UpdateStatus(taskUUID string, status string) (*model.Task,
 	return s.repos.Task.FindByUUID(taskUUID)
 }
 
+// Create 手动创建任务卡片（仅需求方或已选服务方）；事务内锁项目行并生成 project 内唯一 task_code（T{序号}）。
+func (s *TaskService) Create(projectUUID, actorUserUUID string, req *dto.CreateTaskReq) (*model.Task, error) {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	p, err := s.repos.Project.FindByUUID(projectUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if !isProjectParticipant(p, u.ID) {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectParticipantOnly)
+	}
+
+	var milestoneID *int64
+	if req.MilestoneID != nil && strings.TrimSpace(*req.MilestoneID) != "" {
+		ms, err := s.repos.Milestone.FindByUUID(strings.TrimSpace(*req.MilestoneID))
+		if err != nil || ms.ProjectID != p.ID {
+			return nil, fmt.Errorf("%d", errcode.ErrMilestoneNotFound)
+		}
+		milestoneID = &ms.ID
+	}
+
+	var assigneeID *int64
+	if req.AssigneeID != nil && strings.TrimSpace(*req.AssigneeID) != "" {
+		au, err := s.repos.User.FindByUUID(strings.TrimSpace(*req.AssigneeID))
+		if err != nil {
+			return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+		}
+		assigneeID = &au.ID
+	}
+
+	priority := int16(2)
+	if req.Priority != nil {
+		priority = *req.Priority
+	}
+
+	sortOrder := 0
+	if req.SortOrder != nil {
+		sortOrder = *req.SortOrder
+	}
+
+	fullText := req.EarsBehavior
+	if req.EarsFullText != nil && strings.TrimSpace(*req.EarsFullText) != "" {
+		fullText = strings.TrimSpace(*req.EarsFullText)
+	}
+
+	emptyArr := model.JSON([]byte("[]"))
+	var out *model.Task
+	err = s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		var proj model.Project
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", p.ID).First(&proj).Error; err != nil {
+			return err
+		}
+
+		var cnt int64
+		if err := tx.Model(&model.Task{}).Where("project_id = ?", p.ID).Count(&cnt).Error; err != nil {
+			return err
+		}
+		seq := cnt + 1
+		taskCode := fmt.Sprintf("T%d", seq)
+		if len(taskCode) > 20 {
+			taskCode = taskCode[:20]
+		}
+
+		t := &model.Task{
+			ProjectID:          p.ID,
+			MilestoneID:        milestoneID,
+			TaskCode:           taskCode,
+			Title:              req.Title,
+			EarsType:           req.EarsType,
+			EarsTrigger:        req.EarsTrigger,
+			EarsBehavior:       req.EarsBehavior,
+			EarsFullText:       fullText,
+			Module:             req.Module,
+			RoleTag:            req.RoleTag,
+			AssigneeID:         assigneeID,
+			Priority:           priority,
+			EstimatedHours:     req.EstimatedHours,
+			AcceptanceCriteria: emptyArr,
+			Dependencies:       emptyArr,
+			Blockers:           emptyArr,
+			Status:             1,
+			SortOrder:          sortOrder,
+			IsAIGenerated:      false,
+		}
+		if err := tx.Create(t).Error; err != nil {
+			return err
+		}
+		out = t
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type MilestoneService struct {
 	repos *repository.Repositories
 	log   *zap.Logger
