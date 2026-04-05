@@ -185,26 +185,9 @@ func (s *MilestoneService) MilestoneUUIDByID(id int64) (string, error) {
 	return m.UUID, nil
 }
 
-func isProjectParticipant(p *model.Project, userID int64) bool {
-	if p.OwnerID == userID {
-		return true
-	}
-	if p.ProviderID != nil && *p.ProviderID == userID {
-		return true
-	}
-	return false
-}
-
-// isAllowedTaskAssignee 任务指派人须为需求方、已选服务方，或（项目绑定团队时）该团队 active 成员。
+// isAllowedTaskAssignee 任务指派人须为需求方、已选服务方，或（项目绑定团队时）该团队成员。
 func isAllowedTaskAssignee(p *model.Project, assigneeUserID int64, repos *repository.Repositories) bool {
-	if isProjectParticipant(p, assigneeUserID) {
-		return true
-	}
-	if p.TeamID != nil {
-		_, err := repos.Team.FindMember(*p.TeamID, assigneeUserID)
-		return err == nil
-	}
-	return false
+	return CanAccessProjectWorkspace(p, assigneeUserID, repos)
 }
 
 // Create 创建里程碑（仅需求方或已选服务方可操作）；若项目有 agreed_price 且传入 payment_ratio（0–100），则 payment_amount = agreed_price × payment_ratio / 100。

@@ -124,6 +124,22 @@ func (c *Client) Upload(ctx context.Context, objectKey string, r io.Reader, size
 	return err
 }
 
+// PresignedGetURL 短时 GET 链接（私有桶下载/预览）
+func (c *Client) PresignedGetURL(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
+	if !c.Enabled() {
+		return "", ErrDisabled
+	}
+	if expiry <= 0 {
+		expiry = 15 * time.Minute
+	}
+	key := strings.TrimLeft(objectKey, "/")
+	u, err := c.mc.PresignedGetObject(ctx, c.bucket, key, expiry, nil)
+	if err != nil {
+		return "", err
+	}
+	return u.String(), nil
+}
+
 // PublicURL 对外访问 URL（依赖 base_url 配置；未配置时返回 path 形式）
 func (c *Client) PublicURL(objectKey string) string {
 	if c == nil {

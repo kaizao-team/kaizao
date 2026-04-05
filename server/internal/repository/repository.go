@@ -20,6 +20,13 @@ type TeamStaticAssetRepository interface {
 	ListByTeamID(teamID int64, offset, limit int) ([]*model.TeamStaticAsset, int64, error)
 }
 
+// ProjectFileRepository 项目共享文件元数据
+type ProjectFileRepository interface {
+	Create(f *model.ProjectFile) error
+	FindByUUIDAndProjectID(projectID int64, fileUUID string) (*model.ProjectFile, error)
+	ListByProjectID(projectID int64, fileKind string, milestoneID *int64, offset, limit int) ([]*model.ProjectFile, int64, error)
+}
+
 // FavoriteRepository 收藏数据访问接口
 type FavoriteRepository interface {
 	Create(fav *model.Favorite) error
@@ -46,6 +53,7 @@ type Repositories struct {
 	Coupon       CouponRepository
 	InviteCode       InviteCodeRepository
 	TeamStaticAsset  TeamStaticAssetRepository
+	ProjectFile  ProjectFileRepository
 	Favorite     FavoriteRepository
 }
 
@@ -76,6 +84,7 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Coupon:       NewCouponRepository(db),
 		InviteCode:      NewInviteCodeRepository(db),
 		TeamStaticAsset: NewTeamStaticAssetRepository(db),
+		ProjectFile:     NewProjectFileRepository(db),
 		Favorite:        NewFavoriteRepository(db),
 	}
 }

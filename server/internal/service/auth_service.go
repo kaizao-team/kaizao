@@ -47,6 +47,7 @@ type Services struct {
 	Team         *TeamService
 	Notification *NotificationService
 	Upload       *UploadService
+	ProjectFile  *ProjectFileService
 	JWT          *jwtpkg.Manager
 	Repos        *repository.Repositories
 }
@@ -69,6 +70,7 @@ func NewServices(repos *repository.Repositories, rdb *redis.Client, cfg *config.
 	favoriteSvc := NewFavoriteService(repos)
 	orderSvc := NewOrderService(repos, log)
 	uploadSvc := NewUploadService(objClient, cfg, log)
+	projectFileSvc := NewProjectFileService(repos, objClient, log)
 	return &Services{
 		Auth:         NewAuthService(repos, rdb, jwtManager, cfg, log, passwordRSA),
 		User:         userSvc,
@@ -85,6 +87,7 @@ func NewServices(repos *repository.Repositories, rdb *redis.Client, cfg *config.
 		Team:         NewTeamService(repos, objClient, log),
 		Notification: NewNotificationService(repos, log),
 		Upload:       uploadSvc,
+		ProjectFile:  projectFileSvc,
 		JWT:          jwtManager,
 		Repos:        repos,
 	}

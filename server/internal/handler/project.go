@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vibebuild/server/internal/dto"
@@ -15,13 +16,14 @@ import (
 
 // ProjectHandler 项目处理器
 type ProjectHandler struct {
-	projectService *service.ProjectService
-	log            *zap.Logger
+	projectService     *service.ProjectService
+	projectFileService *service.ProjectFileService
+	log                *zap.Logger
 }
 
 // NewProjectHandler 创建项目处理器
-func NewProjectHandler(projectService *service.ProjectService, log *zap.Logger) *ProjectHandler {
-	return &ProjectHandler{projectService: projectService, log: log}
+func NewProjectHandler(projectService *service.ProjectService, projectFileService *service.ProjectFileService, log *zap.Logger) *ProjectHandler {
+	return &ProjectHandler{projectService: projectService, projectFileService: projectFileService, log: log}
 }
 
 // Create 创建项目/发布需求
@@ -278,4 +280,106 @@ func toProjectDetail(p *model.Project) projectDetail {
 		PrdSummary:      "",
 		Milestones:      []interface{}{},
 	}
+}
+
+func respondProjectFileError(c *gin.Context, err error) {
+	code, convErr := strconv.Atoi(err.Error())
+	if convErr != nil || code <= 0 {
+		response.ErrorInternal(c, "操作失败")
+		return
+	}
+	msg := errcode.GetMessage(code)
+	switch code {
+	case errcode.ErrUserNotFound, errcode.ErrProjectNotFound, errcode.ErrProjectFileNotFound, errcode.ErrMilestoneNotFound:
+		response.ErrorNotFound(c, code, msg)
+	case errcode.ErrProjectParticipantOnly:
+		response.ErrorForbidden(c, code, msg)
+	case errcode.ErrObjectStorageDisabled, errcode.ErrUploadFileTooLarge, errcode.ErrUploadEmptyFile,
+		errcode.ErrObjectUploadFailed, errcode.ErrProjectFileKindInvalid, errcode.ErrParamInvalid:
+		response.ErrorBadRequest(c, code, msg)
+	default:
+		response.ErrorBadRequest(c, code, msg)
+	}
+}
+
+// ListProjectFiles GET /api/v1/projects/:id/files
+func (h *ProjectHandler) ListProjectFiles(c *gin.Context) {
+	projectID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	withURL := true
+	if v := strings.TrimSpace(c.Query("with_url")); v == "0" || v == "false" {
+		withURL = false
+	}
+	q := service.ProjectFileListQuery{
+		FileKind:          c.Query("file_kind"),
+		MilestoneUUID:     c.Query("milestone_id"),
+		Page:              page,
+		PageSize:          pageSize,
+		IncludePresignURL: withURL,
+	}
+	list, total, err := h.projectFileService.List(c.Request.Context(), projectID, userUUID, q)
+	if err != nil {
+		respondProjectFileError(c, err)
+		return
+	}
+	response.SuccessWithMeta(c, list, response.BuildMeta(q.Page, q.PageSize, total))
+}
+
+// UploadProjectFile POST /api/v1/projects/:id/files
+func (h *ProjectHandler) UploadProjectFile(c *gin.Context) {
+	projectID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	fh, err := c.FormFile("file")
+	if err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "请上传 file 字段")
+		return
+	}
+	fileKind := c.PostForm("file_kind")
+	var milestoneUUID *string
+	if ms := strings.TrimSpace(c.PostForm("milestone_id")); ms != "" {
+		milestoneUUID = &ms
+	}
+	src, err := fh.Open()
+	if err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "无法读取上传文件")
+		return
+	}
+	defer src.Close()
+
+	rec, err := h.projectFileService.Upload(
+		c.Request.Context(),
+		projectID,
+		userUUID,
+		fileKind,
+		milestoneUUID,
+		fh.Filename,
+		fh.Size,
+		fh.Header.Get("Content-Type"),
+		src,
+	)
+	if err != nil {
+		respondProjectFileError(c, err)
+		return
+	}
+	item, err := h.projectFileService.Get(c.Request.Context(), projectID, userUUID, rec.UUID)
+	if err != nil {
+		respondProjectFileError(c, err)
+		return
+	}
+	response.SuccessMsg(c, "上传成功", item)
+}
+
+// GetProjectFile GET /api/v1/projects/:id/files/:fileUuid
+func (h *ProjectHandler) GetProjectFile(c *gin.Context) {
+	projectID := c.Param("id")
+	fileUUID := c.Param("fileUuid")
+	userUUID := c.GetString("user_uuid")
+	item, err := h.projectFileService.Get(c.Request.Context(), projectID, userUUID, fileUUID)
+	if err != nil {
+		respondProjectFileError(c, err)
+		return
+	}
+	response.Success(c, item)
 }

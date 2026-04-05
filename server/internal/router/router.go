@@ -131,6 +131,9 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		projects.GET("/:id/milestones", middleware.JWTAuth(services.JWT), handlers.Task.ListMilestones)
 		projects.POST("/:id/milestones", middleware.JWTAuth(services.JWT), handlers.Task.CreateMilestone)
 		projects.GET("/:id/daily-reports", middleware.JWTAuth(services.JWT), handlers.Task.GetDailyReports)
+		projects.GET("/:id/files", middleware.JWTAuth(services.JWT), handlers.Project.ListProjectFiles)
+		projects.POST("/:id/files", middleware.JWTAuth(services.JWT), handlers.Project.UploadProjectFile)
+		projects.GET("/:id/files/:fileUuid", middleware.JWTAuth(services.JWT), handlers.Project.GetProjectFile)
 		// Phase 4 投标
 		projects.POST("/:id/bids", middleware.JWTAuth(services.JWT), handlers.Bid.CreateBid)
 		projects.GET("/:id/bids", middleware.JWTAuth(services.JWT), handlers.Bid.ListBids)
