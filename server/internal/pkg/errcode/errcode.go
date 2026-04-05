@@ -83,6 +83,8 @@ const (
 	ErrMilestoneStatusInvalid         = 21012
 	ErrMilestoneDeliverProviderOnly   = 21013
 	ErrMilestoneDeliverNotReady       = 21014
+	ErrProjectFileNotFound            = 21015
+	ErrProjectFileKindInvalid         = 21016
 )
 
 // 匹配模块 30001-30999
@@ -220,7 +222,9 @@ var ErrorMessages = map[int]string{
 	ErrMilestoneStatusInvalid:     "当前里程碑状态不允许此操作",
 	ErrMilestoneDeliverProviderOnly: "仅已选服务方可提交里程碑交付",
 	ErrMilestoneDeliverNotReady:     "里程碑须为进行中或已打回后方可提交交付",
-	ErrProjectParticipantOnly:     "仅项目需求方或已选服务方可操作",
+	ErrProjectParticipantOnly:     "仅项目需求方、已选服务方或项目团队成员可操作",
+	ErrProjectFileNotFound:        "项目文件不存在",
+	ErrProjectFileKindInvalid:     "file_kind 须为 reference、process 或 deliverable",
 	ErrTaskNotFound:         "任务卡片不存在",
 	ErrTaskAssigneeInvalid:  "任务指派人须为项目需求方、已选服务方或项目团队成员",
 	ErrEarsTypeInvalid:     "EARS 类型不合法",

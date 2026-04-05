@@ -8,7 +8,7 @@
 #
 # 选项:
 #   --full     先执行 001_init_schema（仅空库/初始化；已有表会失败）
-#   --strict   任一条 SQL 失败则退出（默认 002–009 为 best-effort，单行失败忽略）
+#   --strict   任一条 SQL 失败则退出（默认 002–010 为 best-effort，单行失败忽略）
 #
 # 环境变量:
 #   MYSQL_CONTAINER   默认 kaizao-mysql
@@ -57,6 +57,7 @@ INCREMENTAL_FILES=(
   007_table_column_comments.up.sql
   008_users_username.up.sql
   009_favorites.up.sql
+  010_project_files.up.sql
 )
 
 mysql_exec() {
@@ -105,7 +106,7 @@ if [ "$FULL" = 1 ]; then
   apply_file "$MIGRATIONS_DIR/001_init_schema.up.sql" 0
 fi
 
-echo "=== 执行增量迁移 002–009（utf8mb4 客户端）==="
+echo "=== 执行增量迁移 002–010（utf8mb4 客户端）==="
 for f in "${INCREMENTAL_FILES[@]}"; do
   apply_file "$MIGRATIONS_DIR/$f" 1
 done

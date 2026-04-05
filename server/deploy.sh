@@ -97,7 +97,7 @@ do_push() {
         export MYSQL_PASSWORD="${MYSQL_PWD}"
         export MYSQL_CONTAINER=kaizao-mysql MYSQL_USER=kaizao MYSQL_DATABASE=kaizao
         export MIGRATIONS_DIR="$HOME/kaizao-server/migrations" WAIT_MYSQL_SEC=90
-        echo "    补跑迁移（utf8mb4，002–007 best-effort）..."
+        echo "    补跑迁移（utf8mb4，002–010 best-effort，见 scripts/apply_migrations.sh）..."
         bash "$HOME/kaizao-server/scripts/apply_migrations.sh"
 
         echo "    等待健康检查 (宿主机端口 ${PROD_HTTP_PORT})..."
