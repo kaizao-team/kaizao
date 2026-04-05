@@ -207,15 +207,25 @@ type WalletRepository interface {
 type ConversationRepository interface {
 	Create(conv *model.Conversation) error
 	FindByUUID(uuid string) (*model.Conversation, error)
+	// FindActiveByUUID 仅 status=1（未删除）的会话
+	FindActiveByUUID(uuid string) (*model.Conversation, error)
 	Update(conv *model.Conversation) error
 	ListByUserID(userID int64, offset, limit int) ([]*model.Conversation, int64, error)
 	FindPrivateConversation(userAID, userBID int64) (*model.Conversation, error)
+	// EnsurePrivateMembers 为 user_a / user_b 补全 conversation_members 行（幂等）
+	EnsurePrivateMembers(conv *model.Conversation) error
+	FindMember(conversationID, userID int64) (*model.ConversationMember, error)
+	UpdateMemberLastRead(conversationID, userID, lastReadMsgID int64) error
 }
 
 // MessageRepository 消息数据访问接口
 type MessageRepository interface {
 	Create(msg *model.Message) error
 	ListByConversationID(conversationID int64, beforeID int64, limit int) ([]*model.Message, error)
+	// CountUnreadFromOthersAfter 统计「非 viewer 发送且 id > afterMsgID」的消息条数（用于未读）
+	CountUnreadFromOthersAfter(conversationID, viewerUserID, afterMsgID int64) (int64, error)
+	// MaxIDByConversation 会话内消息最大 id，无消息时为 0
+	MaxIDByConversation(conversationID int64) (int64, error)
 }
 
 // ReviewRepository 评价数据访问接口

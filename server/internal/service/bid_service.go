@@ -255,6 +255,11 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 			return errConv
 		}
 
+		if err := txRepos.Conversation.EnsurePrivateMembers(conv); err != nil {
+			s.log.Error("AcceptBid: ensure conversation members", zap.Error(err))
+			return err
+		}
+
 		sysText := "撮合成功！你们已经可以开始沟通了"
 		sysType := "system"
 		msg := &model.Message{

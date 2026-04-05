@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/vibebuild/server/internal/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -464,6 +466,55 @@ func (r *conversationRepository) FindByUUID(uuid string) (*model.Conversation, e
 	return &conv, nil
 }
 
+func (r *conversationRepository) FindActiveByUUID(uuid string) (*model.Conversation, error) {
+	var conv model.Conversation
+	err := r.db.Where("uuid = ? AND status = 1", uuid).First(&conv).Error
+	if err != nil {
+		return nil, err
+	}
+	return &conv, nil
+}
+
+func (r *conversationRepository) EnsurePrivateMembers(conv *model.Conversation) error {
+	if conv == nil || conv.UserAID == nil || conv.UserBID == nil {
+		return nil
+	}
+	for _, uid := range []int64{*conv.UserAID, *conv.UserBID} {
+		var existing model.ConversationMember
+		err := r.db.Where("conversation_id = ? AND user_id = ?", conv.ID, uid).First(&existing).Error
+		if err == nil {
+			continue
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		cm := &model.ConversationMember{
+			ConversationID: conv.ID,
+			UserID:         uid,
+			Role:           1,
+		}
+		if err := r.db.Create(cm).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *conversationRepository) FindMember(conversationID, userID int64) (*model.ConversationMember, error) {
+	var m model.ConversationMember
+	err := r.db.Where("conversation_id = ? AND user_id = ?", conversationID, userID).First(&m).Error
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (r *conversationRepository) UpdateMemberLastRead(conversationID, userID, lastReadMsgID int64) error {
+	return r.db.Model(&model.ConversationMember{}).
+		Where("conversation_id = ? AND user_id = ?", conversationID, userID).
+		Update("last_read_msg_id", lastReadMsgID).Error
+}
+
 func (r *conversationRepository) ListByUserID(userID int64, offset, limit int) ([]*model.Conversation, int64, error) {
 	var convs []*model.Conversation
 	var total int64
@@ -515,6 +566,23 @@ func (r *messageRepository) ListByConversationID(conversationID int64, beforeID 
 	}
 	err := query.Order("id DESC").Limit(limit).Find(&messages).Error
 	return messages, err
+}
+
+func (r *messageRepository) CountUnreadFromOthersAfter(conversationID, viewerUserID, afterMsgID int64) (int64, error) {
+	var n int64
+	err := r.db.Model(&model.Message{}).
+		Where("conversation_id = ? AND sender_id != ? AND id > ?", conversationID, viewerUserID, afterMsgID).
+		Count(&n).Error
+	return n, err
+}
+
+func (r *messageRepository) MaxIDByConversation(conversationID int64) (int64, error) {
+	var maxID int64
+	err := r.db.Model(&model.Message{}).
+		Where("conversation_id = ?", conversationID).
+		Select("COALESCE(MAX(id), 0)").
+		Scan(&maxID).Error
+	return maxID, err
 }
 
 // --- Review Repository ---
