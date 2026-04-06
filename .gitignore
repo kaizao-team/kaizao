@@ -23,6 +23,10 @@ ai-agent/*.egg-info/
 *.pyc
 *.pyo
 
+api/__pycache__/
+api/.venv_smoke/
+api/tests/__pycache__/
+
 # Flutter
 app/.dart_tool/
 app/.flutter-plugins

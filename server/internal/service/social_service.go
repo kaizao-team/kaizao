@@ -187,6 +187,21 @@ func (s *TeamService) GetDetail(teamUUID string) (*model.Team, error) {
 	return s.repos.Team.FindByUUID(teamUUID)
 }
 
+// LeaderSkillNames returns the skill display names for the given leader user ID.
+func (s *TeamService) LeaderSkillNames(leaderID int64) []string {
+	skills, err := s.repos.User.ListUserSkills(leaderID)
+	if err != nil || len(skills) == 0 {
+		return []string{}
+	}
+	names := make([]string, 0, len(skills))
+	for _, sk := range skills {
+		if sk.Skill.Name != "" {
+			names = append(names, sk.Skill.Name)
+		}
+	}
+	return names
+}
+
 func (s *TeamService) UpdateSplitRatio(teamUUID string, ratios []map[string]interface{}) error {
 	team, err := s.repos.Team.FindByUUID(teamUUID)
 	if err != nil {

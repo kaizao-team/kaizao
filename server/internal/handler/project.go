@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -18,12 +19,13 @@ import (
 type ProjectHandler struct {
 	projectService     *service.ProjectService
 	projectFileService *service.ProjectFileService
+	milestoneService   *service.MilestoneService
 	log                *zap.Logger
 }
 
 // NewProjectHandler 创建项目处理器
-func NewProjectHandler(projectService *service.ProjectService, projectFileService *service.ProjectFileService, log *zap.Logger) *ProjectHandler {
-	return &ProjectHandler{projectService: projectService, projectFileService: projectFileService, log: log}
+func NewProjectHandler(projectService *service.ProjectService, projectFileService *service.ProjectFileService, milestoneService *service.MilestoneService, log *zap.Logger) *ProjectHandler {
+	return &ProjectHandler{projectService: projectService, projectFileService: projectFileService, milestoneService: milestoneService, log: log}
 }
 
 // Create 创建项目/发布需求
@@ -121,25 +123,25 @@ func (h *ProjectHandler) List(c *gin.Context) {
 // GET /api/v1/projects/:id
 func (h *ProjectHandler) Get(c *gin.Context) {
 	idStr := c.Param("id")
+	userUUID := c.GetString("user_uuid")
 
-	// 先尝试数字 ID
+	var p *model.Project
 	if numID, err := strconv.ParseInt(idStr, 10, 64); err == nil {
-		p, err := h.projectService.GetByID(numID)
+		p, err = h.projectService.GetByID(numID)
 		if err != nil {
 			response.ErrorNotFound(c, errcode.ErrProjectNotFound, errcode.GetMessage(errcode.ErrProjectNotFound))
 			return
 		}
-		response.Success(c, toProjectDetail(p))
-		return
+	} else {
+		var err2 error
+		p, err2 = h.projectService.GetByUUID(idStr)
+		if err2 != nil {
+			response.ErrorNotFound(c, errcode.ErrProjectNotFound, errcode.GetMessage(errcode.ErrProjectNotFound))
+			return
+		}
 	}
 
-	// 否则当 UUID 处理
-	p, err := h.projectService.GetByUUID(idStr)
-	if err != nil {
-		response.ErrorNotFound(c, errcode.ErrProjectNotFound, errcode.GetMessage(errcode.ErrProjectNotFound))
-		return
-	}
-	response.Success(c, toProjectDetail(p))
+	response.Success(c, h.buildProjectDetail(p, userUUID))
 }
 
 // Update 更新项目
@@ -280,16 +282,85 @@ func toMarketProjectList(projects []*model.Project) []service.ProjectListItem {
 
 type projectDetail struct {
 	service.ProjectListItem
-	PrdSummary string      `json:"prd_summary"`
-	Milestones interface{} `json:"milestones"`
+	PrdSummary  string      `json:"prd_summary"`
+	Milestones  interface{} `json:"milestones"`
+	MyBidStatus *string     `json:"my_bid_status,omitempty"`
 }
 
-func toProjectDetail(p *model.Project) projectDetail {
-	return projectDetail{
-		ProjectListItem: service.NewProjectListItem(p),
-		PrdSummary:      "",
-		Milestones:      []interface{}{},
+func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string) projectDetail {
+	prdSummary := extractPRDSummary(p)
+
+	statusMap := map[int16]string{
+		1: "pending",
+		2: "in_progress",
+		3: "completed",
+		4: "revision_requested",
+		5: "delivered",
 	}
+	var milestoneList []interface{}
+	if ms, err := h.milestoneService.ListByProject(p.UUID); err == nil && len(ms) > 0 {
+		milestoneList = make([]interface{}, 0, len(ms))
+		for _, m := range ms {
+			st := statusMap[m.Status]
+			if st == "" {
+				st = "pending"
+			}
+			progress := 0
+			switch m.Status {
+			case 3:
+				progress = 100
+			case 5:
+				progress = 90
+			case 2:
+				progress = 50
+			}
+			milestoneList = append(milestoneList, map[string]interface{}{
+				"id":       m.UUID,
+				"title":    m.Title,
+				"status":   st,
+				"progress": progress,
+				"due_date": m.DueDate,
+				"amount":   m.PaymentAmount,
+			})
+		}
+	}
+	if milestoneList == nil {
+		milestoneList = []interface{}{}
+	}
+
+	detail := projectDetail{
+		ProjectListItem: service.NewProjectListItem(p),
+		PrdSummary:      prdSummary,
+		Milestones:      milestoneList,
+	}
+
+	if bs := h.projectService.UserBidStatus(p.ID, userUUID); bs != "" {
+		detail.MyBidStatus = &bs
+	}
+
+	return detail
+}
+
+func extractPRDSummary(p *model.Project) string {
+	tryExtract := func(raw model.JSONMap) string {
+		if len(raw) == 0 {
+			return ""
+		}
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(raw), &m); err != nil {
+			return ""
+		}
+		if s, ok := m["summary"]; ok {
+			if str, ok := s.(string); ok && str != "" {
+				return str
+			}
+		}
+		return ""
+	}
+	if s := tryExtract(p.ConfirmedPRD); s != "" {
+		return s
+	}
+	return tryExtract(p.AiPRD)
 }
 
 func respondProjectFileError(c *gin.Context, err error) {
