@@ -4,6 +4,7 @@ import '../../../core/network/ai_agent_client.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/sse_client.dart';
+import '../models/post_models.dart';
 
 class PostRepository {
   final ApiClient _client;
@@ -113,6 +114,13 @@ class PostRepository {
       },
     );
     return _unwrapAiAgentEnvelope(body, operation: 'Confirm requirement');
+  }
+
+  Future<ProjectOverviewData> fetchProjectOverview(String projectId) async {
+    final body = await _aiAgent.get(ApiEndpoints.pipelineOverview(projectId));
+    final data =
+        _unwrapAiAgentEnvelope(body, operation: 'Fetch project overview');
+    return ProjectOverviewData.fromJson(data);
   }
 
   /// Trigger EARS decomposition after match + cooperation confirmation.

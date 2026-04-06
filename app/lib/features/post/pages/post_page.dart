@@ -14,7 +14,7 @@ import '../providers/post_provider.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/post_category_step.dart';
 
-const _postStepLabels = ['分类', 'AI 对话', '项目概览', '预算', '匹配团队', '等待确认'];
+const _postStepLabels = ['分类', 'AI 对话', '项目概览', '预算', '匹配团队', '发布完成'];
 
 const _postStepMetas = [
   _PostFlowStepMeta(
@@ -43,9 +43,9 @@ const _postStepMetas = [
     compactTitle: '匹配团队',
   ),
   _PostFlowStepMeta(
-    title: '等待团队方确认',
-    subtitle: '你已确认这个团队，正在等待对方回复。',
-    compactTitle: '等待确认',
+    title: '发布完成',
+    subtitle: '项目已经发布成功，接下来你可以继续查看项目详情或回到首页。',
+    compactTitle: '发布完成',
   ),
 ];
 
@@ -76,9 +76,70 @@ String? _activeInlineReplyMessageId(PostState state) {
   return null;
 }
 
+PostPublishResultType _resolvedPublishResultType(PostState state) {
+  return state.publishResultType ??
+      (state.recommendedTeam != null
+          ? PostPublishResultType.awaitingTeamConfirmation
+          : PostPublishResultType.publishedWithoutMatch);
+}
+
+_PostFlowStepMeta _metaForState(PostState state) {
+  if (state.currentStep != 5) {
+    return _postStepMetas[state.currentStep.clamp(
+      0,
+      _postStepMetas.length - 1,
+    )];
+  }
+
+  switch (_resolvedPublishResultType(state)) {
+    case PostPublishResultType.awaitingTeamConfirmation:
+      final teamName = state.recommendedTeam?.name.trim();
+      return _PostFlowStepMeta(
+        title: '发布完成',
+        subtitle: teamName == null || teamName.isEmpty
+            ? '项目已发布，推荐结果已发出。'
+            : '项目已发布，已发送给 $teamName。',
+        compactTitle: '发布完成',
+      );
+    case PostPublishResultType.publishedWithoutMatch:
+      return const _PostFlowStepMeta(
+        title: '发布完成',
+        subtitle: '项目已发布，当前还没有匹配到合适团队。',
+        compactTitle: '发布完成',
+      );
+  }
+}
+
+String? _titleTagForState(PostState state) {
+  if (state.currentStep == 1) {
+    return ({
+          'data': '数据',
+          'dev': '研发',
+          'design': '视觉设计',
+          'visual': '视觉设计',
+          'solution': '解决方案',
+        }[state.category] ??
+        '项目方向');
+  }
+
+  if (state.currentStep == 5) {
+    return switch (_resolvedPublishResultType(state)) {
+      PostPublishResultType.awaitingTeamConfirmation => '待确认',
+      PostPublishResultType.publishedWithoutMatch => '未匹配',
+    };
+  }
+
+  return null;
+}
+
 double _footerHeight(PostState state) {
   if (state.currentStep == 0) return 0;
-  if (state.currentStep == 5) return 104;
+  if (state.currentStep == 5) {
+    return switch (_resolvedPublishResultType(state)) {
+      PostPublishResultType.awaitingTeamConfirmation => 142,
+      PostPublishResultType.publishedWithoutMatch => 186,
+    };
+  }
   if (state.currentStep == 1) {
     if (_isRequirementReviewMode(state)) return 104;
     if (!_shouldShowRequirementConfirm(state)) return 0;
@@ -91,7 +152,9 @@ Widget? _buildFooter({
   required BuildContext context,
   required PostState state,
   required WidgetRef ref,
-  VoidCallback? onCompleted,
+  VoidCallback? onViewProject,
+  VoidCallback? onGoHome,
+  VoidCallback? onRetryMatch,
 }) {
   if (state.currentStep == 0) return null;
 
@@ -135,26 +198,27 @@ Widget? _buildFooter({
       return _MatchTeamFooter(
         team: state.recommendedTeam,
         isLoading: state.isLoadingMatch,
-        isConfirming: state.isConfirmingMatch,
+        isSubmitting: state.isConfirmingMatch,
+        noTeamPrimaryLabel: state.isProjectPublished ? '回到发布结果' : '直接发布项目',
         onConfirm: () =>
             ref.read(postStateProvider.notifier).confirmTeamMatch(),
         onReMatch: () => ref.read(postStateProvider.notifier).reMatch(),
-        onSkip: () => ref.read(postStateProvider.notifier).goToStep(5),
+        onSkip: () {
+          if (state.isProjectPublished) {
+            ref.read(postStateProvider.notifier).goToStep(5);
+            return;
+          }
+          ref.read(postStateProvider.notifier).publishWithoutMatch();
+        },
       );
     case 5:
-      return VccFlowFooterBar(
-        label: '完成',
-        onPressed: () {
-          if (onCompleted != null) {
-            onCompleted();
-            return;
-          }
-          if (context.canPop()) {
-            context.pop();
-            return;
-          }
-          context.go('/home');
-        },
+      return _PublishResultFooter(
+        resultType: _resolvedPublishResultType(state),
+        onViewProject: state.projectId?.trim().isNotEmpty == true
+            ? () => onViewProject?.call()
+            : null,
+        onGoHome: onGoHome,
+        onRetryMatch: onRetryMatch,
       );
   }
   return null;
@@ -163,6 +227,9 @@ Widget? _buildFooter({
 List<Widget> _buildPostSlivers({
   required PostState state,
   required WidgetRef ref,
+  VoidCallback? onViewProject,
+  VoidCallback? onGoHome,
+  VoidCallback? onRetryMatch,
 }) {
   final slivers = <Widget>[];
 
@@ -193,9 +260,7 @@ List<Widget> _buildPostSlivers({
         ),
       );
     case 1:
-      slivers.addAll(
-        _buildAiChatSlivers(state: state, ref: ref),
-      );
+      slivers.addAll(_buildAiChatSlivers(state: state, ref: ref));
     case 2:
       slivers.add(
         SliverPadding(
@@ -235,10 +300,12 @@ List<Widget> _buildPostSlivers({
       );
     case 5:
       slivers.add(
-        const SliverPadding(
-          padding: EdgeInsets.fromLTRB(20, 18, 20, 32),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           sliver: SliverToBoxAdapter(
-            child: _WaitForTeamStage(),
+            child: _PublishResultStage(
+              resultType: _resolvedPublishResultType(state),
+            ),
           ),
         ),
       );
@@ -318,6 +385,7 @@ class PostPage extends ConsumerStatefulWidget {
 
 class _PostPageState extends ConsumerState<PostPage> {
   final _flowScrollController = ScrollController();
+  String? _lastPublishToastKey;
 
   @override
   void initState() {
@@ -371,6 +439,28 @@ class _PostPageState extends ConsumerState<PostPage> {
     });
   }
 
+  void _maybeShowPublishToast(PostState state) {
+    if (!mounted || state.currentStep != 5 || !state.isProjectPublished) {
+      return;
+    }
+
+    final toastKey =
+        '${state.projectId ?? 'no-project'}:${_resolvedPublishResultType(state).name}';
+    if (_lastPublishToastKey == toastKey) {
+      return;
+    }
+    _lastPublishToastKey = toastKey;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      VccToast.show(
+        context,
+        message: '项目已发布成功',
+        type: VccToastType.success,
+      );
+    });
+  }
+
   Future<void> _confirmClose(PostState state) async {
     if (!_hasProgress(state)) {
       if (mounted && context.canPop()) {
@@ -412,9 +502,8 @@ class _PostPageState extends ConsumerState<PostPage> {
   }
 
   void _handleBack(PostState state) {
-    // Step 5 (waiting) should not go back to step 4
-    if (state.currentStep == 5) {
-      _confirmClose(state);
+    if (state.currentStep == 5 && state.isProjectPublished) {
+      _exitCompletedFlow();
       return;
     }
     if (state.currentStep > 0) {
@@ -430,7 +519,32 @@ class _PostPageState extends ConsumerState<PostPage> {
   }
 
   void _handleClose(PostState state) {
+    if (state.currentStep == 5 && state.isProjectPublished) {
+      _exitCompletedFlow();
+      return;
+    }
     _confirmClose(state);
+  }
+
+  void _exitCompletedFlow() {
+    if (widget.onCompleted != null) {
+      widget.onCompleted!();
+      return;
+    }
+    context.go('/home');
+  }
+
+  void _goToProjectDetail(PostState state) {
+    final projectId = state.projectId?.trim();
+    if (projectId == null || projectId.isEmpty) {
+      VccToast.show(
+        context,
+        message: '当前项目还没有可用的详情页 ID',
+        type: VccToastType.error,
+      );
+      return;
+    }
+    context.go('/projects/$projectId');
   }
 
   void _showCategoryChangeConfirm() {
@@ -474,18 +588,8 @@ class _PostPageState extends ConsumerState<PostPage> {
   Widget build(BuildContext context) {
     final postState = ref.watch(postStateProvider);
     final visibleStep = _visibleStepIndex(postState);
-    final meta = _postStepMetas[
-        postState.currentStep.clamp(0, _postStepMetas.length - 1)];
-    final titleTag = postState.currentStep == 1
-        ? ({
-              'data': '数据',
-              'dev': '研发',
-              'design': '视觉设计',
-              'visual': '视觉设计',
-              'solution': '解决方案',
-            }[postState.category] ??
-            '项目方向')
-        : null;
+    final meta = _metaForState(postState);
+    final titleTag = _titleTagForState(postState);
 
     ref.listen<PostState>(postStateProvider, (previous, next) {
       if (_visibleStepIndex(previous ?? next) != _visibleStepIndex(next)) {
@@ -512,7 +616,13 @@ class _PostPageState extends ConsumerState<PostPage> {
       if (error != null && error != previous?.errorMessage && mounted) {
         VccToast.show(context, message: error, type: VccToastType.error);
       }
+
+      if (previous?.currentStep != next.currentStep && next.currentStep == 5) {
+        _maybeShowPublishToast(next);
+      }
     });
+
+    _maybeShowPublishToast(postState);
 
     return VccFlowScaffold(
       stepIndex: visibleStep,
@@ -529,12 +639,25 @@ class _PostPageState extends ConsumerState<PostPage> {
         context: context,
         state: postState,
         ref: ref,
-        onCompleted: widget.onCompleted,
+        onViewProject: () => _goToProjectDetail(postState),
+        onGoHome: _exitCompletedFlow,
+        onRetryMatch: () {
+          ref.read(postStateProvider.notifier)
+            ..goToStep(4)
+            ..requestMatch();
+        },
       ),
       footerHeight: _footerHeight(postState),
       slivers: _buildPostSlivers(
         state: postState,
         ref: ref,
+        onViewProject: () => _goToProjectDetail(postState),
+        onGoHome: _exitCompletedFlow,
+        onRetryMatch: () {
+          ref.read(postStateProvider.notifier)
+            ..goToStep(4)
+            ..requestMatch();
+        },
       ),
     );
   }
@@ -855,97 +978,440 @@ class _ProjectOverviewStage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _InlineStepIntro(
-          eyebrow: '项目概览',
-          title: '确认已锁定的发布摘要',
-          body:
-              '这里展示的是当前对话里已经确认的需求方向。正式 requirement.md 会在撮合成功并确认合作后，由后端触发 EARS 拆解生成。',
-        ),
-        const SizedBox(height: 16),
-        VccCard(
-          padding: const EdgeInsets.all(18),
-          backgroundColor: AppColors.onboardingSurface,
-          border: Border.all(color: AppColors.gray200),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                data.title,
-                style: AppTextStyles.h3.copyWith(color: AppColors.black),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                data.summary,
-                style: AppTextStyles.body2.copyWith(
-                  height: 1.7,
-                  color: AppColors.gray700,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.gray100,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.gray200),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.schedule_rounded,
-                      size: 16,
-                      color: AppColors.gray500,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '当前后端只完成 PRD 确认。正式需求文档与 EARS 任务拆解会在后续撮合成功、确认合作后生成。',
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.gray600,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        Text(
+          '项目摘要',
+          style: AppTextStyles.onboardingMeta.copyWith(
+            color: AppColors.gray500,
+            letterSpacing: 0.8,
           ),
         ),
-        if (data.budgetSuggestion != null) ...[
-          const SizedBox(height: 12),
-          VccCard(
-            padding: const EdgeInsets.all(18),
-            backgroundColor: AppColors.gray100,
-            border: Border.all(color: AppColors.gray200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '预算提醒',
-                  style: AppTextStyles.onboardingMeta.copyWith(
-                    color: AppColors.gray600,
-                    letterSpacing: 0.8,
+        const SizedBox(height: 10),
+        Text(
+          data.title,
+          style: AppTextStyles.h2.copyWith(
+            color: AppColors.black,
+            fontWeight: FontWeight.w700,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          data.summary,
+          style: AppTextStyles.body1.copyWith(
+            color: AppColors.gray700,
+            height: 1.75,
+          ),
+        ),
+        if (data.hasHighlights) ...[
+          const SizedBox(height: 20),
+          _OverviewMetricStrip(data: data),
+        ],
+        if (data.hasDetailSections) ...[
+          if (data.targetUsers.isNotEmpty) ...[
+            const SizedBox(height: 32),
+            const _OverviewSectionTitle('目标用户'),
+            const SizedBox(height: 14),
+            ...data.targetUsers.asMap().entries.map((entry) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: entry.key == data.targetUsers.length - 1 ? 0 : 12,
+                ),
+                child: _OverviewInfoRow(
+                  label: entry.value.role,
+                  value: entry.value.description,
+                ),
+              );
+            }),
+          ],
+          if (data.hasTechSummary) ...[
+            const SizedBox(height: 32),
+            const _OverviewSectionTitle('技术要求'),
+            const SizedBox(height: 14),
+            if (data.techRequirements?.platform != null)
+              _OverviewInfoRow(
+                label: '平台',
+                value: data.techRequirements!.platform!,
+              ),
+            if (data.techRequirements?.platform != null &&
+                data.techRequirements?.techStack != null)
+              const SizedBox(height: 12),
+            if (data.techRequirements?.techStack != null)
+              _OverviewInfoRow(
+                label: '技术栈',
+                value: data.techRequirements!.techStack!,
+              ),
+            if ((data.techRequirements?.platform != null ||
+                    data.techRequirements?.techStack != null) &&
+                data.techRequirements!.thirdParty.isNotEmpty)
+              const SizedBox(height: 12),
+            if (data.techRequirements != null &&
+                data.techRequirements!.thirdParty.isNotEmpty)
+              _OverviewInfoRow(
+                label: '第三方',
+                value: data.techRequirements!.thirdParty.join(' / '),
+              ),
+          ],
+          if (data.nonFunctionalRequirements.isNotEmpty) ...[
+            const SizedBox(height: 32),
+            const _OverviewSectionTitle('非功能要求'),
+            const SizedBox(height: 14),
+            ...data.nonFunctionalRequirements.entries
+                .toList()
+                .asMap()
+                .entries
+                .map(
+              (entry) {
+                final item = entry.value;
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom:
+                        entry.key == data.nonFunctionalRequirements.length - 1
+                            ? 0
+                            : 12,
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '推荐区间 ${_formatBudget(data.budgetSuggestion!.min, data.budgetSuggestion!.max)}',
-                  style: AppTextStyles.h3.copyWith(color: AppColors.black),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  data.budgetSuggestion!.reason,
-                  style: AppTextStyles.body2
-                      .copyWith(height: 1.6, color: AppColors.gray600),
-                ),
-              ],
+                  child: _OverviewInfoRow(
+                    label: _formatRequirementKey(item.key),
+                    value: item.value,
+                  ),
+                );
+              },
+            ),
+          ],
+        ],
+        if (data.prdItems.isNotEmpty) ...[
+          const SizedBox(height: 36),
+          _OverviewSectionTitle(
+            '需求条目',
+            suffix: data.itemCount != null ? '共 ${data.itemCount} 条' : null,
+          ),
+          const SizedBox(height: 16),
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: AppColors.gray200),
+                bottom: BorderSide(color: AppColors.gray200),
+              ),
+            ),
+            child: Column(
+              children: data.prdItems.asMap().entries.map((entry) {
+                final item = entry.value;
+                final isLast = entry.key == data.prdItems.length - 1;
+                return _OverviewPrdItem(
+                  item: item,
+                  isLast: isLast,
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+        if (data.budgetSuggestion != null) ...[
+          const SizedBox(height: 32),
+          const _OverviewSectionTitle('预算提醒'),
+          const SizedBox(height: 12),
+          Text(
+            '推荐区间 ${_formatBudget(data.budgetSuggestion!.min, data.budgetSuggestion!.max)}',
+            style: AppTextStyles.h3.copyWith(color: AppColors.black),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            data.budgetSuggestion!.reason,
+            style: AppTextStyles.body2.copyWith(
+              height: 1.65,
+              color: AppColors.gray600,
             ),
           ),
         ],
       ],
     );
+  }
+}
+
+class _OverviewSectionTitle extends StatelessWidget {
+  final String title;
+  final String? suffix;
+
+  const _OverviewSectionTitle(this.title, {this.suffix});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: AppTextStyles.onboardingMeta.copyWith(
+              color: AppColors.gray500,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+        if (suffix != null)
+          Text(
+            suffix!,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.gray500,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _OverviewMetricStrip extends StatelessWidget {
+  final ProjectOverviewData data;
+
+  const _OverviewMetricStrip({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final metrics = <({String label, String value})>[
+      if (data.complexity != null)
+        (label: '复杂度', value: _formatComplexity(data.complexity!)),
+      if (data.moduleCount != null)
+        (label: '模块', value: '${data.moduleCount} 个'),
+      if (data.itemCount != null) (label: '条目', value: '${data.itemCount} 条'),
+    ];
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: AppColors.gray200),
+          bottom: BorderSide(color: AppColors.gray200),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          children: [
+            for (var index = 0; index < metrics.length; index++) ...[
+              Expanded(
+                child: _OverviewMetricColumn(
+                  label: metrics[index].label,
+                  value: metrics[index].value,
+                ),
+              ),
+              if (index != metrics.length - 1)
+                Container(
+                  width: 1,
+                  height: 32,
+                  color: AppColors.gray200,
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OverviewMetricColumn extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _OverviewMetricColumn({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.gray500,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTextStyles.body1.copyWith(
+              color: AppColors.black,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewPrdItem extends StatelessWidget {
+  final ProjectOverviewPrdItem item;
+  final bool isLast;
+
+  const _OverviewPrdItem({
+    required this.item,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      style: AppTextStyles.body1.copyWith(
+                        color: AppColors.black,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${item.itemId} · ${item.moduleName}',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.gray500,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (item.priority != null)
+                _OverviewPriorityTag(priority: item.priority!),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            item.description,
+            style: AppTextStyles.body2.copyWith(
+              color: AppColors.gray700,
+              height: 1.7,
+            ),
+          ),
+          if (item.acceptanceSummary != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              '验收：${item.acceptanceSummary!}',
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.gray600,
+                height: 1.6,
+              ),
+            ),
+          ],
+          if (!isLast) ...[
+            const SizedBox(height: 16),
+            const Divider(height: 1, color: AppColors.gray200),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewInfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _OverviewInfoRow({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 72,
+          child: Text(
+            label,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.gray500,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            value,
+            style: AppTextStyles.body2.copyWith(
+              color: AppColors.gray700,
+              height: 1.6,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OverviewPriorityTag extends StatelessWidget {
+  final String priority;
+
+  const _OverviewPriorityTag({required this.priority});
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = switch (priority.trim().toUpperCase()) {
+      'P0' => (bg: AppColors.errorBg, text: AppColors.error),
+      'P1' => (bg: AppColors.warningBg, text: AppColors.warning),
+      'P2' => (bg: AppColors.infoBg, text: AppColors.info),
+      _ => (bg: AppColors.gray100, text: AppColors.gray500),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: tone.bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        priority,
+        style: AppTextStyles.caption.copyWith(
+          color: tone.text,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+String _formatComplexity(String value) {
+  switch (value.trim().toUpperCase()) {
+    case 'S':
+      return 'S · 1-3天';
+    case 'M':
+      return 'M · 3-7天';
+    case 'L':
+      return 'L · 7-15天';
+    case 'XL':
+      return 'XL · 15-30天';
+    default:
+      return value;
+  }
+}
+
+String _formatRequirementKey(String key) {
+  switch (key.trim().toLowerCase()) {
+    case 'performance':
+      return '性能';
+    case 'security':
+      return '安全';
+    case 'availability':
+      return '可用性';
+    case 'reliability':
+      return '可靠性';
+    default:
+      return key;
   }
 }
 
@@ -1258,7 +1724,8 @@ class _MatchTeamStage extends StatelessWidget {
 class _MatchTeamFooter extends StatelessWidget {
   final RecommendedTeam? team;
   final bool isLoading;
-  final bool isConfirming;
+  final bool isSubmitting;
+  final String noTeamPrimaryLabel;
   final VoidCallback onConfirm;
   final VoidCallback onReMatch;
   final VoidCallback? onSkip;
@@ -1266,7 +1733,8 @@ class _MatchTeamFooter extends StatelessWidget {
   const _MatchTeamFooter({
     required this.team,
     required this.isLoading,
-    required this.isConfirming,
+    required this.isSubmitting,
+    required this.noTeamPrimaryLabel,
     required this.onConfirm,
     required this.onReMatch,
     this.onSkip,
@@ -1284,12 +1752,12 @@ class _MatchTeamFooter extends StatelessWidget {
           if (team != null) ...[
             VccButton(
               text: '采用当前推荐',
-              onPressed: !isConfirming ? onConfirm : null,
-              isLoading: isConfirming,
+              onPressed: !isSubmitting ? onConfirm : null,
+              isLoading: isSubmitting,
             ),
             const SizedBox(height: 10),
             GestureDetector(
-              onTap: isConfirming ? null : onReMatch,
+              onTap: isSubmitting ? null : onReMatch,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Text(
@@ -1303,12 +1771,13 @@ class _MatchTeamFooter extends StatelessWidget {
             ),
           ] else ...[
             VccButton(
-              text: '跳过，直接发布项目',
-              onPressed: onSkip,
+              text: noTeamPrimaryLabel,
+              onPressed: !isSubmitting ? onSkip : null,
+              isLoading: isSubmitting,
             ),
             const SizedBox(height: 10),
             GestureDetector(
-              onTap: onReMatch,
+              onTap: isSubmitting ? null : onReMatch,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Text(
@@ -1328,60 +1797,164 @@ class _MatchTeamFooter extends StatelessWidget {
 }
 
 // =============================================================================
-// Step 5: Wait for team confirmation
+// Step 5: Publish result
 // =============================================================================
 
-class _WaitForTeamStage extends StatelessWidget {
-  const _WaitForTeamStage();
+class _PublishResultStage extends StatelessWidget {
+  final PostPublishResultType resultType;
+
+  const _PublishResultStage({
+    required this.resultType,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _InlineStepIntro(
-          eyebrow: '等待确认',
-          title: '团队方正在确认中',
-          body: '你已采用当前推荐，正在等待对方确认合作意向。确认后即可正式启动项目。',
-        ),
-        const SizedBox(height: 24),
-        VccCard(
-          padding: const EdgeInsets.all(24),
-          backgroundColor: AppColors.onboardingSurface,
-          border: Border.all(color: AppColors.gray200),
-          child: Column(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.gray100,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(
-                  Icons.hourglass_top_rounded,
-                  size: 28,
-                  color: AppColors.gray500,
+    final isAwaiting =
+        resultType == PostPublishResultType.awaitingTeamConfirmation;
+    final stageHeight = (MediaQuery.sizeOf(context).height * 0.46)
+        .clamp(340.0, 460.0)
+        .toDouble();
+    final outcome = isAwaiting ? '当前正在等待团队确认' : '当前还没有匹配到团队';
+    final supporting =
+        isAwaiting ? '推荐已经发出，团队确认后平台会继续通知你。' : '你可以先离开这个页面，之后再回来继续匹配团队。';
+
+    return SizedBox(
+      height: stageHeight,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const _PublishResultBadge(),
+            const SizedBox(height: 24),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: Text(
+                outcome,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.h3.copyWith(
+                  color: AppColors.black,
+                  fontWeight: FontWeight.w600,
+                  height: 1.5,
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                '等待团队方确认',
-                style: AppTextStyles.h3.copyWith(color: AppColors.black),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '通常在 24 小时内会收到回复，届时会通过消息通知你。',
+            ),
+            const SizedBox(height: 10),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 280),
+              child: Text(
+                supporting,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.body2.copyWith(
-                  height: 1.6,
                   color: AppColors.gray500,
+                  height: 1.7,
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PublishResultFooter extends StatelessWidget {
+  final PostPublishResultType resultType;
+  final VoidCallback? onViewProject;
+  final VoidCallback? onGoHome;
+  final VoidCallback? onRetryMatch;
+
+  const _PublishResultFooter({
+    required this.resultType,
+    this.onViewProject,
+    this.onGoHome,
+    this.onRetryMatch,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isAwaiting =
+        resultType == PostPublishResultType.awaitingTeamConfirmation;
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.onboardingBackground,
+        border: Border(top: BorderSide(color: AppColors.gray200)),
+      ),
+      child: SafeArea(
+        top: false,
+        minimum: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              VccButton(
+                text: '查看项目详情',
+                onPressed: onViewProject,
+                icon: Icons.arrow_outward_rounded,
+              ),
+              const SizedBox(height: 10),
+              VccButton(
+                text: isAwaiting ? '返回首页' : '再次匹配团队',
+                type: VccButtonType.secondary,
+                onPressed: isAwaiting ? onGoHome : onRetryMatch,
+              ),
+              if (!isAwaiting) ...[
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: onGoHome,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Text(
+                      '返回首页',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.body2.copyWith(
+                        color: AppColors.gray500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _PublishResultBadge extends StatelessWidget {
+  const _PublishResultBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.92, end: 1),
+      duration: const Duration(milliseconds: 480),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value.clamp(0, 1),
+          child: Transform.scale(
+            scale: value,
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          color: AppColors.black,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: const Icon(
+          Icons.check_rounded,
+          size: 36,
+          color: AppColors.white,
+        ),
+      ),
     );
   }
 }

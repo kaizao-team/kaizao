@@ -37,8 +37,7 @@ class ApiEndpoints {
   static String userPortfolios(String id) => '/api/v1/users/$id/portfolios';
   static const String currentUser = '/api/v1/users/me';
   static const String myPortfolios = '/api/v1/users/me/portfolios';
-  static String myPortfolio(String uuid) =>
-      '/api/v1/users/me/portfolios/$uuid';
+  static String myPortfolio(String uuid) => '/api/v1/users/me/portfolios/$uuid';
 
   // ============================================================
   // 首页聚合 /api/v1/home
@@ -200,6 +199,8 @@ class ApiEndpoints {
   static const String pipelineStart = '/api/v2/pipeline/start';
   static String pipelineStatus(String projectId) =>
       '/api/v2/pipeline/$projectId/status';
+  static String pipelineOverview(String projectId) =>
+      '/api/v2/pipeline/$projectId/overview';
 
   // ============================================================
   // AI Agent v2 (Python service, direct connection)
