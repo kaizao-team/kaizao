@@ -40,7 +40,20 @@ def run():
         data = r.get("data", [])
         print(f"         experts count: {len(data)}")
         if data and len(data) > 0:
-            cf(data[0], ["id", "nickname", "rating", "skills", "hourly_rate", "leader_uuid"], "expert[0]")
+            cf(
+                data[0],
+                [
+                    "id",
+                    "nickname",
+                    "rating",
+                    "skills",
+                    "hourly_rate",
+                    "budget_min",
+                    "budget_max",
+                    "leader_uuid",
+                ],
+                "expert[0]",
+            )
             state.EXPERT_UUID_FOR_FAV = data[0].get("leader_uuid")
             state.EXPERT_TEAM_UUID = data[0].get("id")
 

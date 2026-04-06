@@ -183,6 +183,8 @@ func (h *TeamHandler) GetDetail(c *gin.Context) {
 		"vibe_level":       team.VibeLevel,
 		"vibe_power":       team.VibePower,
 		"hourly_rate":      team.HourlyRate,
+		"budget_min":       team.BudgetMin,
+		"budget_max":       team.BudgetMax,
 		"avg_rating":       team.AvgRating,
 		"member_count":     team.MemberCount,
 		"total_projects":   team.TotalProjects,

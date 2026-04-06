@@ -290,6 +290,9 @@ type Team struct {
 	// migration 012 — 业务字段（团队实体对齐）
 	AvailableStatus int16    `gorm:"not null;default:1" json:"available_status"`
 	HourlyRate      *float64 `gorm:"type:decimal(10,2)" json:"hourly_rate,omitempty"`
+	// migration 013 — 团队预算区间（仅存 teams）
+	BudgetMin *float64 `gorm:"type:decimal(10,2)" json:"budget_min,omitempty"`
+	BudgetMax *float64 `gorm:"type:decimal(10,2)" json:"budget_max,omitempty"`
 
 	CreatedAt time.Time `gorm:"not null;autoCreateTime" json:"created_at"`
 	UpdatedAt time.Time `gorm:"not null;autoUpdateTime" json:"updated_at"`

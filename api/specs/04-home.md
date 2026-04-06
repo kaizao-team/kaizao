@@ -43,6 +43,8 @@
         "rating": 4.9,
         "skill": "string (队长主要技能)",
         "hourly_rate": 300,
+        "budget_min": 5000,
+        "budget_max": 20000,
         "completed_orders": 23,
         "vibe_level": "vc-T1",
         "vibe_power": 0,

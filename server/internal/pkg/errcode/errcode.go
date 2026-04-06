@@ -51,6 +51,8 @@ const (
 	ErrObjectUploadFailed           = 11016
 	ErrUploadEmptyFile              = 11017
 	ErrUploadInvalidFileType        = 11018
+	ErrBudgetExpertOnly           = 11019
+	ErrBudgetNoPrimaryTeam        = 11020
 )
 
 // 项目模块（需求） 20001-20999
@@ -203,6 +205,8 @@ var ErrorMessages = map[int]string{
 	ErrObjectUploadFailed:        "文件上传失败",
 	ErrUploadEmptyFile:           "上传文件不能为空",
 	ErrUploadInvalidFileType:     "不支持的文件类型，仅支持常见图片格式",
+	ErrBudgetExpertOnly:          "仅专家或团队方可设置预算区间",
+	ErrBudgetNoPrimaryTeam:       "无主团队，无法设置预算区间",
 	ErrUserNotFound:         "用户不存在",
 	ErrNicknameUsed:         "昵称已被使用",
 	ErrSkillsExceedLimit:    "技能标签数量超过上限",

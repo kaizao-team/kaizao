@@ -138,7 +138,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "无可更新字段")
 		return
 	}
-	updated, err := h.userService.UpdateProfile(targetUUID, fields)
+	updated, err := h.userService.UpdateProfile(targetUUID, fields, nil)
 	if err != nil {
 		response.ErrorInternal(c, "更新失败")
 		return
@@ -584,6 +584,8 @@ func (h *UserHandler) ListExperts(c *gin.Context) {
 			"member_count": t.MemberCount,
 			"rating":       t.AvgRating,
 			"hourly_rate":  t.HourlyRate,
+			"budget_min":   t.BudgetMin,
+			"budget_max":   t.BudgetMax,
 		}
 		if leader != nil {
 			item["leader_uuid"] = leader.UUID

@@ -24,6 +24,8 @@ def run():
                 and "vibe_level" in ex
                 and "vibe_power" in ex
                 and "member_count" in ex
+                and "budget_min" in ex
+                and "budget_max" in ex
                 for ex in rec_list
             )
             print(

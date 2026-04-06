@@ -1,12 +1,19 @@
 """Global mutable state shared across all test modules."""
 
-# CLI args (set by runner)
+import os
+
+def _env(key: str, default: str) -> str:
+    v = os.environ.get(key)
+    return (v.strip() if v else "") or default
+
+
+# CLI args（由 runner 覆盖；默认值与 docker-compose.wsl.yml / wsl_deploy_test.sh 一致）
 BASE = "http://localhost:8080"
-REDIS_CONTAINER = "kaizao-redis"
-REDIS_PASSWORD = "redis123"
-MYSQL_CONTAINER = "kaizao-mysql"
+REDIS_CONTAINER = _env("KAIZAO_REDIS_CONTAINER", "kaizao-wsl-redis")
+REDIS_PASSWORD = _env("KAIZAO_REDIS_PASSWORD", "redis123")
+MYSQL_CONTAINER = _env("KAIZAO_MYSQL_CONTAINER", "kaizao-wsl-mysql")
 MYSQL_USER = "kaizao"
-MYSQL_PASSWORD = "kaizao123"
+MYSQL_PASSWORD = _env("KAIZAO_MYSQL_PASSWORD", "kaizao_prod_2026")
 MYSQL_DB = "kaizao"
 FULL_ONBOARDING = False
 TEST_NEW_APIS = False
