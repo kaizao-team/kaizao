@@ -8,6 +8,7 @@
 # 环境变量:
 #   REMOTE_HOST            SSH 别名或 user@host，默认 kaizao
 #   PROD_HTTP_PORT         与 docker-compose.prod.yml 中映射一致，默认 39527
+#   USE_DOCKERFILE_BUILDKIT=1  传给 deploy.sh push：用 Dockerfile.buildkit 加快本地 docker build（需 buildx）
 #   RUN_FULL_SUITE=1       同时开启 --full-onboarding 与 --test-new-apis（全量）
 #   RUN_FULL_ONBOARDING=1  完整入驻链路（兑换邀请码等）
 #   RUN_TEST_NEW_APIS=1    材料审核 + MinIO 上传（prod compose 已含 MinIO 时可开）
