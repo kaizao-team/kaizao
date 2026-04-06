@@ -63,7 +63,7 @@ PY_ARGS=(--base "${BASE}")
 [ "${RUN_FULL_ONBOARDING:-0}" = "1" ] && PY_ARGS+=(--full-onboarding)
 [ "${RUN_TEST_NEW_APIS:-0}" = "1" ] && PY_ARGS+=(--test-new-apis)
 # 优先使用拆分后的模块化入口；回退到原始单文件
-API_DIR="$(cd "$ROOT/../.." && pwd)/api"
+API_DIR="$(cd "$ROOT/.." && pwd)/api"
 if [ -f "$API_DIR/tests/runner.py" ]; then
   (cd "$API_DIR" && python3 -m tests "${PY_ARGS[@]}")
 else

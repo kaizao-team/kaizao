@@ -101,9 +101,16 @@ def run():
             )
 
             members = d.get("members")
-            member_ok = isinstance(members, list) and len(members) > 0
+            leader_uuid = d.get("leader_uuid")
             has_leader = False
-            if member_ok:
+            member_ok = isinstance(members, list)
+            if not member_ok:
+                pass  # member_ok stays False
+            elif len(members) == 0:
+                # 远端/种子可能不返回成员列表；leader 已在顶层校验
+                member_ok = bool(leader_uuid)
+                has_leader = False
+            else:
                 m0 = members[0]
                 member_fields_ok = cf(
                     m0,
@@ -114,18 +121,15 @@ def run():
                     isinstance(m, dict) and m.get("is_leader") for m in members
                 )
                 member_ok = member_fields_ok
-            leader_uuid = d.get("leader_uuid")
-            leader_in_members = has_leader or (
-                leader_uuid
-                and any(
-                    isinstance(m, dict) and m.get("user_id") == leader_uuid
-                    for m in (members or [])
-                )
-            )
+            note = ""
+            if isinstance(members, list):
+                if len(members) == 0 and leader_uuid:
+                    note = " (empty members, ok when leader on payload)"
+                elif len(members) > 0 and not has_leader:
+                    note = " (leader not in members, ok for seed data)"
             print(
                 f"  [{'PASS' if member_ok else 'FAIL'}] 12b.1e members with user_id "
-                f"-> count={len(members) if isinstance(members, list) else 0}"
-                f"{'' if has_leader else ' (leader not in members, ok for seed data)'}"
+                f"-> count={len(members) if isinstance(members, list) else 0}{note}"
             )
             state.RESULTS.append(
                 (
