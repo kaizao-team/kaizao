@@ -1,5 +1,7 @@
 class MarketExpertItem {
   final String id;
+  final String? leaderUuid;
+  final String teamName;
   final String nickname;
   final String? avatarUrl;
   final double rating;
@@ -11,8 +13,12 @@ class MarketExpertItem {
   final int vibePower;
   final int memberCount;
 
+  String get displayName => teamName.isNotEmpty ? teamName : nickname;
+
   const MarketExpertItem({
     required this.id,
+    this.leaderUuid,
+    this.teamName = '',
     required this.nickname,
     this.avatarUrl,
     required this.rating,
@@ -28,7 +34,9 @@ class MarketExpertItem {
   factory MarketExpertItem.fromJson(Map<String, dynamic> json) {
     return MarketExpertItem(
       id: json['id']?.toString() ?? '',
-      nickname: json['name'] as String? ?? json['nickname'] as String? ?? '',
+      leaderUuid: json['leader_uuid']?.toString(),
+      teamName: json['team_name'] as String? ?? '',
+      nickname: json['nickname'] as String? ?? json['name'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       skills: (json['skills'] as List?)?.cast<String>() ?? [],

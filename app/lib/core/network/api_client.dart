@@ -210,10 +210,11 @@ class ApiClient {
 
   LogInterceptor _logInterceptor() {
     return LogInterceptor(
+      request: true,
       requestBody: true,
       responseBody: true,
-      requestHeader: false,
-      responseHeader: false,
+      requestHeader: true,
+      responseHeader: true,
       logPrint: (obj) => debugPrint(obj.toString()),
     );
   }

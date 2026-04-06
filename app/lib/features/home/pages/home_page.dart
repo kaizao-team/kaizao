@@ -6,6 +6,7 @@ import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/models/project_model.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
+import '../../../shared/widgets/vcc_toast.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notification/providers/notification_provider.dart';
 import '../../project/providers/project_list_provider.dart';
@@ -173,7 +174,9 @@ class _HomePageState extends ConsumerState<HomePage> {
         SliverToBoxAdapter(
           child: ExpertHomeRevenue(
             revenue: data.revenue,
-            onViewDetail: () => context.push(RoutePaths.wallet),
+            onViewDetail: () {
+              VccToast.show(context, message: '钱包功能即将开放，敬请期待');
+            },
           ),
         ),
       if (data != null && data.recommendedDemands.isNotEmpty)

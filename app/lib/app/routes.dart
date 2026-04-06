@@ -37,6 +37,7 @@ import '../features/wallet/pages/wallet_page.dart';
 import '../features/team/pages/team_hall_page.dart';
 import '../features/team/pages/create_team_post_page.dart';
 import '../features/team/pages/team_confirm_page.dart';
+import '../features/market/pages/team_profile_page.dart';
 import '../features/rate/pages/rate_page.dart';
 import '../features/notification/pages/notification_page.dart';
 import '../features/favorite/pages/favorite_list_page.dart';
@@ -86,6 +87,7 @@ class RoutePaths {
   static const String teamHall = '/team';
   static const String createTeamPost = '/team/create';
   static const String teamConfirm = '/team/:teamId/confirm';
+  static const String teamProfile = '/team/:teamId/profile';
   static const String rate = '/rate';
   static const String favorites = '/favorites';
   static const String helpFeedback = '/help-feedback';
@@ -123,17 +125,16 @@ Page<void> _onboardingFlowPage(GoRouterState state, Widget child) {
     transitionDuration: const Duration(milliseconds: 360),
     reverseTransitionDuration: const Duration(milliseconds: 260),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final position =
-          Tween<Offset>(
-            begin: const Offset(0.035, 0),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: const Cubic(0.16, 1, 0.3, 1),
-              reverseCurve: Curves.easeOut,
-            ),
-          );
+      final position = Tween<Offset>(
+        begin: const Offset(0.035, 0),
+        end: Offset.zero,
+      ).animate(
+        CurvedAnimation(
+          parent: animation,
+          curve: const Cubic(0.16, 1, 0.3, 1),
+          reverseCurve: Curves.easeOut,
+        ),
+      );
 
       return FadeTransition(
         opacity: animation.drive(CurveTween(curve: Curves.easeOut)),
@@ -382,6 +383,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.teamConfirm,
         pageBuilder: (_, state) => _cupertinoPage(
           TeamConfirmPage(teamId: state.pathParameters['teamId'] ?? ''),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.teamProfile,
+        pageBuilder: (_, state) => _cupertinoPage(
+          TeamProfilePage(teamId: state.pathParameters['teamId'] ?? ''),
         ),
       ),
       GoRoute(

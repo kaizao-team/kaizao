@@ -29,7 +29,7 @@ class MarketExpertCard extends StatelessWidget {
             VccAvatar(
               imageUrl: expert.avatarUrl,
               size: VccAvatarSize.large,
-              fallbackText: expert.nickname,
+              fallbackText: expert.displayName,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -40,7 +40,7 @@ class MarketExpertCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          expert.nickname,
+                          expert.displayName,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -51,9 +51,9 @@ class MarketExpertCard extends StatelessWidget {
                         ),
                       ),
                       if (expert.vibeLevel != null &&
-                          expert.vibeLevel!.isNotEmpty)
+                          expert.vibeLevel!.isNotEmpty) ...[
+                        const SizedBox(width: 6),
                         Container(
-                          margin: const EdgeInsets.only(left: 6),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,
                             vertical: 2,
@@ -72,18 +72,20 @@ class MarketExpertCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.star, size: 14,
-                          color: AppColors.accentGold),
-                      const SizedBox(width: 2),
-                      Text(
-                        expert.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.black,
+                      ] else ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.star, size: 14,
+                            color: AppColors.accentGold),
+                        const SizedBox(width: 2),
+                        Text(
+                          expert.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.black,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 4),

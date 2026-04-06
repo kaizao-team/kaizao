@@ -28,7 +28,8 @@ class MarketMock {
       'data': [
         {
           'id': 'exp_01',
-          'name': '阿杰',
+          'leader_uuid': 'user_002',
+          'team_name': '极速移动工作室',
           'nickname': '阿杰',
           'avatar_url': null,
           'rating': 4.9,
@@ -42,7 +43,8 @@ class MarketMock {
         },
         {
           'id': 'exp_02',
-          'name': '小李',
+          'leader_uuid': 'user_003',
+          'team_name': '前端架构工作室',
           'nickname': '小李',
           'avatar_url': null,
           'rating': 4.8,
@@ -56,7 +58,8 @@ class MarketMock {
         },
         {
           'id': 'exp_03',
-          'name': '王五',
+          'leader_uuid': 'user_005',
+          'team_name': '云端后端工坊',
           'nickname': '王五',
           'avatar_url': null,
           'rating': 4.7,
@@ -70,7 +73,8 @@ class MarketMock {
         },
         {
           'id': 'exp_04',
-          'name': '赵六',
+          'leader_uuid': 'user_006',
+          'team_name': 'AI Lab',
           'nickname': '赵六',
           'avatar_url': null,
           'rating': 4.6,
@@ -84,7 +88,8 @@ class MarketMock {
         },
         {
           'id': 'exp_05',
-          'name': '孙七',
+          'leader_uuid': 'user_007',
+          'team_name': '像素设计组',
           'nickname': '孙七',
           'avatar_url': null,
           'rating': 4.5,
@@ -98,7 +103,8 @@ class MarketMock {
         },
         {
           'id': 'exp_06',
-          'name': '周八',
+          'leader_uuid': 'user_008',
+          'team_name': 'Vue 生态团队',
           'nickname': '周八',
           'avatar_url': null,
           'rating': 4.8,
@@ -112,7 +118,8 @@ class MarketMock {
         },
         {
           'id': 'exp_07',
-          'name': '钱九',
+          'leader_uuid': 'user_009',
+          'team_name': '小程序工坊',
           'nickname': '钱九',
           'avatar_url': null,
           'rating': 4.4,
@@ -126,7 +133,8 @@ class MarketMock {
         },
         {
           'id': 'exp_08',
-          'name': '林十',
+          'leader_uuid': 'user_010',
+          'team_name': '底层系统实验室',
           'nickname': '林十',
           'avatar_url': null,
           'rating': 4.9,
