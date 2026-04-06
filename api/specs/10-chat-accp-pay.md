@@ -201,14 +201,15 @@
 - **路径**：`GET /api/v1/orders/:id`
 - **鉴权**：Bearer Token
 - **描述**：获取订单确认页所需的全部信息
-- **响应**：
+- **路径参数 `:id`**：**订单 UUID**（与 **§5.0** 创建订单响应中 `data.order_id` 相同；**不是**数据库自增主键、也不是 `order_no` 业务单号）。
+- **响应字段 `data`**：`id` 为**订单** UUID；`project_id` 为**项目** UUID（与创建订单请求体、项目类接口一致）。二者语义不同，勿把 `id` 当作 `project_id`；亦勿与 `order_no`（业务单号，无连字符）混淆。
 
 ```json
 {
   "code": 0,
   "data": {
-    "id": "order_001",
-    "project_id": "1",
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "project_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     "project_title": "智能客服系统",
     "payee_name": "张开发",
     "project_amount": 8000,
@@ -230,6 +231,7 @@
 ### 5.10 发起支付
 
 - **路径**：`POST /api/v1/orders/:id/prepay`
+- **路径参数 `:id`**：同 **§5.9**，为**订单 UUID**。
 - **鉴权**：Bearer Token
 - **请求体**：
 
@@ -257,6 +259,7 @@
 ### 5.11 查询支付状态
 
 - **路径**：`GET /api/v1/orders/:id/status`
+- **路径参数 `:id`**：同 **§5.9**，为**订单 UUID**。
 - **鉴权**：Bearer Token
 - **响应**：
 
