@@ -1,4 +1,6 @@
 -- 用户收藏（项目 / 专家）
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+SET CHARACTER SET utf8mb4;
 CREATE TABLE IF NOT EXISTS favorites (
     id           BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     uuid         VARCHAR(36) NOT NULL COMMENT '收藏记录 UUID',

@@ -14,6 +14,40 @@ import (
 	"go.uber.org/zap"
 )
 
+const listBidTeamMembersMax = 8
+
+func bidTeamMembersToSlice(members []model.TeamMember) []interface{} {
+	if len(members) == 0 {
+		return []interface{}{}
+	}
+	n := len(members)
+	if n > listBidTeamMembersMax {
+		n = listBidTeamMembersMax
+	}
+	out := make([]interface{}, 0, n)
+	for i := 0; i < n; i++ {
+		m := members[i]
+		row := gin.H{"role_in_team": m.RoleInTeam}
+		if m.User != nil {
+			row["user_id"] = m.User.UUID
+			row["nickname"] = m.User.Nickname
+			if m.User.AvatarURL != nil {
+				row["avatar_url"] = *m.User.AvatarURL
+			}
+		}
+		out = append(out, row)
+	}
+	return out
+}
+
+func teamMemberMapsToSlice(members []map[string]interface{}) []interface{} {
+	out := make([]interface{}, len(members))
+	for i, m := range members {
+		out[i] = m
+	}
+	return out
+}
+
 type BidHandler struct {
 	bidService     *service.BidService
 	projectService *service.ProjectService
@@ -44,11 +78,22 @@ func (h *BidHandler) ListBids(c *gin.Context) {
 			"bid_amount":    b.Price,
 			"duration_days": b.EstimatedDays,
 			"proposal":      b.Proposal,
-			"bid_type":      "personal",
-			"team_name":     nil,
-			"team_members":  []interface{}{},
 			"skills":        []string{},
 			"created_at":    b.CreatedAt,
+		}
+		if b.TeamID != nil && b.Team != nil {
+			item["bid_type"] = "team"
+			item["team_id"] = b.Team.UUID
+			item["team_name"] = b.Team.Name
+			if b.Team.AvatarURL != nil {
+				item["team_avatar_url"] = *b.Team.AvatarURL
+			}
+			item["team_members"] = bidTeamMembersToSlice(b.Team.Members)
+		} else {
+			item["bid_type"] = "personal"
+			item["team_id"] = nil
+			item["team_name"] = nil
+			item["team_members"] = []interface{}{}
 		}
 		if b.Bidder != nil {
 			item["user_id"] = b.Bidder.UUID
@@ -191,28 +236,46 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 
 	items := make([]gin.H, 0, len(data.Recommendations))
 	for _, rec := range data.Recommendations {
-		row := gin.H{
-			"provider_id":              rec.ProviderID,
-			"user_id":                  rec.ProviderID,
-			"rank":                     rec.Rank,
-			"match_score":              rec.MatchScore,
-			"recommendation_reason":    rec.RecommendationReason,
-			"highlight_skills":         rec.HighlightSkills,
-			"similar_project_reference": rec.SimilarProjectReference,
-			"dimension_scores":         rec.DimensionScores,
-			"bid_type":                 "personal",
-			"team_id":                  nil,
-			"team_name":                nil,
+		if rec.ProviderID == "" {
+			continue
 		}
-		if u, err := h.bidService.FindUserByUUID(rec.ProviderID); err == nil && u != nil {
-			row["nickname"] = u.Nickname
-			row["avatar_url"] = u.AvatarURL
-			row["rating"] = u.AvgRating
-			row["completion_rate"] = u.CompletionRate
-			if ps := h.bidService.PrimarySkillName(u.ID); ps != "" {
-				row["primary_skill"] = ps
-				row["skill"] = ps
-			}
+		u, err := h.bidService.FindUserByUUID(rec.ProviderID)
+		if err != nil || u == nil {
+			continue
+		}
+		team, memberMaps, err := h.bidService.RecommendationTeamForUserID(u.ID, listBidTeamMembersMax)
+		if err != nil {
+			h.log.Warn("recommendation_team_resolve_failed", zap.Error(err), zap.String("provider_id", rec.ProviderID))
+			continue
+		}
+		if team == nil {
+			h.log.Warn("recommendation_skip_no_team", zap.String("provider_id", rec.ProviderID))
+			continue
+		}
+		row := gin.H{
+			"provider_id":               rec.ProviderID,
+			"user_id":                   rec.ProviderID,
+			"rank":                      rec.Rank,
+			"match_score":               rec.MatchScore,
+			"recommendation_reason":     rec.RecommendationReason,
+			"highlight_skills":          rec.HighlightSkills,
+			"similar_project_reference": rec.SimilarProjectReference,
+			"dimension_scores":          rec.DimensionScores,
+			"bid_type":                  "team",
+			"team_id":                   team.UUID,
+			"team_name":                 team.Name,
+			"team_members":              teamMemberMapsToSlice(memberMaps),
+		}
+		if team.AvatarURL != nil {
+			row["team_avatar_url"] = *team.AvatarURL
+		}
+		row["nickname"] = u.Nickname
+		row["avatar_url"] = u.AvatarURL
+		row["rating"] = u.AvgRating
+		row["completion_rate"] = u.CompletionRate
+		if ps := h.bidService.PrimarySkillName(u.ID); ps != "" {
+			row["primary_skill"] = ps
+			row["skill"] = ps
 		}
 		items = append(items, row)
 	}
@@ -277,22 +340,34 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 	}
 
 	var chosen *aiagent.RecommendationItem
+	var chosenTeam *model.Team
 	for i := range data.Recommendations {
 		rec := &data.Recommendations[i]
 		if rec.ProviderID == "" {
 			continue
 		}
-		if _, err := h.bidService.FindUserByUUID(rec.ProviderID); err == nil {
-			chosen = rec
-			break
+		u, err := h.bidService.FindUserByUUID(rec.ProviderID)
+		if err != nil || u == nil {
+			continue
 		}
+		team, _, err := h.bidService.RecommendationTeamForUserID(u.ID, 0)
+		if err != nil {
+			h.log.Warn("quick_match_team_resolve_failed", zap.Error(err), zap.String("provider_id", rec.ProviderID))
+			continue
+		}
+		if team == nil {
+			continue
+		}
+		chosen = rec
+		chosenTeam = team
+		break
 	}
-	if chosen == nil {
-		response.ErrorBadRequest(c, errcode.ErrQuickMatchNoCandidate, "推荐结果中的用户在本平台不存在，请使用「智能推荐」列表手动联系或稍后再试")
+	if chosen == nil || chosenTeam == nil {
+		response.ErrorBadRequest(c, errcode.ErrQuickMatchNoCandidate, "推荐结果中的团队方未绑定有效团队或用户不存在，请使用「智能推荐」列表手动联系或稍后再试")
 		return
 	}
 
-	bid, err := h.bidService.QuickMatch(ownerUUID, projectUUID, chosen.ProviderID, chosen.MatchScore, chosen.RecommendationReason)
+	bid, err := h.bidService.QuickMatch(ownerUUID, projectUUID, chosen.ProviderID, chosenTeam.ID, chosen.MatchScore, chosen.RecommendationReason)
 	if err != nil {
 		code, _ := strconv.Atoi(err.Error())
 		if code > 0 {
@@ -303,17 +378,20 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 		return
 	}
 
-	response.SuccessMsg(c, "快速匹配完成，已选定服务方", gin.H{
+	resp := gin.H{
 		"status":                  "accepted",
 		"bid_id":                  bid.UUID,
 		"provider_id":             chosen.ProviderID,
+		"team_id":                 chosenTeam.UUID,
+		"team_name":               chosenTeam.Name,
 		"match_score":             chosen.MatchScore,
 		"recommendation_reason":   chosen.RecommendationReason,
 		"highlight_skills":        chosen.HighlightSkills,
 		"dimension_scores":        chosen.DimensionScores,
 		"agreed_price":            bid.Price,
 		"estimated_duration_days": bid.EstimatedDays,
-	})
+	}
+	response.SuccessMsg(c, "快速匹配完成，已选定团队", resp)
 }
 
 func parseBidTechReqs(raw model.JSON) []string {

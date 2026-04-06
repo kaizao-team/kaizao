@@ -1,6 +1,7 @@
 -- 011_teams_ai_fields.up.sql
 -- teams 表新增 AI Agent 评级同步所需的业务字段
 -- AI Agent 评级完成后会将 VibePower、五维度分数等写入这些字段
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ALTER TABLE teams
   ADD COLUMN vibe_power           INT NOT NULL DEFAULT 0 COMMENT 'VibePower 积分',

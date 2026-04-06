@@ -194,7 +194,7 @@ func (r *bidRepository) UpdateFields(id int64, fields map[string]interface{}) er
 func (r *bidRepository) ListByProjectID(projectID int64, offset, limit int) ([]*model.Bid, int64, error) {
 	var bids []*model.Bid
 	var total int64
-	query := r.db.Model(&model.Bid{}).Preload("Bidder").Where("project_id = ?", projectID)
+	query := r.db.Model(&model.Bid{}).Preload("Bidder").Preload("Team.Members.User").Where("project_id = ?", projectID)
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -668,6 +668,28 @@ func (r *teamRepository) FindByUUID(uuid string) (*model.Team, error) {
 		return nil, err
 	}
 	return &team, nil
+}
+
+func (r *teamRepository) FindPrimaryTeamForUser(userID int64) (*model.Team, error) {
+	var asLeader model.Team
+	err := r.db.Where("leader_id = ? AND status = 1", userID).Order("id DESC").First(&asLeader).Error
+	if err == nil {
+		return &asLeader, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	var m model.TeamMember
+	err = r.db.Where("user_id = ? AND status = 1", userID).Order("joined_at DESC").First(&m).Error
+	if err != nil {
+		return nil, err
+	}
+	var t model.Team
+	err = r.db.Where("id = ? AND status = 1", m.TeamID).First(&t).Error
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
 }
 
 func (r *teamRepository) Update(team *model.Team) error {
