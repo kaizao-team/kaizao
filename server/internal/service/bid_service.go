@@ -46,6 +46,49 @@ func (s *BidService) PrimarySkillName(userID int64) string {
 	return ""
 }
 
+const recommendationTeamMembersMax = 8
+
+// RecommendationTeamForUserID 解析团队方用户的主团队及成员摘要（供智能推荐、投标列表等）。
+// 若用户无活跃团队归属，返回 (nil, nil, nil)。
+// maxMembers<=0 时不查询成员列表，仅返回 team。
+func (s *BidService) RecommendationTeamForUserID(userID int64, maxMembers int) (*model.Team, []map[string]interface{}, error) {
+	team, err := s.repos.Team.FindPrimaryTeamForUser(userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil, nil
+		}
+		return nil, nil, err
+	}
+	if maxMembers <= 0 {
+		return team, nil, nil
+	}
+	if maxMembers > recommendationTeamMembersMax {
+		maxMembers = recommendationTeamMembersMax
+	}
+	members, err := s.repos.Team.ListMembers(team.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	out := make([]map[string]interface{}, 0, len(members))
+	for i, m := range members {
+		if i >= maxMembers {
+			break
+		}
+		row := map[string]interface{}{
+			"role_in_team": m.RoleInTeam,
+		}
+		if m.User != nil {
+			row["user_id"] = m.User.UUID
+			row["nickname"] = m.User.Nickname
+			if m.User.AvatarURL != nil {
+				row["avatar_url"] = *m.User.AvatarURL
+			}
+		}
+		out = append(out, row)
+	}
+	return team, out, nil
+}
+
 func (s *BidService) ListByProject(projectUUID string) ([]*model.Bid, error) {
 	project, err := s.repos.Project.FindByUUID(projectUUID)
 	if err != nil {
@@ -205,13 +248,17 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		if err := txRepos.Bid.Update(bid); err != nil {
 			return err
 		}
-		if err := txRepos.Project.UpdateFields(bid.ProjectID, map[string]interface{}{
+		projectUpdates := map[string]interface{}{
 			"provider_id":  providerID,
 			"bid_id":       bid.ID,
 			"status":       3,
 			"agreed_price": bid.Price,
 			"matched_at":   &now,
-		}); err != nil {
+		}
+		if bid.TeamID != nil {
+			projectUpdates["team_id"] = *bid.TeamID
+		}
+		if err := txRepos.Project.UpdateFields(bid.ProjectID, projectUpdates); err != nil {
 			return err
 		}
 		if err := txRepos.Notification.Create(nDemander); err != nil {
@@ -366,8 +413,8 @@ func buildQuickMatchProposal(matchScore float64, reason string) string {
 	return fmt.Sprintf("【AI快速匹配】匹配度 %.1f。%s", matchScore, r)
 }
 
-// QuickMatch 需求方一键撮合：为 AI 推荐的造物者创建（或复用）待处理投标并立即 Accept，触发与手动选标相同的订单/会话/通知流程。
-func (s *BidService) QuickMatch(ownerUUID, projectUUID, providerUUID string, matchScore float64, reason string) (*model.Bid, error) {
+// QuickMatch 需求方一键撮合：为 AI 推荐的团队方（providerUUID + providerTeamID）创建（或复用）待处理投标并立即 Accept。
+func (s *BidService) QuickMatch(ownerUUID, projectUUID, providerUUID string, providerTeamID int64, matchScore float64, reason string) (*model.Bid, error) {
 	owner, err := s.repos.User.FindByUUID(ownerUUID)
 	if err != nil {
 		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
@@ -393,6 +440,9 @@ func (s *BidService) QuickMatch(ownerUUID, projectUUID, providerUUID string, mat
 	if provider.ID == project.OwnerID {
 		return nil, fmt.Errorf("%d", errcode.ErrQuickMatchNoCandidate)
 	}
+	if providerTeamID <= 0 {
+		return nil, fmt.Errorf("%d", errcode.ErrQuickMatchNoCandidate)
+	}
 
 	bid, err := s.repos.Bid.FindPendingByProjectAndBidderID(project.ID, provider.ID)
 	if err != nil {
@@ -400,9 +450,11 @@ func (s *BidService) QuickMatch(ownerUUID, projectUUID, providerUUID string, mat
 			return nil, err
 		}
 		prop := buildQuickMatchProposal(matchScore, reason)
+		tid := providerTeamID
 		bid = &model.Bid{
 			ProjectID:     project.ID,
 			BidderID:      &provider.ID,
+			TeamID:        &tid,
 			Price:         pickQuickMatchPrice(project),
 			EstimatedDays: 14,
 			Proposal:      &prop,
@@ -415,6 +467,14 @@ func (s *BidService) QuickMatch(ownerUUID, projectUUID, providerUUID string, mat
 			"bid_count": project.BidCount + 1,
 		}); err != nil {
 			return nil, err
+		}
+	} else {
+		if bid.TeamID == nil || *bid.TeamID != providerTeamID {
+			if err := s.repos.Bid.UpdateFields(bid.ID, map[string]interface{}{"team_id": providerTeamID}); err != nil {
+				return nil, err
+			}
+			tid := providerTeamID
+			bid.TeamID = &tid
 		}
 	}
 

@@ -242,6 +242,8 @@ type ReviewRepository interface {
 type TeamRepository interface {
 	Create(team *model.Team) error
 	FindByUUID(uuid string) (*model.Team, error)
+	// FindPrimaryTeamForUser 团队方主团队：优先其作为队长的活跃团队，否则取最近加入的活跃成员关系
+	FindPrimaryTeamForUser(userID int64) (*model.Team, error)
 	Update(team *model.Team) error
 	CreateMember(member *model.TeamMember) error
 	FindMember(teamID, userID int64) (*model.TeamMember, error)
