@@ -95,7 +95,7 @@ func (r *projectRepository) ListMine(userID int64, offset, limit int, conditions
 	var total int64
 
 	query := r.db.Model(&model.Project{}).Preload("Owner").Preload("Provider").
-		Where("owner_id = ? OR provider_id = ?", userID, userID)
+		Where(r.db.Where("owner_id = ?", userID).Or("provider_id = ?", userID))
 	for k, v := range conditions {
 		query = query.Where(k+" = ?", v)
 	}
