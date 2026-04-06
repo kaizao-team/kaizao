@@ -114,7 +114,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	projects := v1.Group("/projects")
 	{
 		projects.POST("", middleware.JWTAuth(services.JWT), handlers.Project.Create)
-		projects.GET("", middleware.OptionalJWTAuth(services.JWT), handlers.Project.List)
+		projects.GET("", middleware.JWTAuth(services.JWT), handlers.Project.List)
 		projects.GET("/search", placeholder)
 		// Phase 3 需求发布
 		projects.POST("/ai-chat", middleware.JWTAuth(services.JWT), handlers.PRD.AIChat)

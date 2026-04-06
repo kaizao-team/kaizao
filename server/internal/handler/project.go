@@ -55,7 +55,8 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 
 // List 项目列表
 // GET /api/v1/projects
-// 支持 role 参数: 1=需求方(我发布的需求), 2=专家(我参与的项目)
+// 须登录。未传 role：当前用户作为 owner 或 provider 的项目并集，可叠加 category/status/match_mode。
+// 支持 role: 1=仅需求方(owner)，2=仅服务方(provider)；0 或非法值返回空列表。
 func (h *ProjectHandler) List(c *gin.Context) {
 	var query dto.ProjectListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
@@ -71,18 +72,27 @@ func (h *ProjectHandler) List(c *gin.Context) {
 		query.PageSize = 20
 	}
 
-	roleStr := c.Query("role")
-	role, _ := strconv.Atoi(roleStr)
 	userUUID := c.GetString("user_uuid")
+	if userUUID == "" {
+		response.ErrorUnauthorized(c, errcode.ErrTokenInvalid, "缺少认证信息")
+		return
+	}
 
-	if role > 0 && userUUID != "" {
-		projects, total, err := h.projectService.ListByRole(userUUID, role, query.Page, query.PageSize)
-		if err != nil {
-			response.ErrorInternal(c, "获取项目列表失败")
+	_, rolePresent := c.GetQuery("role")
+	role, _ := strconv.Atoi(c.Query("role"))
+
+	if rolePresent {
+		if role == 1 || role == 2 {
+			projects, total, err := h.projectService.ListByRole(userUUID, role, query.Page, query.PageSize)
+			if err != nil {
+				response.ErrorInternal(c, "获取项目列表失败")
+				return
+			}
+			list := toProjectRespList(projects)
+			response.SuccessWithMeta(c, list, response.BuildMeta(query.Page, query.PageSize, total))
 			return
 		}
-		list := toProjectRespList(projects)
-		response.SuccessWithMeta(c, list, response.BuildMeta(query.Page, query.PageSize, total))
+		response.SuccessWithMeta(c, toProjectRespList(nil), response.BuildMeta(query.Page, query.PageSize, 0))
 		return
 	}
 
@@ -97,7 +107,7 @@ func (h *ProjectHandler) List(c *gin.Context) {
 		conditions["match_mode"] = query.MatchMode
 	}
 
-	projects, total, err := h.projectService.List(query.Page, query.PageSize, conditions, query.SortBy, query.SortOrder)
+	projects, total, err := h.projectService.ListMine(userUUID, query.Page, query.PageSize, conditions, query.SortBy, query.SortOrder)
 	if err != nil {
 		response.ErrorInternal(c, "获取项目列表失败")
 		return
