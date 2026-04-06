@@ -39,6 +39,7 @@ import '../features/wallet/pages/wallet_page.dart';
 import '../features/team/pages/team_hall_page.dart';
 import '../features/team/pages/create_team_post_page.dart';
 import '../features/team/pages/team_confirm_page.dart';
+import '../features/market/pages/team_profile_page.dart';
 import '../features/rate/pages/rate_page.dart';
 import '../features/notification/pages/notification_page.dart';
 import '../features/favorite/pages/favorite_list_page.dart';
@@ -89,6 +90,7 @@ class RoutePaths {
   static const String teamHall = '/team';
   static const String createTeamPost = '/team/create';
   static const String teamConfirm = '/team/:teamId/confirm';
+  static const String teamProfile = '/team/:teamId/profile';
   static const String rate = '/rate';
   static const String notifications = '/notifications';
   static const String favorites = '/favorites';
@@ -394,6 +396,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.teamConfirm,
         pageBuilder: (_, state) => _cupertinoPage(
           TeamConfirmPage(teamId: state.pathParameters['teamId'] ?? ''),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.teamProfile,
+        pageBuilder: (_, state) => _cupertinoPage(
+          TeamProfilePage(teamId: state.pathParameters['teamId'] ?? ''),
         ),
       ),
       GoRoute(

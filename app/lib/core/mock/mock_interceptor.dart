@@ -79,10 +79,12 @@ class MockInterceptor extends Interceptor {
     }
 
     if (mockHandler != null) {
+      _logRequest(method, path, options);
       Future.delayed(
         Duration(milliseconds: mockHandler.delayMs),
         () {
           final responseData = mockHandler!.handler(options);
+          _logResponse(method, path, responseData);
           handler.resolve(
             Response(
               requestOptions: options,
@@ -96,6 +98,30 @@ class MockInterceptor extends Interceptor {
       debugPrint('[Mock] No handler for $key, passing through');
       handler.next(options);
     }
+  }
+
+  void _logRequest(String method, String path, RequestOptions options) {
+    if (!kDebugMode) return;
+    debugPrint('┌──────────────────────────────────────────');
+    debugPrint('│ [REQUEST] $method $path');
+    debugPrint('│ Headers:');
+    options.headers.forEach((k, v) {
+      debugPrint('│   $k: $v');
+    });
+    if (options.queryParameters.isNotEmpty) {
+      debugPrint('│ Query: ${options.queryParameters}');
+    }
+    if (options.data != null) {
+      debugPrint('│ Body: ${options.data}');
+    }
+    debugPrint('├──────────────────────────────────────────');
+  }
+
+  void _logResponse(String method, String path, dynamic data) {
+    if (!kDebugMode) return;
+    debugPrint('│ [RESPONSE] $method $path');
+    debugPrint('│ Data: $data');
+    debugPrint('└──────────────────────────────────────────');
   }
 
   bool _matchPath(String pattern, String actual) {

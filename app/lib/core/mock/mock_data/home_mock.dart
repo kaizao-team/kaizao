@@ -129,7 +129,7 @@ class HomeMock {
         'recommended_experts': [
           {
             'id': 'exp_01',
-            'name': '阿杰',
+            'leader_uuid': 'user_002',
             'nickname': '阿杰',
             'avatar_url': null,
             'rating': 4.9,
@@ -142,7 +142,7 @@ class HomeMock {
           },
           {
             'id': 'exp_02',
-            'name': '小李',
+            'leader_uuid': 'user_003',
             'nickname': '小李',
             'avatar_url': null,
             'rating': 4.8,
@@ -155,7 +155,7 @@ class HomeMock {
           },
           {
             'id': 'exp_03',
-            'name': '王五',
+            'leader_uuid': 'user_005',
             'nickname': '王五',
             'avatar_url': null,
             'rating': 4.7,
@@ -168,7 +168,7 @@ class HomeMock {
           },
           {
             'id': 'exp_04',
-            'name': '赵六',
+            'leader_uuid': 'user_006',
             'nickname': '赵六',
             'avatar_url': null,
             'rating': 4.6,
@@ -181,7 +181,7 @@ class HomeMock {
           },
           {
             'id': 'exp_05',
-            'name': '孙七',
+            'leader_uuid': 'user_007',
             'nickname': '孙七',
             'avatar_url': null,
             'rating': 4.5,
