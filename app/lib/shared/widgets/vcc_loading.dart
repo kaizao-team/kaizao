@@ -92,10 +92,16 @@ class VccCardSkeleton extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              VccSkeleton(width: 60, height: 20),
-              VccSkeleton(width: 80, height: 20),
+              Expanded(
+                flex: 3,
+                child: VccSkeleton(height: 20),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                flex: 4,
+                child: VccSkeleton(height: 20),
+              ),
             ],
           ),
           SizedBox(height: 12),
@@ -105,11 +111,11 @@ class VccCardSkeleton extends StatelessWidget {
           SizedBox(height: 12),
           Row(
             children: [
-              VccSkeleton(width: 60, height: 24),
+              Expanded(child: VccSkeleton(height: 24)),
               SizedBox(width: 8),
-              VccSkeleton(width: 60, height: 24),
+              Expanded(child: VccSkeleton(height: 24)),
               SizedBox(width: 8),
-              VccSkeleton(width: 60, height: 24),
+              Expanded(child: VccSkeleton(height: 24)),
             ],
           ),
         ],

@@ -20,8 +20,6 @@ import '../features/project/pages/project_detail_page.dart';
 import '../features/post/pages/post_page.dart';
 import '../features/prd/pages/prd_page.dart';
 import '../features/profile/pages/profile_page.dart';
-import '../features/chat/pages/conversation_list_page.dart';
-import '../features/chat/pages/chat_detail_page.dart';
 import '../features/match/pages/bid_list_page.dart';
 import '../features/match/pages/bid_form_page.dart';
 import '../features/market/pages/market_page.dart';
@@ -66,8 +64,7 @@ class RoutePaths {
 
   static const String home = '/home';
   static const String square = '/square';
-  static const String chatList = '/chat';
-  static const String chatDetail = '/chat/:conversationId';
+  static const String notifications = '/notifications';
   static const String projectList = '/projects';
   static const String projectDetail = '/projects/:projectId';
   static const String publishProject = '/publish';
@@ -90,7 +87,6 @@ class RoutePaths {
   static const String createTeamPost = '/team/create';
   static const String teamConfirm = '/team/:teamId/confirm';
   static const String rate = '/rate';
-  static const String notifications = '/notifications';
   static const String favorites = '/favorites';
   static const String helpFeedback = '/help-feedback';
   static const String about = '/about';
@@ -272,9 +268,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            path: RoutePaths.chatList,
+            path: RoutePaths.notifications,
             pageBuilder: (_, __) =>
-                const NoTransitionPage(child: ConversationListPage()),
+                const NoTransitionPage(child: NotificationPage()),
           ),
           GoRoute(
             path: RoutePaths.projectList,
@@ -305,14 +301,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.prd,
         pageBuilder: (_, state) => _cupertinoPage(
           PrdPage(projectId: state.pathParameters['projectId'] ?? ''),
-        ),
-      ),
-      GoRoute(
-        path: RoutePaths.chatDetail,
-        pageBuilder: (_, state) => _cupertinoPage(
-          ChatDetailPage(
-            conversationId: state.pathParameters['conversationId'] ?? '',
-          ),
         ),
       ),
       // 静态路径须在 /profile/:userId 之前注册，否则 /profile/edit 会被当成 userId=edit
@@ -395,10 +383,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => _cupertinoPage(
           TeamConfirmPage(teamId: state.pathParameters['teamId'] ?? ''),
         ),
-      ),
-      GoRoute(
-        path: RoutePaths.notifications,
-        pageBuilder: (_, __) => _cupertinoPage(const NotificationPage()),
       ),
       GoRoute(
         path: RoutePaths.favorites,
