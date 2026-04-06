@@ -361,7 +361,7 @@ class _DetailContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionLabel('项目描述'),
+          const _SectionLabel('项目概要'),
           const SizedBox(height: 10),
           Text(
             s.description,
@@ -371,8 +371,41 @@ class _DetailContent extends StatelessWidget {
               color: Color(0xFF444444),
             ),
           ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9F9F9),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                _buildSummaryRow('预算范围', s.budgetDisplay),
+                const SizedBox(height: 10),
+                _buildSummaryRow('项目分类', s.categoryName),
+                if (s.timeAgo.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _buildSummaryRow('发布时间', s.timeAgo),
+                ],
+                const SizedBox(height: 10),
+                _buildSummaryRow('浏览/投标',
+                    '${s.viewCount} 次浏览 · ${s.bidCount} 个投标'),
+              ],
+            ),
+          ),
           if (s.techRequirements.isNotEmpty) ...[
             const SizedBox(height: 16),
+            const Text(
+              '技术要求',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF888888),
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -383,6 +416,33 @@ class _DetailContent extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            color: Color(0xFF999999),
+          ),
+        ),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF444444),
+            ),
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 

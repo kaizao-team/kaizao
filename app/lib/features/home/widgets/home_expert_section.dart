@@ -225,6 +225,9 @@ String _rateText(RecommendedExpert expert) {
 }
 
 String _experienceText(RecommendedExpert expert) {
-  if (expert.completedOrders > 0) return '${expert.completedOrders} 个项目';
-  return '可先沟通';
+  final parts = <String>[];
+  if (expert.completedOrders > 0) parts.add('${expert.completedOrders} 个项目');
+  if (expert.memberCount > 1) parts.add('${expert.memberCount}人团队');
+  if (parts.isEmpty) return '可先沟通';
+  return parts.join(' · ');
 }
