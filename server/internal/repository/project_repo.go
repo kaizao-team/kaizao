@@ -238,6 +238,17 @@ func (r *bidRepository) FindPendingByProjectAndBidderID(projectID, bidderID int6
 	return &bid, nil
 }
 
+func (r *bidRepository) FindLatestByProjectAndBidderID(projectID, bidderID int64) (*model.Bid, error) {
+	var bid model.Bid
+	err := r.db.Where("project_id = ? AND bidder_id = ?", projectID, bidderID).
+		Order("created_at DESC").
+		First(&bid).Error
+	if err != nil {
+		return nil, err
+	}
+	return &bid, nil
+}
+
 // --- Task Repository ---
 
 type taskRepository struct {

@@ -148,31 +148,62 @@ func (h *TeamHandler) GetDetail(c *gin.Context) {
 	}
 	members := make([]gin.H, 0)
 	for _, m := range team.Members {
-		nickname := ""
-		if m.User != nil {
-			nickname = m.User.Nickname
-		}
-		members = append(members, gin.H{
+		row := gin.H{
 			"id":        m.UserID,
-			"nickname":  nickname,
 			"role":      m.RoleInTeam,
 			"ratio":     m.SplitRatio,
 			"is_leader": m.UserID == team.LeaderID,
 			"status":    "accepted",
-		})
+		}
+		if m.User != nil {
+			row["user_id"] = m.User.UUID
+			row["nickname"] = m.User.Nickname
+			row["avatar_url"] = m.User.AvatarURL
+		} else {
+			row["user_id"] = ""
+			row["nickname"] = ""
+			row["avatar_url"] = nil
+		}
+		members = append(members, row)
 	}
 	statusMap := map[int16]string{1: "recruiting", 2: "confirming", 3: "active"}
 	status := statusMap[team.Status]
 	if status == "" {
 		status = "recruiting"
 	}
-	response.Success(c, gin.H{
-		"id":           team.UUID,
-		"project_name": team.Name,
-		"project_id":   team.ProjectID,
-		"status":       status,
-		"members":      members,
-	})
+
+	result := gin.H{
+		"id":               team.UUID,
+		"team_name":        team.Name,
+		"project_name":     team.Name,
+		"project_id":       team.ProjectID,
+		"status":           status,
+		"description":      team.Description,
+		"avatar_url":       team.AvatarURL,
+		"vibe_level":       team.VibeLevel,
+		"vibe_power":       team.VibePower,
+		"hourly_rate":      team.HourlyRate,
+		"avg_rating":       team.AvgRating,
+		"member_count":     team.MemberCount,
+		"total_projects":   team.TotalProjects,
+		"available_status": team.AvailableStatus,
+		"experience_years": team.ExperienceYears,
+		"resume_summary":   team.ResumeSummary,
+		"members":          members,
+		"created_at":       team.CreatedAt,
+	}
+
+	if team.Leader != nil {
+		result["leader_uuid"] = team.Leader.UUID
+		result["nickname"] = team.Leader.Nickname
+		result["leader_avatar_url"] = team.Leader.AvatarURL
+		result["completed_projects"] = team.Leader.CompletedOrders
+		result["tagline"] = team.Leader.Bio
+	}
+
+	result["skills"] = h.teamService.LeaderSkillNames(team.LeaderID)
+
+	response.Success(c, result)
 }
 
 func (h *TeamHandler) UpdateSplitRatio(c *gin.Context) {

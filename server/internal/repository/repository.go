@@ -157,6 +157,8 @@ type BidRepository interface {
 	ListByProjectID(projectID int64, offset, limit int) ([]*model.Bid, int64, error)
 	// FindPendingByProjectAndBidderID 待处理投标 status=1
 	FindPendingByProjectAndBidderID(projectID, bidderID int64) (*model.Bid, error)
+	// FindLatestByProjectAndBidderID 查找用户对项目的最近一条投标（不限状态）
+	FindLatestByProjectAndBidderID(projectID, bidderID int64) (*model.Bid, error)
 }
 
 // TaskRepository 任务数据访问接口

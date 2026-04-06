@@ -273,3 +273,31 @@ func (s *ProjectService) Close(uuid string, reason string) error {
 	}
 	return s.repos.Project.UpdateFields(p.ID, fields)
 }
+
+// UserBidStatus returns the bid status string for the given user on a project.
+// Returns "" if the user has not bid, or one of "pending", "accepted", "rejected", "withdrawn".
+func (s *ProjectService) UserBidStatus(projectID int64, userUUID string) string {
+	if userUUID == "" {
+		return ""
+	}
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return ""
+	}
+	bid, err := s.repos.Bid.FindLatestByProjectAndBidderID(projectID, user.ID)
+	if err != nil || bid == nil {
+		return ""
+	}
+	switch bid.Status {
+	case 1:
+		return "pending"
+	case 2:
+		return "accepted"
+	case 3:
+		return "rejected"
+	case 4:
+		return "withdrawn"
+	default:
+		return ""
+	}
+}
