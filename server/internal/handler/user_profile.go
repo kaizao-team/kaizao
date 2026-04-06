@@ -733,10 +733,13 @@ func (h *UserHandler) ListMyFavorites(c *gin.Context) {
 				item["budget_max"] = p.BudgetMax
 			}
 		} else if f.TargetType == "expert" {
-			if u, err := h.repos.User.FindByUUID(f.TargetID); err == nil {
-				item["nickname"] = u.Nickname
-				item["avatar_url"] = u.AvatarURL
-				item["rating"] = u.AvgRating
+			if t, err := h.repos.Team.FindByUUID(f.TargetID); err == nil {
+				item["team_name"] = t.Name
+				if t.Leader != nil {
+					item["nickname"] = t.Leader.Nickname
+					item["avatar_url"] = t.Leader.AvatarURL
+					item["rating"] = t.Leader.AvgRating
+				}
 			}
 		}
 		list = append(list, item)

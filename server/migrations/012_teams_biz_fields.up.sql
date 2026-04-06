@@ -5,3 +5,6 @@ SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 ALTER TABLE teams
   ADD COLUMN available_status SMALLINT NOT NULL DEFAULT 1 COMMENT '接单状态 1=接单中 2=忙碌 3=休息',
   ADD COLUMN hourly_rate DECIMAL(10,2) DEFAULT NULL COMMENT '团队时薪报价';
+
+ALTER TABLE favorites
+  MODIFY COLUMN target_id VARCHAR(36) NOT NULL COMMENT '目标 UUID（project=项目UUID，expert=团队UUID）';

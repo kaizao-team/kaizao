@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -87,7 +88,11 @@ func (s *UserService) UpdateProfile(uuid string, fields map[string]interface{}) 
 			return err
 		}
 		if len(teamFields) > 0 && (u.Role == 2 || u.Role == 3) {
-			if team, err := txRepos.Team.FindPrimaryTeamForUser(u.ID); err == nil && team != nil {
+			team, err := txRepos.Team.FindPrimaryTeamForUser(u.ID)
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+			if err == nil && team != nil {
 				if err := txRepos.Team.UpdateFields(team.ID, teamFields); err != nil {
 					return err
 				}

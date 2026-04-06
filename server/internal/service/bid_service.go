@@ -124,6 +124,11 @@ func (s *BidService) Create(bidderUUID, projectUUID string, amount float64, dura
 		if err != nil {
 			return nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
 		}
+		if team.LeaderID != bidder.ID {
+			if _, err := s.repos.Team.FindMember(team.ID, bidder.ID); err != nil {
+				return nil, fmt.Errorf("%d", errcode.ErrTeamBidLeaderOnly)
+			}
+		}
 		bid.TeamID = &team.ID
 	}
 	targetType := "project"
