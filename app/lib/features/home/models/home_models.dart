@@ -39,6 +39,9 @@ class RecommendedExpert {
   final String skill;
   final int hourlyRate;
   final int completedOrders;
+  final String? vibeLevel;
+  final int vibePower;
+  final int memberCount;
 
   const RecommendedExpert({
     required this.id,
@@ -48,17 +51,23 @@ class RecommendedExpert {
     required this.skill,
     required this.hourlyRate,
     required this.completedOrders,
+    this.vibeLevel,
+    this.vibePower = 0,
+    this.memberCount = 1,
   });
 
   factory RecommendedExpert.fromJson(Map<String, dynamic> json) {
     return RecommendedExpert(
       id: json['id'] as String? ?? '',
-      nickname: json['nickname'] as String? ?? '',
+      nickname: json['name'] as String? ?? json['nickname'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       skill: json['skill'] as String? ?? '',
       hourlyRate: json['hourly_rate'] as int? ?? 0,
-      completedOrders: json['completed_orders'] as int? ?? 0,
+      completedOrders: json['completed_orders'] as int? ?? json['completed_projects'] as int? ?? 0,
+      vibeLevel: json['vibe_level'] as String?,
+      vibePower: json['vibe_power'] as int? ?? 0,
+      memberCount: json['member_count'] as int? ?? 1,
     );
   }
 }
