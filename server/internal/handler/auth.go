@@ -390,10 +390,13 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 
 	hourlyRate := user.HourlyRate
 	availableStatus := user.AvailableStatus
+	var budgetMin, budgetMax *float64
 	if user.Role == 2 || user.Role == 3 {
 		if team, err := h.repos.Team.FindPrimaryTeamForUser(user.ID); err == nil && team != nil {
 			hourlyRate = team.HourlyRate
 			availableStatus = team.AvailableStatus
+			budgetMin = team.BudgetMin
+			budgetMax = team.BudgetMax
 		}
 	}
 
@@ -419,6 +422,8 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 		"avg_rating":       user.AvgRating,
 		"hourly_rate":      hourlyRate,
 		"available_status": availableStatus,
+		"budget_min":       budgetMin,
+		"budget_max":       budgetMax,
 		"skills":           userSkillsToResponse(skills),
 		"role_tags":        []interface{}{},
 		"stats":            stats,
@@ -470,13 +475,26 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 		fields["available_status"] = *req.AvailableStatus
 	}
 
-	if len(fields) == 0 {
+	teamBudget := make(map[string]interface{})
+	if req.BudgetMin != nil {
+		teamBudget["budget_min"] = *req.BudgetMin
+	}
+	if req.BudgetMax != nil {
+		teamBudget["budget_max"] = *req.BudgetMax
+	}
+
+	if len(fields) == 0 && len(teamBudget) == 0 {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "无可更新字段")
 		return
 	}
 
-	if _, err := h.userService.UpdateProfile(userUUID, fields); err != nil {
-		response.ErrorInternal(c, "更新失败")
+	if _, err := h.userService.UpdateProfile(userUUID, fields, teamBudget); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+		} else {
+			response.ErrorInternal(c, "更新失败")
+		}
 		return
 	}
 

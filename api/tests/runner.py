@@ -32,15 +32,33 @@ from .test_13_auth_exit import run as run_auth_exit
 from .test_14_onboarding import run as run_onboarding
 
 
+def _env(key: str, default: str) -> str:
+    """环境变量优先；空串视为未设置。"""
+    v = os.environ.get(key)
+    return (v.strip() if v else "") or default
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", default="http://localhost:8080")
-    parser.add_argument("--redis-container", default="kaizao-redis")
-    parser.add_argument("--redis-password", default="redis123")
-    parser.add_argument("--server-container", default="kaizao-server")
-    parser.add_argument("--mysql-container", default="kaizao-mysql")
+    parser.add_argument(
+        "--redis-container",
+        default=_env("KAIZAO_REDIS_CONTAINER", "kaizao-wsl-redis"),
+    )
+    parser.add_argument("--redis-password", default=_env("KAIZAO_REDIS_PASSWORD", "redis123"))
+    parser.add_argument(
+        "--server-container",
+        default=_env("KAIZAO_SERVER_CONTAINER", "kaizao-wsl-server"),
+    )
+    parser.add_argument(
+        "--mysql-container",
+        default=_env("KAIZAO_MYSQL_CONTAINER", "kaizao-wsl-mysql"),
+    )
     parser.add_argument("--mysql-user", default="kaizao")
-    parser.add_argument("--mysql-password", default="kaizao123")
+    parser.add_argument(
+        "--mysql-password",
+        default=_env("KAIZAO_MYSQL_PASSWORD", "kaizao_prod_2026"),
+    )
     parser.add_argument("--mysql-db", default="kaizao")
     parser.add_argument(
         "--full-onboarding",

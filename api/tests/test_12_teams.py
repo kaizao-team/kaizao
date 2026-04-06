@@ -52,6 +52,8 @@ def run():
                 "vibe_level",
                 "vibe_power",
                 "hourly_rate",
+                "budget_min",
+                "budget_max",
                 "avg_rating",
                 "member_count",
                 "total_projects",

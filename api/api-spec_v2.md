@@ -10,6 +10,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-04-06 | **团队预算区间（仅存 teams）**：迁移 `013_teams_budget_range.up.sql` 为 `teams` 新增 `budget_min`、`budget_max`（元，接单意向区间）。保留 `hourly_rate` 为咨询单价。**§2.1** `GET /users/me`：`role=2/3` 时从主团队读取 `budget_min`/`budget_max`，无团队为 `null`。**§2.2** `PUT /users/me`：可选写入预算区间，仅更新主团队；无主团队或非专家/团队方时 **400**；区间非法 **20005**。**§5.1b**、**§4.1** `recommended_experts`、**§10.3** 团队详情响应均带 `budget_min`/`budget_max`。`UserService.UpdateProfile` 增加 `teamBudgetFields` 参数。 |
 | 2026-04-06 | **项目详情补全与团队方投标状态**：**§5.2** `GET /projects/:id` 三项改进：① `prd_summary` 从 `confirmed_prd.summary` 或 `ai_prd.summary` JSON 字段实际读取（不再返回空字符串）；② `milestones` 从 `milestones` 表实际查询，返回 `id`/`title`/`status`/`progress`/`due_date`/`amount`（不再硬编码空数组）；③ 新增 `my_bid_status` 字段（`omitempty`），已登录用户对该项目有投标时返回 `pending`/`accepted`/`rejected`/`withdrawn`，供前端渲染"已投标"状态。**§10.3** `GET /teams/:uuid` 团队详情字段补全：新增 `team_name`/`description`/`avatar_url`/`vibe_level`/`vibe_power`/`hourly_rate`/`avg_rating`/`member_count`/`total_projects`/`available_status`/`experience_years`/`resume_summary`/`skills` 及队长展示字段 `leader_uuid`/`nickname`/`leader_avatar_url`/`completed_projects`/`tagline`；成员信息新增 `user_id`(UUID)/`avatar_url`。Repository 层新增 `FindLatestByProjectAndBidderID`；`ProjectHandler` 新增 `MilestoneService` 依赖。 |
 | 2026-04-06 | **团队对齐缺陷修复**：**§2.5** 收藏 `target_type=expert` 时 `favorites.target_id` **统一存储团队 UUID**（非用户 UUID）；传入用户 UUID 自动解析为其主团队 UUID；收藏列表 expert 项附带 `team_name`。**§5.1b** 专家列表说明更新：收藏时 `target_id` 直接传团队 `id`。**§8.2** 投标绑定团队时新增成员关系校验——投标人须为该团队队长或活跃成员，否则返回 **`30007`**。**§2.2** `UpdateProfile` 同步团队字段时区分 `ErrRecordNotFound`（无主团队，忽略）与真实查询错误（回滚事务），避免数据不一致。 |
 | 2026-04-06 | **团队实体对齐（供给侧全面切换）**：在撮合域基础上，将 **专家广场、首页推荐、用户信息、收藏资格** 全面切到以 **团队（teams）** 为主实体。**§5.3** `GET /market/experts`：改查 `teams` 表（`status=1 AND available_status=1`），按 `vibe_power DESC, avg_rating DESC` 排序；响应新增 `team_name`、`vibe_level`、`vibe_power`、`member_count`，保留 leader 展示字段。**§4.1** `GET /home/demander` 的 `recommended_experts` 同步改查 `teams`，新增 `vibe_level`、`vibe_power`、`member_count`。**§2.1** `GET /users/me`：`role=2/3` 时 `hourly_rate` 与 `available_status` 从主团队读取（`FindPrimaryTeamForUser`），无团队回退用户自身值。**§2.2** `PUT /users/me`：写入 `hourly_rate` / `available_status` 时事务内同步到主团队。**§2.5** 收藏：`expertEligibleForFavorite` 改查主团队 `available_status`，无团队不可收藏。**§8.2** 投标：`BidService.Create` 实际写入 `bid.TeamID`（此前参数未赋值 bug 修复）。数据库迁移 `012_teams_biz_fields.up.sql` 为 `teams` 新增 `available_status`、`hourly_rate` 列。集成测试 `test_api_v2.py` **§5.3b**、**§4.1c**、**§2.2f** 新增。 |
@@ -187,6 +188,8 @@
     "completion_rate": 0.0,
     "avg_rating": 0.0,
     "hourly_rate": null,
+    "budget_min": null,
+    "budget_max": null,
     "available_status": 1,
     "onboarding_status": 2,
     "onboarding_submitted_at": null,
@@ -197,14 +200,14 @@
   }
 }
 ```
-- **说明**：对于 `role=2/3`（专家 / 团队方），`hourly_rate` 与 `available_status` 优先从用户的 **主团队**（`FindPrimaryTeamForUser`：队长且 `teams.status=1`，否则取最近加入的活跃成员）读取；找不到团队时回退为用户自身的值。
+- **说明**：对于 `role=2/3`（专家 / 团队方），`hourly_rate` 与 `available_status` 优先从用户的 **主团队**（`FindPrimaryTeamForUser`：队长且 `teams.status=1`，否则取最近加入的活跃成员）读取；找不到团队时回退为用户自身的值。**`budget_min` / `budget_max`** 仅存储在 **`teams` 表**：有主团队时从主团队读取；无团队时为 `null`。
 
 ### 2.2 更新用户信息
 - **PUT** `/api/v1/users/me`
 - **Headers**: 需认证
 - **Body**: 任意用户字段子集, 如 `{ "role": 1, "nickname": "张三" }`
 - **Response**: `{ "code": 0, "message": "更新成功" }`
-- **说明**：对于 `role=2/3`，写入 `hourly_rate` 或 `available_status` 时会在同一事务内同步到用户的 **主团队**（`teams` 表），保证两侧数据一致。
+- **说明**：对于 `role=2/3`，写入 `hourly_rate` 或 `available_status` 时会在同一事务内同步到用户的 **主团队**（`teams` 表），保证两侧数据一致。可选 **`budget_min` / `budget_max`**（元）：**仅**写入主团队行，不写 `users`；合并后若上下限均非空须满足 `budget_max >= budget_min`（否则业务码 `20005`）。请求体中只要出现 `budget_min` 或 `budget_max`，且当前用户 **无主团队**（或非专家/团队方角色），返回 **HTTP 400**。
 
 ### 2.3 专家提交入驻材料（进入人工审核）
 - **POST** `/api/v1/users/me/onboarding/application`
@@ -337,6 +340,8 @@
         "rating": 4.9,
         "skill": "string (队长主要技能)",
         "hourly_rate": 300,
+        "budget_min": 5000,
+        "budget_max": 20000,
         "completed_orders": 23,
         "vibe_level": "vc-T1",
         "vibe_power": 0,
@@ -456,6 +461,8 @@
       "member_count": 3,
       "rating": 4.9,
       "hourly_rate": 300,
+      "budget_min": 5000,
+      "budget_max": 20000,
       "nickname": "string (队长昵称)",
       "avatar_url": "string|null (队长头像)",
       "completed_projects": 23,
@@ -466,7 +473,7 @@
   "meta": { "page": 1, "page_size": 20, "total": 5, "total_pages": 1 }
 }
 ```
-- **说明**：以 **团队** 为主实体，查 `teams` 表（`status=1 AND available_status=1`），且 **队长**须为已通过入驻的专家（`users.role IN (2,3)`、`onboarding_status=2`），与旧版「专家用户列表」准入一致；按 `vibe_power DESC, avg_rating DESC` 排序。`nickname`、`avatar_url`、`skills` 等来自团队 leader。**收藏专家**（**§2.5**）时 `target_id` 直接传团队 `id`（团队 UUID），后端以团队 UUID 存储。
+- **说明**：以 **团队** 为主实体，查 `teams` 表（`status=1 AND available_status=1`），且 **队长**须为已通过入驻的专家（`users.role IN (2,3)`、`onboarding_status=2`），与旧版「专家用户列表」准入一致；按 `vibe_power DESC, avg_rating DESC` 排序。`nickname`、`avatar_url`、`skills` 等来自团队 leader。**`hourly_rate`** 为咨询单价（元/小时）；**`budget_min` / `budget_max`** 为团队接单意向预算区间（元）。**收藏专家**（**§2.5**）时 `target_id` 直接传团队 `id`（团队 UUID），后端以团队 UUID 存储。
 
 ### 5.2 获取项目详情
 - **GET** `/api/v1/projects/:id`
@@ -1615,6 +1622,8 @@
     "vibe_level": "vc-T3",
     "vibe_power": 850,
     "hourly_rate": 300.00,
+    "budget_min": 5000.00,
+    "budget_max": 20000.00,
     "avg_rating": 4.85,
     "member_count": 3,
     "total_projects": 12,

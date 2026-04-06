@@ -13,6 +13,8 @@
 #   RUN_FULL_ONBOARDING=1  完整入驻链路（兑换邀请码等）
 #   RUN_TEST_NEW_APIS=1    材料审核 + MinIO 上传（prod compose 已含 MinIO 时可开）
 #   SKIP_DEPLOY=1          跳过 deploy.sh push，仅上传 tests/ 并在远端跑集成测试（部署已成功时重试）
+#   REMOTE_MYSQL_CONTAINER / REMOTE_REDIS_CONTAINER / REMOTE_SERVER_CONTAINER
+#                          覆盖远端 docker exec 用的容器名（默认与 prod compose：kaizao-mysql / kaizao-redis / kaizao-server）
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -50,7 +52,11 @@ EXTRA_PY_ARGS=""
 [ "${RUN_TEST_NEW_APIS:-0}" = "1" ] && EXTRA_PY_ARGS+=" --test-new-apis"
 
 echo "=== 远程 API 测试 http://127.0.0.1:${PROD_HTTP_PORT} ==="
+# 与 docker-compose.prod.yml 中 container_name 一致（勿用本地 WSL 栈的 kaizao-wsl-*）
+MYSQL_C="${REMOTE_MYSQL_CONTAINER:-kaizao-mysql}"
+REDIS_C="${REMOTE_REDIS_CONTAINER:-kaizao-redis}"
+SERVER_C="${REMOTE_SERVER_CONTAINER:-kaizao-server}"
 # shellcheck disable=SC2029,SC2086
-ssh $SSH_OPTS "${REMOTE_HOST}" "cd ~/kaizao-server && python3 -m tests --base http://127.0.0.1:${PROD_HTTP_PORT} --redis-password redis_prod_2026 --mysql-password kaizao_prod_2026${EXTRA_PY_ARGS:+ }${EXTRA_PY_ARGS}"
+ssh $SSH_OPTS "${REMOTE_HOST}" "cd ~/kaizao-server && python3 -m tests --base http://127.0.0.1:${PROD_HTTP_PORT} --redis-password redis_prod_2026 --mysql-password kaizao_prod_2026 --mysql-container ${MYSQL_C} --redis-container ${REDIS_C} --server-container ${SERVER_C}${EXTRA_PY_ARGS:+ }${EXTRA_PY_ARGS}"
 
 echo "=== 远程部署与测试完成 ==="

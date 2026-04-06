@@ -71,6 +71,8 @@
     "vibe_level": "vc-T3",
     "vibe_power": 850,
     "hourly_rate": 300.00,
+    "budget_min": 5000.00,
+    "budget_max": 20000.00,
     "avg_rating": 4.85,
     "member_count": 3,
     "total_projects": 12,
@@ -110,7 +112,9 @@
 | `avatar_url` | string\|null | 团队头像 URL |
 | `vibe_level` | string | 等级标识，如 `vc-T1` ~ `vc-T5` |
 | `vibe_power` | int | 能力值分数 |
-| `hourly_rate` | number\|null | 时薪（元/小时） |
+| `hourly_rate` | number\|null | 咨询单价 / 时薪（元/小时） |
+| `budget_min` | number\|null | 团队接单意向预算下限（元），仅存 `teams` 表 |
+| `budget_max` | number\|null | 团队接单意向预算上限（元），仅存 `teams` 表 |
 | `avg_rating` | number | 平均评分（0.00 ~ 5.00） |
 | `member_count` | int | 团队成员数 |
 | `total_projects` | int | 历史项目总数 |

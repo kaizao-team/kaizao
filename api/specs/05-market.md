@@ -56,6 +56,8 @@
       "member_count": 3,
       "rating": 4.9,
       "hourly_rate": 300,
+      "budget_min": 5000,
+      "budget_max": 20000,
       "nickname": "string (队长昵称)",
       "avatar_url": "string|null (队长头像)",
       "completed_projects": 23,
@@ -66,7 +68,7 @@
   "meta": { "page": 1, "page_size": 20, "total": 5, "total_pages": 1 }
 }
 ```
-- **说明**：以 **团队** 为主实体，查 `teams` 表（`status=1 AND available_status=1`），且 **队长**须为已通过入驻的专家（`users.role IN (2,3)`、`onboarding_status=2`），与旧版「专家用户列表」准入一致；按 `vibe_power DESC, avg_rating DESC` 排序。`nickname`、`avatar_url`、`skills` 等来自团队 leader。**收藏专家**（**§2.5**）时 `target_id` 直接传团队 `id`（团队 UUID），后端以团队 UUID 存储。
+- **说明**：以 **团队** 为主实体，查 `teams` 表（`status=1 AND available_status=1`），且 **队长**须为已通过入驻的专家（`users.role IN (2,3)`、`onboarding_status=2`），与旧版「专家用户列表」准入一致；按 `vibe_power DESC, avg_rating DESC` 排序。`nickname`、`avatar_url`、`skills` 等来自团队 leader。**`hourly_rate`** 为咨询单价（元/小时）；**`budget_min` / `budget_max`** 为团队接单意向预算区间（元），仅存团队。**收藏专家**（**§2.5**）时 `target_id` 直接传团队 `id`（团队 UUID），后端以团队 UUID 存储。
 
 ### 5.2 获取项目详情
 - **GET** `/api/v1/projects/:id`

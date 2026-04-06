@@ -260,10 +260,11 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		if err := txRepos.Bid.Update(bid); err != nil {
 			return err
 		}
+		// status=3 已撮合/履约中（与 Close 中「不可关闭」一致）；status=4 仅用于用户主动关闭需求
 		projectUpdates := map[string]interface{}{
 			"provider_id":  providerID,
 			"bid_id":       bid.ID,
-			"status":       4,
+			"status":       3,
 			"agreed_price": bid.Price,
 			"matched_at":   &now,
 		}

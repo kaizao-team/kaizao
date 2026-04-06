@@ -23,6 +23,8 @@
     "completion_rate": 0.0,
     "avg_rating": 0.0,
     "hourly_rate": null,
+    "budget_min": null,
+    "budget_max": null,
     "available_status": 1,
     "onboarding_status": 2,
     "onboarding_submitted_at": null,
@@ -33,14 +35,14 @@
   }
 }
 ```
-- **说明**：对于 `role=2/3`（专家 / 团队方），`hourly_rate` 与 `available_status` 优先从用户的 **主团队**（`FindPrimaryTeamForUser`：队长且 `teams.status=1`，否则取最近加入的活跃成员）读取；找不到团队时回退为用户自身的值。
+- **说明**：对于 `role=2/3`（专家 / 团队方），`hourly_rate` 与 `available_status` 优先从用户的 **主团队**（`FindPrimaryTeamForUser`：队长且 `teams.status=1`，否则取最近加入的活跃成员）读取；找不到团队时回退为用户自身的值。**`budget_min` / `budget_max`** 仅存储在 **`teams` 表**：有主团队时从主团队读取；无团队时为 `null`。
 
 ### 2.2 更新用户信息
 - **PUT** `/api/v1/users/me`
 - **Headers**: 需认证
 - **Body**: 任意用户字段子集, 如 `{ "role": 1, "nickname": "张三" }`
 - **Response**: `{ "code": 0, "message": "更新成功" }`
-- **说明**：对于 `role=2/3`，写入 `hourly_rate` 或 `available_status` 时会在同一事务内同步到用户的 **主团队**（`teams` 表），保证两侧数据一致。
+- **说明**：对于 `role=2/3`，写入 `hourly_rate` 或 `available_status` 时会在同一事务内同步到用户的 **主团队**（`teams` 表），保证两侧数据一致。当请求将 `role` 更新为 **2 或 3** 且用户当前 **无主团队**（既非活跃队长也非活跃成员）时，服务端会在同一事务内 **自动创建默认团队**（用户为队长，并写入 `team_members`）。可选 **`budget_min` / `budget_max`**（元）：**仅**写入主团队行，不写 `users`；合并后若上下限均非空须满足 `budget_max >= budget_min`（否则业务码 `20005`）。请求体中只要出现 `budget_min` 或 `budget_max`，且生效后角色 **非** 专家/团队方、或仍无主团队，返回 **HTTP 400**（业务码含 `11019`、`11020`、`20005` 等）。
 
 ### 2.3 专家提交入驻材料（进入人工审核）
 - **POST** `/api/v1/users/me/onboarding/application`
