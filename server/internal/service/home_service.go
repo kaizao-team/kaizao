@@ -23,7 +23,7 @@ func (s *HomeService) GetDemanderHome(userUUID string) (map[string]interface{}, 
 		return nil, err
 	}
 	myProjects, _, _ := s.repos.Project.ListByOwnerID(u.ID, 0, 20)
-	experts, _, _ := s.repos.User.ListExperts(0, 10)
+	teams, _, _ := s.repos.Team.ListActiveTeams(0, 10)
 
 	catMap, _ := s.repos.Project.CountByCategory()
 	categories := []map[string]interface{}{}
@@ -38,19 +38,31 @@ func (s *HomeService) GetDemanderHome(userUUID string) (map[string]interface{}, 
 		myList = append(myList, NewProjectListItem(p))
 	}
 
-	recExperts := make([]map[string]interface{}, 0, len(experts))
-	for _, e := range experts {
-		skills, _ := s.repos.User.ListUserSkills(e.ID)
-		skillStr := expertPrimarySkillName(skills, nil)
-		recExperts = append(recExperts, map[string]interface{}{
-			"id":                e.UUID,
-			"nickname":          e.Nickname,
-			"avatar_url":        e.AvatarURL,
-			"rating":            e.AvgRating,
-			"skill":             skillStr,
-			"hourly_rate":       e.HourlyRate,
-			"completed_orders":  e.CompletedOrders,
-		})
+	leaderIDs := make([]int64, 0, len(teams))
+	for _, t := range teams {
+		leaderIDs = append(leaderIDs, t.LeaderID)
+	}
+	allSkills, _ := s.repos.User.ListUserSkillsForUsers(leaderIDs)
+	skillsByUser := groupUserSkillsByUserID(allSkills)
+
+	recExperts := make([]map[string]interface{}, 0, len(teams))
+	for _, t := range teams {
+		item := map[string]interface{}{
+			"id":           t.UUID,
+			"rating":       t.AvgRating,
+			"hourly_rate":  t.HourlyRate,
+			"member_count": t.MemberCount,
+			"vibe_level":   t.VibeLevel,
+			"vibe_power":   t.VibePower,
+		}
+		if t.Leader != nil {
+			item["leader_uuid"] = t.Leader.UUID
+			item["nickname"] = t.Leader.Nickname
+			item["avatar_url"] = t.Leader.AvatarURL
+			item["completed_orders"] = t.Leader.CompletedOrders
+			item["skill"] = expertPrimarySkillName(skillsByUser[t.Leader.ID], nil)
+		}
+		recExperts = append(recExperts, item)
 	}
 
 	return map[string]interface{}{

@@ -123,6 +123,11 @@ func (h *BidHandler) CreateBid(c *gin.Context) {
 	userUUID := c.GetString("user_uuid")
 	bid, err := h.bidService.Create(userUUID, projectID, req.Amount, req.DurationDays, req.Proposal, req.BidType, req.TeamID)
 	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
 		response.ErrorBadRequest(c, errcode.ErrBidOwnProject, err.Error())
 		return
 	}

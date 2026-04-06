@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -72,9 +73,36 @@ func (s *UserService) UpdateProfile(uuid string, fields map[string]interface{}) 
 	if err != nil {
 		return nil, err
 	}
-	if err := s.repos.User.UpdateFields(u.ID, fields); err != nil {
+
+	teamFields := make(map[string]interface{})
+	if v, ok := fields["hourly_rate"]; ok {
+		teamFields["hourly_rate"] = v
+	}
+	if v, ok := fields["available_status"]; ok {
+		teamFields["available_status"] = v
+	}
+
+	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		txRepos := repository.NewRepositories(tx)
+		if err := txRepos.User.UpdateFields(u.ID, fields); err != nil {
+			return err
+		}
+		if len(teamFields) > 0 && (u.Role == 2 || u.Role == 3) {
+			team, err := txRepos.Team.FindPrimaryTeamForUser(u.ID)
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+			if err == nil && team != nil {
+				if err := txRepos.Team.UpdateFields(team.ID, teamFields); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}); err != nil {
 		return nil, err
 	}
+
 	return s.repos.User.FindByUUID(uuid)
 }
 
@@ -117,6 +145,18 @@ func (s *UserService) ListExperts(page, pageSize int) ([]*model.User, int64, err
 	}
 	offset := (page - 1) * pageSize
 	return s.repos.User.ListExperts(offset, pageSize)
+}
+
+// ListExpertTeams 以团队为主实体的专家列表（市场广场 / 首页推荐）
+func (s *UserService) ListExpertTeams(page, pageSize int) ([]*model.Team, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+	return s.repos.Team.ListActiveTeams(offset, pageSize)
 }
 
 func (s *UserService) SetOnboarding(userUUID string, status int16, reason *string, reviewerUserID int64) error {

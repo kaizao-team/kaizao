@@ -247,6 +247,9 @@ type TeamRepository interface {
 	// FindPrimaryTeamForUser 团队方主团队：优先其作为队长的活跃团队，否则取最近加入的活跃成员关系
 	FindPrimaryTeamForUser(userID int64) (*model.Team, error)
 	Update(team *model.Team) error
+	UpdateFields(teamID int64, fields map[string]interface{}) error
+	// ListActiveTeams 活跃且接单中的团队列表（供专家广场 / 首页推荐使用）
+	ListActiveTeams(offset, limit int) ([]*model.Team, int64, error)
 	CreateMember(member *model.TeamMember) error
 	FindMember(teamID, userID int64) (*model.TeamMember, error)
 	UpdateMemberRatio(teamID, userID int64, ratio float64) error

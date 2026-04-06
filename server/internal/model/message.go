@@ -272,8 +272,27 @@ type Team struct {
 	TotalEarnings  float64    `gorm:"type:decimal(12,2);not null;default:0.00" json:"total_earnings"`
 	Status         int16      `gorm:"not null;default:1;index" json:"status"`
 	DisbandedAt    *time.Time `json:"disbanded_at,omitempty"`
-	CreatedAt      time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
-	UpdatedAt      time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
+
+	// migration 011 — AI Agent 评级字段
+	VibePower        int      `gorm:"not null;default:0" json:"vibe_power"`
+	VibeLevel        string   `gorm:"type:varchar(20);not null;default:'vc-T1'" json:"vibe_level"`
+	LevelWeight      float64  `gorm:"type:decimal(3,2);not null;default:1.00" json:"level_weight"`
+	ExperienceYears  int      `gorm:"not null;default:0" json:"experience_years"`
+	ResumeSummary    *string  `gorm:"type:text" json:"resume_summary,omitempty"`
+	AITools          JSON     `gorm:"type:json" json:"ai_tools,omitempty"`
+	ReviewTags       JSON     `gorm:"type:json" json:"review_tags,omitempty"`
+	ScoreTechDepth   int      `gorm:"not null;default:0" json:"score_tech_depth"`
+	ScoreProjectExp  int      `gorm:"not null;default:0" json:"score_project_exp"`
+	ScoreAIProficiency int    `gorm:"not null;default:0" json:"score_ai_proficiency"`
+	ScorePortfolio   int      `gorm:"not null;default:0" json:"score_portfolio"`
+	ScoreBackground  int      `gorm:"not null;default:0" json:"score_background"`
+
+	// migration 012 — 业务字段（团队实体对齐）
+	AvailableStatus int16    `gorm:"not null;default:1" json:"available_status"`
+	HourlyRate      *float64 `gorm:"type:decimal(10,2)" json:"hourly_rate,omitempty"`
+
+	CreatedAt time.Time `gorm:"not null;autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time `gorm:"not null;autoUpdateTime" json:"updated_at"`
 
 	// 关联
 	Leader  *User        `gorm:"foreignKey:LeaderID" json:"leader,omitempty"`

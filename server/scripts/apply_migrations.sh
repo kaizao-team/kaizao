@@ -59,6 +59,7 @@ INCREMENTAL_FILES=(
   009_favorites.up.sql
   010_project_files.up.sql
   011_teams_ai_fields.up.sql
+  012_teams_biz_fields.up.sql
 )
 
 mysql_exec() {
@@ -107,7 +108,7 @@ if [ "$FULL" = 1 ]; then
   apply_file "$MIGRATIONS_DIR/001_init_schema.up.sql" 0
 fi
 
-echo "=== 执行增量迁移 002–011（utf8mb4 客户端）==="
+echo "=== 执行增量迁移 002–012（utf8mb4 客户端）==="
 for f in "${INCREMENTAL_FILES[@]}"; do
   apply_file "$MIGRATIONS_DIR/$f" 1
 done

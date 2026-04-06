@@ -718,6 +718,33 @@ func (r *teamRepository) Update(team *model.Team) error {
 	return r.db.Save(team).Error
 }
 
+func (r *teamRepository) UpdateFields(teamID int64, fields map[string]interface{}) error {
+	return r.db.Model(&model.Team{}).Where("id = ?", teamID).Updates(fields).Error
+}
+
+func (r *teamRepository) ListActiveTeams(offset, limit int) ([]*model.Team, int64, error) {
+	var teams []*model.Team
+	var total int64
+	query := r.db.Model(&model.Team{}).
+		Where("teams.status = 1 AND teams.available_status = 1").
+		Where(`EXISTS (
+			SELECT 1 FROM users u
+			WHERE u.id = teams.leader_id
+			  AND u.role IN (2,3)
+			  AND u.status = 1
+			  AND u.onboarding_status = ?
+		)`, model.OnboardingApproved)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Preload("Leader").Preload("Members.User").
+		Order("teams.vibe_power DESC, teams.avg_rating DESC").
+		Offset(offset).Limit(limit).Find(&teams).Error; err != nil {
+		return nil, 0, err
+	}
+	return teams, total, nil
+}
+
 func (r *teamRepository) CreateMember(member *model.TeamMember) error {
 	return r.db.Create(member).Error
 }
