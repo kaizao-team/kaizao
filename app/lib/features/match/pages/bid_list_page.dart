@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_tag.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../home/providers/home_provider.dart';
+import '../../notification/providers/notification_provider.dart';
+import '../../project/providers/project_list_provider.dart';
 import '../models/match_models.dart';
 import '../providers/match_provider.dart';
 import '../widgets/bid_card.dart';
@@ -75,11 +79,28 @@ class BidListPage extends ConsumerWidget {
                                   if (context.mounted) {
                                     VccToast.show(context,
                                         message: ok
-                                            ? '已选定 ${bid.userName}'
+                                            ? '已选定 ${bid.userName}，撮合成功'
                                             : '操作失败，请重试',
                                         type: ok
                                             ? VccToastType.success
                                             : VccToastType.error);
+                                    if (ok) {
+                                      ref
+                                          .read(
+                                              projectListProvider.notifier)
+                                          .refresh();
+                                      ref
+                                          .read(
+                                              notificationProvider.notifier)
+                                          .loadNotifications();
+                                      ref
+                                          .read(
+                                              homeStateProvider.notifier)
+                                          .refresh();
+                                      if (context.mounted) {
+                                        context.go('/');
+                                      }
+                                    }
                                   }
                                 },
                               );

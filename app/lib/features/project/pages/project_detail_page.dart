@@ -126,7 +126,9 @@ class _BottomActions extends ConsumerWidget {
               Expanded(
                 child: VccButton(
                   text: _rightButtonText(isDemander),
-                  onPressed: () => _rightButtonAction(context, isDemander),
+                  onPressed: _rightButtonEnabled(isDemander)
+                      ? () => _rightButtonAction(context, ref, isDemander)
+                      : null,
                 ),
               ),
             ],
@@ -142,11 +144,18 @@ class _BottomActions extends ConsumerWidget {
       return '查看进度';
     } else {
       if (state.status >= 5) return '进入看板';
+      if (state.hasBid) return '已投标';
       return '投标';
     }
   }
 
-  void _rightButtonAction(BuildContext context, bool isDemander) {
+  bool _rightButtonEnabled(bool isDemander) {
+    if (!isDemander && state.status < 5 && state.hasBid) return false;
+    return true;
+  }
+
+  Future<void> _rightButtonAction(
+      BuildContext context, WidgetRef ref, bool isDemander) async {
     if (isDemander) {
       if (state.status <= 2) {
         context.push('/projects/$projectId/bids');
@@ -157,7 +166,10 @@ class _BottomActions extends ConsumerWidget {
       if (state.status >= 5) {
         context.push('/projects/$projectId/manage');
       } else {
-        context.push('/projects/$projectId/bid');
+        await context.push('/projects/$projectId/bid');
+        if (context.mounted) {
+          ref.invalidate(projectDetailProvider(projectId));
+        }
       }
     }
   }
