@@ -196,21 +196,21 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                 lift: _heroLift,
                               ),
                               const Spacer(flex: 2),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: AppSpacing.xs,
-                                  ),
-                                  child: Text(
-                                    '账号密码登录',
-                                    style: AppTextStyles.body1.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.black,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              // Align(
+                              //   alignment: Alignment.centerLeft,
+                              //   child: Padding(
+                              //     padding: const EdgeInsets.only(
+                              //       bottom: AppSpacing.xs,
+                              //     ),
+                              //     child: Text(
+                              //       '账号密码登录',
+                              //       style: AppTextStyles.body1.copyWith(
+                              //         fontWeight: FontWeight.w700,
+                              //         color: AppColors.black,
+                              //       ),
+                              //     ),
+                              //   ),
+                              // ),
                               SizedBox(
                                 height:
                                     compact ? AppSpacing.md : AppSpacing.base,
@@ -336,7 +336,16 @@ class _LoginHero extends StatelessWidget {
             isAntiAlias: true,
           ),
         ),
-        SizedBox(height: compact ? AppSpacing.sm : AppSpacing.md)
+        SizedBox(height: compact ? 6 : 10),
+        Text(
+          '欢迎来到开造',
+          style: AppTextStyles.body1.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.gray500,
+            letterSpacing: 0.5,
+          ),
+        ),
+        SizedBox(height: compact ? AppSpacing.sm : AppSpacing.md),
       ],
     );
   }

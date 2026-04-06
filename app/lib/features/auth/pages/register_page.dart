@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,26 +26,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _codeController = TextEditingController();
-
   final _usernameFocus = FocusNode();
   final _passwordFocus = FocusNode();
   final _confirmPasswordFocus = FocusNode();
   final _phoneFocus = FocusNode();
-  final _codeFocus = FocusNode();
 
   late final AnimationController _heroController;
   late final Animation<double> _heroScale;
   late final Animation<double> _heroLift;
 
-  Timer? _countdownTimer;
-  int _countdown = 0;
   bool _phoneValid = false;
-  bool _isSendingCode = false;
   bool _agreedToTerms = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
-  bool _showPhoneBind = false;
 
   static final _usernameRegex = RegExp(r'^[a-zA-Z0-9_]{4,32}$');
 
@@ -78,18 +69,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   @override
   void dispose() {
     _phoneController.removeListener(_validatePhone);
-    _countdownTimer?.cancel();
     _heroController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _phoneController.dispose();
-    _codeController.dispose();
     _usernameFocus.dispose();
     _passwordFocus.dispose();
     _confirmPasswordFocus.dispose();
     _phoneFocus.dispose();
-    _codeFocus.dispose();
     super.dispose();
   }
 
@@ -103,41 +91,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
 
   void _showToast(String message, {VccToastType type = VccToastType.info}) {
     VccToast.show(context, message: message, type: type);
-  }
-
-  void _startCountdown() {
-    _countdownTimer?.cancel();
-    setState(() => _countdown = 60);
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_countdown <= 1) {
-        timer.cancel();
-        setState(() => _countdown = 0);
-        return;
-      }
-      setState(() => _countdown -= 1);
-    });
-  }
-
-  Future<void> _sendCode() async {
-    if (!_phoneValid || _countdown > 0 || _isSendingCode) {
-      return;
-    }
-    FocusScope.of(context).unfocus();
-    setState(() => _isSendingCode = true);
-    final success = await ref
-        .read(authStateProvider.notifier)
-        .sendSmsCode(_phoneController.text.trim(), purpose: 1);
-    if (!mounted) return;
-    setState(() => _isSendingCode = false);
-    if (success) {
-      _showToast('验证码已发送', type: VccToastType.success);
-      _startCountdown();
-      _codeFocus.requestFocus();
-    }
   }
 
   Future<void> _submit() async {
@@ -171,19 +124,17 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       return;
     }
 
-    String? phone;
-    String? smsCode;
-
-    if (_showPhoneBind) {
-      final phoneText = _phoneController.text.trim();
-      if (phoneText.isNotEmpty) {
-        if (!_phoneValid) {
-          _showToast('请输入正确的手机号', type: VccToastType.warning);
-          return;
-        }
-        phone = phoneText;
-      }
+    final phoneText = _phoneController.text.trim();
+    if (phoneText.isEmpty) {
+      _showToast('请输入手机号', type: VccToastType.warning);
+      return;
     }
+    if (!_phoneValid) {
+      _showToast('请输入正确的手机号', type: VccToastType.warning);
+      return;
+    }
+    final phone = phoneText;
+    String? smsCode;
 
     final success =
         await ref.read(authStateProvider.notifier).registerWithPassword(
@@ -201,7 +152,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       return;
     }
 
-    if (phone != null && phone.isNotEmpty) {
+    if (phone.isNotEmpty) {
       await ref
           .read(onboardingProvider.notifier)
           .saveDraft({'contact_phone': phone});
@@ -219,13 +170,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
-    final isSubmitting = authState.isLoading && !_isSendingCode;
+    final isSubmitting = authState.isLoading;
     final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
     final screenHeight = MediaQuery.of(context).size.height;
     final compact = screenHeight < 820 || keyboardInset > 0;
 
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: const Color(0xFFFEFCFD),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: SafeArea(
@@ -262,14 +213,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                             SizedBox(
                               height: compact ? AppSpacing.xl : AppSpacing.xxxl,
                             ),
-                            const Text('新用户注册', style: AppTextStyles.h2),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(
-                              '创建账号密码即可使用 KAIZO，首次登录后选择你的身份即可开始。',
-                              style: AppTextStyles.body2.copyWith(
-                                color: AppColors.gray500,
-                              ),
-                            ),
+                            // const Text('新用户注册', style: AppTextStyles.h2),
+                            // const SizedBox(height: AppSpacing.xs),
+                            // Text(
+                            //   '创建账号密码即可使用 KAIZO，首次登录后选择你的身份即可开始。',
+                            //   style: AppTextStyles.body2.copyWith(
+                            //     color: AppColors.gray500,
+                            //   ),
+                            // ),
                             SizedBox(
                               height: compact ? AppSpacing.lg : AppSpacing.xl,
                             ),
@@ -279,12 +230,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                               confirmPasswordController:
                                   _confirmPasswordController,
                               phoneController: _phoneController,
-                              codeController: _codeController,
                               usernameFocus: _usernameFocus,
                               passwordFocus: _passwordFocus,
                               confirmPasswordFocus: _confirmPasswordFocus,
                               phoneFocus: _phoneFocus,
-                              codeFocus: _codeFocus,
                               obscurePassword: _obscurePassword,
                               obscureConfirm: _obscureConfirm,
                               onPasswordToggle: () => setState(
@@ -293,14 +242,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                               onConfirmToggle: () => setState(
                                 () => _obscureConfirm = !_obscureConfirm,
                               ),
-                              showPhoneBind: _showPhoneBind,
-                              onTogglePhoneBind: () => setState(
-                                () => _showPhoneBind = !_showPhoneBind,
-                              ),
-                              countdown: _countdown,
-                              isPhoneValid: _phoneValid,
-                              isSendingCode: _isSendingCode,
-                              onSendCode: _sendCode,
                               compact: compact,
                             ),
                             SizedBox(
@@ -358,22 +299,14 @@ class _RegisterForm extends StatelessWidget {
   final TextEditingController passwordController;
   final TextEditingController confirmPasswordController;
   final TextEditingController phoneController;
-  final TextEditingController codeController;
   final FocusNode usernameFocus;
   final FocusNode passwordFocus;
   final FocusNode confirmPasswordFocus;
   final FocusNode phoneFocus;
-  final FocusNode codeFocus;
   final bool obscurePassword;
   final bool obscureConfirm;
   final VoidCallback onPasswordToggle;
   final VoidCallback onConfirmToggle;
-  final bool showPhoneBind;
-  final VoidCallback onTogglePhoneBind;
-  final int countdown;
-  final bool isPhoneValid;
-  final bool isSendingCode;
-  final VoidCallback onSendCode;
   final bool compact;
 
   const _RegisterForm({
@@ -381,22 +314,14 @@ class _RegisterForm extends StatelessWidget {
     required this.passwordController,
     required this.confirmPasswordController,
     required this.phoneController,
-    required this.codeController,
     required this.usernameFocus,
     required this.passwordFocus,
     required this.confirmPasswordFocus,
     required this.phoneFocus,
-    required this.codeFocus,
     required this.obscurePassword,
     required this.obscureConfirm,
     required this.onPasswordToggle,
     required this.onConfirmToggle,
-    required this.showPhoneBind,
-    required this.onTogglePhoneBind,
-    required this.countdown,
-    required this.isPhoneValid,
-    required this.isSendingCode,
-    required this.onSendCode,
     required this.compact,
   });
 
@@ -446,30 +371,42 @@ class _RegisterForm extends StatelessWidget {
             controller: confirmPasswordController,
             focusNode: confirmPasswordFocus,
             obscureText: obscureConfirm,
-            textInputAction:
-                showPhoneBind ? TextInputAction.next : TextInputAction.done,
-            onSubmitted: (_) {
-              if (showPhoneBind) phoneFocus.requestFocus();
-            },
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => phoneFocus.requestFocus(),
             suffixIcon: _EyeToggle(
               obscure: obscureConfirm,
               onTap: onConfirmToggle,
             ),
           ),
         ),
-        SizedBox(height: spacing + 4),
-        _PhoneBindSection(
-          showPhoneBind: showPhoneBind,
-          onToggle: onTogglePhoneBind,
-          phoneController: phoneController,
-          codeController: codeController,
-          phoneFocus: phoneFocus,
-          codeFocus: codeFocus,
-          countdown: countdown,
-          isPhoneValid: isPhoneValid,
-          isSendingCode: isSendingCode,
-          onSendCode: onSendCode,
-          compact: compact,
+        SizedBox(height: spacing),
+        AuthFieldShell(
+          label: '手机号',
+          child: VccInput(
+            hint: '请输入手机号',
+            controller: phoneController,
+            focusNode: phoneFocus,
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.done,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(11),
+            ],
+            prefixIcon: const Padding(
+              padding: EdgeInsets.only(left: 16, right: 8),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  '+86',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.gray500,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -495,119 +432,6 @@ class _EyeToggle extends StatelessWidget {
           color: AppColors.gray500,
         ),
       ),
-    );
-  }
-}
-
-class _PhoneBindSection extends StatelessWidget {
-  final bool showPhoneBind;
-  final VoidCallback onToggle;
-  final TextEditingController phoneController;
-  final TextEditingController codeController;
-  final FocusNode phoneFocus;
-  final FocusNode codeFocus;
-  final int countdown;
-  final bool isPhoneValid;
-  final bool isSendingCode;
-  final VoidCallback onSendCode;
-  final bool compact;
-
-  const _PhoneBindSection({
-    required this.showPhoneBind,
-    required this.onToggle,
-    required this.phoneController,
-    required this.codeController,
-    required this.phoneFocus,
-    required this.codeFocus,
-    required this.countdown,
-    required this.isPhoneValid,
-    required this.isSendingCode,
-    required this.onSendCode,
-    required this.compact,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        GestureDetector(
-          onTap: onToggle,
-          behavior: HitTestBehavior.opaque,
-          child: Row(
-            children: [
-              Icon(
-                showPhoneBind
-                    ? Icons.keyboard_arrow_up_rounded
-                    : Icons.keyboard_arrow_down_rounded,
-                size: 20,
-                color: AppColors.gray500,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '绑定手机号（可选）',
-                style: AppTextStyles.caption.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.gray500,
-                ),
-              ),
-            ],
-          ),
-        ),
-        AnimatedCrossFade(
-          duration: AppDurations.normal,
-          crossFadeState: showPhoneBind
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
-          firstChild: const SizedBox.shrink(),
-          secondChild: Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Text(
-                    '涉及后续推进流程请绑定本人使用的手机号',
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.gray400,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-                AuthFieldShell(
-                  label: '手机号',
-                  child: VccInput(
-                    hint: '请输入手机号',
-                    controller: phoneController,
-                    focusNode: phoneFocus,
-                    keyboardType: TextInputType.phone,
-                    textInputAction: TextInputAction.done,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(11),
-                    ],
-                    prefixIcon: const Padding(
-                      padding: EdgeInsets.only(left: 16, right: 8),
-                      child: Center(
-                        widthFactor: 1,
-                        child: Text(
-                          '+86',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.gray500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

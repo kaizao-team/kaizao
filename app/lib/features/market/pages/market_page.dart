@@ -275,7 +275,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
           final expert = expertState.experts[index];
           return MarketExpertCard(
             expert: expert,
-            onTap: () => context.push('/profile/${expert.id}'),
+            onTap: () => context.push('/team/${expert.id}/profile'),
           );
         },
       ),

@@ -57,7 +57,7 @@ class _ExpertCard extends StatelessWidget {
     return SizedBox(
       width: 216,
       child: VccCard(
-        onTap: expert.id.isEmpty ? null : () => context.push('/expert/${expert.id}'),
+        onTap: expert.id.isEmpty ? null : () => context.push('/team/${expert.id}/profile'),
         padding: const EdgeInsets.fromLTRB(16, 15, 16, 12),
         borderRadius: 18,
         backgroundColor: AppColors.white,
@@ -80,7 +80,7 @@ class _ExpertCard extends StatelessWidget {
                 VccAvatar(
                   imageUrl: expert.avatarUrl,
                   size: VccAvatarSize.large,
-                  fallbackText: expert.nickname,
+                  fallbackText: expert.displayName,
                 ),
                 const Spacer(),
                 Container(
@@ -101,7 +101,7 @@ class _ExpertCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              expert.nickname,
+              expert.displayName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -111,16 +111,16 @@ class _ExpertCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+            _SkillTag(label: _primarySkill(expert)),
+            const Spacer(),
             Row(
               children: [
-                _SkillTag(label: _primarySkill(expert)),
                 if (expert.vibeLevel != null &&
                     expert.vibeLevel!.isNotEmpty) ...[
-                  const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 6,
-                      vertical: 3,
+                      vertical: 2,
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1A1C1C),
@@ -136,27 +136,24 @@ class _ExpertCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                ],
-              ],
-            ),
-            const Spacer(),
-            Row(
-              children: [
-                const Icon(
-                  Icons.star_rounded,
-                  size: 15,
-                  color: AppColors.accentGold,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  expert.rating > 0 ? expert.rating.toStringAsFixed(1) : '暂无评分',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.gray700,
+                  const SizedBox(width: 8),
+                ] else ...[
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 15,
+                    color: AppColors.accentGold,
                   ),
-                ),
-                const SizedBox(width: 10),
+                  const SizedBox(width: 4),
+                  Text(
+                    expert.rating > 0 ? expert.rating.toStringAsFixed(1) : '-',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.gray700,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 Expanded(
                   child: Text(
                     _experienceText(expert),

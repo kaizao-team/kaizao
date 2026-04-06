@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/team_models.dart';
+import '../models/team_profile.dart';
 import '../repositories/team_repository.dart';
 
 // ---------- Team Hall (list) ----------
@@ -202,4 +203,60 @@ class TeamDetailNotifier extends StateNotifier<TeamDetailState> {
 final teamDetailProvider = StateNotifierProvider.autoDispose
     .family<TeamDetailNotifier, TeamDetailState, String>((ref, teamId) {
   return TeamDetailNotifier(TeamRepository(), teamId);
+});
+
+// ---------- Team Public Profile ----------
+
+class TeamProfileState {
+  final bool isLoading;
+  final TeamProfile? profile;
+  final String? errorMessage;
+
+  const TeamProfileState({
+    this.isLoading = false,
+    this.profile,
+    this.errorMessage,
+  });
+
+  TeamProfileState copyWith({
+    bool? isLoading,
+    TeamProfile? profile,
+    String? Function()? errorMessage,
+  }) {
+    return TeamProfileState(
+      isLoading: isLoading ?? this.isLoading,
+      profile: profile ?? this.profile,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
+    );
+  }
+}
+
+class TeamProfileNotifier extends StateNotifier<TeamProfileState> {
+  final TeamRepository _repository;
+  final String _teamId;
+
+  TeamProfileNotifier(this._repository, this._teamId)
+      : super(const TeamProfileState()) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    state = state.copyWith(isLoading: true, errorMessage: () => null);
+    try {
+      final profile = await _repository.fetchTeamProfile(_teamId);
+      if (!mounted) return;
+      state = state.copyWith(isLoading: false, profile: profile);
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: () => e.toString(),
+      );
+    }
+  }
+}
+
+final teamProfileProvider = StateNotifierProvider.autoDispose
+    .family<TeamProfileNotifier, TeamProfileState, String>((ref, teamId) {
+  return TeamProfileNotifier(TeamRepository(), teamId);
 });

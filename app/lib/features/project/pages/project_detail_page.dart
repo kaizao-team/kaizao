@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,21 +31,6 @@ class ProjectDetailPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        title: Text(
-          state.title.isNotEmpty ? state.title : '项目详情',
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1C1C),
-          ),
-        ),
-        actions: [
-          _FavoriteButton(projectId: id),
-        ],
-      ),
       body: state.isLoading
           ? const Center(
               child: SizedBox(
@@ -185,129 +172,30 @@ class _DetailContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = state;
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeroSection(s),
-          const SizedBox(height: 8),
-          if (s.ownerName.isNotEmpty) ...[
-            _buildOwnerCard(s),
-            const SizedBox(height: 8),
-          ],
-          _buildDescriptionSection(s),
-          if (s.prdSummary.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _buildPrdSection(s),
-          ],
-          if (s.milestones.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _buildMilestoneSection(s),
-          ],
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeroSection(ProjectDetailState s) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return CustomScrollView(
+      slivers: [
+        _ParticleHeroSliver(state: s, projectId: projectId),
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              VccStatusTag(
-                label: s.statusName,
-                type: VccTagType.status,
-                status: _statusTagType(s.status),
-              ),
-              const Spacer(),
-              Text(
-                s.budgetDisplay,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1C1C),
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            s.title,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1C1C),
-              height: 1.3,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F3F3),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  s.categoryName,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF666666),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              if (s.timeAgo.isNotEmpty) ...[
-                const SizedBox(width: 10),
-                Text(
-                  s.timeAgo,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.gray400,
-                  ),
-                ),
+              if (s.ownerName.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _buildOwnerCard(s),
               ],
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              _buildMetaItem(Icons.visibility_outlined, '${s.viewCount}'),
-              const SizedBox(width: 20),
-              _buildMetaItem(Icons.gavel_outlined, '${s.bidCount} 投标'),
-              if (s.matchScore > 0) ...[
-                const SizedBox(width: 20),
-                _buildMetaItem(Icons.auto_awesome_outlined,
-                    '匹配 ${s.matchScore}%'),
+              const SizedBox(height: 12),
+              _buildDescriptionSection(s),
+              if (s.prdSummary.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _buildPrdSection(s),
               ],
+              if (s.milestones.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _buildMilestoneSection(s),
+              ],
+              const SizedBox(height: 48),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetaItem(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: AppColors.gray400),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 12, color: AppColors.gray400),
         ),
       ],
     );
@@ -315,16 +203,20 @@ class _DetailContent extends StatelessWidget {
 
   Widget _buildOwnerCard(ProjectDetailState s) {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           VccAvatar(
-            size: VccAvatarSize.small,
+            size: VccAvatarSize.medium,
             fallbackText:
                 s.ownerName.isNotEmpty ? s.ownerName.substring(0, 1) : '?',
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,7 +224,7 @@ class _DetailContent extends StatelessWidget {
                 Text(
                   s.ownerName,
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF1A1C1C),
                   ),
@@ -348,6 +240,21 @@ class _DetailContent extends StatelessWidget {
               ],
             ),
           ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F3F3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              '查看主页',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF666666),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -356,13 +263,17 @@ class _DetailContent extends StatelessWidget {
   Widget _buildDescriptionSection(ProjectDetailState s) {
     return Container(
       width: double.infinity,
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _SectionLabel('项目概要'),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Text(
             s.description,
             style: const TextStyle(
@@ -371,10 +282,10 @@ class _DetailContent extends StatelessWidget {
               color: Color(0xFF444444),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFFF9F9F9),
               borderRadius: BorderRadius.circular(10),
@@ -382,36 +293,35 @@ class _DetailContent extends StatelessWidget {
             child: Column(
               children: [
                 _buildSummaryRow('预算范围', s.budgetDisplay),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _buildSummaryRow('项目分类', s.categoryName),
                 if (s.timeAgo.isNotEmpty) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   _buildSummaryRow('发布时间', s.timeAgo),
                 ],
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _buildSummaryRow('浏览/投标',
                     '${s.viewCount} 次浏览 · ${s.bidCount} 个投标'),
               ],
             ),
           ),
           if (s.techRequirements.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             const Text(
               '技术要求',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF888888),
-                letterSpacing: 0.5,
+                color: AppColors.gray400,
+                letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: s.techRequirements
-                  .map((t) => VccTag(label: t))
-                  .toList(),
+              children:
+                  s.techRequirements.map((t) => VccTag(label: t)).toList(),
             ),
           ],
         ],
@@ -448,13 +358,18 @@ class _DetailContent extends StatelessWidget {
 
   Widget _buildPrdSection(ProjectDetailState s) {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _SectionLabel('PRD 摘要'),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -478,8 +393,13 @@ class _DetailContent extends StatelessWidget {
 
   Widget _buildMilestoneSection(ProjectDetailState s) {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -499,7 +419,7 @@ class _DetailContent extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           ...s.milestones.asMap().entries.map(
                 (entry) => _buildMilestone(
                   entry.value,
@@ -521,7 +441,7 @@ class _DetailContent extends StatelessWidget {
     final isActive = status == 'in_progress';
 
     return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
       child: Row(
         children: [
           Container(
@@ -553,8 +473,7 @@ class _DetailContent extends StatelessWidget {
                 color: isCompleted
                     ? AppColors.gray400
                     : const Color(0xFF1A1C1C),
-                decoration:
-                    isCompleted ? TextDecoration.lineThrough : null,
+                decoration: isCompleted ? TextDecoration.lineThrough : null,
               ),
             ),
           ),
@@ -579,20 +498,6 @@ class _DetailContent extends StatelessWidget {
     );
   }
 
-  String _statusTagType(int status) {
-    switch (status) {
-      case 5:
-        return 'in_progress';
-      case 6:
-        return 'pending';
-      case 7:
-        return 'completed';
-      case 9:
-        return 'at_risk';
-      default:
-        return 'not_started';
-    }
-  }
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -609,6 +514,332 @@ class _SectionLabel extends StatelessWidget {
         color: Color(0xFF1A1C1C),
         letterSpacing: -0.2,
       ),
+    );
+  }
+}
+
+class _ParticleHeroSliver extends StatefulWidget {
+  final ProjectDetailState state;
+  final String projectId;
+
+  const _ParticleHeroSliver({required this.state, required this.projectId});
+
+  @override
+  State<_ParticleHeroSliver> createState() => _ParticleHeroSliverState();
+}
+
+class _ParticleHeroSliverState extends State<_ParticleHeroSliver>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final List<_Particle> _particles;
+  final _random = Random();
+
+  @override
+  void initState() {
+    super.initState();
+    _particles = List.generate(
+      40,
+      (_) => _Particle.random(_random),
+    );
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.state;
+    return SliverToBoxAdapter(
+      child: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0F0F0F), Color(0xFF1E1E1E)],
+              ),
+            ),
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                _updateParticles();
+                return CustomPaint(
+                  painter: _ParticlePainter(_particles),
+                  child: child,
+                );
+              },
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).maybePop(),
+                            behavior: HitTestBehavior.opaque,
+                            child: const Padding(
+                              padding: EdgeInsets.all(4),
+                              child: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                size: 18,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          _FavoriteButton(projectId: widget.projectId),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          VccStatusTag(
+                            label: s.statusName,
+                            type: VccTagType.status,
+                            status: _statusTagType(s.status),
+                          ),
+                          if (s.matchScore > 0) ...[
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '匹配 ${s.matchScore}%',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white70,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        s.title,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 1.2,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              s.categoryName,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white60,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          if (s.timeAgo.isNotEmpty) ...[
+                            const SizedBox(width: 10),
+                            Text(
+                              s.timeAgo,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white38,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          _HeroStat(
+                            value: s.budgetDisplay,
+                            label: '预算',
+                            large: true,
+                          ),
+                          const SizedBox(width: 32),
+                          _HeroStat(
+                            value: '${s.viewCount}',
+                            label: '浏览',
+                          ),
+                          const SizedBox(width: 32),
+                          _HeroStat(
+                            value: '${s.bidCount}',
+                            label: '投标',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _updateParticles() {
+    for (final p in _particles) {
+      p.vy += p.gravity;
+      p.x += p.vx;
+      p.y += p.vy;
+
+      if (p.y > 1.0) {
+        p.y = -0.05;
+        p.vy = _random.nextDouble() * 0.002;
+        p.x = _random.nextDouble();
+      }
+      if (p.x > 1.0) p.x = 0.0;
+      if (p.x < 0.0) p.x = 1.0;
+
+      p.opacity = (p.baseOpacity * (1.0 - p.y * 0.6)).clamp(0.0, 1.0);
+    }
+  }
+
+  String _statusTagType(int status) {
+    switch (status) {
+      case 5:
+        return 'in_progress';
+      case 6:
+        return 'pending';
+      case 7:
+        return 'completed';
+      case 9:
+        return 'at_risk';
+      default:
+        return 'not_started';
+    }
+  }
+}
+
+class _Particle {
+  double x;
+  double y;
+  double vx;
+  double vy;
+  double radius;
+  double opacity;
+  double baseOpacity;
+  double gravity;
+
+  _Particle({
+    required this.x,
+    required this.y,
+    required this.vx,
+    required this.vy,
+    required this.radius,
+    required this.opacity,
+    required this.baseOpacity,
+    required this.gravity,
+  });
+
+  factory _Particle.random(Random rng) {
+    final baseOp = 0.1 + rng.nextDouble() * 0.35;
+    return _Particle(
+      x: rng.nextDouble(),
+      y: rng.nextDouble(),
+      vx: (rng.nextDouble() - 0.5) * 0.001,
+      vy: rng.nextDouble() * 0.003,
+      radius: 1.0 + rng.nextDouble() * 2.5,
+      opacity: baseOp,
+      baseOpacity: baseOp,
+      gravity: 0.00002 + rng.nextDouble() * 0.00005,
+    );
+  }
+}
+
+class _ParticlePainter extends CustomPainter {
+  final List<_Particle> particles;
+
+  _ParticlePainter(this.particles);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in particles) {
+      final paint = Paint()
+        ..color = Colors.white.withValues(alpha: p.opacity)
+        ..style = PaintingStyle.fill;
+
+      canvas.drawCircle(
+        Offset(p.x * size.width, p.y * size.height),
+        p.radius,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParticlePainter oldDelegate) => true;
+}
+
+class _HeroStat extends StatelessWidget {
+  final String value;
+  final String label;
+  final bool large;
+
+  const _HeroStat({
+    required this.value,
+    required this.label,
+    this.large = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: large ? 22 : 18,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            letterSpacing: large ? -0.3 : 0,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: Colors.white38,
+            letterSpacing: 1.5,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -658,20 +889,21 @@ class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
             },
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.all(4),
         child: isLoading
             ? const SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 1.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.gray400),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(Colors.white38),
                 ),
               )
             : Icon(
                 isFav ? Icons.bookmark : Icons.bookmark_border,
                 size: 22,
-                color: isFav ? AppColors.black : AppColors.gray400,
+                color: isFav ? Colors.white : Colors.white54,
               ),
       ),
     );

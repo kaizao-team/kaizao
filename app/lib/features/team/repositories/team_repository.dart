@@ -1,6 +1,7 @@
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../models/team_models.dart';
+import '../models/team_profile.dart';
 
 class TeamRepository {
   final ApiClient _client = ApiClient();
@@ -18,6 +19,11 @@ class TeamRepository {
   Future<TeamDetail> fetchTeamDetail(String teamId) async {
     final response = await _client.get(ApiEndpoints.teamDetail(teamId));
     return TeamDetail.fromJson(response.data as Map<String, dynamic>? ?? {});
+  }
+
+  Future<TeamProfile> fetchTeamProfile(String teamId) async {
+    final response = await _client.get(ApiEndpoints.teamDetail(teamId));
+    return TeamProfile.fromJson(response.data as Map<String, dynamic>? ?? {});
   }
 
   Future<void> createTeamPost(Map<String, dynamic> data) async {
