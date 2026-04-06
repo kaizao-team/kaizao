@@ -6,6 +6,7 @@ import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/models/project_category.dart';
+import '../../profile/providers/profile_provider.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 
@@ -76,6 +77,7 @@ class DemanderCompletePage extends ConsumerWidget {
     final draft = ref.read(onboardingProvider).draft;
     final projectId = draft['project_uuid'] as String?;
     await ref.read(onboardingProvider.notifier).complete();
+    ref.invalidate(profileProvider('me'));
     if (context.mounted) {
       if (projectId != null && projectId.isNotEmpty) {
         context.go(
@@ -89,6 +91,7 @@ class DemanderCompletePage extends ConsumerWidget {
 
   Future<void> _goHome(BuildContext context, WidgetRef ref) async {
     await ref.read(onboardingProvider.notifier).complete();
+    ref.invalidate(profileProvider('me'));
     if (context.mounted) {
       context.go(RoutePaths.home);
     }

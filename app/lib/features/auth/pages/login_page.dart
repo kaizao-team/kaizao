@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,8 +14,6 @@ import '../providers/auth_provider.dart';
 import '../repositories/auth_repository.dart';
 import '../widgets/captcha_field.dart';
 
-enum _AuthMode { password, phone }
-
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -29,27 +25,18 @@ class _LoginPageState extends ConsumerState<LoginPage>
     with TickerProviderStateMixin {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _codeController = TextEditingController();
   final _captchaCodeController = TextEditingController();
 
   final _usernameFocus = FocusNode();
   final _passwordFocus = FocusNode();
-  final _phoneFocus = FocusNode();
-  final _codeFocus = FocusNode();
   final _captchaFocus = FocusNode();
 
   late final AnimationController _heroController;
   late final Animation<double> _heroScale;
   late final Animation<double> _heroLift;
 
-  Timer? _countdownTimer;
-  int _countdown = 0;
   bool _obscurePassword = true;
   bool _agreedToTerms = false;
-  bool _phoneValid = false;
-  bool _isSendingCode = false;
-  _AuthMode _mode = _AuthMode.password;
 
   CaptchaResult? _captcha;
   bool _isLoadingCaptcha = false;
@@ -65,7 +52,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
-    _phoneController.addListener(_validatePhone);
     _showSessionExpiredToast();
     _heroController = AnimationController(
       duration: const Duration(milliseconds: 2400),
@@ -82,18 +68,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
   @override
   void dispose() {
-    _phoneController.removeListener(_validatePhone);
-    _countdownTimer?.cancel();
     _heroController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
-    _phoneController.dispose();
-    _codeController.dispose();
     _captchaCodeController.dispose();
     _usernameFocus.dispose();
     _passwordFocus.dispose();
-    _phoneFocus.dispose();
-    _codeFocus.dispose();
     _captchaFocus.dispose();
     super.dispose();
   }
@@ -108,25 +88,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
     }
   }
 
-  void _validatePhone() {
-    final value = _phoneController.text.trim();
-    final isValid = value.length == 11 && value.startsWith('1');
-    if (_phoneValid != isValid && mounted) {
-      setState(() => _phoneValid = isValid);
-    }
-  }
-
   void _showToast(
     String message, {
     VccToastType type = VccToastType.info,
   }) {
     VccToast.show(context, message: message, type: type);
-  }
-
-  void _switchMode(_AuthMode mode) {
-    if (_mode == mode) return;
-    FocusScope.of(context).unfocus();
-    setState(() => _mode = mode);
   }
 
   Future<void> _loadCaptcha() async {
@@ -142,101 +108,48 @@ class _LoginPageState extends ConsumerState<LoginPage>
     });
   }
 
-  void _startCountdown() {
-    _countdownTimer?.cancel();
-    setState(() => _countdown = 60);
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_countdown <= 1) {
-        timer.cancel();
-        setState(() => _countdown = 0);
-        return;
-      }
-      setState(() => _countdown -= 1);
-    });
-  }
-
-  Future<void> _sendCode() async {
-    if (!_phoneValid || _countdown > 0 || _isSendingCode) {
-      return;
-    }
-    FocusScope.of(context).unfocus();
-    setState(() => _isSendingCode = true);
-    final success = await ref
-        .read(authStateProvider.notifier)
-        .sendSmsCode(_phoneController.text.trim());
-    if (!mounted) return;
-    setState(() => _isSendingCode = false);
-    if (success) {
-      _showToast('验证码已发送', type: VccToastType.success);
-      _startCountdown();
-      _codeFocus.requestFocus();
-    }
-  }
-
   Future<void> _submit() async {
     if (!_agreedToTerms) {
       _showToast('请先同意服务协议', type: VccToastType.warning);
       return;
     }
 
-    if (_mode == _AuthMode.password) {
-      final username = _usernameController.text.trim();
-      final password = _passwordController.text;
-      final captchaCode = _captchaCodeController.text.trim();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+    final captchaCode = _captchaCodeController.text.trim();
 
-      if (username.isEmpty) {
-        _showToast('请输入用户名', type: VccToastType.warning);
-        return;
-      }
-      if (password.isEmpty) {
-        _showToast('请输入密码', type: VccToastType.warning);
-        return;
-      }
-      if (_captcha == null || _captcha!.captchaId.isEmpty) {
-        _showToast('请先获取验证码', type: VccToastType.warning);
-        return;
-      }
-      if (captchaCode.isEmpty) {
-        _showToast('请输入图形验证码', type: VccToastType.warning);
-        return;
-      }
+    if (username.isEmpty) {
+      _showToast('请输入用户名', type: VccToastType.warning);
+      return;
+    }
+    if (password.isEmpty) {
+      _showToast('请输入密码', type: VccToastType.warning);
+      return;
+    }
+    if (_captcha == null || _captcha!.captchaId.isEmpty) {
+      _showToast('请先获取验证码', type: VccToastType.warning);
+      return;
+    }
+    if (captchaCode.isEmpty) {
+      _showToast('请输入图形验证码', type: VccToastType.warning);
+      return;
+    }
 
-      final success =
-          await ref.read(authStateProvider.notifier).loginWithPassword(
-                identity: username,
-                password: password,
-                captchaId: _captcha!.captchaId,
-                captchaCode: captchaCode,
-              );
+    final success =
+        await ref.read(authStateProvider.notifier).loginWithPassword(
+              identity: username,
+              password: password,
+              captchaId: _captcha!.captchaId,
+              captchaCode: captchaCode,
+            );
 
-      if (!success || !mounted) {
-        _loadCaptcha();
-        if (mounted) {
-          final error = ref.read(authStateProvider).errorMessage;
-          if (error != null) _showToast(error, type: VccToastType.error);
-        }
-        return;
+    if (!success || !mounted) {
+      _loadCaptcha();
+      if (mounted) {
+        final error = ref.read(authStateProvider).errorMessage;
+        if (error != null) _showToast(error, type: VccToastType.error);
       }
-    } else {
-      if (!_phoneValid) {
-        _showToast('请输入正确的手机号', type: VccToastType.warning);
-        return;
-      }
-      if (_codeController.text.trim().length != 6) {
-        _showToast('请输入 6 位短信验证码', type: VccToastType.warning);
-        return;
-      }
-
-      final success =
-          await ref.read(authStateProvider.notifier).loginWithPhone(
-                _phoneController.text.trim(),
-                _codeController.text.trim(),
-              );
-      if (!success || !mounted) return;
+      return;
     }
 
     final authState = ref.read(authStateProvider);
@@ -250,7 +163,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
-    final isSubmitting = authState.isLoading && !_isSendingCode;
+    final isSubmitting = authState.isLoading;
     final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
     final screenHeight = MediaQuery.of(context).size.height;
     final compact = screenHeight < 820 || keyboardInset > 0;
@@ -281,88 +194,53 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                 compact: compact,
                                 scale: _heroScale,
                                 lift: _heroLift,
-                                mode: _mode,
                               ),
                               const Spacer(flex: 2),
-                              _ModeTabs(
-                                mode: _mode,
-                                onModeChanged: _switchMode,
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: AppSpacing.xs,
+                                  ),
+                                  child: Text(
+                                    '账号密码登录',
+                                    style: AppTextStyles.body1.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.black,
+                                    ),
+                                  ),
+                                ),
                               ),
                               SizedBox(
                                 height:
                                     compact ? AppSpacing.md : AppSpacing.base,
                               ),
-                              AnimatedSwitcher(
-                                duration: AppDurations.normal,
-                                switchInCurve: AppCurves.standard,
-                                switchOutCurve: AppCurves.standard,
-                                transitionBuilder: (child, animation) {
-                                  final slide = Tween<Offset>(
-                                    begin: const Offset(0.02, 0),
-                                    end: Offset.zero,
-                                  ).animate(animation);
-                                  return FadeTransition(
-                                    opacity: animation,
-                                    child: SlideTransition(
-                                      position: slide,
-                                      child: child,
-                                    ),
+                              _PasswordPanel(
+                                usernameController: _usernameController,
+                                passwordController: _passwordController,
+                                captchaCodeController: _captchaCodeController,
+                                usernameFocus: _usernameFocus,
+                                passwordFocus: _passwordFocus,
+                                captchaFocus: _captchaFocus,
+                                obscurePassword: _obscurePassword,
+                                onPasswordToggle: () {
+                                  setState(
+                                    () =>
+                                        _obscurePassword = !_obscurePassword,
                                   );
                                 },
-                                child: _mode == _AuthMode.password
-                                    ? _PasswordPanel(
-                                        key: const ValueKey('password-panel'),
-                                        usernameController: _usernameController,
-                                        passwordController: _passwordController,
-                                        captchaCodeController:
-                                            _captchaCodeController,
-                                        usernameFocus: _usernameFocus,
-                                        passwordFocus: _passwordFocus,
-                                        captchaFocus: _captchaFocus,
-                                        obscurePassword: _obscurePassword,
-                                        onPasswordToggle: () {
-                                          setState(
-                                            () => _obscurePassword =
-                                                !_obscurePassword,
-                                          );
-                                        },
-                                        compact: compact,
-                                        captcha: _captcha,
-                                        isLoadingCaptcha: _isLoadingCaptcha,
-                                        onRefreshCaptcha: _loadCaptcha,
-                                      )
-                                    : _PhonePanel(
-                                        key: const ValueKey('phone-panel'),
-                                        phoneController: _phoneController,
-                                        codeController: _codeController,
-                                        phoneFocus: _phoneFocus,
-                                        codeFocus: _codeFocus,
-                                        countdown: _countdown,
-                                        isPhoneValid: _phoneValid,
-                                        isSendingCode: _isSendingCode,
-                                        onSendCode: _sendCode,
-                                        compact: compact,
-                                      ),
+                                compact: compact,
+                                captcha: _captcha,
+                                isLoadingCaptcha: _isLoadingCaptcha,
+                                onRefreshCaptcha: _loadCaptcha,
                               ),
-                              if (_mode == _AuthMode.phone &&
-                                  authState.errorMessage != null) ...[
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  authState.errorMessage!,
-                                  style: AppTextStyles.caption.copyWith(
-                                    color: AppColors.error,
-                                  ),
-                                ),
-                              ],
                               SizedBox(
                                 height:
                                     compact ? AppSpacing.xl : AppSpacing.xxl,
                               ),
                               if (!compact) const Spacer(flex: 3),
                               VccButton(
-                                text: _mode == _AuthMode.password
-                                    ? '登录'
-                                    : '登录 / 注册',
+                                text: '登录',
                                 onPressed: _submit,
                                 isLoading: isSubmitting,
                               ),
@@ -427,13 +305,11 @@ class _LoginHero extends StatelessWidget {
   final bool compact;
   final Animation<double> scale;
   final Animation<double> lift;
-  final _AuthMode mode;
 
   const _LoginHero({
     required this.compact,
     required this.scale,
     required this.lift,
-    required this.mode,
   });
 
   @override
@@ -462,80 +338,6 @@ class _LoginHero extends StatelessWidget {
         ),
         SizedBox(height: compact ? AppSpacing.sm : AppSpacing.md)
       ],
-    );
-  }
-}
-
-class _ModeTabs extends StatelessWidget {
-  final _AuthMode mode;
-  final ValueChanged<_AuthMode> onModeChanged;
-
-  const _ModeTabs({
-    required this.mode,
-    required this.onModeChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _ModeTabButton(
-            label: '账号密码登录',
-            isActive: mode == _AuthMode.password,
-            onTap: () => onModeChanged(_AuthMode.password),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.xl),
-        Expanded(
-          child: _ModeTabButton(
-            label: '手机号登录',
-            isActive: mode == _AuthMode.phone,
-            onTap: () => onModeChanged(_AuthMode.phone),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ModeTabButton extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _ModeTabButton({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: AppDurations.normal,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isActive ? AppColors.black : Colors.transparent,
-              width: 1.6,
-            ),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-            color: isActive ? AppColors.black : AppColors.gray400,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -618,111 +420,6 @@ class _PasswordPanel extends StatelessWidget {
           onRefresh: onRefreshCaptcha,
           isLoading: isLoadingCaptcha,
           compact: compact,
-        ),
-      ],
-    );
-  }
-}
-
-class _PhonePanel extends StatelessWidget {
-  final TextEditingController phoneController;
-  final TextEditingController codeController;
-  final FocusNode phoneFocus;
-  final FocusNode codeFocus;
-  final int countdown;
-  final bool isPhoneValid;
-  final bool isSendingCode;
-  final VoidCallback onSendCode;
-  final bool compact;
-
-  const _PhonePanel({
-    super.key,
-    required this.phoneController,
-    required this.codeController,
-    required this.phoneFocus,
-    required this.codeFocus,
-    required this.countdown,
-    required this.isPhoneValid,
-    required this.isSendingCode,
-    required this.onSendCode,
-    required this.compact,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _FieldShell(
-          label: '手机号',
-          child: VccInput(
-            hint: '请输入手机号',
-            controller: phoneController,
-            focusNode: phoneFocus,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(11),
-            ],
-            prefixIcon: const Padding(
-              padding: EdgeInsets.only(left: 16, right: 8),
-              child: Center(
-                widthFactor: 1,
-                child: Text(
-                  '+86',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.gray500,
-                  ),
-                ),
-              ),
-            ),
-            onSubmitted: (_) => codeFocus.requestFocus(),
-          ),
-        ),
-        SizedBox(height: compact ? AppSpacing.md : AppSpacing.base),
-        _FieldShell(
-          label: '验证码',
-          child: VccInput(
-            hint: '请输入短信验证码',
-            controller: codeController,
-            focusNode: codeFocus,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(6),
-            ],
-            suffixIcon: TextButton(
-              onPressed: isPhoneValid && countdown == 0 && !isSendingCode
-                  ? onSendCode
-                  : null,
-              style: TextButton.styleFrom(
-                minimumSize: Size.zero,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                isSendingCode
-                    ? '发送中...'
-                    : countdown > 0
-                        ? '${countdown}s'
-                        : '获取验证码',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: isPhoneValid && countdown == 0 && !isSendingCode
-                      ? AppColors.black
-                      : AppColors.gray400,
-                ),
-              ),
-            ),
-          ),
         ),
       ],
     );
