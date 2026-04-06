@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../profile/providers/profile_provider.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/expert_onboarding_icons.dart';
 import '../widgets/onboarding_chrome.dart';
@@ -34,6 +35,7 @@ class _ExpertLevelPageState extends ConsumerState<ExpertLevelPage> {
 
   Future<void> _finish(BuildContext context, WidgetRef ref) async {
     await ref.read(onboardingProvider.notifier).complete();
+    ref.invalidate(profileProvider('me'));
     if (context.mounted) {
       context.go(RoutePaths.home);
     }

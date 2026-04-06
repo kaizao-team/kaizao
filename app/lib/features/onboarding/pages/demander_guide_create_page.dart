@@ -6,6 +6,7 @@ import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_toast.dart';
+import '../../profile/providers/profile_provider.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
 
@@ -51,6 +52,7 @@ class DemanderGuideCreatePage extends ConsumerWidget {
       secondaryActionText: '先逛逛',
       onSecondaryAction: () async {
         await ref.read(onboardingProvider.notifier).complete();
+        ref.invalidate(profileProvider('me'));
         if (context.mounted) context.go(RoutePaths.home);
       },
       child: const Column(

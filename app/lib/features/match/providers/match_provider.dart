@@ -56,10 +56,22 @@ class BidListNotifier extends StateNotifier<BidListState> {
     }
   }
 
-  Future<void> acceptBid(String bidId) async {
+  Future<bool> acceptBid(String bidId) async {
     try {
       await _repository.acceptBid(bidId);
-    } catch (_) {}
+      if (!mounted) return false;
+      state = state.copyWith(
+        bids: state.bids
+            .map((b) =>
+                b.id == bidId ? b.copyWith(status: BidStatus.accepted) : b)
+            .toList(),
+      );
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(errorMessage: () => e.toString());
+      return false;
+    }
   }
 
   Future<bool> withdrawBid(String bidId) async {

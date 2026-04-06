@@ -139,6 +139,7 @@ Widget? _buildFooter({
         onConfirm: () =>
             ref.read(postStateProvider.notifier).confirmTeamMatch(),
         onReMatch: () => ref.read(postStateProvider.notifier).reMatch(),
+        onSkip: () => ref.read(postStateProvider.notifier).goToStep(5),
       );
     case 5:
       return VccFlowFooterBar(
@@ -1109,8 +1110,8 @@ class _MatchTeamStage extends StatelessWidget {
     if (team == null) {
       return const _InlineStepIntro(
         eyebrow: '匹配团队',
-        title: '暂无推荐',
-        body: '未能匹配到合适的团队，请稍后重试。',
+        title: '暂无推荐团队',
+        body: '当前没有匹配到合适的团队，你可以跳过此步骤直接发布项目，或稍后重试匹配。',
       );
     }
 
@@ -1260,6 +1261,7 @@ class _MatchTeamFooter extends StatelessWidget {
   final bool isConfirming;
   final VoidCallback onConfirm;
   final VoidCallback onReMatch;
+  final VoidCallback? onSkip;
 
   const _MatchTeamFooter({
     required this.team,
@@ -1267,6 +1269,7 @@ class _MatchTeamFooter extends StatelessWidget {
     required this.isConfirming,
     required this.onConfirm,
     required this.onReMatch,
+    this.onSkip,
   });
 
   @override
@@ -1278,25 +1281,46 @@ class _MatchTeamFooter extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          VccButton(
-            text: '采用当前推荐',
-            onPressed: team != null && !isConfirming ? onConfirm : null,
-            isLoading: isConfirming,
-          ),
-          const SizedBox(height: 10),
-          GestureDetector(
-            onTap: isConfirming ? null : onReMatch,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                '换一个团队',
-                style: AppTextStyles.body2.copyWith(
-                  color: AppColors.gray500,
-                  fontWeight: FontWeight.w500,
+          if (team != null) ...[
+            VccButton(
+              text: '采用当前推荐',
+              onPressed: !isConfirming ? onConfirm : null,
+              isLoading: isConfirming,
+            ),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: isConfirming ? null : onReMatch,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  '换一个团队',
+                  style: AppTextStyles.body2.copyWith(
+                    color: AppColors.gray500,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
-          ),
+          ] else ...[
+            VccButton(
+              text: '跳过，直接发布项目',
+              onPressed: onSkip,
+            ),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: onReMatch,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  '重新匹配',
+                  style: AppTextStyles.body2.copyWith(
+                    color: AppColors.gray500,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

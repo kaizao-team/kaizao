@@ -13,6 +13,7 @@ import '../../../shared/widgets/vcc_input.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_form_sections.dart';
+import '../../onboarding/providers/onboarding_provider.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -175,18 +176,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
 
     if (_showPhoneBind) {
       final phoneText = _phoneController.text.trim();
-      final codeText = _codeController.text.trim();
-      if (phoneText.isNotEmpty || codeText.isNotEmpty) {
+      if (phoneText.isNotEmpty) {
         if (!_phoneValid) {
           _showToast('请输入正确的手机号', type: VccToastType.warning);
           return;
         }
-        if (codeText.length != 6) {
-          _showToast('请输入 6 位短信验证码', type: VccToastType.warning);
-          return;
-        }
         phone = phoneText;
-        smsCode = codeText;
       }
     }
 
@@ -206,6 +201,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       return;
     }
 
+    if (phone != null && phone.isNotEmpty) {
+      await ref
+          .read(onboardingProvider.notifier)
+          .saveDraft({'contact_phone': phone});
+    }
+
+    if (!mounted) return;
     final authState = ref.read(authStateProvider);
     if (authState.userRole == 0) {
       context.go(RoutePaths.roleSelect);
@@ -573,16 +575,33 @@ class _PhoneBindSection extends StatelessWidget {
                     ),
                   ),
                 ),
-                AuthPhonePanel(
-                  phoneController: phoneController,
-                  codeController: codeController,
-                  phoneFocus: phoneFocus,
-                  codeFocus: codeFocus,
-                  countdown: countdown,
-                  isPhoneValid: isPhoneValid,
-                  isSendingCode: isSendingCode,
-                  onSendCode: onSendCode,
-                  compact: compact,
+                AuthFieldShell(
+                  label: '手机号',
+                  child: VccInput(
+                    hint: '请输入手机号',
+                    controller: phoneController,
+                    focusNode: phoneFocus,
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.done,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ],
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 16, right: 8),
+                      child: Center(
+                        widthFactor: 1,
+                        child: Text(
+                          '+86',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.gray500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
