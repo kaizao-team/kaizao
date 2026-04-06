@@ -95,11 +95,13 @@ class SkillTag {
   final String id;
   final String name;
   final String category;
+  final bool isPrimary;
 
   const SkillTag({
     required this.id,
     required this.name,
     this.category = '',
+    this.isPrimary = false,
   });
 
   factory SkillTag.fromJson(Map<String, dynamic> json) {
@@ -107,6 +109,7 @@ class SkillTag {
       id: json['id']?.toString() ?? json['skill_id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       category: json['category']?.toString() ?? '',
+      isPrimary: json['is_primary'] == true,
     );
   }
 
