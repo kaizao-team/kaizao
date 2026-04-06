@@ -263,7 +263,7 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		projectUpdates := map[string]interface{}{
 			"provider_id":  providerID,
 			"bid_id":       bid.ID,
-			"status":       3,
+			"status":       4,
 			"agreed_price": bid.Price,
 			"matched_at":   &now,
 		}

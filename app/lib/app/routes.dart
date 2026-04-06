@@ -167,6 +167,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (location == RoutePaths.splash) {
         if (authState.isLoggedIn) {
+          if (authState.userRole == 0) return RoutePaths.roleSelect;
           return RoutePaths.home;
         }
         return null;
@@ -177,7 +178,14 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isLoggedIn &&
           (location == RoutePaths.login || location == RoutePaths.register)) {
+        if (authState.userRole == 0) return RoutePaths.roleSelect;
         return RoutePaths.home;
+      }
+
+      // Logged in but role not set — force role selection
+      // (allow role-select and onboarding pages through)
+      if (isLoggedIn && authState.userRole == 0 && !isOnAuthPage) {
+        return RoutePaths.roleSelect;
       }
 
       if (!isLoggedIn && !isOnAuthPage) {
