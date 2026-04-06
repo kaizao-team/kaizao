@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../shared/widgets/vcc_filter_chip_bar.dart';
 import '../models/market_filter.dart';
 
 class MarketFilterBar extends StatelessWidget {
@@ -24,48 +25,21 @@ class MarketFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final categoryOptions = MarketCategory.all
+        .map(
+          (cat) => VccFilterChipOption<String>(
+            value: cat.key,
+            label: cat.name,
+          ),
+        )
+        .toList(growable: false);
+
     return Column(
       children: [
-        SizedBox(
-          height: 40,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: MarketCategory.all.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final cat = MarketCategory.all[index];
-              final isSelected = cat.key == selectedCategory;
-              return GestureDetector(
-                onTap: () => onCategoryChanged(cat.key),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.black : AppColors.gray50,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected ? AppColors.black : AppColors.gray200,
-                      width: 1,
-                    ),
-                  ),
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 200),
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
-                      color:
-                          isSelected ? AppColors.white : AppColors.gray600,
-                    ),
-                    child: Text(cat.name),
-                  ),
-                ),
-              );
-            },
-          ),
+        VccFilterChipBar<String>(
+          options: categoryOptions,
+          selectedValue: selectedCategory,
+          onSelected: onCategoryChanged,
         ),
         const SizedBox(height: 8),
         Padding(
@@ -145,8 +119,11 @@ class MarketFilterBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down,
-                size: 16, color: AppColors.gray600),
+            const Icon(
+              Icons.keyboard_arrow_down,
+              size: 16,
+              color: AppColors.gray600,
+            ),
           ],
         ),
       ),

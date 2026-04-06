@@ -11,7 +11,7 @@ class NotificationSettingsPage extends StatefulWidget {
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   bool _projectUpdates = true;
-  bool _chatMessages = true;
+  bool _matchUpdates = true;
   bool _systemNotices = true;
   bool _marketingPush = false;
   bool _sound = true;
@@ -29,20 +29,44 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       body: ListView(
         children: [
           _buildGroupTitle('消息推送'),
-          _buildSwitch('项目动态', '里程碑、验收、状态变更等', _projectUpdates,
-              (v) => setState(() => _projectUpdates = v)),
-          _buildSwitch('聊天消息', '新消息提醒', _chatMessages,
-              (v) => setState(() => _chatMessages = v)),
-          _buildSwitch('系统通知', '平台公告、账号安全等', _systemNotices,
-              (v) => setState(() => _systemNotices = v)),
-          _buildSwitch('营销推送', '优惠活动、推荐内容', _marketingPush,
-              (v) => setState(() => _marketingPush = v)),
+          _buildSwitch(
+            '项目动态',
+            '里程碑、验收、状态变更等',
+            _projectUpdates,
+            (v) => setState(() => _projectUpdates = v),
+          ),
+          _buildSwitch(
+            '撮合进展',
+            '投标、选定与协作提醒',
+            _matchUpdates,
+            (v) => setState(() => _matchUpdates = v),
+          ),
+          _buildSwitch(
+            '系统通知',
+            '平台公告、账号安全等',
+            _systemNotices,
+            (v) => setState(() => _systemNotices = v),
+          ),
+          _buildSwitch(
+            '营销推送',
+            '优惠活动、推荐内容',
+            _marketingPush,
+            (v) => setState(() => _marketingPush = v),
+          ),
           const SizedBox(height: 24),
           _buildGroupTitle('提醒方式'),
-          _buildSwitch('声音', null, _sound,
-              (v) => setState(() => _sound = v)),
-          _buildSwitch('震动', null, _vibration,
-              (v) => setState(() => _vibration = v)),
+          _buildSwitch(
+            '声音',
+            null,
+            _sound,
+            (v) => setState(() => _sound = v),
+          ),
+          _buildSwitch(
+            '震动',
+            null,
+            _vibration,
+            (v) => setState(() => _vibration = v),
+          ),
           const SizedBox(height: 40),
         ],
       ),

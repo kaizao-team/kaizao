@@ -5,6 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_loading.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../project/providers/project_detail_provider.dart';
+import '../models/market_filter.dart';
 import '../providers/market_provider.dart';
 import '../widgets/market_filter_bar.dart';
 import '../widgets/market_filter_sheet.dart';
@@ -195,58 +196,109 @@ class _MarketPageState extends ConsumerState<MarketPage>
           child: state.isLoading
               ? _buildSkeleton()
               : state.errorMessage != null && state.projects.isEmpty
-              ? _buildError(state.errorMessage!)
-              : state.projects.isEmpty
-              ? _buildEmpty()
-              : RefreshIndicator(
-                  color: AppColors.black,
-                  onRefresh: () => ref.read(_marketProvider.notifier).refresh(),
-                  child: ListView.separated(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 4,
-                    ),
-                    itemCount:
-                        state.projects.length +
-                        (state.hasMore || state.isLoadingMore ? 1 : 0),
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      if (index == state.projects.length) {
-                        return _buildFooter(state);
-                      }
-                      final project = state.projects[index];
-                      return MarketProjectCard(
-                        project: project,
-                        isExpert: isExpert,
-                        aiTip:
-                            isExpert &&
-                                project.matchScore != null &&
-                                project.matchScore! >= 80
-                            ? '技能高度匹配，推荐组队投标'
-                            : null,
-                        onTap: () async {
-                          await context.push('/projects/${project.routingId}');
-                          if (!mounted) return;
-                          final detail = ref.read(
-                            projectDetailProvider(project.routingId),
-                          );
-                          if (detail.data != null) {
-                            ref
-                                .read(_marketProvider.notifier)
-                                .updateProjectViewCount(
-                                  project.routingId,
-                                  detail.viewCount,
-                                );
-                          }
-                        },
-                      );
-                    },
-                  ),
-                ),
+                  ? _buildError(state.errorMessage!)
+                  : state.projects.isEmpty
+                      ? _buildEmpty()
+                      : RefreshIndicator(
+                          color: AppColors.black,
+                          onRefresh: () =>
+                              ref.read(_marketProvider.notifier).refresh(),
+                          child: ListView(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.only(top: 4, bottom: 20),
+                            children: _buildProjectFeed(
+                              context: context,
+                              state: state,
+                              isExpert: isExpert,
+                            ),
+                          ),
+                        ),
         ),
       ],
     );
+  }
+
+  List<Widget> _buildProjectFeed({
+    required BuildContext context,
+    required MarketState state,
+    required bool isExpert,
+  }) {
+    final projects = state.projects;
+    final feature = projects.first;
+    final shelf = projects.skip(1).take(4).toList(growable: false);
+    final editorial = projects.skip(1 + shelf.length).toList(growable: false);
+
+    return [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: MarketProjectCard(
+          project: feature,
+          isExpert: isExpert,
+          variant: MarketProjectCardVariant.feature,
+          aiTip: _projectAiTip(feature, isExpert),
+          onTap: () => _openProject(context, feature),
+        ),
+      ),
+      if (shelf.isNotEmpty) ...[
+        const SizedBox(height: 24),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: _MarketSectionHeader(
+            eyebrow: '广场正在流动',
+            title: '继续逛逛',
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 286,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: shelf.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final project = shelf[index];
+              return SizedBox(
+                width: 282,
+                child: MarketProjectCard(
+                  project: project,
+                  isExpert: isExpert,
+                  variant: MarketProjectCardVariant.shelf,
+                  aiTip: _projectAiTip(project, isExpert),
+                  onTap: () => _openProject(context, project),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+      if (editorial.isNotEmpty) ...[
+        const SizedBox(height: 24),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: _MarketSectionHeader(
+            eyebrow: '更多需求',
+            title: '继续浏览',
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...List.generate(editorial.length, (index) {
+          final project = editorial[index];
+          return Padding(
+            padding: EdgeInsets.fromLTRB(20, index == 0 ? 0 : 12, 20, 0),
+            child: MarketProjectCard(
+              project: project,
+              isExpert: isExpert,
+              variant: MarketProjectCardVariant.editorial,
+              metaLeading: index.isEven,
+              aiTip: _projectAiTip(project, isExpert),
+              onTap: () => _openProject(context, project),
+            ),
+          );
+        }),
+      ],
+      _buildFooter(state),
+    ];
   }
 
   Widget _buildExpertList() {
@@ -283,11 +335,43 @@ class _MarketPageState extends ConsumerState<MarketPage>
   }
 
   Widget _buildSkeleton() {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      itemCount: 4,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, __) => const VccCardSkeleton(),
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: const [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: SizedBox(
+            height: 280,
+            child: _MarketFeatureSkeletonCard(),
+          ),
+        ),
+        SizedBox(height: 24),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: _MarketSectionHeaderSkeleton(),
+        ),
+        SizedBox(height: 12),
+        SizedBox(
+          height: 232,
+          child: Row(
+            children: [
+              SizedBox(width: 20),
+              Expanded(child: _MarketShelfSkeletonCard()),
+              SizedBox(width: 12),
+              Expanded(child: _MarketShelfSkeletonCard()),
+              SizedBox(width: 20),
+            ],
+          ),
+        ),
+        SizedBox(height: 24),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: SizedBox(
+            height: 200,
+            child: _MarketEditorialSkeletonCard(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -405,6 +489,30 @@ class _MarketPageState extends ConsumerState<MarketPage>
     return const SizedBox(height: 20);
   }
 
+  Future<void> _openProject(
+    BuildContext context,
+    MarketProjectItem project,
+  ) async {
+    await context.push('/projects/${project.routingId}');
+    if (!mounted) return;
+    final detail = ref.read(
+      projectDetailProvider(project.routingId),
+    );
+    if (detail.data != null) {
+      ref.read(_marketProvider.notifier).updateProjectViewCount(
+            project.routingId,
+            detail.viewCount,
+          );
+    }
+  }
+
+  String? _projectAiTip(MarketProjectItem project, bool isExpert) {
+    if (!isExpert || project.matchScore == null || project.matchScore! < 80) {
+      return null;
+    }
+    return '技能高度匹配，推荐优先沟通';
+  }
+
   void _showFilterSheet(BuildContext context, MarketState state) {
     MarketFilterSheet.show(
       context,
@@ -416,6 +524,276 @@ class _MarketPageState extends ConsumerState<MarketPage>
         notifier.setCategory(result.category);
         notifier.setBudgetRange(result.budgetMin, result.budgetMax);
       },
+    );
+  }
+}
+
+class _MarketSectionHeader extends StatelessWidget {
+  final String eyebrow;
+  final String title;
+
+  const _MarketSectionHeader({
+    required this.eyebrow,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          eyebrow,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
+            color: AppColors.gray400,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.6,
+            color: AppColors.black,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MarketFeatureSkeletonCard extends StatelessWidget {
+  const _MarketFeatureSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+      decoration: BoxDecoration(
+        color: AppColors.gray50,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              VccSkeleton(width: 88, height: 26, borderRadius: 999),
+              Spacer(),
+              VccSkeleton(width: 54, height: 14),
+            ],
+          ),
+          SizedBox(height: 26),
+          VccSkeleton(width: 220, height: 34, borderRadius: 10),
+          SizedBox(height: 10),
+          VccSkeleton(width: 176, height: 34, borderRadius: 10),
+          SizedBox(height: 16),
+          VccSkeleton(height: 16),
+          SizedBox(height: 8),
+          VccSkeleton(width: 240, height: 16),
+          SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              VccSkeleton(width: 70, height: 28, borderRadius: 999),
+              VccSkeleton(width: 84, height: 28, borderRadius: 999),
+              VccSkeleton(width: 62, height: 28, borderRadius: 999),
+            ],
+          ),
+          Spacer(),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    VccSkeleton(width: 32, height: 12),
+                    SizedBox(height: 8),
+                    VccSkeleton(width: 120, height: 26),
+                  ],
+                ),
+              ),
+              SizedBox(width: 18),
+              VccSkeleton(width: 34, height: 14),
+              SizedBox(width: 12),
+              VccSkeleton(width: 34, height: 14),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarketShelfSkeletonCard extends StatelessWidget {
+  const _MarketShelfSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.gray50,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 170;
+          final titleWidth = compact ? 92.0 : 120.0;
+          final titleWidth2 = compact ? 76.0 : 96.0;
+          final descWidth = compact ? 110.0 : 140.0;
+          final tagWidth = compact ? 48.0 : 64.0;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  VccSkeleton(
+                    width: compact ? 58 : 72,
+                    height: 24,
+                    borderRadius: 999,
+                  ),
+                  const Spacer(),
+                  VccSkeleton(
+                    width: compact ? 40 : 52,
+                    height: 12,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              VccSkeleton(width: titleWidth, height: 28, borderRadius: 10),
+              const SizedBox(height: 8),
+              VccSkeleton(width: titleWidth2, height: 28, borderRadius: 10),
+              const SizedBox(height: 12),
+              const VccSkeleton(height: 14),
+              const SizedBox(height: 8),
+              VccSkeleton(width: descWidth, height: 14),
+              const Spacer(),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  VccSkeleton(width: tagWidth, height: 24, borderRadius: 999),
+                  VccSkeleton(
+                    width: tagWidth + (compact ? 6 : 10),
+                    height: 24,
+                    borderRadius: 999,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: VccSkeleton(
+                      width: compact ? 76 : 96,
+                      height: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  VccSkeleton(
+                    width: compact ? 44 : 58,
+                    height: 12,
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _MarketEditorialSkeletonCard extends StatelessWidget {
+  const _MarketEditorialSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.gray50,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 78,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                VccSkeleton(width: 30, height: 12),
+                SizedBox(height: 8),
+                VccSkeleton(width: 64, height: 18),
+                SizedBox(height: 18),
+                VccSkeleton(width: 28, height: 12),
+                SizedBox(height: 8),
+                VccSkeleton(width: 24, height: 12),
+              ],
+            ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    VccSkeleton(width: 74, height: 24, borderRadius: 999),
+                    Spacer(),
+                    VccSkeleton(width: 44, height: 12),
+                  ],
+                ),
+                SizedBox(height: 16),
+                VccSkeleton(width: 164, height: 28, borderRadius: 10),
+                SizedBox(height: 8),
+                VccSkeleton(width: 132, height: 28, borderRadius: 10),
+                SizedBox(height: 12),
+                VccSkeleton(height: 14),
+                SizedBox(height: 8),
+                VccSkeleton(width: 180, height: 14),
+                SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    VccSkeleton(width: 60, height: 24, borderRadius: 999),
+                    VccSkeleton(width: 72, height: 24, borderRadius: 999),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarketSectionHeaderSkeleton extends StatelessWidget {
+  const _MarketSectionHeaderSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        VccSkeleton(width: 72, height: 11),
+        SizedBox(height: 6),
+        VccSkeleton(width: 118, height: 24, borderRadius: 8),
+      ],
     );
   }
 }

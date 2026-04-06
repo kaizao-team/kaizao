@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/routes.dart';
-import '../../features/chat/providers/chat_provider.dart';
 import '../../features/notification/providers/notification_provider.dart';
 
 /// 底部导航栏 — Notion/Linear 黑白风格
@@ -16,7 +15,7 @@ class VccBottomNav extends ConsumerWidget {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith(RoutePaths.home)) return 0;
     if (location.startsWith(RoutePaths.square)) return 1;
-    if (location.startsWith('/chat')) return 2;
+    if (location.startsWith(RoutePaths.notifications)) return 2;
     if (location.startsWith('/projects')) return 3;
     if (location.startsWith(RoutePaths.profile)) return 4;
     return 0;
@@ -29,7 +28,7 @@ class VccBottomNav extends ConsumerWidget {
       case 1:
         context.go(RoutePaths.square);
       case 2:
-        context.go(RoutePaths.chatList);
+        context.go(RoutePaths.notifications);
       case 3:
         context.go(RoutePaths.projectList);
       case 4:
@@ -40,12 +39,9 @@ class VccBottomNav extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final chatState = ref.watch(conversationListProvider);
-    final chatUnread = chatState.totalUnread;
     final notifUnread = ref.watch(
       notificationProvider.select((s) => s.unreadCount),
     );
-    final unreadCount = chatUnread + notifUnread;
 
     return Scaffold(
       body: child,
@@ -73,9 +69,9 @@ class VccBottomNav extends ConsumerWidget {
               label: '广场',
             ),
             BottomNavigationBarItem(
-              icon: _buildChatIcon(Icons.chat_bubble_outline, unreadCount),
-              activeIcon: _buildChatIcon(Icons.chat_bubble, unreadCount),
-              label: '消息',
+              icon: _buildChatIcon(Icons.notifications_none_rounded, notifUnread),
+              activeIcon: _buildChatIcon(Icons.notifications_rounded, notifUnread),
+              label: '通知',
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.dashboard_outlined),
@@ -111,15 +107,16 @@ class VccBottomNav extends ConsumerWidget {
               border: Border.all(color: AppColors.white, width: 1.5),
             ),
             child: Center(
-              child: Text(
-                unreadCount > 99 ? '99+' : '$unreadCount',
-                style: const TextStyle(
+                child: Text(
+                  unreadCount > 99 ? '99+' : '$unreadCount',
+                  style: const TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.white),
+                    color: AppColors.white,
+                  ),
+                ),
               ),
             ),
-          ),
         ),
       ],
     );

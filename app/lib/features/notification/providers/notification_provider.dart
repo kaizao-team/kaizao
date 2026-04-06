@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../models/notification_models.dart';
@@ -10,6 +13,7 @@ class NotificationState {
   final String? errorMessage;
   final int currentPage;
   final bool hasMore;
+  final int unreadCount;
 
   const NotificationState({
     this.isLoading = false,
@@ -18,9 +22,8 @@ class NotificationState {
     this.errorMessage,
     this.currentPage = 1,
     this.hasMore = true,
+    this.unreadCount = 0,
   });
-
-  int get unreadCount => notifications.where((n) => !n.isRead).length;
 
   NotificationState copyWith({
     bool? isLoading,
@@ -29,6 +32,7 @@ class NotificationState {
     String? Function()? errorMessage,
     int? currentPage,
     bool? hasMore,
+    int? unreadCount,
   }) {
     return NotificationState(
       isLoading: isLoading ?? this.isLoading,
@@ -37,6 +41,7 @@ class NotificationState {
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       currentPage: currentPage ?? this.currentPage,
       hasMore: hasMore ?? this.hasMore,
+      unreadCount: unreadCount ?? this.unreadCount,
     );
   }
 }
@@ -45,7 +50,28 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   final ApiClient _client = ApiClient();
 
   NotificationNotifier() : super(const NotificationState()) {
-    loadNotifications();
+    refresh();
+  }
+
+  Future<void> refresh() async {
+    await Future.wait([
+      loadNotifications(),
+      refreshUnreadCount(),
+    ]);
+  }
+
+  Future<void> refreshUnreadCount() async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(
+        ApiEndpoints.notificationUnreadCount,
+        fromJson: (data) => data as Map<String, dynamic>,
+      );
+      if (!mounted) return;
+      final unread = (response.data?['unread_count'] as num?)?.toInt() ?? 0;
+      state = state.copyWith(unreadCount: unread);
+    } catch (_) {
+      // Keep the current badge count if the refresh fails.
+    }
   }
 
   Future<void> loadNotifications() async {
@@ -58,20 +84,23 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     try {
       final response = await _client.get<List<dynamic>>(
         ApiEndpoints.notifications,
-        queryParameters: {'page': 1, 'page_size': 10},
+        queryParameters: {'page': 1, 'page_size': 20},
         fromJson: (data) => data as List<dynamic>,
       );
       if (!mounted) return;
       final items = (response.data ?? [])
           .whereType<Map<String, dynamic>>()
-          .map((e) => NotificationItem.fromJson(e))
-          .toList();
+          .map(NotificationItem.fromJson)
+          .toList(growable: false);
       final meta = response.meta;
+      final fallbackUnread = items.where((item) => !item.isRead).length;
       state = state.copyWith(
         isLoading: false,
         notifications: items,
         currentPage: 1,
         hasMore: meta != null && meta.page < meta.totalPages,
+        unreadCount:
+            state.unreadCount > 0 ? state.unreadCount : fallbackUnread,
       );
     } catch (e) {
       if (!mounted) return;
@@ -83,20 +112,20 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   }
 
   Future<void> loadMore() async {
-    if (state.isLoadingMore || !state.hasMore) return;
+    if (state.isLoading || state.isLoadingMore || !state.hasMore) return;
     state = state.copyWith(isLoadingMore: true);
     try {
       final nextPage = state.currentPage + 1;
       final response = await _client.get<List<dynamic>>(
         ApiEndpoints.notifications,
-        queryParameters: {'page': nextPage, 'page_size': 10},
+        queryParameters: {'page': nextPage, 'page_size': 20},
         fromJson: (data) => data as List<dynamic>,
       );
       if (!mounted) return;
       final items = (response.data ?? [])
           .whereType<Map<String, dynamic>>()
-          .map((e) => NotificationItem.fromJson(e))
-          .toList();
+          .map(NotificationItem.fromJson)
+          .toList(growable: false);
       final meta = response.meta;
       state = state.copyWith(
         isLoadingMore: false,
@@ -104,26 +133,61 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         currentPage: nextPage,
         hasMore: meta != null && meta.page < meta.totalPages,
       );
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       state = state.copyWith(isLoadingMore: false);
     }
   }
 
-  void markAsRead(String id) {
-    _client.post(ApiEndpoints.notificationRead(id));
-    final updated = state.notifications.map((n) {
-      if (n.id == id) return n.copyWith(isRead: true);
-      return n;
-    }).toList();
-    state = state.copyWith(notifications: updated);
+  Future<void> markAsRead(String id) async {
+    final index = state.notifications.indexWhere((item) => item.id == id);
+    if (index < 0) return;
+
+    final current = state.notifications[index];
+    if (current.isRead) return;
+
+    final updated = [...state.notifications];
+    updated[index] = current.copyWith(isRead: true);
+    state = state.copyWith(
+      notifications: updated,
+      unreadCount: math.max(0, state.unreadCount - 1),
+    );
+
+    try {
+      await _client.put<void>(ApiEndpoints.notificationRead(id));
+    } catch (_) {
+      if (!mounted) return;
+      updated[index] = current;
+      state = state.copyWith(
+        notifications: updated,
+        unreadCount: state.unreadCount + 1,
+      );
+    }
   }
 
-  void markAllAsRead() {
-    _client.post(ApiEndpoints.notificationReadAll);
-    final updated =
-        state.notifications.map((n) => n.copyWith(isRead: true)).toList();
-    state = state.copyWith(notifications: updated);
+  Future<void> markAllAsRead() async {
+    final hadUnread = state.notifications.any((item) => !item.isRead);
+    if (!hadUnread && state.unreadCount == 0) return;
+
+    final previous = state.notifications;
+    final updated = previous
+        .map((item) => item.isRead ? item : item.copyWith(isRead: true))
+        .toList(growable: false);
+    final previousUnreadCount = state.unreadCount;
+    state = state.copyWith(
+      notifications: updated,
+      unreadCount: 0,
+    );
+
+    try {
+      await _client.put<void>(ApiEndpoints.notificationReadAll);
+    } catch (_) {
+      if (!mounted) return;
+      state = state.copyWith(
+        notifications: previous,
+        unreadCount: previousUnreadCount,
+      );
+    }
   }
 }
 

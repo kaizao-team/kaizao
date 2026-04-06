@@ -152,6 +152,8 @@ class ApiEndpoints {
   // 通知模块 /api/v1/notifications
   // ============================================================
   static const String notifications = '/api/v1/notifications';
+  static const String notificationUnreadCount =
+      '/api/v1/notifications/unread-count';
   static String notificationRead(String id) => '/api/v1/notifications/$id/read';
   static const String notificationReadAll = '/api/v1/notifications/read-all';
 

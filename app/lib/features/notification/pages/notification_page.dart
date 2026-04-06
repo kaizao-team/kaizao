@@ -1,9 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../app/theme/app_colors.dart';
+import '../../../shared/widgets/vcc_filter_chip_bar.dart';
+import '../../../shared/widgets/vcc_toast.dart';
 import '../models/notification_models.dart';
 import '../providers/notification_provider.dart';
+
+enum _NotificationFilter {
+  all('全部'),
+  unread('未读'),
+  newBid('新投标', NotificationKind.newBid),
+  matchSuccess('合作确认', NotificationKind.matchSuccess),
+  payment('支付提醒', NotificationKind.payReminder),
+  delivery('验收提醒', NotificationKind.milestoneDelivered),
+  system('系统提醒', NotificationKind.system);
+
+  final String label;
+  final NotificationKind? kind;
+
+  const _NotificationFilter(this.label, [this.kind]);
+}
+
+class _NotificationGroup {
+  final NotificationKind kind;
+  final List<NotificationItem> items;
+
+  const _NotificationGroup({
+    required this.kind,
+    required this.items,
+  });
+}
 
 class NotificationPage extends ConsumerStatefulWidget {
   const NotificationPage({super.key});
@@ -14,6 +42,7 @@ class NotificationPage extends ConsumerStatefulWidget {
 
 class _NotificationPageState extends ConsumerState<NotificationPage> {
   final ScrollController _scrollController = ScrollController();
+  _NotificationFilter _filter = _NotificationFilter.all;
 
   @override
   void initState() {
@@ -30,95 +59,665 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 100) {
+        _scrollController.position.maxScrollExtent - 180) {
       ref.read(notificationProvider.notifier).loadMore();
     }
   }
 
-  void _onNotificationTap(NotificationItem item) {
-    ref.read(notificationProvider.notifier).markAsRead(item.id);
+  List<NotificationItem> _applyFilter(List<NotificationItem> items) {
+    return items.where((item) {
+      switch (_filter) {
+        case _NotificationFilter.all:
+          return true;
+        case _NotificationFilter.unread:
+          return !item.isRead;
+        case _NotificationFilter.payment:
+        case _NotificationFilter.delivery:
+        case _NotificationFilter.newBid:
+        case _NotificationFilter.matchSuccess:
+        case _NotificationFilter.system:
+          return item.kind == _filter.kind;
+      }
+    }).toList(growable: false);
+  }
+
+  List<_NotificationGroup> _buildGroups(List<NotificationItem> items) {
+    final buckets = <NotificationKind, List<NotificationItem>>{};
+    for (final item in items) {
+      buckets.putIfAbsent(item.kind, () => <NotificationItem>[]).add(item);
+    }
+
+    final groups = buckets.entries
+        .map(
+          (entry) => _NotificationGroup(
+            kind: entry.key,
+            items: entry.value,
+          ),
+        )
+        .toList(growable: false);
+
+    groups.sort((a, b) => a.kind.displayOrder.compareTo(b.kind.displayOrder));
+    return groups;
+  }
+
+  Future<void> _onNotificationTap(NotificationItem item) async {
+    await ref.read(notificationProvider.notifier).markAsRead(item.id);
+    if (!mounted) return;
 
     if (!item.hasTarget) return;
 
-    switch (item.targetType) {
-      case 'project':
-        context.push('/projects/${item.targetId}');
-      case 'conversation':
-        context.push('/chat/${item.targetId}');
+    if (item.canOpenTarget && item.targetType == 'project') {
+      context.push('/projects/${item.targetId}');
+      return;
+    }
+
+    final message = item.unsupportedTargetMessage;
+    if (message != null) {
+      VccToast.show(
+        context,
+        message: message,
+        type: VccToastType.warning,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(notificationProvider);
+    final filtered = _applyFilter(state.notifications);
+    final groups = _buildGroups(filtered);
+    final showGroupHeaders = _filter == _NotificationFilter.all ||
+        _filter == _NotificationFilter.unread;
 
     return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
-        title: const Text(
-          '通知',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-        ),
-        actions: [
-          if (state.unreadCount > 0)
-            TextButton(
-              onPressed: () =>
-                  ref.read(notificationProvider.notifier).markAllAsRead(),
-              child: const Text(
-                '全部已读',
-                style: TextStyle(fontSize: 14, color: AppColors.gray600),
-              ),
+      backgroundColor: const Color(0xFFF9F9F9),
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: AppColors.black,
+          onRefresh: () => ref.read(notificationProvider.notifier).refresh(),
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
             ),
-        ],
-      ),
-      body: state.isLoading
-          ? const Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.black),
-                ),
-              ),
-            )
-          : state.notifications.isEmpty
-              ? _buildEmpty()
-              : RefreshIndicator(
-                  color: AppColors.black,
-                  onRefresh: () => ref
-                      .read(notificationProvider.notifier)
-                      .loadNotifications(),
-                  child: ListView.separated(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: state.notifications.length +
-                        (state.hasMore || state.isLoadingMore ? 1 : 0),
-                    separatorBuilder: (_, __) => const Divider(
-                      height: 1,
-                      indent: 68,
-                      color: AppColors.gray100,
-                    ),
-                    itemBuilder: (context, index) {
-                      if (index == state.notifications.length) {
-                        return _buildLoadMoreFooter(state);
-                      }
-                      final item = state.notifications[index];
-                      return _NotificationTile(
-                        item: item,
-                        onTap: () => _onNotificationTap(item),
-                      );
-                    },
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  child: _NotificationHero(
+                    unreadCount: state.unreadCount,
+                    filter: _filter,
+                    onFilterChanged: (next) => setState(() => _filter = next),
+                    onMarkAllRead: state.unreadCount > 0
+                        ? () => ref
+                            .read(notificationProvider.notifier)
+                            .markAllAsRead()
+                        : null,
                   ),
                 ),
+              ),
+              if (state.isLoading && state.notifications.isEmpty)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _NotificationLoadingState(),
+                )
+              else if (state.errorMessage != null &&
+                  state.notifications.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _NotificationErrorState(
+                    message: state.errorMessage!,
+                    onRetry: () =>
+                        ref.read(notificationProvider.notifier).refresh(),
+                  ),
+                )
+              else if (filtered.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _NotificationEmptyState(
+                    isFiltered: _filter != _NotificationFilter.all,
+                    onResetFilter: _filter == _NotificationFilter.all
+                        ? null
+                        : () =>
+                            setState(() => _filter = _NotificationFilter.all),
+                  ),
+                )
+              else ...[
+                for (var index = 0; index < groups.length; index++) ...[
+                  if (showGroupHeaders || groups.length > 1)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          index == 0 ? 8 : 22,
+                          20,
+                          10,
+                        ),
+                        child: _SectionHeader(
+                          label: groups[index].kind.label,
+                          count: groups[index].items.length,
+                        ),
+                      ),
+                    ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    sliver: SliverList.separated(
+                      itemCount: groups[index].items.length,
+                      itemBuilder: (context, itemIndex) {
+                        final item = groups[index].items[itemIndex];
+                        return _NotificationRow(
+                          item: item,
+                          onTap: () => _onNotificationTap(item),
+                        );
+                      },
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    ),
+                  ),
+                ],
+                SliverToBoxAdapter(
+                  child: _LoadMoreFooter(state: state),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationHero extends StatelessWidget {
+  final int unreadCount;
+  final _NotificationFilter filter;
+  final ValueChanged<_NotificationFilter> onFilterChanged;
+  final VoidCallback? onMarkAllRead;
+
+  const _NotificationHero({
+    required this.unreadCount,
+    required this.filter,
+    required this.onFilterChanged,
+    required this.onMarkAllRead,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final filterOptions = _NotificationFilter.values
+        .map(
+          (item) => VccFilterChipOption<_NotificationFilter>(
+            value: item,
+            label: item.label,
+          ),
+        )
+        .toList(growable: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            const Expanded(
+              child: Text(
+                '通知',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.black,
+                  letterSpacing: -0.8,
+                  height: 1,
+                ),
+              ),
+            ),
+            if (unreadCount > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.black,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '$unreadCount 条未读',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ),
+            if (onMarkAllRead != null) ...[
+              const SizedBox(width: 10),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 1),
+                child: TextButton(
+                  onPressed: onMarkAllRead,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.black,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    '全部已读',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 20),
+        VccFilterChipBar<_NotificationFilter>(
+          options: filterOptions,
+          selectedValue: filter,
+          onSelected: onFilterChanged,
+          padding: EdgeInsets.zero,
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  final int? count;
+
+  const _SectionHeader({
+    required this.label,
+    this.count,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final suffix = count != null ? ' · $count' : '';
+    return Text(
+      '$label$suffix',
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: AppColors.gray400,
+        letterSpacing: 1.8,
+      ),
+    );
+  }
+}
+
+class _NotificationRow extends StatelessWidget {
+  final NotificationItem item;
+  final VoidCallback onTap;
+
+  const _NotificationRow({
+    required this.item,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final unsupported = item.unsupportedTargetMessage != null;
+
+    return Material(
+      color: item.isRead ? Colors.transparent : AppColors.white,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            color: item.isRead ? AppColors.gray50 : AppColors.white,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _NotificationGlyph(item: item),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            style: TextStyle(
+                              fontSize: 15,
+                              height: 1.35,
+                              fontWeight: item.isRead
+                                  ? FontWeight.w500
+                                  : FontWeight.w700,
+                              color: AppColors.black,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          item.timeAgo,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.gray400,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (item.body.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        item.body,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.6,
+                          color: AppColors.gray600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (!item.isRead)
+                          const _MetaPill(
+                            label: '未读',
+                            foreground: AppColors.black,
+                            background: AppColors.gray100,
+                          ),
+                        if (item.canOpenTarget && item.actionLabel != null)
+                          _MetaPill(
+                            label: item.actionLabel!,
+                            foreground: AppColors.black,
+                            background: AppColors.gray100,
+                            icon: Icons.arrow_outward_rounded,
+                          ),
+                        if (unsupported)
+                          const _MetaPill(
+                            label: '仅提醒',
+                            foreground: AppColors.gray500,
+                            background: AppColors.gray100,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationGlyph extends StatelessWidget {
+  final NotificationItem item;
+
+  const _NotificationGlyph({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: _background,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(
+        _icon,
+        size: 20,
+        color: _foreground,
+      ),
     );
   }
 
-  Widget _buildLoadMoreFooter(NotificationState state) {
+  IconData get _icon {
+    switch (item.kind) {
+      case NotificationKind.newBid:
+        return Icons.gavel_rounded;
+      case NotificationKind.matchSuccess:
+        return Icons.handshake_outlined;
+      case NotificationKind.payReminder:
+        return Icons.receipt_long_outlined;
+      case NotificationKind.milestoneDelivered:
+        return Icons.flag_outlined;
+      case NotificationKind.system:
+        return Icons.notifications_none_rounded;
+    }
+  }
+
+  Color get _background {
+    switch (item.kind) {
+      case NotificationKind.newBid:
+      case NotificationKind.matchSuccess:
+        return AppColors.accentLight;
+      case NotificationKind.payReminder:
+        return AppColors.warningBg;
+      case NotificationKind.milestoneDelivered:
+        return AppColors.infoBg;
+      case NotificationKind.system:
+        return AppColors.gray100;
+    }
+  }
+
+  Color get _foreground {
+    switch (item.kind) {
+      case NotificationKind.newBid:
+      case NotificationKind.matchSuccess:
+        return AppColors.accentDark;
+      case NotificationKind.payReminder:
+        return const Color(0xFFB45309);
+      case NotificationKind.milestoneDelivered:
+        return const Color(0xFF1D4ED8);
+      case NotificationKind.system:
+        return AppColors.gray600;
+    }
+  }
+}
+
+class _MetaPill extends StatelessWidget {
+  final String label;
+  final Color foreground;
+  final Color background;
+  final IconData? icon;
+
+  const _MetaPill({
+    required this.label,
+    required this.foreground,
+    required this.background,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: foreground),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: foreground,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationLoadingState extends StatelessWidget {
+  const _NotificationLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: SizedBox(
+        width: 26,
+        height: 26,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.black),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationErrorState extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _NotificationErrorState({
+    required this.message,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '通知加载失败',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.7,
+              color: AppColors.gray500,
+            ),
+          ),
+          const SizedBox(height: 22),
+          FilledButton(
+            onPressed: onRetry,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.black,
+              foregroundColor: AppColors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            ),
+            child: const Text('重新加载'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationEmptyState extends StatelessWidget {
+  final bool isFiltered;
+  final VoidCallback? onResetFilter;
+
+  const _NotificationEmptyState({
+    required this.isFiltered,
+    required this.onResetFilter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final title = isFiltered ? '这个筛选下还没有内容' : '暂时没有新的提醒';
+    final subtitle =
+        isFiltered ? '换一个筛选看看，或者稍后再回来。' : '新投标、合作确认、支付和验收进展，会逐步汇总到这里。';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.notifications_none_rounded,
+              color: AppColors.gray400,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.7,
+              color: AppColors.gray500,
+            ),
+          ),
+          if (onResetFilter != null) ...[
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: onResetFilter,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.black,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+              ),
+              child: const Text(
+                '查看全部通知',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadMoreFooter extends StatelessWidget {
+  final NotificationState state;
+
+  const _LoadMoreFooter({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
     if (state.isLoadingMore) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 20),
+        padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(
           child: SizedBox(
             width: 18,
@@ -131,189 +730,22 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
         ),
       );
     }
-    if (!state.hasMore) {
+
+    if (!state.hasMore && state.notifications.isNotEmpty) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 20),
+        padding: EdgeInsets.fromLTRB(20, 18, 20, 36),
         child: Center(
           child: Text(
-            '已加载全部通知',
-            style: TextStyle(fontSize: 13, color: AppColors.gray400),
+            '已经到底了',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.gray400,
+            ),
           ),
         ),
       );
     }
-    return const SizedBox(height: 20);
-  }
 
-  Widget _buildEmpty() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppColors.gray50,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(
-              Icons.notifications_none_rounded,
-              size: 36,
-              color: AppColors.gray300,
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            '暂无通知',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.gray500,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            '有新消息时会在这里提醒你',
-            style: TextStyle(fontSize: 13, color: AppColors.gray400),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NotificationTile extends StatelessWidget {
-  final NotificationItem item;
-  final VoidCallback? onTap;
-
-  const _NotificationTile({required this.item, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        color: item.isRead ? null : const Color(0xFFFAFAFC),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: _iconBgColor,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(_iconData, size: 18, color: _iconColor),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.title,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: item.isRead
-                                ? FontWeight.w400
-                                : FontWeight.w600,
-                            color: AppColors.black,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        item.timeAgo,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.gray400,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.body,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.gray500,
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      if (!item.isRead)
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFEF4444),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      if (!item.isRead && item.hasTarget)
-                        const SizedBox(width: 8),
-                      if (item.hasTarget)
-                        const Text(
-                          '查看详情 →',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.gray500,
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData get _iconData {
-    switch (item.iconType) {
-      case IconType.bid:
-        return Icons.gavel_rounded;
-      case IconType.project:
-        return Icons.rocket_launch_rounded;
-      case IconType.system:
-        return Icons.info_outline_rounded;
-    }
-  }
-
-  Color get _iconBgColor {
-    switch (item.iconType) {
-      case IconType.bid:
-        return const Color(0xFFFEF3C7);
-      case IconType.project:
-        return const Color(0xFFDBEAFE);
-      case IconType.system:
-        return AppColors.gray100;
-    }
-  }
-
-  Color get _iconColor {
-    switch (item.iconType) {
-      case IconType.bid:
-        return const Color(0xFFD97706);
-      case IconType.project:
-        return const Color(0xFF3B82F6);
-      case IconType.system:
-        return AppColors.gray500;
-    }
+    return const SizedBox(height: 24);
   }
 }
