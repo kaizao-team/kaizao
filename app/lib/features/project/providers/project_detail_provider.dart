@@ -1,26 +1,32 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../market/repositories/market_repository.dart';
+import '../../match/repositories/match_repository.dart';
 
 class ProjectDetailState {
   final bool isLoading;
   final Map<String, dynamic>? data;
   final String? errorMessage;
+  final bool hasBid;
 
   const ProjectDetailState({
     this.isLoading = false,
     this.data,
     this.errorMessage,
+    this.hasBid = false,
   });
 
   ProjectDetailState copyWith({
     bool? isLoading,
     Map<String, dynamic>? data,
     String? Function()? errorMessage,
+    bool? hasBid,
   }) {
     return ProjectDetailState(
       isLoading: isLoading ?? this.isLoading,
       data: data ?? this.data,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
+      hasBid: hasBid ?? this.hasBid,
     );
   }
 
@@ -95,10 +101,16 @@ class ProjectDetailState {
 
 class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
   final MarketRepository _repository;
+  final MatchRepository _matchRepository;
   final String projectId;
+  final String? _currentUserId;
 
-  ProjectDetailNotifier(this._repository, this.projectId)
-      : super(const ProjectDetailState()) {
+  ProjectDetailNotifier(
+    this._repository,
+    this._matchRepository,
+    this.projectId,
+    this._currentUserId,
+  ) : super(const ProjectDetailState()) {
     loadDetail();
   }
 
@@ -107,7 +119,17 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
     try {
       final data = await _repository.fetchProjectDetail(projectId);
       if (!mounted) return;
-      state = state.copyWith(isLoading: false, data: data);
+
+      bool hasBid = false;
+      if (_currentUserId != null && _currentUserId.isNotEmpty) {
+        try {
+          final bids = await _matchRepository.fetchBids(projectId);
+          hasBid = bids.any((b) => b.userId == _currentUserId);
+        } catch (_) {}
+      }
+
+      if (!mounted) return;
+      state = state.copyWith(isLoading: false, data: data, hasBid: hasBid);
     } catch (e) {
       if (!mounted) return;
       state = state.copyWith(
@@ -121,5 +143,8 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
 final projectDetailProvider = StateNotifierProvider.autoDispose.family<
     ProjectDetailNotifier, ProjectDetailState, String>((ref, id) {
   final repository = MarketRepository();
-  return ProjectDetailNotifier(repository, id);
+  final matchRepository = MatchRepository();
+  final authState = ref.watch(authStateProvider);
+  return ProjectDetailNotifier(
+      repository, matchRepository, id, authState.userId);
 });

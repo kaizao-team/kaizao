@@ -5,6 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_input.dart';
 import '../../../shared/widgets/vcc_toast.dart';
+import '../../notification/providers/notification_provider.dart';
 import '../models/match_models.dart';
 import '../providers/match_provider.dart';
 import '../widgets/ai_suggestion_card.dart';
@@ -179,6 +180,9 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                             final ok = await notifier.submit();
                             if (!context.mounted) return;
                             if (ok) {
+                              ref
+                                  .read(notificationProvider.notifier)
+                                  .loadNotifications();
                               VccToast.show(context,
                                   message: '投标已提交', type: VccToastType.success);
                               context.pop();
