@@ -87,6 +87,7 @@ type RegisterByPasswordReq struct {
 	Nickname       *string `json:"nickname" binding:"omitempty,min=2,max=20"`
 	Role           int     `json:"role" binding:"oneof=0 1 2 3"`
 	Phone          *string `json:"phone"`
+	// SMSCode 可选；服务端在 register-password 中不再用于校验，兼容旧客户端仍传该字段。
 	SMSCode        *string `json:"sms_code"`
 	InviteCode     string  `json:"invite_code" binding:"omitempty"`
 }

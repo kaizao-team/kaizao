@@ -373,7 +373,7 @@ func validatePasswordStrength(password string) error {
 	return nil
 }
 
-// RegisterByPassword 用户名+密文密码注册，可选短信绑定手机（purpose=1）。
+// RegisterByPassword 用户名+密文密码注册，可选绑定手机（校验格式与占用，不校验短信码）。
 func (s *AuthService) RegisterByPassword(ctx context.Context, req *dto.RegisterByPasswordReq) (*model.User, *jwtpkg.TokenPair, error) {
 	if s.passwordRSA == nil {
 		return nil, nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
@@ -404,16 +404,10 @@ func (s *AuthService) RegisterByPassword(ctx context.Context, req *dto.RegisterB
 	var phone *string
 	var phoneHash *string
 	if req.Phone != nil && strings.TrimSpace(*req.Phone) != "" {
-		if req.SMSCode == nil || strings.TrimSpace(*req.SMSCode) == "" {
-			return nil, nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
-		}
 		p := strings.TrimSpace(*req.Phone)
 		ok, _ := regexp.MatchString(`^1[3-9]\d{9}$`, p)
 		if !ok {
 			return nil, nil, fmt.Errorf("%d", errcode.ErrPhoneFormat)
-		}
-		if err := s.VerifySMSCode(ctx, p, 1, strings.TrimSpace(*req.SMSCode)); err != nil {
-			return nil, nil, err
 		}
 		ph := hashPhone(p)
 		if _, e := s.repos.User.FindByPhoneHash(ph); e == nil {
