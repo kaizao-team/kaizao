@@ -346,13 +346,17 @@ func (s *MilestoneService) Deliver(msUUID, actorUserUUID string, req *dto.Delive
 		}
 		targetType := "milestone"
 		mid := ms.ID
+		deliverSourceRole := "provider"
+		deliverTargetUUID := p.UUID
 		n := &model.Notification{
 			UserID:           p.OwnerID,
+			SourceRole:       &deliverSourceRole,
 			Title:            "里程碑待验收",
 			Content:          fmt.Sprintf("项目「%s」的里程碑「%s」已提交交付，请及时验收。", p.Title, ms.Title),
 			NotificationType: model.NotificationTypeMilestoneDelivered,
 			TargetType:       &targetType,
 			TargetID:         &mid,
+			TargetUUID:       &deliverTargetUUID,
 		}
 		if err := txRepos.Notification.Create(n); err != nil {
 			s.log.Error("Deliver: notify owner", zap.Error(err))

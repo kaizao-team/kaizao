@@ -50,6 +50,10 @@ func (h *NotificationHandler) List(c *gin.Context) {
 
 	list := make([]gin.H, 0, len(items))
 	for _, n := range items {
+		var sourceRole interface{}
+		if n.SourceRole != nil {
+			sourceRole = *n.SourceRole
+		}
 		var targetType interface{}
 		if n.TargetType != nil {
 			targetType = *n.TargetType
@@ -57,6 +61,10 @@ func (h *NotificationHandler) List(c *gin.Context) {
 		var targetID interface{}
 		if n.TargetID != nil {
 			targetID = *n.TargetID
+		}
+		var targetUUID interface{}
+		if n.TargetUUID != nil {
+			targetUUID = *n.TargetUUID
 		}
 		var readAt interface{}
 		if n.ReadAt != nil {
@@ -69,8 +77,10 @@ func (h *NotificationHandler) List(c *gin.Context) {
 			"content":            n.Content,
 			"type":               n.NotificationType,
 			"notification_type":  n.NotificationType,
+			"source_role":        sourceRole,
 			"target_type":        targetType,
 			"target_id":          targetID,
+			"target_uuid":        targetUUID,
 			"is_read":            n.IsRead,
 			"read_at":            readAt,
 			"created_at":         n.CreatedAt,

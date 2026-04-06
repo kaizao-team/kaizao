@@ -11,6 +11,7 @@ import (
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/repository"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // ProjectService 项目/需求
@@ -239,17 +240,38 @@ func (s *ProjectService) PublishDraft(projectUUID, ownerUserUUID string) (*model
 		return nil, err
 	}
 	now := time.Now()
-	title := ensurePublishTitle(p.Title, p.Category)
+	publishTitle := ensurePublishTitle(p.Title, p.Category)
 	desc := ensurePublishDescription(p.Description)
 	cat := normalizePublishCategory(p.Category)
 	fields := map[string]interface{}{
-		"title":        title,
+		"title":        publishTitle,
 		"description":  desc,
 		"category":     cat,
 		"status":       int16(2),
 		"published_at": now,
 	}
-	if err := s.repos.Project.UpdateFields(p.ID, fields); err != nil {
+
+	targetType := "project"
+	sourceRole := "demander"
+	targetUUID := p.UUID
+	n := &model.Notification{
+		UserID:           p.OwnerID,
+		SourceRole:       &sourceRole,
+		Title:            "项目已发布",
+		Content:          fmt.Sprintf("您的项目「%s」已成功发布，等待团队方投标。", publishTitle),
+		NotificationType: model.NotificationTypeProjectPublished,
+		TargetType:       &targetType,
+		TargetID:         &p.ID,
+		TargetUUID:       &targetUUID,
+	}
+
+	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		txRepos := repository.NewRepositories(tx)
+		if err := txRepos.Project.UpdateFields(p.ID, fields); err != nil {
+			return err
+		}
+		return txRepos.Notification.Create(n)
+	}); err != nil {
 		return nil, err
 	}
 	return s.repos.Project.FindByUUID(projectUUID)
