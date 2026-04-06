@@ -34,6 +34,11 @@ enum AiChatInputType {
   }
 }
 
+enum PostPublishResultType {
+  awaitingTeamConfirmation,
+  publishedWithoutMatch,
+}
+
 class AiChatOption {
   final String key;
   final String label;
@@ -127,14 +132,218 @@ class ProjectOverviewData {
   final String projectId;
   final String title;
   final String summary;
+  final List<ProjectOverviewTargetUser> targetUsers;
+  final String? complexity;
+  final ProjectOverviewTechRequirements? techRequirements;
+  final Map<String, String> nonFunctionalRequirements;
+  final int? moduleCount;
+  final int? itemCount;
+  final List<ProjectOverviewPrdItem> prdItems;
   final BudgetSuggestion? budgetSuggestion;
 
   const ProjectOverviewData({
     required this.projectId,
     required this.title,
     required this.summary,
+    this.targetUsers = const [],
+    this.complexity,
+    this.techRequirements,
+    this.nonFunctionalRequirements = const {},
+    this.moduleCount,
+    this.itemCount,
+    this.prdItems = const [],
     this.budgetSuggestion,
   });
+
+  bool get hasHighlights =>
+      complexity != null || moduleCount != null || itemCount != null;
+
+  bool get hasTechSummary =>
+      techRequirements?.platform != null ||
+      techRequirements?.techStack != null ||
+      (techRequirements?.thirdParty.isNotEmpty ?? false);
+
+  bool get hasDetailSections =>
+      targetUsers.isNotEmpty ||
+      hasTechSummary ||
+      nonFunctionalRequirements.isNotEmpty;
+
+  factory ProjectOverviewData.fromJson(Map<String, dynamic> json) {
+    String requireString(String field) {
+      final value = json[field];
+      final text = value?.toString().trim();
+      if (text == null || text.isEmpty) {
+        throw FormatException('overview payload missing $field');
+      }
+      return text;
+    }
+
+    final rawTargetUsers = json['target_users'];
+    final targetUsers = switch (rawTargetUsers) {
+      null => const <ProjectOverviewTargetUser>[],
+      final List<dynamic> list => list
+          .map(
+            (item) => ProjectOverviewTargetUser.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
+          .toList(growable: false),
+      _ => throw const FormatException(
+          'overview payload field target_users expected List',
+        ),
+    };
+
+    final rawNonFunctional = json['non_functional_requirements'];
+    final nonFunctionalRequirements = switch (rawNonFunctional) {
+      null => const <String, String>{},
+      final Map<dynamic, dynamic> map => map.map(
+          (key, value) => MapEntry(
+            key.toString(),
+            value?.toString().trim() ?? '',
+          ),
+        )..removeWhere((key, value) => key.trim().isEmpty || value.isEmpty),
+      _ => throw const FormatException(
+          'overview payload field non_functional_requirements expected Object',
+        ),
+    };
+
+    final rawPrdItems = json['prd_items'];
+    final prdItems = switch (rawPrdItems) {
+      null => const <ProjectOverviewPrdItem>[],
+      final List<dynamic> list => list
+          .map(
+            (item) => ProjectOverviewPrdItem.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
+          .toList(growable: false),
+      _ => throw const FormatException(
+          'overview payload field prd_items expected List',
+        ),
+    };
+
+    final rawTechRequirements = json['tech_requirements'];
+
+    return ProjectOverviewData(
+      projectId: requireString('project_id'),
+      title: requireString('title'),
+      summary: requireString('summary'),
+      targetUsers: targetUsers,
+      complexity: json['complexity']?.toString().trim(),
+      techRequirements: rawTechRequirements == null
+          ? null
+          : ProjectOverviewTechRequirements.fromJson(
+              Map<String, dynamic>.from(rawTechRequirements as Map),
+            ),
+      nonFunctionalRequirements: nonFunctionalRequirements,
+      moduleCount: (json['module_count'] as num?)?.toInt(),
+      itemCount: (json['item_count'] as num?)?.toInt(),
+      prdItems: prdItems,
+    );
+  }
+}
+
+class ProjectOverviewTargetUser {
+  final String role;
+  final String description;
+
+  const ProjectOverviewTargetUser({
+    required this.role,
+    required this.description,
+  });
+
+  factory ProjectOverviewTargetUser.fromJson(Map<String, dynamic> json) {
+    final role = json['role']?.toString().trim();
+    final description = json['description']?.toString().trim();
+    if (role == null || role.isEmpty) {
+      throw const FormatException('target_users item missing role');
+    }
+    if (description == null || description.isEmpty) {
+      throw const FormatException('target_users item missing description');
+    }
+    return ProjectOverviewTargetUser(
+      role: role,
+      description: description,
+    );
+  }
+}
+
+class ProjectOverviewTechRequirements {
+  final String? platform;
+  final String? techStack;
+  final List<String> thirdParty;
+
+  const ProjectOverviewTechRequirements({
+    this.platform,
+    this.techStack,
+    this.thirdParty = const [],
+  });
+
+  factory ProjectOverviewTechRequirements.fromJson(Map<String, dynamic> json) {
+    final rawThirdParty = json['third_party'];
+    final thirdParty = switch (rawThirdParty) {
+      null => const <String>[],
+      final List<dynamic> list => list
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false),
+      _ => throw const FormatException(
+          'tech_requirements.third_party expected List',
+        ),
+    };
+
+    final platform = json['platform']?.toString().trim();
+    final techStack = json['tech_stack']?.toString().trim();
+
+    return ProjectOverviewTechRequirements(
+      platform: platform == null || platform.isEmpty ? null : platform,
+      techStack: techStack == null || techStack.isEmpty ? null : techStack,
+      thirdParty: thirdParty,
+    );
+  }
+}
+
+class ProjectOverviewPrdItem {
+  final String itemId;
+  final String moduleName;
+  final String title;
+  final String description;
+  final String? priority;
+  final String? acceptanceSummary;
+
+  const ProjectOverviewPrdItem({
+    required this.itemId,
+    required this.moduleName,
+    required this.title,
+    required this.description,
+    this.priority,
+    this.acceptanceSummary,
+  });
+
+  factory ProjectOverviewPrdItem.fromJson(Map<String, dynamic> json) {
+    String requireString(String field) {
+      final value = json[field];
+      final text = value?.toString().trim();
+      if (text == null || text.isEmpty) {
+        throw FormatException('prd_items item missing $field');
+      }
+      return text;
+    }
+
+    final priority = json['priority']?.toString().trim();
+    final acceptanceSummary = json['acceptance_summary']?.toString().trim();
+
+    return ProjectOverviewPrdItem(
+      itemId: requireString('item_id'),
+      moduleName: requireString('module_name'),
+      title: requireString('title'),
+      description: requireString('description'),
+      priority: priority == null || priority.isEmpty ? null : priority,
+      acceptanceSummary: acceptanceSummary == null || acceptanceSummary.isEmpty
+          ? null
+          : acceptanceSummary,
+    );
+  }
 }
 
 class RecommendedTeam {

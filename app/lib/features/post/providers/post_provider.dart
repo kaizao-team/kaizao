@@ -65,6 +65,7 @@ class PostState {
   final RecommendedTeam? recommendedTeam;
   final bool isLoadingMatch;
   final bool isConfirmingMatch;
+  final PostPublishResultType? publishResultType;
 
   final String? errorMessage;
   final Map<String, bool> validationErrors;
@@ -89,6 +90,7 @@ class PostState {
     this.recommendedTeam,
     this.isLoadingMatch = false,
     this.isConfirmingMatch = false,
+    this.publishResultType,
     this.errorMessage,
     this.validationErrors = const {},
   });
@@ -115,6 +117,7 @@ class PostState {
     RecommendedTeam? Function()? recommendedTeam,
     bool? isLoadingMatch,
     bool? isConfirmingMatch,
+    PostPublishResultType? Function()? publishResultType,
     String? Function()? errorMessage,
     Map<String, bool>? validationErrors,
   }) {
@@ -143,6 +146,9 @@ class PostState {
           recommendedTeam != null ? recommendedTeam() : this.recommendedTeam,
       isLoadingMatch: isLoadingMatch ?? this.isLoadingMatch,
       isConfirmingMatch: isConfirmingMatch ?? this.isConfirmingMatch,
+      publishResultType: publishResultType != null
+          ? publishResultType()
+          : this.publishResultType,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       validationErrors: validationErrors ?? this.validationErrors,
     );
@@ -312,6 +318,7 @@ class PostNotifier extends StateNotifier<PostState> {
       recommendedTeam: () => null,
       isLoadingMatch: false,
       isConfirmingMatch: false,
+      publishResultType: () => null,
       errorMessage: () => null,
       validationErrors: const {},
     );
@@ -713,27 +720,6 @@ class PostNotifier extends StateNotifier<PostState> {
         (completenessScore != null && completenessScore >= 60);
   }
 
-  String _buildOverviewTitle() {
-    final categoryLabel = state.category != null
-        ? _categoryLabels[state.category!] ?? state.category!
-        : null;
-    if (categoryLabel != null && categoryLabel.isNotEmpty) {
-      return '$categoryLabel项目需求';
-    }
-    return '项目需求';
-  }
-
-  String _buildOverviewSummaryFromMessages() {
-    for (final message in state.messages.reversed) {
-      if (message.isUser) continue;
-      final content = message.content.trim();
-      if (content.isEmpty) continue;
-      if (message.hasOptions) continue;
-      return content;
-    }
-    return 'PRD 已确认。当前阶段只锁定需求范围与方向，正式 requirement.md 会在撮合成功并确认合作后由后端触发 EARS 拆解生成。';
-  }
-
   int? _asInt(Object? value) {
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -1076,6 +1062,9 @@ class PostNotifier extends StateNotifier<PostState> {
       final confirmResult = await _repository.confirmRequirement(pid);
       if (!mounted) return;
 
+      final overviewData = await _repository.fetchProjectOverview(pid);
+      if (!mounted) return;
+
       final subStage = confirmResult['sub_stage']?.toString();
       final score = _asInt(confirmResult['completeness_score']) ?? 100;
 
@@ -1085,11 +1074,7 @@ class PostNotifier extends StateNotifier<PostState> {
         completenessScore: score,
         analysisComplete: () => true,
         canConfirmRequirement: false,
-        overviewData: () => ProjectOverviewData(
-          projectId: pid,
-          title: _buildOverviewTitle(),
-          summary: _buildOverviewSummaryFromMessages(),
-        ),
+        overviewData: () => overviewData,
         currentStep: 2,
       );
     } catch (e) {
@@ -1171,6 +1156,27 @@ class PostNotifier extends StateNotifier<PostState> {
   // Step 4 → Step 5: confirm team match
   // ---------------------------------------------------------------------------
 
+  Future<void> publishWithoutMatch() async {
+    state = state.copyWith(isConfirmingMatch: true, errorMessage: () => null);
+
+    try {
+      await _publishProjectForMatch();
+      if (!mounted) return;
+
+      state = state.copyWith(
+        isConfirmingMatch: false,
+        publishResultType: () => PostPublishResultType.publishedWithoutMatch,
+        currentStep: 5,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+        isConfirmingMatch: false,
+        errorMessage: () => '发布项目失败: $e',
+      );
+    }
+  }
+
   Future<void> confirmTeamMatch() async {
     final team = state.recommendedTeam;
     if (team == null) return;
@@ -1184,6 +1190,7 @@ class PostNotifier extends StateNotifier<PostState> {
 
       state = state.copyWith(
         isConfirmingMatch: false,
+        publishResultType: () => PostPublishResultType.awaitingTeamConfirmation,
         currentStep: 5,
       );
     } catch (e) {
