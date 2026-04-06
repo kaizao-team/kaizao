@@ -27,14 +27,17 @@ func NewFavoriteService(repos *repository.Repositories) *FavoriteService {
 	return &FavoriteService{repos: repos}
 }
 
-func expertEligibleForFavorite(u *model.User) bool {
+func expertEligibleForFavorite(u *model.User, team *model.Team) bool {
 	if u == nil {
 		return false
 	}
-	return (u.Role == 2 || u.Role == 3) &&
-		u.Status == 1 &&
-		u.AvailableStatus == 1 &&
-		u.OnboardingStatus == model.OnboardingApproved
+	if !((u.Role == 2 || u.Role == 3) && u.Status == 1 && u.OnboardingStatus == model.OnboardingApproved) {
+		return false
+	}
+	if team == nil {
+		return false
+	}
+	return team.Status == 1 && team.AvailableStatus == 1
 }
 
 // isMySQLDuplicateKey 唯一约束冲突（并发插入同一条收藏等）
@@ -119,7 +122,8 @@ func (s *FavoriteService) AddFavorite(userID int64, targetType, targetID string)
 	if err != nil {
 		return nil, mapFindUserErr(err)
 	}
-	if !expertEligibleForFavorite(expert) {
+	team, _ := s.repos.Team.FindPrimaryTeamForUser(expert.ID)
+	if !expertEligibleForFavorite(expert, team) {
 		return nil, fmt.Errorf("%d", errcode.ErrFavoriteExpertInvalid)
 	}
 	if err := s.repos.Favorite.Create(fav); err != nil {

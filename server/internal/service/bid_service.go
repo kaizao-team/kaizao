@@ -119,6 +119,13 @@ func (s *BidService) Create(bidderUUID, projectUUID string, amount float64, dura
 		Proposal:      &proposal,
 		Status:        1,
 	}
+	if teamID != nil && *teamID != "" {
+		team, err := s.repos.Team.FindByUUID(*teamID)
+		if err != nil {
+			return nil, fmt.Errorf("%d", errcode.ErrParamInvalid)
+		}
+		bid.TeamID = &team.ID
+	}
 	targetType := "project"
 	tid := project.ID
 	content := formatNewBidNotificationContent(bidder.Nickname, project.Title, amount)

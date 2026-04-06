@@ -548,7 +548,7 @@ func (h *UserHandler) RedeemOnboardingInvite(c *gin.Context) {
 	response.SuccessMsg(c, "已通过团队邀请完成入驻", nil)
 }
 
-// ListExperts 专家列表
+// ListExperts 专家列表（以团队为主实体）
 // GET /api/v1/market/experts
 func (h *UserHandler) ListExperts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -560,33 +560,59 @@ func (h *UserHandler) ListExperts(c *gin.Context) {
 		pageSize = 20
 	}
 
-	experts, total, err := h.userService.ListExperts(page, pageSize)
+	teams, total, err := h.userService.ListExpertTeams(page, pageSize)
 	if err != nil {
 		response.ErrorInternal(c, "获取专家列表失败")
 		return
 	}
 
-	expertList := make([]gin.H, 0, len(experts))
-	for _, e := range experts {
-		skills, _ := h.userService.ListUserSkills(e.ID)
-		skillNames := make([]string, 0, len(skills))
-		for _, s := range skills {
-			skillNames = append(skillNames, s.Skill.Name)
-		}
+	leaderIDs := make([]int64, 0, len(teams))
+	for _, t := range teams {
+		leaderIDs = append(leaderIDs, t.LeaderID)
+	}
+	allSkills, _ := h.repos.User.ListUserSkillsForUsers(leaderIDs)
+	skillsByUser := groupSkillsByUser(allSkills)
 
-		expertList = append(expertList, gin.H{
-			"id":                 e.UUID,
-			"nickname":           e.Nickname,
-			"avatar_url":         e.AvatarURL,
-			"rating":             e.AvgRating,
-			"skills":             skillNames,
-			"completed_projects": e.CompletedOrders,
-			"hourly_rate":        e.HourlyRate,
-			"tagline":            e.Bio,
-		})
+	expertList := make([]gin.H, 0, len(teams))
+	for _, t := range teams {
+		leader := t.Leader
+		item := gin.H{
+			"id":           t.UUID,
+			"team_name":    t.Name,
+			"vibe_level":   t.VibeLevel,
+			"vibe_power":   t.VibePower,
+			"member_count": t.MemberCount,
+			"rating":       t.AvgRating,
+			"hourly_rate":  t.HourlyRate,
+		}
+		if leader != nil {
+			item["leader_uuid"] = leader.UUID
+			item["nickname"] = leader.Nickname
+			item["avatar_url"] = leader.AvatarURL
+			item["completed_projects"] = leader.CompletedOrders
+			item["tagline"] = leader.Bio
+
+			skills := skillsByUser[leader.ID]
+			skillNames := make([]string, 0, len(skills))
+			for _, s := range skills {
+				if s.Skill.Name != "" {
+					skillNames = append(skillNames, s.Skill.Name)
+				}
+			}
+			item["skills"] = skillNames
+		}
+		expertList = append(expertList, item)
 	}
 
 	response.SuccessWithMeta(c, expertList, response.BuildMeta(page, pageSize, total))
+}
+
+func groupSkillsByUser(skills []*model.UserSkill) map[int64][]*model.UserSkill {
+	m := make(map[int64][]*model.UserSkill)
+	for _, s := range skills {
+		m[s.UserID] = append(m[s.UserID], s)
+	}
+	return m
 }
 
 // AddFavorite POST /api/v1/favorites

@@ -388,6 +388,15 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 	stats := h.userService.GetUserStats(user)
 	skills, _ := h.userService.ListUserSkills(user.ID)
 
+	hourlyRate := user.HourlyRate
+	availableStatus := user.AvailableStatus
+	if user.Role == 2 || user.Role == 3 {
+		if team, err := h.repos.Team.FindPrimaryTeamForUser(user.ID); err == nil && team != nil {
+			hourlyRate = team.HourlyRate
+			availableStatus = team.AvailableStatus
+		}
+	}
+
 	response.Success(c, gin.H{
 		"id":               user.UUID,
 		"uuid":             user.UUID,
@@ -408,8 +417,8 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 		"completed_orders": user.CompletedOrders,
 		"completion_rate":  user.CompletionRate,
 		"avg_rating":       user.AvgRating,
-		"hourly_rate":      user.HourlyRate,
-		"available_status": user.AvailableStatus,
+		"hourly_rate":      hourlyRate,
+		"available_status": availableStatus,
 		"skills":           userSkillsToResponse(skills),
 		"role_tags":        []interface{}{},
 		"stats":            stats,
