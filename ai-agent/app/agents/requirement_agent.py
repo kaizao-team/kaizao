@@ -234,10 +234,10 @@ class RequirementAgent(ToolUseBaseAgent):
         else:
             self._dimension_coverage = dict(DEFAULT_DIMENSION_COVERAGE)
 
+        # 对话阶段（澄清+PRD）用 8192 加速，EARS 拆解在独立方法中用 16384
         updated_messages, last_tool = await self.run(
             messages=messages,
-            # EARS 拆解需要更多 token
-            max_tokens=16384,
+            max_tokens=8192,
         )
 
         return (
@@ -264,7 +264,7 @@ class RequirementAgent(ToolUseBaseAgent):
         else:
             self._dimension_coverage = dict(DEFAULT_DIMENSION_COVERAGE)
 
-        async for event in self.run_stream(messages=messages, max_tokens=16384):
+        async for event in self.run_stream(messages=messages, max_tokens=8192):
             yield event
 
         # 追加阶段信息到 done 事件后
