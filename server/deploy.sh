@@ -24,9 +24,26 @@ set -e
 
 REMOTE_HOST="${REMOTE_HOST:-kaizao}"
 REMOTE_DIR="\$HOME/kaizao-server"
-# 大镜像包传输易断连，scp 默认带保活（可用环境变量覆盖）
-SCP_OPTS="${SCP_OPTS:--o ServerAliveInterval=10 -o ServerAliveCountMax=60 -o TCPKeepAlive=yes}"
+# 大镜像包传输易断连，scp/ssh 默认带保活（可用环境变量覆盖）
+SCP_OPTS="${SCP_OPTS:--o ServerAliveInterval=10 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes -o ConnectTimeout=30}"
+SSH_OPTS="${SSH_OPTS:-${SCP_OPTS}}"
 IMAGE_NAME="kaizao-server"
+
+# scp 偶发「Connection closed」时对单条命令重试（指数退避）
+scp_retry() {
+  local attempt=1 max_attempts="${SCP_RETRY_MAX:-3}"
+  local delay=3
+  while [ "$attempt" -le "$max_attempts" ]; do
+    if scp ${SCP_OPTS} "$@"; then
+      return 0
+    fi
+    echo "WARN: scp 失败 (${attempt}/${max_attempts})，${delay}s 后重试..." >&2
+    sleep "$delay"
+    delay=$((delay + 3))
+    attempt=$((attempt + 1))
+  done
+  return 1
+}
 IMAGE_TAG="latest"
 COMPOSE_FILE="docker-compose.prod.yml"
 # 宿主机映射端口（见 docker-compose.prod.yml server ports）
@@ -56,29 +73,29 @@ do_push() {
         exit 1
     fi
     # 勿用 ssh "... ~/..." ：~ 会在**本地** shell 展开，远程目录可能未创建
-    ssh "${REMOTE_HOST}" 'mkdir -p "$HOME/kaizao-server/migrations" "$HOME/kaizao-server/scripts" "$HOME/kaizao-server/configs"'
+    ssh ${SSH_OPTS} "${REMOTE_HOST}" 'mkdir -p "$HOME/kaizao-server/migrations" "$HOME/kaizao-server/scripts" "$HOME/kaizao-server/configs"'
     # 旧版单文件 bind 若误建为目录，清掉以便 scp 写入 PEM
-    ssh "${REMOTE_HOST}" '[ -d "$HOME/kaizao-server/configs/auth_password_rsa.pem" ] && rm -rf "$HOME/kaizao-server/configs/auth_password_rsa.pem" || true'
-    scp ${SCP_OPTS} docker-compose.prod.yml "${REMOTE_HOST}:~/kaizao-server/docker-compose.prod.yml"
-    scp ${SCP_OPTS} scripts/apply_migrations.sh "${REMOTE_HOST}:~/kaizao-server/scripts/apply_migrations.sh"
+    ssh ${SSH_OPTS} "${REMOTE_HOST}" '[ -d "$HOME/kaizao-server/configs/auth_password_rsa.pem" ] && rm -rf "$HOME/kaizao-server/configs/auth_password_rsa.pem" || true'
+    scp_retry docker-compose.prod.yml "${REMOTE_HOST}:~/kaizao-server/docker-compose.prod.yml"
+    scp_retry scripts/apply_migrations.sh "${REMOTE_HOST}:~/kaizao-server/scripts/apply_migrations.sh"
     for f in migrations/*.up.sql; do
         [ -f "$f" ] || continue
-        scp ${SCP_OPTS} "$f" "${REMOTE_HOST}:~/kaizao-server/migrations/$(basename "$f")"
+        scp_retry "$f" "${REMOTE_HOST}:~/kaizao-server/migrations/$(basename "$f")"
     done
-    scp ${SCP_OPTS} "${SCRIPT_DIR}/configs/config.yaml" "${REMOTE_HOST}:~/kaizao-server/configs/config.yaml"
-    scp ${SCP_OPTS} "${SCRIPT_DIR}/configs/auth_password_rsa.pem" "${REMOTE_HOST}:~/kaizao-server/configs/auth_password_rsa.pem"
-    scp ${SCP_OPTS} "${SCRIPT_DIR}/deploy/env.prod.example" "${REMOTE_HOST}:~/kaizao-server/env.prod.example"
+    scp_retry "${SCRIPT_DIR}/configs/config.yaml" "${REMOTE_HOST}:~/kaizao-server/configs/config.yaml"
+    scp_retry "${SCRIPT_DIR}/configs/auth_password_rsa.pem" "${REMOTE_HOST}:~/kaizao-server/configs/auth_password_rsa.pem"
+    scp_retry "${SCRIPT_DIR}/deploy/env.prod.example" "${REMOTE_HOST}:~/kaizao-server/env.prod.example"
     if [ -f "${SCRIPT_DIR}/deploy/.env.prod" ]; then
         echo "    同步 deploy/.env.prod -> 远程 .env"
-        scp ${SCP_OPTS} "${SCRIPT_DIR}/deploy/.env.prod" "${REMOTE_HOST}:~/kaizao-server/.env"
+        scp_retry "${SCRIPT_DIR}/deploy/.env.prod" "${REMOTE_HOST}:~/kaizao-server/.env"
     fi
 
     echo "==> [4/5] 传输镜像包到远程..."
-    scp ${SCP_OPTS} /tmp/${IMAGE_NAME}.tar.gz "${REMOTE_HOST}:~/${IMAGE_NAME}.tar.gz"
+    scp_retry /tmp/${IMAGE_NAME}.tar.gz "${REMOTE_HOST}:~/${IMAGE_NAME}.tar.gz"
 
     echo "==> [5/5] 远程加载镜像、启动、补迁移、健康检查..."
     # 通过 ssh 传入变量；heredoc 单引号避免本地展开，远程用已 export 的变量
-    ssh "${REMOTE_HOST}" \
+    ssh ${SSH_OPTS} "${REMOTE_HOST}" \
         "export IMAGE_NAME=${IMAGE_NAME} PROD_HTTP_PORT=${PROD_HTTP_PORT} MYSQL_PWD=${PROD_MYSQL_PASSWORD}; bash -s" <<'REMOTE_SCRIPT'
         set -e
         echo "    加载镜像..."
@@ -130,19 +147,19 @@ do_sync() {
         echo "错误: 缺少非空 configs/auth_password_rsa.pem，请 bash scripts/gen_auth_password_rsa.sh"
         exit 1
     fi
-    ssh "${REMOTE_HOST}" 'mkdir -p "$HOME/kaizao-server/migrations" "$HOME/kaizao-server/configs" "$HOME/kaizao-server/scripts"'
-    scp ${SCP_OPTS} docker-compose.prod.yml "${REMOTE_HOST}:~/kaizao-server/docker-compose.prod.yml"
-    scp ${SCP_OPTS} deploy.sh "${REMOTE_HOST}:~/kaizao-server/deploy.sh"
-    scp ${SCP_OPTS} scripts/apply_migrations.sh "${REMOTE_HOST}:~/kaizao-server/scripts/apply_migrations.sh"
+    ssh ${SSH_OPTS} "${REMOTE_HOST}" 'mkdir -p "$HOME/kaizao-server/migrations" "$HOME/kaizao-server/configs" "$HOME/kaizao-server/scripts"'
+    scp_retry docker-compose.prod.yml "${REMOTE_HOST}:~/kaizao-server/docker-compose.prod.yml"
+    scp_retry deploy.sh "${REMOTE_HOST}:~/kaizao-server/deploy.sh"
+    scp_retry scripts/apply_migrations.sh "${REMOTE_HOST}:~/kaizao-server/scripts/apply_migrations.sh"
     for f in migrations/*.up.sql; do
         [ -f "$f" ] || continue
-        scp ${SCP_OPTS} "$f" "${REMOTE_HOST}:~/kaizao-server/migrations/$(basename "$f")"
+        scp_retry "$f" "${REMOTE_HOST}:~/kaizao-server/migrations/$(basename "$f")"
     done
-    scp ${SCP_OPTS} "${SCRIPT_DIR}/configs/config.yaml" "${REMOTE_HOST}:~/kaizao-server/configs/config.yaml"
-    scp ${SCP_OPTS} "${SCRIPT_DIR}/configs/auth_password_rsa.pem" "${REMOTE_HOST}:~/kaizao-server/configs/auth_password_rsa.pem"
-    scp ${SCP_OPTS} "${SCRIPT_DIR}/deploy/env.prod.example" "${REMOTE_HOST}:~/kaizao-server/env.prod.example"
+    scp_retry "${SCRIPT_DIR}/configs/config.yaml" "${REMOTE_HOST}:~/kaizao-server/configs/config.yaml"
+    scp_retry "${SCRIPT_DIR}/configs/auth_password_rsa.pem" "${REMOTE_HOST}:~/kaizao-server/configs/auth_password_rsa.pem"
+    scp_retry "${SCRIPT_DIR}/deploy/env.prod.example" "${REMOTE_HOST}:~/kaizao-server/env.prod.example"
     if [ -f "${SCRIPT_DIR}/deploy/.env.prod" ]; then
-        scp ${SCP_OPTS} "${SCRIPT_DIR}/deploy/.env.prod" "${REMOTE_HOST}:~/kaizao-server/.env"
+        scp_retry "${SCRIPT_DIR}/deploy/.env.prod" "${REMOTE_HOST}:~/kaizao-server/.env"
     fi
     echo "==> 同步完成"
 }

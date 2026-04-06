@@ -90,6 +90,28 @@ func (r *projectRepository) ListByProviderID(providerID int64, offset, limit int
 	return r.List(offset, limit, map[string]interface{}{"provider_id": providerID}, "created_at", "desc")
 }
 
+func (r *projectRepository) ListMine(userID int64, offset, limit int, conditions map[string]interface{}, sortBy, sortOrder string) ([]*model.Project, int64, error) {
+	var projects []*model.Project
+	var total int64
+
+	query := r.db.Model(&model.Project{}).Preload("Owner").Preload("Provider").
+		Where("owner_id = ? OR provider_id = ?", userID, userID)
+	for k, v := range conditions {
+		query = query.Where(k+" = ?", v)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	orderClause := sortBy + " " + sortOrder
+	if err := query.Order(orderClause).Offset(offset).Limit(limit).Find(&projects).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return projects, total, nil
+}
+
 func (r *projectRepository) ListMarket(offset, limit int, filter ProjectFilter) ([]*model.Project, int64, error) {
 	var projects []*model.Project
 	var total int64

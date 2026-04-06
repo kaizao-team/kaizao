@@ -119,6 +119,16 @@ func (s *ProjectService) List(page, pageSize int, conditions map[string]interfac
 	return s.repos.Project.List(offset, pageSize, conditions, sortBy, sortOrder)
 }
 
+// ListMine 当前用户创建或作为服务方承接的项目（owner_id 或 provider_id）
+func (s *ProjectService) ListMine(userUUID string, page, pageSize int, conditions map[string]interface{}, sortBy, sortOrder string) ([]*model.Project, int64, error) {
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * pageSize
+	return s.repos.Project.ListMine(user.ID, offset, pageSize, conditions, sortBy, sortOrder)
+}
+
 // ListByRole 按角色获取项目列表: role=1 需求方(我发布的), role=2 专家(我参与的)
 func (s *ProjectService) ListByRole(userUUID string, role, page, pageSize int) ([]*model.Project, int64, error) {
 	user, err := s.repos.User.FindByUUID(userUUID)
