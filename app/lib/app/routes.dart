@@ -32,6 +32,8 @@ import '../features/payment/pages/order_confirm_page.dart';
 import '../features/payment/pages/payment_result_page.dart';
 import '../features/settings/pages/legal_document_page.dart';
 import '../features/settings/pages/settings_page.dart';
+import '../features/settings/pages/about_page.dart';
+import '../features/settings/pages/help_feedback_page.dart';
 import '../features/profile/pages/edit_profile_page.dart';
 import '../features/wallet/pages/wallet_page.dart';
 import '../features/team/pages/team_hall_page.dart';
@@ -90,6 +92,8 @@ class RoutePaths {
   static const String rate = '/rate';
   static const String notifications = '/notifications';
   static const String favorites = '/favorites';
+  static const String helpFeedback = '/help-feedback';
+  static const String about = '/about';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -391,6 +395,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.favorites,
         pageBuilder: (_, __) => _cupertinoPage(const FavoriteListPage()),
+      ),
+      GoRoute(
+        path: RoutePaths.helpFeedback,
+        pageBuilder: (_, __) => _cupertinoPage(const HelpFeedbackPage()),
+      ),
+      GoRoute(
+        path: RoutePaths.about,
+        pageBuilder: (_, __) => _cupertinoPage(const AboutPage()),
       ),
       GoRoute(
         path: RoutePaths.rate,

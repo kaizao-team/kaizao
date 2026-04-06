@@ -6,6 +6,7 @@ import '../../../app/routes.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_loading.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
+import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/profile_provider.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -252,10 +253,12 @@ class ProfilePage extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          _buildMenuItem('我的钱包', onTap: () {
-            context.push(RoutePaths.wallet);
+          _buildMenuItem('我的钱包', trailing: '敬请期待', onTap: () {
+            VccToast.show(context, message: '钱包功能即将开放，敬请期待');
           }),
-          _buildMenuItem('消息通知', onTap: () {}),
+          _buildMenuItem('消息通知', onTap: () {
+            context.push(RoutePaths.notifications);
+          }),
           const SizedBox(height: 8),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -263,14 +266,19 @@ class ProfilePage extends ConsumerWidget {
             color: const Color(0xFFF3F3F3),
           ),
           const SizedBox(height: 8),
-          _buildMenuItem('帮助与反馈', onTap: () {}),
-          _buildMenuItem('关于 KAIZO', onTap: () {}),
+          _buildMenuItem('帮助与反馈', onTap: () {
+            context.push(RoutePaths.helpFeedback);
+          }),
+          _buildMenuItem('关于 KAIZO', onTap: () {
+            context.push(RoutePaths.about);
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildMenuItem(String title, {VoidCallback? onTap}) {
+  Widget _buildMenuItem(String title,
+      {VoidCallback? onTap, String? trailing}) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -287,6 +295,24 @@ class ProfilePage extends ConsumerWidget {
               ),
             ),
             const Spacer(),
+            if (trailing != null) ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.gray100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  trailing,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.gray400,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
             const Icon(
               Icons.chevron_right,
               size: 16,

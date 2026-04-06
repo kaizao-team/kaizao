@@ -7,7 +7,6 @@ import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/profile_provider.dart';
-import 'about_page.dart';
 
 String _formatMaskedPhone(String? phone) {
   if (phone == null || phone.isEmpty) return '未设置';
@@ -202,12 +201,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                   _SettingsRow(
                     label: '关于开造',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AboutPage(),
-                      ),
-                    ),
+                    onTap: () => context.push(RoutePaths.about),
                   ),
                 ]),
 
