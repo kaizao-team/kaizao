@@ -128,6 +128,36 @@ class Project(Base):
 # AI Agent 独有表 — 统一 ai_ 前缀
 # ============================================================
 
+class Team(Base):
+    """
+    映射 Go 后端 kaizao.teams 表 — AI Agent 部分写。
+    评级完成后将 VibePower 等字段同步写入此表，使其成为团队方业务数据的唯一权威来源。
+    """
+    __tablename__ = "teams"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    uuid: Mapped[str] = mapped_column(String(36), unique=True, nullable=False)
+    leader_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    # AI Agent 同步写入的业务字段
+    vibe_power: Mapped[int] = mapped_column(Integer, default=0)
+    vibe_level: Mapped[str] = mapped_column(String(20), default="vc-T1")
+    level_weight: Mapped[float] = mapped_column(DECIMAL(3, 2), default=1.00)
+    experience_years: Mapped[int] = mapped_column(Integer, default=0)
+    resume_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ai_tools: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    review_tags: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)
+    score_tech_depth: Mapped[int] = mapped_column(Integer, default=0)
+    score_project_exp: Mapped[int] = mapped_column(Integer, default=0)
+    score_ai_proficiency: Mapped[int] = mapped_column(Integer, default=0)
+    score_portfolio: Mapped[int] = mapped_column(Integer, default=0)
+    score_background: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = {"extend_existing": True}
+
+
 class AIProjectStage(Base):
     """AI 流水线阶段状态表"""
     __tablename__ = "ai_project_stages"

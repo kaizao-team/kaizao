@@ -25,6 +25,7 @@ from app.db.models import (
     AIProviderProfile,
     AIVibePowerLog,
     Project,
+    Team,
     User,
 )
 
@@ -738,6 +739,46 @@ class RatingRepository:
                     reason=reason,
                     project_id=project_id,
                 ))
+
+    async def sync_profile_to_team(self, user_uuid: str, profile_data: dict) -> None:
+        """
+        将评级结果同步到 Go 后端 teams 表。
+        通过 user_uuid → users.id → teams.leader_id 定位 team 行，
+        仅 UPDATE VibePower 相关字段，不 INSERT。
+        """
+        sync_fields = {
+            "vibe_power", "vibe_level", "level_weight", "experience_years",
+            "resume_summary", "ai_tools", "review_tags",
+            "score_tech_depth", "score_project_exp", "score_ai_proficiency",
+            "score_portfolio", "score_background",
+        }
+        values = {k: v for k, v in profile_data.items() if k in sync_fields}
+        if not values:
+            return
+
+        async with get_session_factory()() as session:
+            async with session.begin():
+                # 查 user.id
+                q = await session.execute(
+                    select(User.id).where(User.uuid == user_uuid)
+                )
+                user_row = q.first()
+                if not user_row:
+                    logger.warning("team_sync_skip", reason="user not found", user_uuid=user_uuid)
+                    return
+
+                leader_id = user_row[0]
+
+                # 更新 teams 表
+                result = await session.execute(
+                    update(Team)
+                    .where(Team.leader_id == leader_id)
+                    .values(**values)
+                )
+                if result.rowcount == 0:
+                    logger.warning("team_sync_skip", reason="no team row for leader", leader_id=leader_id)
+                else:
+                    logger.info("team_sync_ok", leader_id=leader_id, fields=list(values.keys()))
 
     async def get_power_logs(
         self,

@@ -165,6 +165,8 @@ async def _do_evaluate(
             points=vibe_power,
             reason="AI 简历解析初始化定级",
         )
+        # 同步评级数据到 teams 表（终态）
+        await rating_repo.sync_profile_to_team(pid, profile_data)
         # 同步专家画像到 Milvus 供撮合检索
         await _sync_provider_to_milvus(pid, profile_data)
     except Exception as db_err:
@@ -347,6 +349,7 @@ async def evaluate_provider_stream_file(
                         points=profile_data["vibe_power"],
                         reason="AI 简历解析初始化定级",
                     )
+                    await rating_repo.sync_profile_to_team(pid, profile_data)
                     await _sync_provider_to_milvus(pid, profile_data)
                 except Exception as db_err:
                     logger.warning("rating_stream_db_save_skip", error=str(db_err))
@@ -409,6 +412,7 @@ async def evaluate_provider_stream_text(
                         points=profile_data["vibe_power"],
                         reason="AI 简历解析初始化定级",
                     )
+                    await rating_repo.sync_profile_to_team(pid, profile_data)
                     await _sync_provider_to_milvus(pid, profile_data)
                 except Exception as db_err:
                     logger.warning("rating_stream_db_save_skip", error=str(db_err))
@@ -553,6 +557,13 @@ async def adjust_points(provider_id: str, req: AdjustPointsRequest, request: Req
             reason=req.reason,
             project_id=req.project_id,
         )
+
+        # 同步积分/等级变动到 teams 表
+        await rating_repo.sync_profile_to_team(provider_id, {
+            "vibe_power": new_power,
+            "vibe_level": new_level["name"],
+            "level_weight": new_level["weight"],
+        })
 
         old_level = get_level_for_points(old_power, cap_at_t5=False)
         level_changed = old_level["name"] != new_level["name"]
