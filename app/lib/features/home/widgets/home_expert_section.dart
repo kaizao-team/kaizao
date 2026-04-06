@@ -25,7 +25,7 @@ class HomeExpertSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         HomeSectionHeader(
-          title: '推荐专家',
+          title: '推荐团队',
           subtitle: '先看擅长方向与时薪，合适就继续沟通。',
           actionLabel: '查看更多',
           onAction: onViewMore,
@@ -111,7 +111,34 @@ class _ExpertCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            _SkillTag(label: _primarySkill(expert)),
+            Row(
+              children: [
+                _SkillTag(label: _primarySkill(expert)),
+                if (expert.vibeLevel != null &&
+                    expert.vibeLevel!.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1C1C),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      expert.vibeLevel!,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
             const Spacer(),
             Row(
               children: [

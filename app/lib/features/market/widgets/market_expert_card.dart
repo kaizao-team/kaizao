@@ -27,6 +27,7 @@ class MarketExpertCard extends StatelessWidget {
         child: Row(
           children: [
             VccAvatar(
+              imageUrl: expert.avatarUrl,
               size: VccAvatarSize.large,
               fallbackText: expert.nickname,
             ),
@@ -45,8 +46,33 @@ class MarketExpertCard extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                             color: AppColors.black,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (expert.vibeLevel != null &&
+                          expert.vibeLevel!.isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1A1C1C),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            expert.vibeLevel!,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(width: 6),
                       const Icon(Icons.star, size: 14,
                           color: AppColors.accentGold),
                       const SizedBox(width: 2),
@@ -94,7 +120,9 @@ class MarketExpertCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '¥${expert.hourlyRate}/h',
+                        expert.hourlyRate > 0
+                            ? '¥${expert.hourlyRate}/h'
+                            : '时薪面议',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -102,11 +130,16 @@ class MarketExpertCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Text(
-                        '${expert.completedProjects} 项目已完成',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.gray400,
+                      Expanded(
+                        child: Text(
+                          '${expert.completedProjects} 项目已完成'
+                          '${expert.memberCount > 1 ? ' · ${expert.memberCount}人团队' : ''}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.gray400,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
