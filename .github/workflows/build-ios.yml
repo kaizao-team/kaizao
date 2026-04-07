@@ -118,7 +118,17 @@ jobs:
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
         env:
           EXPORT_METHOD: ${{ github.event.inputs.export_method || 'ad-hoc' }}
-        run: flutter build ipa --release --export-method "$EXPORT_METHOD"
+        run: |
+          flutter build ipa --release --export-method "$EXPORT_METHOD" -v
+          echo "=== Checking build output ==="
+          echo "--- build/ios/ipa/ ---"
+          ls -laR build/ios/ipa/ 2>/dev/null || echo "Directory not found: build/ios/ipa/"
+          echo "--- build/ios/archive/ ---"
+          ls -la build/ios/archive/ 2>/dev/null || echo "Directory not found: build/ios/archive/"
+          echo "--- Searching for .ipa files ---"
+          find build -name "*.ipa" 2>/dev/null || echo "No .ipa files found in build/"
+          echo "--- Searching for .xcarchive ---"
+          find build -name "*.xcarchive" -maxdepth 3 2>/dev/null || echo "No .xcarchive found"
         working-directory: app
 
       - name: Build iOS (Debug)
@@ -131,9 +141,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa-${{ github.sha }}
-          path: app/build/ios/ipa/*.ipa
+          path: |
+            app/build/ios/ipa/
           retention-days: 14
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Upload to Pgyer (蒲公英)
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
