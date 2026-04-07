@@ -97,62 +97,28 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
+      - name: Switch Xcode signing to Manual for CI
+        if: github.event_name != 'pull_request'
+        run: |
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' \
+            app/ios/Runner.xcodeproj/project.pbxproj
+
       - name: Build iOS (Release - no codesign for PR)
         if: github.event_name == 'pull_request'
         run: flutter build ios --release --no-codesign
         working-directory: app
 
-      - name: Build iOS (Release)
+      - name: Build IPA (Release)
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
-        run: flutter build ios --release
+        env:
+          EXPORT_METHOD: ${{ github.event.inputs.export_method || 'ad-hoc' }}
+        run: flutter build ipa --release --export-method "$EXPORT_METHOD"
         working-directory: app
 
       - name: Build iOS (Debug)
         if: github.event.inputs.build_mode == 'debug'
         run: flutter build ios --debug --no-codesign
         working-directory: app
-
-      - name: Create ExportOptions.plist
-        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
-        env:
-          EXPORT_METHOD: ${{ github.event.inputs.export_method || 'ad-hoc' }}
-          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
-          PROVISION_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
-        run: |
-          cat > ExportOptions.plist <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>${EXPORT_METHOD}</string>
-            <key>teamID</key>
-            <string>${TEAM_ID}</string>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
-            <key>compileBitcode</key>
-            <false/>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>cc.kaizao</key>
-              <string>${PROVISION_PROFILE_NAME}</string>
-            </dict>
-          </dict>
-          </plist>
-          PLIST
-
-      - name: Export IPA
-        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
-        run: |
-          xcodebuild -exportArchive \
-            -archivePath app/build/ios/archive/Runner.xcarchive \
-            -exportOptionsPlist ExportOptions.plist \
-            -exportPath app/build/ios/ipa \
-            -allowProvisioningUpdates
 
       - name: Upload IPA artifact
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
