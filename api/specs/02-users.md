@@ -42,7 +42,7 @@
 - **Headers**: 需认证
 - **Body**: 任意用户字段子集, 如 `{ "role": 1, "nickname": "张三" }`
 - **Response**: `{ "code": 0, "message": "更新成功" }`
-- **说明**：对于 `role=2/3`，写入 `hourly_rate` 或 `available_status` 时会在同一事务内同步到用户的 **主团队**（`teams` 表），保证两侧数据一致。当请求将 `role` 更新为 **2 或 3** 且用户当前 **无主团队**（既非活跃队长也非活跃成员）时，服务端会在同一事务内 **自动创建默认团队**（用户为队长，并写入 `team_members`）。可选 **`budget_min` / `budget_max`**（元）：**仅**写入主团队行，不写 `users`；合并后若上下限均非空须满足 `budget_max >= budget_min`（否则业务码 `20005`）。请求体中只要出现 `budget_min` 或 `budget_max`，且生效后角色 **非** 专家/团队方、或仍无主团队，返回 **HTTP 400**（业务码含 `11019`、`11020`、`20005` 等）。
+- **说明**：仅更新用户自身字段。对于 `role=2/3`，写入 `hourly_rate` 或 `available_status` 时会在同一事务内同步到用户的 **主团队**（`teams` 表），保证两侧数据一致（若主团队不存在则仅更新用户表）。团队创建请使用 `POST /api/v1/teams`（见 [10.7 创建团队](13-team.md#107-post-apiv1teams--创建团队)）。
 
 ### 2.3 专家提交入驻材料（进入人工审核）
 - **POST** `/api/v1/users/me/onboarding/application`

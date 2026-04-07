@@ -22,6 +22,8 @@ TEST_NEW_APIS = False
 TOKEN = None
 REFRESH_TOKEN = None
 USER_ID = None
+# 主账号登录手机号（§7 第二用户须不同号，避免撞号导致同用户投标 30002）
+LOGIN_PHONE = None
 TOKEN2 = None
 USER2_ID = None
 USER2_NICKNAME = None

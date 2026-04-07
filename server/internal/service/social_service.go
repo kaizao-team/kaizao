@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,9 +30,9 @@ func NewReviewService(repos *repository.Repositories, log *zap.Logger) *ReviewSe
 }
 
 type CreateReviewReq struct {
-	ProjectUUID  string
-	ReviewerUUID string
-	RevieweeUUID string
+	ProjectUUID   string
+	ReviewerUUID  string
+	RevieweeUUID  string
 	OverallRating float64
 	Dimensions    []map[string]interface{}
 	Comment       string
@@ -108,18 +109,18 @@ func NewTeamService(repos *repository.Repositories, store *objectstore.Client, l
 }
 
 type TeamPostItem struct {
-	ID             string                   `json:"id"`
-	ProjectName    string                   `json:"project_name"`
-	ProjectID      string                   `json:"project_id"`
-	Creator        map[string]interface{}   `json:"creator"`
-	NeededRoles    []map[string]interface{} `json:"needed_roles"`
-	Description    string                   `json:"description"`
-	FilledCount    int                      `json:"filled_count"`
-	TotalCount     int                      `json:"total_count"`
-	IsAIRecommended bool                   `json:"is_ai_recommended"`
-	MatchScore     int                      `json:"match_score"`
-	Status         string                   `json:"status"`
-	CreatedAt      time.Time                `json:"created_at"`
+	ID              string                   `json:"id"`
+	ProjectName     string                   `json:"project_name"`
+	ProjectID       string                   `json:"project_id"`
+	Creator         map[string]interface{}   `json:"creator"`
+	NeededRoles     []map[string]interface{} `json:"needed_roles"`
+	Description     string                   `json:"description"`
+	FilledCount     int                      `json:"filled_count"`
+	TotalCount      int                      `json:"total_count"`
+	IsAIRecommended bool                     `json:"is_ai_recommended"`
+	MatchScore      int                      `json:"match_score"`
+	Status          string                   `json:"status"`
+	CreatedAt       time.Time                `json:"created_at"`
 }
 
 func (s *TeamService) ListTeamPosts(role string) (map[string]interface{}, error) {
@@ -185,6 +186,82 @@ func (s *TeamService) CreatePost(authorUUID, projectName, description string, ne
 
 func (s *TeamService) GetDetail(teamUUID string) (*model.Team, error) {
 	return s.repos.Team.FindByUUID(teamUUID)
+}
+
+// CreateTeam 创建团队，当前用户为队长。
+// role 非 2/3 时自动提升为专家（role=2）；已有主团队则拒绝。
+// 唯一性检查在事务内执行，避免并发重复创建。
+func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *float64, availableStatus *int, budgetMin, budgetMax *float64, description *string) (*model.Team, error) {
+	u, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	if budgetMin != nil && budgetMax != nil && *budgetMax < *budgetMin {
+		return nil, fmt.Errorf("%d", errcode.ErrBudgetRangeInvalid)
+	}
+
+	needRoleUpgrade := u.Role != 2 && u.Role != 3 && u.Role < 9
+
+	teamName := ""
+	if name != nil && strings.TrimSpace(*name) != "" {
+		teamName = truncateRunes(strings.TrimSpace(*name), 100)
+	} else {
+		base := strings.TrimSpace(u.Nickname)
+		if base == "" {
+			base = "用户"
+		}
+		teamName = truncateRunes(base+"的团队", 100)
+	}
+
+	avail := int16(1)
+	if availableStatus != nil {
+		avail = int16(*availableStatus)
+	}
+
+	t := &model.Team{
+		Name:            teamName,
+		LeaderID:        u.ID,
+		AvatarURL:       u.AvatarURL,
+		TeamType:        1,
+		SkillsCoverage:  model.JSON([]byte("[]")),
+		MemberCount:     1,
+		Status:          1,
+		HourlyRate:      hourlyRate,
+		AvailableStatus: avail,
+		BudgetMin:       budgetMin,
+		BudgetMax:       budgetMax,
+	}
+	if description != nil {
+		t.Description = description
+	}
+
+	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		txRepos := repository.NewRepositories(tx)
+		existing, _ := txRepos.Team.FindPrimaryTeamForUser(u.ID)
+		if existing != nil {
+			return fmt.Errorf("%d", errcode.ErrTeamAlreadyExists)
+		}
+		if needRoleUpgrade {
+			if err := txRepos.User.UpdateFields(u.ID, map[string]interface{}{"role": 2}); err != nil {
+				return err
+			}
+		}
+		if err := txRepos.Team.Create(t); err != nil {
+			return err
+		}
+		member := &model.TeamMember{
+			TeamID:     t.ID,
+			UserID:     u.ID,
+			RoleInTeam: "队长",
+			SplitRatio: 100,
+			Status:     1,
+		}
+		return txRepos.Team.CreateMember(member)
+	}); err != nil {
+		return nil, err
+	}
+
+	return t, nil
 }
 
 // LeaderSkillNames returns the skill display names for the given leader user ID.

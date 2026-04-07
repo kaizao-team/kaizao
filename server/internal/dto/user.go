@@ -11,9 +11,16 @@ type UpdateUserReq struct {
 	Role            *int     `json:"role" binding:"omitempty,oneof=1 2 3"`
 	HourlyRate      *float64 `json:"hourly_rate" binding:"omitempty,min=0"`
 	AvailableStatus *int     `json:"available_status" binding:"omitempty,oneof=1 2 3"`
-	// 团队接单预算区间（元），仅存主团队；见 PUT /users/me 说明
-	BudgetMin *float64 `json:"budget_min" binding:"omitempty,min=0"`
-	BudgetMax *float64 `json:"budget_max" binding:"omitempty,min=0"`
+}
+
+// CreateTeamReq 创建团队请求（当前登录用户为队长）
+type CreateTeamReq struct {
+	Name            *string  `json:"name" binding:"omitempty,max=100"`
+	HourlyRate      *float64 `json:"hourly_rate" binding:"omitempty,min=0"`
+	AvailableStatus *int     `json:"available_status" binding:"omitempty,oneof=1 2 3"`
+	BudgetMin       *float64 `json:"budget_min" binding:"omitempty,min=0"`
+	BudgetMax       *float64 `json:"budget_max" binding:"omitempty,min=0"`
+	Description     *string  `json:"description" binding:"omitempty"`
 }
 
 // UpdateSkillsReq 更新技能列表请求
@@ -55,8 +62,8 @@ type CreatePortfolioReq struct {
 
 // UpdatePortfolioReq 更新作品请求（仅非空字段写入；tech_stack/images 传 null 表示不更新）
 type UpdatePortfolioReq struct {
-	Title        *string      `json:"title" binding:"omitempty,max=200"`
-	Description  *string      `json:"description"`
+	Title       *string `json:"title" binding:"omitempty,max=200"`
+	Description *string `json:"description"`
 	// 若传 category 则不可为空字符串，且须为 Handler 中枚举之一
 	Category     *string      `json:"category" binding:"omitempty"`
 	CoverURL     *string      `json:"cover_url"`

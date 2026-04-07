@@ -1,4 +1,4 @@
-"""12. v7: 组队 + 12b. 团队详情字段验证 + 13. v7: 评价"""
+"""12. v7: 组队 + 12a. POST /teams 创建团队 + 12b. 团队详情字段验证 + 13. v7: 评价"""
 
 from . import state
 from .helpers import req, test, cf
@@ -6,6 +6,62 @@ from .helpers import req, test, cf
 
 def run():
     print("\n--- 12. v7: 组队模块 ---")
+
+    # ==================== 12a. POST /api/v1/teams 创建团队（任意角色均可，自动提升 role） ====================
+    print("\n--- 12a. POST /teams 创建团队 ---")
+
+    # 非法预算区间 (20005)
+    test(
+        "12a.1 POST /teams (invalid budget -> 20005)",
+        "POST",
+        "/api/v1/teams",
+        {"budget_min": 10000.0, "budget_max": 1000.0},
+        expect_code=20005,
+        expect_http=400,
+    )
+
+    # 正常创建（任意角色）。同一次跑测中 2.2h 可能已建主团队 → 11021 亦为预期，勿用 test(..., expect_code=0)
+    st_ct, r_ct = req(
+        "POST",
+        "/api/v1/teams",
+        {
+            "name": "集成测试团队",
+            "hourly_rate": 350.0,
+            "available_status": 1,
+            "budget_min": 5000.0,
+            "budget_max": 20000.0,
+            "description": "集成测试自动创建",
+        },
+    )
+    code_ct = r_ct.get("code", -1)
+    ok_12a2 = code_ct in (0, 11021)
+    icon = "PASS" if ok_12a2 else "FAIL"
+    print(f"  [{icon}] 12a.2 POST /teams (create) -> HTTP {st_ct}, code={code_ct}")
+    if not ok_12a2:
+        print(
+            f"         Expected code=0 or 11021, got code={code_ct}, HTTP={st_ct}, "
+            f"msg={r_ct.get('message', '')}"
+        )
+    state.RESULTS.append(("12a.2 POST /teams (create)", ok_12a2, st_ct, code_ct))
+    if code_ct == 0 and isinstance(r_ct.get("data"), dict):
+        created_uuid = r_ct["data"].get("uuid")
+        created_name = r_ct["data"].get("name")
+        print(f"         created team uuid={created_uuid!r}, name={created_name!r}")
+        if not state.EXPERT_TEAM_UUID:
+            state.EXPERT_TEAM_UUID = created_uuid
+    elif code_ct == 11021:
+        print("         已有主团队，跳过创建（11021）（常与 2.2h 同跑测已建队）")
+
+    # 重复创建应返回 11021
+    test(
+        "12a.3 POST /teams (duplicate -> 11021)",
+        "POST",
+        "/api/v1/teams",
+        {},
+        expect_code=11021,
+        expect_http=400,
+    )
+
     ok, r = test("12.1 GET /teams (list)", "GET", "/api/v1/teams", need_auth=False)
     if ok and r.get("data"):
         cf(r["data"], ["ai_recommended", "posts"])
