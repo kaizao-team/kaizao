@@ -133,11 +133,13 @@ type Notification struct {
 	ID               int64      `gorm:"primaryKey;autoIncrement" json:"id"`
 	UUID             string     `gorm:"type:varchar(36);not null;uniqueIndex" json:"uuid"`
 	UserID           int64      `gorm:"not null;index" json:"user_id"`
+	SourceRole       *string    `gorm:"type:varchar(20)" json:"source_role,omitempty"`
 	Title            string     `gorm:"type:varchar(200);not null" json:"title"`
 	Content          string     `gorm:"type:text;not null" json:"content"`
 	NotificationType int16      `gorm:"not null;index" json:"notification_type"`
 	TargetType       *string    `gorm:"type:varchar(50)" json:"target_type,omitempty"`
 	TargetID         *int64     `json:"target_id,omitempty"`
+	TargetUUID       *string    `gorm:"type:varchar(36)" json:"target_uuid,omitempty"`
 	IsRead           bool       `gorm:"not null;default:false" json:"is_read"`
 	IsPushed         bool       `gorm:"not null;default:false" json:"is_pushed"`
 	PushResult       *string    `gorm:"type:varchar(200)" json:"push_result,omitempty"`
@@ -155,6 +157,7 @@ const (
 	NotificationTypePayReminder        int16 = 21 // 待支付提醒
 	NotificationTypeMilestoneDelivered int16 = 22 // 里程碑待验收
 	NotificationTypeNewBid             int16 = 23 // 收到新投标
+	NotificationTypeProjectPublished   int16 = 24 // 项目已发布
 )
 
 func (n *Notification) BeforeCreate(tx *gorm.DB) error {

@@ -23,16 +23,16 @@ logger = structlog.get_logger()
 
 # vc-T 序列 10 级等级映射表
 VIBE_LEVELS = [
-    {"name": "vc-T1",  "icon": "🌟", "min": 0,    "max": 99,     "weight": 1.00},
-    {"name": "vc-T2",  "icon": "🚀", "min": 100,  "max": 199,    "weight": 1.05},
-    {"name": "vc-T3",  "icon": "💪", "min": 200,  "max": 349,    "weight": 1.10},
-    {"name": "vc-T4",  "icon": "🔥", "min": 350,  "max": 549,    "weight": 1.20},
-    {"name": "vc-T5",  "icon": "⭐", "min": 550,  "max": 749,    "weight": 1.35},
-    {"name": "vc-T6",  "icon": "💎", "min": 750,  "max": 949,    "weight": 1.50},
-    {"name": "vc-T7",  "icon": "🏆", "min": 950,  "max": 1199,   "weight": 1.70},
-    {"name": "vc-T8",  "icon": "👑", "min": 1200, "max": 1499,   "weight": 1.90},
-    {"name": "vc-T9",  "icon": "🌍", "min": 1500, "max": 1899,   "weight": 2.20},
-    {"name": "vc-T10", "icon": "🏛️", "min": 1900, "max": 999999, "weight": 2.50},
+    {"name": "vc-T1",  "label": "初启", "icon": "🌟", "min": 0,    "max": 99,     "weight": 1.00},
+    {"name": "vc-T2",  "label": "胜任", "icon": "🚀", "min": 100,  "max": 199,    "weight": 1.05},
+    {"name": "vc-T3",  "label": "熟练", "icon": "💪", "min": 200,  "max": 349,    "weight": 1.10},
+    {"name": "vc-T4",  "label": "出众", "icon": "🔥", "min": 350,  "max": 549,    "weight": 1.20},
+    {"name": "vc-T5",  "label": "资深", "icon": "⭐", "min": 550,  "max": 749,    "weight": 1.35},
+    {"name": "vc-T6",  "label": "卓越", "icon": "💎", "min": 750,  "max": 949,    "weight": 1.50},
+    {"name": "vc-T7",  "label": "杰出", "icon": "🏆", "min": 950,  "max": 1199,   "weight": 1.70},
+    {"name": "vc-T8",  "label": "非凡", "icon": "👑", "min": 1200, "max": 1499,   "weight": 1.90},
+    {"name": "vc-T9",  "label": "登峰", "icon": "🌍", "min": 1500, "max": 1899,   "weight": 2.20},
+    {"name": "vc-T10", "label": "传奇", "icon": "🏛️", "min": 1900, "max": 999999, "weight": 2.50},
 ]
 
 # 维度权重（×7.5 满分 750）

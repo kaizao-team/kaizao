@@ -133,14 +133,18 @@ func (s *BidService) Create(bidderUUID, projectUUID string, amount float64, dura
 	}
 	targetType := "project"
 	tid := project.ID
+	sourceRole := "provider"
+	projectUUIDStr := project.UUID
 	content := formatNewBidNotificationContent(bidder.Nickname, project.Title, amount)
 	n := &model.Notification{
 		UserID:           project.OwnerID,
+		SourceRole:       &sourceRole,
 		Title:            "收到新投标",
 		Content:          content,
 		NotificationType: model.NotificationTypeNewBid,
 		TargetType:       &targetType,
 		TargetID:         &tid,
+		TargetUUID:       &projectUUIDStr,
 	}
 
 	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
@@ -227,17 +231,21 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 	expertPhone := displayPhoneForNotify(providerUser)
 	targetType := "project"
 	tid := project.ID
+	acceptSourceRole := "demander"
+	acceptTargetUUID := project.UUID
 	contentDemander := fmt.Sprintf(
 		"已有团队/专家撮合成功，我们将尽快接洽。项目「%s」。对方联系电话：%s",
 		projectTitle, expertPhone,
 	)
 	nDemander := &model.Notification{
 		UserID:           project.OwnerID,
+		SourceRole:       &acceptSourceRole,
 		Title:            "撮合成功",
 		Content:          contentDemander,
 		NotificationType: model.NotificationTypeMatchSuccess,
 		TargetType:       &targetType,
 		TargetID:         &tid,
+		TargetUUID:       &acceptTargetUUID,
 	}
 	contentExpert := fmt.Sprintf(
 		"您已被选定为「%s」的服务方，请尽快联系需求方沟通详情。需求方联系电话：%s",
@@ -245,11 +253,13 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 	)
 	nExpert := &model.Notification{
 		UserID:           providerID,
+		SourceRole:       &acceptSourceRole,
 		Title:            "恭喜被选定",
 		Content:          contentExpert,
 		NotificationType: model.NotificationTypeMatchSuccess,
 		TargetType:       &targetType,
 		TargetID:         &tid,
+		TargetUUID:       &acceptTargetUUID,
 	}
 
 	var createdPayOrd *model.Order
