@@ -99,9 +99,15 @@ jobs:
 
       - name: Switch Xcode signing to Manual for CI
         if: github.event_name != 'pull_request'
+        env:
+          PROVISION_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' \
-            app/ios/Runner.xcodeproj/project.pbxproj
+          PBXPROJ="app/ios/Runner.xcodeproj/project.pbxproj"
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' "$PBXPROJ"
+          sed -i '' "s/DEVELOPMENT_TEAM = $TEAM_ID;/DEVELOPMENT_TEAM = $TEAM_ID; PROVISIONING_PROFILE_SPECIFIER = \"$PROVISION_PROFILE_NAME\";/g" "$PBXPROJ"
+          sed -i '' 's/CODE_SIGN_IDENTITY = "Apple Development"/CODE_SIGN_IDENTITY = "iPhone Distribution"/g' "$PBXPROJ"
+          grep -c "CODE_SIGN_STYLE = Manual" "$PBXPROJ" && echo "✅ Signing switched to Manual"
 
       - name: Build iOS (Release - no codesign for PR)
         if: github.event_name == 'pull_request'

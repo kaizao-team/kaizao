@@ -8,3 +8,6 @@
 
 # Keep Dart FFI
 -keep class * extends io.flutter.embedding.engine.plugins.FlutterPlugin { *; }
+
+# Google Play Core (referenced by Flutter engine for deferred components)
+-dontwarn com.google.android.play.core.**
