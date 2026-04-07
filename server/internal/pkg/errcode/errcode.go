@@ -159,6 +159,13 @@ const (
 	ErrAdminTargetNotFound    = 90002
 	ErrCannotFreezeSuperAdmin = 90003
 	ErrAuditActionInvalid     = 90004
+	ErrAdminUserFrozen        = 90005
+	ErrAdminProjectNotFound   = 90006
+	ErrAdminReportNotFound    = 90007
+	ErrAdminArbitrationNotFound = 90008
+	ErrAdminOrderNotFound     = 90009
+	ErrAdminReviewNotFound    = 90010
+	ErrAdminInvalidAction     = 90011
 )
 
 // 通用模块 99001-99999
@@ -244,8 +251,18 @@ var ErrorMessages = map[int]string{
 	ErrReviewDuplicate:      "重复评价",
 	ErrRatingOutOfRange:     "评分范围须为1-5",
 	ErrAIServiceUnavailable: "AI服务暂不可用",
-	ErrNoAdminPermission:    "无管理员权限",
-	ErrParamInvalid:         "参数错误",
+	ErrNoAdminPermission:        "无管理员权限",
+	ErrAdminTargetNotFound:      "目标不存在",
+	ErrCannotFreezeSuperAdmin:   "不可冻结超级管理员",
+	ErrAuditActionInvalid:       "审核操作无效",
+	ErrAdminUserFrozen:          "用户已被冻结",
+	ErrAdminProjectNotFound:     "项目不存在",
+	ErrAdminReportNotFound:      "举报记录不存在",
+	ErrAdminArbitrationNotFound: "仲裁记录不存在",
+	ErrAdminOrderNotFound:       "订单不存在",
+	ErrAdminReviewNotFound:      "评价不存在",
+	ErrAdminInvalidAction:       "无效的操作类型",
+	ErrParamInvalid:              "参数错误",
 	ErrNotificationNotFound: "通知不存在",
 	ErrNotificationAlreadyRead: "通知已读",
 }

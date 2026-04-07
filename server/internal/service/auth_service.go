@@ -48,6 +48,7 @@ type Services struct {
 	Notification *NotificationService
 	Upload       *UploadService
 	ProjectFile  *ProjectFileService
+	Admin        *AdminService
 	JWT          *jwtpkg.Manager
 	Repos        *repository.Repositories
 }
@@ -88,6 +89,7 @@ func NewServices(repos *repository.Repositories, rdb *redis.Client, cfg *config.
 		Notification: NewNotificationService(repos, log),
 		Upload:       uploadSvc,
 		ProjectFile:  projectFileSvc,
+		Admin:        NewAdminService(repos, log),
 		JWT:          jwtManager,
 		Repos:        repos,
 	}

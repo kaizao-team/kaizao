@@ -240,19 +240,36 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	// ==================== 管理后台模块 ====================
 	admin := v1.Group("/admin", middleware.JWTAuth(services.JWT), middleware.AdminAuth(services))
 	{
+		// 邀请码
 		admin.GET("/teams/:uuid/current-invite-code", handlers.Admin.GetTeamCurrentInviteCode)
 		admin.POST("/invite-codes", handlers.Admin.CreateInviteCode)
 		admin.GET("/invite-codes", handlers.Admin.ListInviteCodes)
+		// 用户管理
 		admin.PUT("/users/:uuid/onboarding", handlers.Admin.UpdateUserOnboarding)
-		admin.GET("/users", placeholder)
-		admin.PUT("/users/:uuid/status", placeholder)
-		admin.GET("/reports", placeholder)
-		admin.PUT("/reports/:uuid", placeholder)
-		admin.GET("/arbitrations", placeholder)
-		admin.PUT("/arbitrations/:uuid", placeholder)
-		admin.GET("/projects", placeholder)
-		admin.PUT("/projects/:uuid/review", placeholder)
-		admin.GET("/dashboard", placeholder)
+		admin.GET("/users", handlers.Admin.ListUsers)
+		admin.GET("/users/:uuid", handlers.Admin.GetUserDetail)
+		admin.GET("/users/:uuid/skills", handlers.Admin.GetUserSkills)
+		admin.GET("/users/:uuid/portfolios", handlers.Admin.GetUserPortfolios)
+		admin.PUT("/users/:uuid/status", handlers.Admin.UpdateUserStatus)
+		// 项目管理
+		admin.GET("/projects", handlers.Admin.ListProjects)
+		admin.PUT("/projects/:uuid/review", handlers.Admin.ReviewProject)
+		// Dashboard
+		admin.GET("/dashboard", handlers.Admin.GetDashboard)
+		// 举报
+		admin.GET("/reports", handlers.Admin.ListReports)
+		admin.PUT("/reports/:uuid", handlers.Admin.HandleReport)
+		// 仲裁
+		admin.GET("/arbitrations", handlers.Admin.ListArbitrations)
+		admin.PUT("/arbitrations/:uuid", handlers.Admin.HandleArbitration)
+		// 订单/财务
+		admin.GET("/orders", handlers.Admin.ListOrders)
+		admin.GET("/orders/:id", handlers.Admin.GetOrderDetail)
+		admin.GET("/finance/summary", handlers.Admin.GetFinanceSummary)
+		admin.GET("/withdrawals", handlers.Admin.ListWithdrawals)
+		// 评价管理
+		admin.GET("/reviews", handlers.Admin.ListReviews)
+		admin.PUT("/reviews/:uuid/status", handlers.Admin.UpdateReviewStatus)
 	}
 
 	// ==================== AI服务模块 ====================
