@@ -20,9 +20,8 @@ def run():
         expect_http=400,
     )
 
-    # 正常创建（任意角色；可能已有主团队 11021，两种结果都可接受）
-    ok_ct, r_ct = test(
-        "12a.2 POST /teams (create)",
+    # 正常创建（任意角色）。同一次跑测中 2.2h 可能已建主团队 → 11021 亦为预期，勿用 test(..., expect_code=0)
+    st_ct, r_ct = req(
         "POST",
         "/api/v1/teams",
         {
@@ -34,15 +33,24 @@ def run():
             "description": "集成测试自动创建",
         },
     )
-    if ok_ct and isinstance(r_ct.get("data"), dict):
+    code_ct = r_ct.get("code", -1)
+    ok_12a2 = code_ct in (0, 11021)
+    icon = "PASS" if ok_12a2 else "FAIL"
+    print(f"  [{icon}] 12a.2 POST /teams (create) -> HTTP {st_ct}, code={code_ct}")
+    if not ok_12a2:
+        print(
+            f"         Expected code=0 or 11021, got code={code_ct}, HTTP={st_ct}, "
+            f"msg={r_ct.get('message', '')}"
+        )
+    state.RESULTS.append(("12a.2 POST /teams (create)", ok_12a2, st_ct, code_ct))
+    if code_ct == 0 and isinstance(r_ct.get("data"), dict):
         created_uuid = r_ct["data"].get("uuid")
         created_name = r_ct["data"].get("name")
         print(f"         created team uuid={created_uuid!r}, name={created_name!r}")
         if not state.EXPERT_TEAM_UUID:
             state.EXPERT_TEAM_UUID = created_uuid
-    elif r_ct.get("code") == 11021:
-        print("         已有主团队，跳过创建（11021）")
-        state.RESULTS.append(("12a.2 POST /teams (already exists)", True, 400, 11021))
+    elif code_ct == 11021:
+        print("         已有主团队，跳过创建（11021）（常与 2.2h 同跑测已建队）")
 
     # 重复创建应返回 11021
     test(
