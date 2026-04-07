@@ -145,7 +145,7 @@ func (h *TeamHandler) CreateTeam(c *gin.Context) {
 	userUUID := c.GetString("user_uuid")
 
 	var req dto.CreateTeamReq
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil && c.Request.ContentLength > 0 {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
 		return
 	}

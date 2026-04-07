@@ -85,24 +85,17 @@ def run():
     test("2.2f2 PUT /users/me (restore available_status)", "PUT", "/api/v1/users/me",
          {"available_status": 1})
 
-    # 2.2h PUT role=2 + POST /teams 创建团队 + hourly 同步主团队
+    # 2.2h POST /teams 创建团队（自动提升 role）+ hourly 同步主团队
     # （仅当前 role=1，避免覆盖 Docker 提权等非需求方账号）
     st_h0, r_h0 = req("GET", "/api/v1/users/me")
     role_h0 = (r_h0.get("data") or {}).get("role") if isinstance(r_h0.get("data"), dict) else None
     if role_h0 != 1:
-        print(f"  [SKIP] 2.2h PUT role=2 + 创建团队（当前 role={role_h0}，非 1 则跳过）")
+        print(f"  [SKIP] 2.2h 创建团队（当前 role={role_h0}，非 1 则跳过）")
         state.RESULTS.append(("2.2h create team (skipped)", True, st_h0, 0))
     else:
-        ok_h, _ = test("2.2h1 PUT /users/me (role=2)", "PUT", "/api/v1/users/me", {"role": 2})
-        st_h1, r_h1 = req("GET", "/api/v1/users/me")
-        rh1 = (r_h1.get("data") or {}).get("role") if isinstance(r_h1.get("data"), dict) else None
-        role_ok = rh1 == 2 and ok_h
-        print(f"  [{'PASS' if role_ok else 'FAIL'}] 2.2h2 GET /users/me role after switch -> {rh1!r}")
-        state.RESULTS.append(("2.2h role=2 roundtrip", role_ok, st_h1, r_h1.get("code", -1)))
-
-        # POST /teams 创建团队（原 UpdateMe 自动建队逻辑已拆分）
+        # POST /teams 会自动将 role=1 提升为 role=2
         ok_ct, r_ct = test(
-            "2.2h3 POST /teams (create team)",
+            "2.2h1 POST /teams (create team, auto role upgrade)",
             "POST",
             "/api/v1/teams",
             {"hourly_rate": 199.0, "available_status": 2, "budget_min": 3000.0, "budget_max": 12000.0},
@@ -112,11 +105,18 @@ def run():
             ct_uuid = r_ct["data"].get("uuid")
             ct_name = r_ct["data"].get("name")
             print(f"         team uuid={ct_uuid!r}, name={ct_name!r}")
-        state.RESULTS.append(("2.2h3 POST /teams create", ok_ct, 200 if ok_ct else 400, r_ct.get("code", -1)))
+        state.RESULTS.append(("2.2h1 POST /teams create", ok_ct, 200 if ok_ct else 400, r_ct.get("code", -1)))
+
+        # 验证 role 已自动提升为 2
+        st_h1, r_h1 = req("GET", "/api/v1/users/me")
+        rh1 = (r_h1.get("data") or {}).get("role") if isinstance(r_h1.get("data"), dict) else None
+        role_ok = rh1 == 2
+        print(f"  [{'PASS' if role_ok else 'FAIL'}] 2.2h2 GET /users/me role auto-upgraded -> {rh1!r} (expect 2)")
+        state.RESULTS.append(("2.2h2 role auto-upgrade to 2", role_ok, st_h1, r_h1.get("code", -1)))
 
         # 重复创建应失败 (11021)
         test(
-            "2.2h3b POST /teams (duplicate -> 11021)",
+            "2.2h3 POST /teams (duplicate -> 11021)",
             "POST",
             "/api/v1/teams",
             {},

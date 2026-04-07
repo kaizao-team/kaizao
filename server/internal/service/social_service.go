@@ -30,9 +30,9 @@ func NewReviewService(repos *repository.Repositories, log *zap.Logger) *ReviewSe
 }
 
 type CreateReviewReq struct {
-	ProjectUUID  string
-	ReviewerUUID string
-	RevieweeUUID string
+	ProjectUUID   string
+	ReviewerUUID  string
+	RevieweeUUID  string
 	OverallRating float64
 	Dimensions    []map[string]interface{}
 	Comment       string
@@ -109,18 +109,18 @@ func NewTeamService(repos *repository.Repositories, store *objectstore.Client, l
 }
 
 type TeamPostItem struct {
-	ID             string                   `json:"id"`
-	ProjectName    string                   `json:"project_name"`
-	ProjectID      string                   `json:"project_id"`
-	Creator        map[string]interface{}   `json:"creator"`
-	NeededRoles    []map[string]interface{} `json:"needed_roles"`
-	Description    string                   `json:"description"`
-	FilledCount    int                      `json:"filled_count"`
-	TotalCount     int                      `json:"total_count"`
-	IsAIRecommended bool                   `json:"is_ai_recommended"`
-	MatchScore     int                      `json:"match_score"`
-	Status         string                   `json:"status"`
-	CreatedAt      time.Time                `json:"created_at"`
+	ID              string                   `json:"id"`
+	ProjectName     string                   `json:"project_name"`
+	ProjectID       string                   `json:"project_id"`
+	Creator         map[string]interface{}   `json:"creator"`
+	NeededRoles     []map[string]interface{} `json:"needed_roles"`
+	Description     string                   `json:"description"`
+	FilledCount     int                      `json:"filled_count"`
+	TotalCount      int                      `json:"total_count"`
+	IsAIRecommended bool                     `json:"is_ai_recommended"`
+	MatchScore      int                      `json:"match_score"`
+	Status          string                   `json:"status"`
+	CreatedAt       time.Time                `json:"created_at"`
 }
 
 func (s *TeamService) ListTeamPosts(role string) (map[string]interface{}, error) {
@@ -188,14 +188,12 @@ func (s *TeamService) GetDetail(teamUUID string) (*model.Team, error) {
 	return s.repos.Team.FindByUUID(teamUUID)
 }
 
-// CreateTeam 创建团队，当前用户为队长；role 须为 2/3 且无已有主团队。
+// CreateTeam 创建团队，当前用户为队长。
+// role 非 2/3 时自动提升为专家（role=2）；已有主团队则拒绝。
 func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *float64, availableStatus *int, budgetMin, budgetMax *float64, description *string) (*model.Team, error) {
 	u, err := s.repos.User.FindByUUID(userUUID)
 	if err != nil {
 		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
-	}
-	if u.Role != 2 && u.Role != 3 {
-		return nil, fmt.Errorf("%d", errcode.ErrTeamCreateRoleInvalid)
 	}
 	existing, _ := s.repos.Team.FindPrimaryTeamForUser(u.ID)
 	if existing != nil {
@@ -204,6 +202,8 @@ func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *floa
 	if budgetMin != nil && budgetMax != nil && *budgetMax < *budgetMin {
 		return nil, fmt.Errorf("%d", errcode.ErrBudgetRangeInvalid)
 	}
+
+	needRoleUpgrade := u.Role != 2 && u.Role != 3 && u.Role < 9
 
 	teamName := ""
 	if name != nil && strings.TrimSpace(*name) != "" {
@@ -240,6 +240,11 @@ func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *floa
 
 	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
 		txRepos := repository.NewRepositories(tx)
+		if needRoleUpgrade {
+			if err := txRepos.User.UpdateFields(u.ID, map[string]interface{}{"role": 2}); err != nil {
+				return err
+			}
+		}
 		if err := txRepos.Team.Create(t); err != nil {
 			return err
 		}

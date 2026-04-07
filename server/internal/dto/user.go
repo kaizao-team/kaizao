@@ -62,8 +62,8 @@ type CreatePortfolioReq struct {
 
 // UpdatePortfolioReq 更新作品请求（仅非空字段写入；tech_stack/images 传 null 表示不更新）
 type UpdatePortfolioReq struct {
-	Title        *string      `json:"title" binding:"omitempty,max=200"`
-	Description  *string      `json:"description"`
+	Title       *string `json:"title" binding:"omitempty,max=200"`
+	Description *string `json:"description"`
 	// 若传 category 则不可为空字符串，且须为 Handler 中枚举之一
 	Category     *string      `json:"category" binding:"omitempty"`
 	CoverURL     *string      `json:"cover_url"`

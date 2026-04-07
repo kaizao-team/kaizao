@@ -1,6 +1,6 @@
 # Kaizao API v2 测试报告
 
-- **测试时间**: 2026-04-07 20:27:03
+- **测试时间**: 2026-04-07 21:29:43
 - **服务地址**: http://127.0.0.1:39527
 - **总计**: 200 | **通过**: 200 | **失败**: 0
 
@@ -192,9 +192,9 @@
 | 182 | 11b.7 unread_count after read-all | PASS | 200 | 0 |
 | 183 | 11b.8 PUT /notifications/:uuid/read (idempotent) | PASS | 200 | 0 |
 | 184 | 11b.8 mark read idempotent | PASS | 200 | 0 |
-| 185 | 12a.1 POST /teams role=1 reject (skipped) | PASS | 0 | 0 |
-| 186 | 12a.2 POST /teams invalid budget (skipped) | PASS | 0 | 0 |
-| 187 | 12a.3 POST /teams (skipped non-expert) | PASS | 0 | 0 |
+| 185 | 12a.1 POST /teams (invalid budget -> 20005) | PASS | 400 | 20005 |
+| 186 | 12a.2 POST /teams (create) | PASS | 200 | 0 |
+| 187 | 12a.3 POST /teams (duplicate -> 11021) | PASS | 400 | 11021 |
 | 188 | 12.1 GET /teams (list) | PASS | 200 | 0 |
 | 189 | 12.2 POST /team-posts (create) | PASS | 200 | 0 |
 | 190 | 12b.1 GET /teams/:uuid (detail) | PASS | 200 | 0 |
@@ -210,4 +210,4 @@
 | 200 | 14.3 PUT /projects/:id/close (matched project) | PASS | 400 | 20002 |
 
 ---
-*Generated at 2026-04-07T20:27:03.071509*
+*Generated at 2026-04-07T21:29:43.721102*

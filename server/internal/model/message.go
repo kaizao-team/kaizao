@@ -286,7 +286,7 @@ type Team struct {
 	ReviewTags       JSON     `gorm:"type:json" json:"review_tags,omitempty"`
 	ScoreTechDepth   int      `gorm:"not null;default:0" json:"score_tech_depth"`
 	ScoreProjectExp  int      `gorm:"not null;default:0" json:"score_project_exp"`
-	ScoreAIProficiency int    `gorm:"not null;default:0" json:"score_ai_proficiency"`
+	ScoreAIProficiency int    `gorm:"column:score_ai_proficiency;not null;default:0" json:"score_ai_proficiency"`
 	ScorePortfolio   int      `gorm:"not null;default:0" json:"score_portfolio"`
 	ScoreBackground  int      `gorm:"not null;default:0" json:"score_background"`
 
