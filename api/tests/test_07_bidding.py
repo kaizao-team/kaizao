@@ -9,8 +9,12 @@ from .helpers import cf, gen_phone, get_sms_code, mysql_scalar, req, test
 def run():
     print("\n--- 7. Phase 4: 投标/撮合 ---")
 
-    # 创建第二个用户来投标
+    # 创建第二个用户来投标（须与主账号手机号不同，避免撞号登录成同一人 -> 30002）
     phone2 = gen_phone()
+    for _ in range(30):
+        if phone2 != (state.LOGIN_PHONE or ""):
+            break
+        phone2 = gen_phone()
     test(
         "7.0a sms-code (user2)",
         "POST",

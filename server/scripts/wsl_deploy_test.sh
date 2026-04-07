@@ -98,19 +98,13 @@ fi
 echo "=== (re)start server now that MySQL is ready ==="
 compose up -d server
 
-echo "=== wait health ==="
-for i in $(seq 1 60); do
-  if curl -sf "${BASE}/health" >/dev/null; then
-    echo "OK health"
-    break
-  fi
-  if [ "$i" -eq 60 ]; then
-    echo "FATAL: server not healthy on ${BASE}"
-    compose logs --tail=80 server
-    exit 1
-  fi
-  sleep 2
-done
+echo "=== wait health (scripts/wait_health.sh) ==="
+if ! bash "$ROOT/scripts/wait_health.sh" "${BASE}" 60; then
+  echo "FATAL: server not healthy on ${BASE}"
+  compose logs --tail=80 server
+  exit 1
+fi
+echo "OK health"
 
 echo "=== API tests (含 §1.4b api-registry 密码链路、§8.3d 里程碑交付 deliver；可选: RUN_FULL_ONBOARDING=1 / RUN_TEST_NEW_APIS=1) ==="
 python3 -m pip install -q cryptography 2>/dev/null || true

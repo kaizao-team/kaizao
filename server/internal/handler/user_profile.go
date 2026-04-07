@@ -138,7 +138,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "无可更新字段")
 		return
 	}
-	updated, err := h.userService.UpdateProfile(targetUUID, fields, nil)
+	updated, err := h.userService.UpdateProfile(targetUUID, fields)
 	if err != nil {
 		response.ErrorInternal(c, "更新失败")
 		return

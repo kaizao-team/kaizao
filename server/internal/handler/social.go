@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vibebuild/server/internal/dto"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
 	"github.com/vibebuild/server/internal/service"
@@ -136,6 +137,41 @@ func (h *TeamHandler) CreatePost(c *gin.Context) {
 	response.SuccessMsg(c, "寻人帖发布成功", gin.H{
 		"id":     post.UUID,
 		"status": "recruiting",
+	})
+}
+
+// CreateTeam POST /api/v1/teams
+func (h *TeamHandler) CreateTeam(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+
+	var req dto.CreateTeamReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+
+	team, err := h.teamService.CreateTeam(
+		userUUID,
+		req.Name,
+		req.HourlyRate,
+		req.AvailableStatus,
+		req.BudgetMin,
+		req.BudgetMax,
+		req.Description,
+	)
+	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+		} else {
+			response.ErrorInternal(c, "创建团队失败")
+		}
+		return
+	}
+
+	response.SuccessMsg(c, "团队创建成功", gin.H{
+		"uuid": team.UUID,
+		"name": team.Name,
 	})
 }
 

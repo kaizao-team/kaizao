@@ -1,4 +1,4 @@
-"""12. v7: 组队 + 12b. 团队详情字段验证 + 13. v7: 评价"""
+"""12. v7: 组队 + 12a. POST /teams 创建团队 + 12b. 团队详情字段验证 + 13. v7: 评价"""
 
 from . import state
 from .helpers import req, test, cf
@@ -6,6 +6,79 @@ from .helpers import req, test, cf
 
 def run():
     print("\n--- 12. v7: 组队模块 ---")
+
+    # ==================== 12a. POST /api/v1/teams 创建团队 ====================
+    print("\n--- 12a. POST /teams 创建团队 ---")
+    st_me, r_me = req("GET", "/api/v1/users/me")
+    me_role = (r_me.get("data") or {}).get("role") if isinstance(r_me.get("data"), dict) else None
+
+    # 非专家/团队方创建应被拒绝 (11022)
+    if me_role == 1:
+        test(
+            "12a.1 POST /teams (role=1 -> 11022)",
+            "POST",
+            "/api/v1/teams",
+            {"name": "Should Fail"},
+            expect_code=11022,
+            expect_http=400,
+        )
+    else:
+        print(f"  [SKIP] 12a.1 role=1 拒绝测试（当前 role={me_role}）")
+        state.RESULTS.append(("12a.1 POST /teams role=1 reject (skipped)", True, 0, 0))
+
+    # 非法预算区间 (20005)
+    if me_role in (2, 3):
+        test(
+            "12a.2 POST /teams (invalid budget -> 20005)",
+            "POST",
+            "/api/v1/teams",
+            {"budget_min": 10000.0, "budget_max": 1000.0},
+            expect_code=20005,
+            expect_http=400,
+        )
+    else:
+        print(f"  [SKIP] 12a.2 非法预算测试（当前 role={me_role}，需 2/3）")
+        state.RESULTS.append(("12a.2 POST /teams invalid budget (skipped)", True, 0, 0))
+
+    # 正常创建（如果当前 role=2/3 且无主团队）
+    if me_role in (2, 3):
+        ok_ct, r_ct = test(
+            "12a.3 POST /teams (create)",
+            "POST",
+            "/api/v1/teams",
+            {
+                "name": "集成测试团队",
+                "hourly_rate": 350.0,
+                "available_status": 1,
+                "budget_min": 5000.0,
+                "budget_max": 20000.0,
+                "description": "集成测试自动创建",
+            },
+        )
+        # 可能已有主团队 (11021)，两种结果都可接受
+        if ok_ct and isinstance(r_ct.get("data"), dict):
+            created_uuid = r_ct["data"].get("uuid")
+            created_name = r_ct["data"].get("name")
+            print(f"         created team uuid={created_uuid!r}, name={created_name!r}")
+            if not state.EXPERT_TEAM_UUID:
+                state.EXPERT_TEAM_UUID = created_uuid
+        elif r_ct.get("code") == 11021:
+            print("         已有主团队，跳过创建（11021）")
+            state.RESULTS.append(("12a.3 POST /teams (already exists)", True, 400, 11021))
+
+        # 重复创建应返回 11021
+        test(
+            "12a.4 POST /teams (duplicate -> 11021)",
+            "POST",
+            "/api/v1/teams",
+            {},
+            expect_code=11021,
+            expect_http=400,
+        )
+    else:
+        print(f"  [SKIP] 12a.3-4 创建团队（当前 role={me_role}，需 2/3）")
+        state.RESULTS.append(("12a.3 POST /teams (skipped non-expert)", True, 0, 0))
+
     ok, r = test("12.1 GET /teams (list)", "GET", "/api/v1/teams", need_auth=False)
     if ok and r.get("data"):
         cf(r["data"], ["ai_recommended", "posts"])

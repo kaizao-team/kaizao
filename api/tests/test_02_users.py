@@ -85,12 +85,13 @@ def run():
     test("2.2f2 PUT /users/me (restore available_status)", "PUT", "/api/v1/users/me",
          {"available_status": 1})
 
-    # 2.2h PUT role=2 自动建队 + hourly 同步主团队（仅当前 role=1，避免覆盖 Docker 提权等非需求方账号）
+    # 2.2h PUT role=2 + POST /teams 创建团队 + hourly 同步主团队
+    # （仅当前 role=1，避免覆盖 Docker 提权等非需求方账号）
     st_h0, r_h0 = req("GET", "/api/v1/users/me")
     role_h0 = (r_h0.get("data") or {}).get("role") if isinstance(r_h0.get("data"), dict) else None
     if role_h0 != 1:
-        print(f"  [SKIP] 2.2h PUT role=2 建队（当前 role={role_h0}，非 1 则跳过）")
-        state.RESULTS.append(("2.2h auto-create team (skipped)", True, st_h0, 0))
+        print(f"  [SKIP] 2.2h PUT role=2 + 创建团队（当前 role={role_h0}，非 1 则跳过）")
+        state.RESULTS.append(("2.2h create team (skipped)", True, st_h0, 0))
     else:
         ok_h, _ = test("2.2h1 PUT /users/me (role=2)", "PUT", "/api/v1/users/me", {"role": 2})
         st_h1, r_h1 = req("GET", "/api/v1/users/me")
@@ -98,10 +99,36 @@ def run():
         role_ok = rh1 == 2 and ok_h
         print(f"  [{'PASS' if role_ok else 'FAIL'}] 2.2h2 GET /users/me role after switch -> {rh1!r}")
         state.RESULTS.append(("2.2h role=2 roundtrip", role_ok, st_h1, r_h1.get("code", -1)))
-        test_h2 = 199.0
-        test_as2 = 2
+
+        # POST /teams 创建团队（原 UpdateMe 自动建队逻辑已拆分）
+        ok_ct, r_ct = test(
+            "2.2h3 POST /teams (create team)",
+            "POST",
+            "/api/v1/teams",
+            {"hourly_rate": 199.0, "available_status": 2, "budget_min": 3000.0, "budget_max": 12000.0},
+        )
+        ct_uuid = None
+        if ok_ct and isinstance(r_ct.get("data"), dict):
+            ct_uuid = r_ct["data"].get("uuid")
+            ct_name = r_ct["data"].get("name")
+            print(f"         team uuid={ct_uuid!r}, name={ct_name!r}")
+        state.RESULTS.append(("2.2h3 POST /teams create", ok_ct, 200 if ok_ct else 400, r_ct.get("code", -1)))
+
+        # 重复创建应失败 (11021)
         test(
-            "2.2h3 PUT /users/me (hourly_rate after role=2)",
+            "2.2h3b POST /teams (duplicate -> 11021)",
+            "POST",
+            "/api/v1/teams",
+            {},
+            expect_code=11021,
+            expect_http=400,
+        )
+
+        # hourly_rate/available_status 通过 PUT /users/me 同步到已有主团队
+        test_h2 = 299.0
+        test_as2 = 1
+        test(
+            "2.2h4 PUT /users/me (hourly_rate sync to team)",
             "PUT",
             "/api/v1/users/me",
             {"hourly_rate": test_h2, "available_status": test_as2},
@@ -116,49 +143,10 @@ def run():
         except (TypeError, ValueError):
             pass
         print(
-            f"  [{'PASS' if h2_ok else 'FAIL'}] 2.2h4 GET /users/me hourly after team create "
+            f"  [{'PASS' if h2_ok else 'FAIL'}] 2.2h5 GET /users/me hourly after team create "
             f"-> hourly_rate={hb2}, available_status={asb2}"
         )
         state.RESULTS.append(("2.2h hourly after expert team", h2_ok, st_h2, r_h2.get("code", -1)))
-        test("2.2h5 PUT /users/me (restore available_status)", "PUT", "/api/v1/users/me", {"available_status": 1})
-
-    # 2.2g 团队预算区间：仅存主团队；仅 role=2/3 可写（默认登录用户多为需求方则跳过）
-    st_role, r_role = req("GET", "/api/v1/users/me")
-    me_role = (r_role.get("data") or {}).get("role") if isinstance(r_role.get("data"), dict) else None
-    if me_role not in (2, 3):
-        print(
-            f"  [SKIP] 2.2g budget_min/max（当前 role={me_role}，非专家/团队方，跳过 PUT 预算）"
-        )
-        state.RESULTS.append(("2.2g budget (skipped non-expert)", True, st_role, 0))
-    else:
-        test("2.2g PUT /users/me (budget_min+budget_max)", "PUT", "/api/v1/users/me",
-             {"budget_min": 3000.0, "budget_max": 12000.0})
-        st_bg, r_bg = req("GET", "/api/v1/users/me")
-        bg_data = (r_bg.get("data") or {}) if isinstance(r_bg, dict) else {}
-        bmin = bg_data.get("budget_min")
-        bmax = bg_data.get("budget_max")
-        bg_ok = False
-        try:
-            bg_ok = abs(float(bmin or 0) - 3000.0) < 0.01 and abs(float(bmax or 0) - 12000.0) < 0.01
-        except (TypeError, ValueError):
-            pass
-        print(
-            f"  [{'PASS' if bg_ok else 'FAIL'}] 2.2g GET /users/me budget_min/max roundtrip "
-            f"-> budget_min={bmin}, budget_max={bmax}"
-        )
-        state.RESULTS.append(("2.2g budget_min/max roundtrip", bg_ok, st_bg, r_bg.get("code", -1)))
-
-        st_bad, r_bad = req(
-            "PUT",
-            "/api/v1/users/me",
-            {"budget_min": 5000.0, "budget_max": 1000.0},
-        )
-        bad_ok = st_bad == 400 or r_bad.get("code") == 20005
-        print(
-            f"  [{'PASS' if bad_ok else 'FAIL'}] 2.2g PUT invalid budget range (expect 400) "
-            f"-> HTTP {st_bad}, code={r_bad.get('code')}"
-        )
-        state.RESULTS.append(("2.2g invalid budget range", bad_ok, st_bad, r_bad.get("code", -1)))
 
     # v6 Profile
     if state.USER_ID:

@@ -475,20 +475,12 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 		fields["available_status"] = *req.AvailableStatus
 	}
 
-	teamBudget := make(map[string]interface{})
-	if req.BudgetMin != nil {
-		teamBudget["budget_min"] = *req.BudgetMin
-	}
-	if req.BudgetMax != nil {
-		teamBudget["budget_max"] = *req.BudgetMax
-	}
-
-	if len(fields) == 0 && len(teamBudget) == 0 {
+	if len(fields) == 0 {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "无可更新字段")
 		return
 	}
 
-	if _, err := h.userService.UpdateProfile(userUUID, fields, teamBudget); err != nil {
+	if _, err := h.userService.UpdateProfile(userUUID, fields); err != nil {
 		code, _ := strconv.Atoi(err.Error())
 		if code > 0 {
 			response.ErrorBadRequest(c, code, errcode.GetMessage(code))

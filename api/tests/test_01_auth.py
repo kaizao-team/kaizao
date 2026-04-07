@@ -49,6 +49,7 @@ def run():
 
     ok, r = test("1.3 POST /auth/login (correct)", "POST", "/api/v1/auth/login",
                  {"phone": phone, "code": sms_code}, need_auth=False)
+    state.LOGIN_PHONE = phone
     if ok and r.get("data"):
         state.TOKEN = r["data"].get("access_token")
         state.USER_ID = r["data"].get("user_id")

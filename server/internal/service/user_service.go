@@ -68,11 +68,8 @@ func (s *UserService) ListUserSkills(userID int64) ([]*model.UserSkill, error) {
 	return s.repos.User.ListUserSkills(userID)
 }
 
-// UpdateProfile 更新用户资料；teamBudgetFields 仅写入主团队（budget_min/max），不写 users 表。
-func (s *UserService) UpdateProfile(uuid string, fields map[string]interface{}, teamBudgetFields map[string]interface{}) (*model.User, error) {
-	if teamBudgetFields == nil {
-		teamBudgetFields = map[string]interface{}{}
-	}
+// UpdateProfile 更新用户资料（仅用户自身字段）。
+func (s *UserService) UpdateProfile(uuid string, fields map[string]interface{}) (*model.User, error) {
 	u, err := s.repos.User.FindByUUID(uuid)
 	if err != nil {
 		return nil, err
@@ -85,9 +82,6 @@ func (s *UserService) UpdateProfile(uuid string, fields map[string]interface{}, 
 	if v, ok := fields["available_status"]; ok {
 		teamFields["available_status"] = v
 	}
-	for k, v := range teamBudgetFields {
-		teamFields[k] = v
-	}
 
 	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
 		txRepos := repository.NewRepositories(tx)
@@ -96,58 +90,20 @@ func (s *UserService) UpdateProfile(uuid string, fields map[string]interface{}, 
 				return err
 			}
 		}
-		uTx, err := txRepos.User.FindByUUID(uuid)
-		if err != nil {
-			return err
-		}
-		effRole := uTx.Role
-		if effRole == 2 || effRole == 3 {
-			if err := ensurePrimaryTeamForExpert(txRepos, uTx); err != nil {
-				return err
-			}
-		}
-		if len(teamBudgetFields) > 0 {
-			if effRole != 2 && effRole != 3 {
-				return fmt.Errorf("%d", errcode.ErrBudgetExpertOnly)
-			}
-			team, err := txRepos.Team.FindPrimaryTeamForUser(uTx.ID)
+		if len(teamFields) > 0 {
+			uTx, err := txRepos.User.FindByUUID(uuid)
 			if err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					return fmt.Errorf("%d", errcode.ErrBudgetNoPrimaryTeam)
-				}
 				return err
 			}
-			var effMin, effMax *float64
-			if v, ok := teamBudgetFields["budget_min"]; ok {
-				f, okf := numericToFloat64Ptr(v)
-				if !okf {
-					return fmt.Errorf("%d", errcode.ErrParamInvalid)
-				}
-				effMin = f
-			} else {
-				effMin = team.BudgetMin
-			}
-			if v, ok := teamBudgetFields["budget_max"]; ok {
-				f, okf := numericToFloat64Ptr(v)
-				if !okf {
-					return fmt.Errorf("%d", errcode.ErrParamInvalid)
-				}
-				effMax = f
-			} else {
-				effMax = team.BudgetMax
-			}
-			if effMin != nil && effMax != nil && *effMax < *effMin {
-				return fmt.Errorf("%d", errcode.ErrBudgetRangeInvalid)
-			}
-		}
-		if len(teamFields) > 0 && (effRole == 2 || effRole == 3) {
-			team, err := txRepos.Team.FindPrimaryTeamForUser(uTx.ID)
-			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-				return err
-			}
-			if err == nil && team != nil {
-				if err := txRepos.Team.UpdateFields(team.ID, teamFields); err != nil {
+			if uTx.Role == 2 || uTx.Role == 3 {
+				team, err := txRepos.Team.FindPrimaryTeamForUser(uTx.ID)
+				if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 					return err
+				}
+				if err == nil && team != nil {
+					if err := txRepos.Team.UpdateFields(team.ID, teamFields); err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -157,66 +113,6 @@ func (s *UserService) UpdateProfile(uuid string, fields map[string]interface{}, 
 	}
 
 	return s.repos.User.FindByUUID(uuid)
-}
-
-func ensurePrimaryTeamForExpert(txRepos *repository.Repositories, u *model.User) error {
-	team, err := txRepos.Team.FindPrimaryTeamForUser(u.ID)
-	if err == nil && team != nil {
-		return nil
-	}
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
-	}
-	base := strings.TrimSpace(u.Nickname)
-	if base == "" {
-		base = "用户"
-	}
-	name := truncateRunes(base+"的团队", 100)
-	t := &model.Team{
-		Name:             name,
-		LeaderID:         u.ID,
-		AvatarURL:        u.AvatarURL,
-		TeamType:         1,
-		SkillsCoverage:   model.JSON([]byte("[]")),
-		MemberCount:      1,
-		Status:           1,
-		HourlyRate:       u.HourlyRate,
-		AvailableStatus:  u.AvailableStatus,
-	}
-	if err := txRepos.Team.Create(t); err != nil {
-		return err
-	}
-	member := &model.TeamMember{
-		TeamID:     t.ID,
-		UserID:     u.ID,
-		RoleInTeam: "队长",
-		SplitRatio: 100,
-		Status:     1,
-	}
-	return txRepos.Team.CreateMember(member)
-}
-
-func numericToFloat64Ptr(v interface{}) (*float64, bool) {
-	switch t := v.(type) {
-	case float64:
-		return &t, true
-	case float32:
-		f := float64(t)
-		return &f, true
-	case int:
-		f := float64(t)
-		return &f, true
-	case int64:
-		f := float64(t)
-		return &f, true
-	case *float64:
-		if t == nil {
-			return nil, true
-		}
-		return t, true
-	default:
-		return nil, false
-	}
 }
 
 func (s *UserService) ListUserPortfolios(userID int64) ([]*model.Portfolio, error) {

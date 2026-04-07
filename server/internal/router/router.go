@@ -284,7 +284,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	teams := v1.Group("/teams")
 	{
 		teams.GET("", middleware.OptionalJWTAuth(services.JWT), handlers.Team.ListTeams)
-		teams.POST("", middleware.JWTAuth(services.JWT), placeholder)
+		teams.POST("", middleware.JWTAuth(services.JWT), handlers.Team.CreateTeam)
 		teams.GET("/:uuid", middleware.OptionalJWTAuth(services.JWT), handlers.Team.GetDetail)
 		teams.POST("/:uuid/static-assets", middleware.JWTAuth(services.JWT), handlers.Team.UploadStaticAsset)
 		teams.GET("/:uuid/static-assets", middleware.JWTAuth(services.JWT), handlers.Team.ListStaticAssets)
