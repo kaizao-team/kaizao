@@ -50,7 +50,7 @@ class _ExpertLevelPageState extends ConsumerState<ExpertLevelPage> {
 
   String _levelTitle(int rating) {
     if (rating >= 5) return '资深';
-    if (rating == 4) return '精干';
+    if (rating == 4) return '出众';
     if (rating == 3) return '熟练';
     return '初启';
   }

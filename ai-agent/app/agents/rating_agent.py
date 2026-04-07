@@ -26,7 +26,7 @@ VIBE_LEVELS = [
     {"name": "vc-T1",  "label": "初启", "icon": "🌟", "min": 0,    "max": 99,     "weight": 1.00},
     {"name": "vc-T2",  "label": "胜任", "icon": "🚀", "min": 100,  "max": 199,    "weight": 1.05},
     {"name": "vc-T3",  "label": "熟练", "icon": "💪", "min": 200,  "max": 349,    "weight": 1.10},
-    {"name": "vc-T4",  "label": "精干", "icon": "🔥", "min": 350,  "max": 549,    "weight": 1.20},
+    {"name": "vc-T4",  "label": "出众", "icon": "🔥", "min": 350,  "max": 549,    "weight": 1.20},
     {"name": "vc-T5",  "label": "资深", "icon": "⭐", "min": 550,  "max": 749,    "weight": 1.35},
     {"name": "vc-T6",  "label": "卓越", "icon": "💎", "min": 750,  "max": 949,    "weight": 1.50},
     {"name": "vc-T7",  "label": "杰出", "icon": "🏆", "min": 950,  "max": 1199,   "weight": 1.70},
