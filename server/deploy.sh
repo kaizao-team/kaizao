@@ -19,7 +19,7 @@ set -e
 #   bash deploy.sh down     # 停止服务
 #   bash deploy.sh logs     # 查看日志
 #   bash deploy.sh status   # 查看状态
-#   bash deploy.sh restart  # 重启 serve
+#   bash deploy.sh restart  # 重启 server
 # ============================================================
 
 REMOTE_HOST="${REMOTE_HOST:-kaizao}"
@@ -102,7 +102,7 @@ do_push() {
         gunzip -c ~/"${IMAGE_NAME}".tar.gz | docker load
         rm -f ~/"${IMAGE_NAME}".tar.gz
 
-        cd ~/kaizao-serve
+        cd ~/kaizao-server
         if [ -d "$HOME/kaizao-server/configs/auth_password_rsa.pem" ]; then
             echo "错误: 远程 configs/auth_password_rsa.pem 为目录（旧版 bind 误建）。请 SSH 执行: rm -rf ~/kaizao-server/configs/auth_password_rsa.pem 后重新 push"
             exit 1
@@ -131,7 +131,7 @@ do_push() {
             echo "    等待中... ($i/30)"
         done
         echo "    WARNING: 健康检查超时"
-        docker compose -f docker-compose.prod.yml logs --tail 20 serve
+        docker compose -f docker-compose.prod.yml logs --tail 20 server
         exit 1
 REMOTE_SCRIPT
 
@@ -165,25 +165,25 @@ do_sync() {
 }
 
 do_up() {
-    cd ~/kaizao-serve
+    cd ~/kaizao-server
     docker compose -f "$COMPOSE_FILE" up -d
     sleep 3
     docker compose -f "$COMPOSE_FILE" ps
 }
 
 do_down() {
-    cd ~/kaizao-serve
+    cd ~/kaizao-server
     docker compose -f "$COMPOSE_FILE" down
     echo "==> 服务已停止"
 }
 
 do_logs() {
-    cd ~/kaizao-serve
+    cd ~/kaizao-server
     docker compose -f "$COMPOSE_FILE" logs -f --tail 100 "${2:-server}"
 }
 
 do_status() {
-    cd ~/kaizao-serve
+    cd ~/kaizao-server
     docker compose -f "$COMPOSE_FILE" ps
 }
 
@@ -195,8 +195,8 @@ case "${1:-up}" in
     logs)   do_logs "$@" ;;
     status) do_status ;;
     restart)
-        cd ~/kaizao-serve
-        docker compose -f "$COMPOSE_FILE" restart serve
+        cd ~/kaizao-server
+        docker compose -f "$COMPOSE_FILE" restart server
         ;;
     *)
         echo "Usage: bash deploy.sh {push|sync|up|down|logs|status|restart}"

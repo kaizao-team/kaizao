@@ -42,7 +42,7 @@
 - **Headers**: 需认证
 - **Body**: 任意用户字段子集, 如 `{ "role": 1, "nickname": "张三" }`
 - **Response**: `{ "code": 0, "message": "更新成功" }`
-- **说明**：仅更新用户自身字段。对于 `role=2/3`，写入 `hourly_rate` 或 `available_status` 时会在同一事务内同步到用户的 **主团队**（`teams` 表），保证两侧数据一致（若主团队不存在则仅更新用户表）。团队创建请使用 `POST /api/v1/teams`（见 10.7）。
+- **说明**：仅更新用户自身字段。对于 `role=2/3`，写入 `hourly_rate` 或 `available_status` 时会在同一事务内同步到用户的 **主团队**（`teams` 表），保证两侧数据一致（若主团队不存在则仅更新用户表）。团队创建请使用 `POST /api/v1/teams`（见 [10.7 创建团队](13-team.md#107-post-apiv1teams--创建团队)）。
 
 ### 2.3 专家提交入驻材料（进入人工审核）
 - **POST** `/api/v1/users/me/onboarding/application`
