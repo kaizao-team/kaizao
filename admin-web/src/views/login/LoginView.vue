@@ -28,10 +28,10 @@
           size="large"
           @submit.prevent="handleLogin"
         >
-          <el-form-item prop="phone" label="手机号" class="login-form-item">
+          <el-form-item prop="identity" label="手机号 / 用户名" class="login-form-item">
             <el-input
-              v-model="form.phone"
-              placeholder="请输入手机号"
+              v-model="form.identity"
+              placeholder="请输入手机号或用户名"
               clearable
               class="login-input"
             >
@@ -48,12 +48,35 @@
               placeholder="请输入密码"
               show-password
               class="login-input"
-              @keyup.enter="handleLogin"
             >
               <template #prefix>
                 <el-icon class="input-icon"><Lock /></el-icon>
               </template>
             </el-input>
+          </el-form-item>
+
+          <el-form-item prop="captchaCode" label="验证码" class="login-form-item">
+            <div class="captcha-row">
+              <el-input
+                v-model="form.captchaCode"
+                placeholder="请输入验证码"
+                clearable
+                class="login-input captcha-input"
+                @keyup.enter="handleLogin"
+              />
+              <div
+                class="captcha-image"
+                :class="{ loading: captchaLoading }"
+                @click="refreshCaptcha"
+              >
+                <img
+                  v-if="captchaImage"
+                  :src="captchaImage"
+                  alt="验证码"
+                />
+                <span v-else class="captcha-placeholder">加载中</span>
+              </div>
+            </div>
           </el-form-item>
 
           <el-form-item>
@@ -76,13 +99,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
-import { loginByPassword } from '@/api/auth'
+import { loginByPassword, getPasswordKey, getCaptcha } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
+import { encryptPassword } from '@/utils/crypto'
 
 const router = useRouter()
 const route = useRoute()
@@ -90,47 +114,105 @@ const userStore = useUserStore()
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const captchaLoading = ref(false)
+
+const captchaId = ref('')
+const captchaImage = ref('')
+const publicKeyPEM = ref('')
 
 const form = reactive({
-  phone: '',
+  identity: '',
   password: '',
+  captchaCode: '',
 })
 
 const rules: FormRules = {
-  phone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-  ],
+  identity: [{ required: true, message: '请输入手机号或用户名', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  captchaCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
+}
+
+async function refreshCaptcha() {
+  captchaLoading.value = true
+  try {
+    const res: any = await getCaptcha()
+    captchaId.value = res.data.captcha_id
+    captchaImage.value = res.data.image_base64.startsWith('data:')
+      ? res.data.image_base64
+      : `data:image/png;base64,${res.data.image_base64}`
+  } catch {
+    captchaImage.value = ''
+  } finally {
+    captchaLoading.value = false
+  }
+}
+
+async function fetchPublicKey() {
+  try {
+    const res: any = await getPasswordKey()
+    publicKeyPEM.value = res.data.public_key_pem
+  } catch {
+    ElMessage.warning('无法获取加密公钥，请检查后端配置')
+  }
+}
+
+onMounted(() => {
+  refreshCaptcha()
+  fetchPublicKey()
+})
+
+function detectLoginType(identity: string): 'phone' | 'username' {
+  return /^1[3-9]\d{9}$/.test(identity) ? 'phone' : 'username'
 }
 
 async function handleLogin() {
   if (!formRef.value) return
   await formRef.value.validate()
 
+  if (!publicKeyPEM.value) {
+    ElMessage.error('加密公钥未加载，请刷新页面重试')
+    return
+  }
+
   loading.value = true
   try {
+    const cipher = await encryptPassword(publicKeyPEM.value, form.password)
+
     const res: any = await loginByPassword({
-      phone: form.phone,
-      password: form.password,
+      login_type: detectLoginType(form.identity),
+      identity: form.identity,
+      password_cipher: cipher,
+      captcha_id: captchaId.value,
+      captcha_code: form.captchaCode,
+      device_type: 'web',
     })
 
-    const { access_token, user } = res.data
-    if (user.role !== 9) {
+    const data = res.data
+    const role = data.role
+    if (role !== 9) {
       ElMessage.error('权限不足，仅管理员可登录')
       return
     }
 
-    userStore.setToken(access_token)
-    userStore.setUser(user)
+    userStore.setToken(data.access_token)
+    userStore.setUser({
+      uuid: data.user_id,
+      nickname: '',
+      role: data.role,
+      phone: form.identity,
+      status: 1,
+    })
     ElMessage.success('登录成功')
 
     const redirect = route.query.redirect as string
-    const safeRedirect = redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/dashboard'
+    const safeRedirect =
+      redirect && redirect.startsWith('/') && !redirect.startsWith('//')
+        ? redirect
+        : '/dashboard'
     router.push(safeRedirect)
   } catch {
-    // handled by interceptor
+    refreshCaptcha()
+    form.captchaCode = ''
   } finally {
     loading.value = false
   }
@@ -263,6 +345,49 @@ async function handleLogin() {
 
 .input-icon {
   color: #bbb;
+}
+
+.captcha-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.captcha-input {
+  flex: 1;
+}
+
+.captcha-image {
+  width: 120px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #f3f3f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.captcha-image:hover {
+  opacity: 0.8;
+}
+
+.captcha-image.loading {
+  opacity: 0.5;
+}
+
+.captcha-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.captcha-placeholder {
+  font-size: 12px;
+  color: #999;
 }
 
 .login-btn {

@@ -36,7 +36,7 @@ service.interceptors.response.use(
     const { code, message } = response.data
     if (code !== 0) {
       ElMessage.error(message || '请求失败')
-      if (code === 401) {
+      if (code === 401 || code === 10008) {
         handleUnauthorized()
       }
       return Promise.reject(new Error(message))

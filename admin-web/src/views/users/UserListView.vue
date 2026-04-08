@@ -10,7 +10,7 @@
     <div class="filter-bar">
       <el-input
         v-model="filters.keyword"
-        placeholder="搜索昵称、手机号、UUID"
+        placeholder="搜索昵称、UUID"
         clearable
         style="width: 260px"
         @clear="handleSearch"
