@@ -223,7 +223,7 @@ func (s *AdminService) GetDashboard() (*DashboardData, error) {
 	db.Model(&model.User{}).Where("created_at >= ?", today).Count(&d.UserToday)
 	db.Model(&model.Project{}).Count(&d.ProjectCount)
 	db.Model(&model.Project{}).Where("created_at >= ?", weekStart).Count(&d.ProjectWeek)
-	db.Model(&model.Team{}).Where("status = 1").Count(&d.ActiveTeamCount)
+	db.Model(&model.Team{}).Where("status = 1 AND approval_status = ?", model.TeamApprovalApproved).Count(&d.ActiveTeamCount)
 
 	db.Model(&model.Order{}).Where("status IN (2,3,4)").Select("COALESCE(SUM(amount),0)").Scan(&d.OrderTotalAmount)
 	db.Model(&model.Order{}).Where("status IN (2,3,4) AND created_at >= ?", monthStart).Select("COALESCE(SUM(amount),0)").Scan(&d.OrderMonthAmount)
