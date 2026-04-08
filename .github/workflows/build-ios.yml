@@ -95,11 +95,25 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH
 
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          PP_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i $PP_PATH))
-          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PP_UUID.mobileprovision
-          echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
+          DECODED=$(/usr/bin/security cms -D -i $PP_PATH)
+          PP_PLIST=$(mktemp)
+          echo "$DECODED" > "$PP_PLIST"
+          PP_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$PP_PLIST")
+          PP_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$PP_PLIST")
+          PP_TEAM=$(/usr/libexec/PlistBuddy -c "Print TeamIdentifier:0" "$PP_PLIST")
+          PP_APPID=$(/usr/libexec/PlistBuddy -c "Print Entitlements:application-identifier" "$PP_PLIST")
+          rm -f "$PP_PLIST"
 
-          echo "✅ Certificate imported, profile installed as $PP_UUID.mobileprovision"
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PP_UUID.mobileprovision
+
+          echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
+          echo "PP_NAME=$PP_NAME" >> $GITHUB_ENV
+
+          echo "✅ Profile installed:"
+          echo "  Name: $PP_NAME"
+          echo "  UUID: $PP_UUID"
+          echo "  Team: $PP_TEAM"
+          echo "  AppID: $PP_APPID"
           security find-identity -v -p codesigning $KEYCHAIN_PATH
 
       - name: Build iOS (Release - no codesign for PR)
@@ -114,8 +128,6 @@ jobs:
 
       - name: Diagnose provisioning profile
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
-        env:
-          PROVISION_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
         run: |
           echo "=== Installed provisioning profiles ==="
           for f in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
@@ -128,30 +140,31 @@ jobs:
               echo "  UUID: $(/usr/libexec/PlistBuddy -c 'Print UUID' "$PLIST_FILE" 2>/dev/null)"
               echo "  TeamID: $(/usr/libexec/PlistBuddy -c 'Print TeamIdentifier:0' "$PLIST_FILE" 2>/dev/null)"
               echo "  AppID: $(/usr/libexec/PlistBuddy -c 'Print Entitlements:application-identifier' "$PLIST_FILE" 2>/dev/null)"
-              echo "  Type: $(/usr/libexec/PlistBuddy -c 'Print ProvisionsAllDevices' "$PLIST_FILE" 2>/dev/null && echo 'Enterprise' || echo 'Ad-Hoc/Dev')"
               echo "  Expiry: $(/usr/libexec/PlistBuddy -c 'Print ExpirationDate' "$PLIST_FILE" 2>/dev/null)"
-              echo "  Certs count: $(/usr/libexec/PlistBuddy -c 'Print DeveloperCertificates' "$PLIST_FILE" 2>/dev/null | grep -c 'Data')"
               rm -f "$PLIST_FILE"
             else
               echo "  (could not decode)"
             fi
           done
           echo ""
-          echo "=== Expected profile name from secret ==="
-          echo "  IOS_PROVISION_PROFILE_NAME = $PROVISION_PROFILE_NAME"
+          echo "=== Profile name used in pbxproj (from PP_NAME env) ==="
+          echo "  PP_NAME=$PP_NAME"
           echo ""
           echo "=== Keychain identities ==="
           security find-identity -v -p codesigning
+          echo ""
+          echo "=== Keychain certificate details ==="
+          security find-certificate -a -p $RUNNER_TEMP/app-signing.keychain-db | openssl x509 -noout -subject -fingerprint -serial 2>/dev/null || echo "(no cert details)"
 
       - name: Patch Runner target for Manual signing
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
         env:
           TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
-          PROVISION_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
         run: |
           PBXPROJ="app/ios/Runner.xcodeproj/project.pbxproj"
+          echo "Using profile name from file: $PP_NAME (UUID: $PP_UUID)"
 
-          python3 - "$PBXPROJ" "$PROVISION_PROFILE_NAME" "$PP_UUID" "$TEAM_ID" <<'PYEOF'
+          python3 - "$PBXPROJ" "$PP_NAME" "$PP_UUID" "$TEAM_ID" <<'PYEOF'
           import sys, re
           path = sys.argv[1]
           profile_name = sys.argv[2]
@@ -210,7 +223,6 @@ jobs:
         env:
           EXPORT_METHOD: ${{ github.event.inputs.export_method || 'ad-hoc' }}
           TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
-          PROVISION_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
         run: |
           cat > /tmp/ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -228,7 +240,7 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>cc.kaizao</key>
-              <string>${PROVISION_PROFILE_NAME}</string>
+              <string>${PP_NAME}</string>
             </dict>
             <key>uploadBitcode</key>
             <false/>
