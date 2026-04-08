@@ -99,16 +99,36 @@ jobs:
 
           CODE=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('code','-1'))" 2>/dev/null)
           if [ "$CODE" = "0" ]; then
-            BUILD_KEY=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['buildKey'])" 2>/dev/null)
-            BUILD_VERSION=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['data'].get('buildVersion',''))" 2>/dev/null)
+            BUILD_KEY=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d['buildKey'])" 2>/dev/null)
+            BUILD_VERSION=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildVersion',''))" 2>/dev/null)
+            BUILD_SHORTCUT=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildShortcutUrl',''))" 2>/dev/null)
+            BUILD_QRCODE=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildQRCodeURL',''))" 2>/dev/null)
+            BUILD_NAME=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildName',''))" 2>/dev/null)
+
+            DOWNLOAD_URL="https://www.pgyer.com/${BUILD_SHORTCUT:-$BUILD_KEY}"
+
             echo ""
             echo "✅ iOS upload successful!"
-            echo "  Download: https://www.pgyer.com/$BUILD_KEY"
+            echo "  App: $BUILD_NAME"
             echo "  Version: $BUILD_VERSION"
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 📱 iOS 蒲公英分发" >> $GITHUB_STEP_SUMMARY
-            echo "- 下载链接：https://www.pgyer.com/$BUILD_KEY" >> $GITHUB_STEP_SUMMARY
-            echo "- 版本：$BUILD_VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "  Download: $DOWNLOAD_URL"
+            echo "  QR Code: $BUILD_QRCODE"
+
+            {
+              echo ""
+              echo "## 📱 iOS 分发结果"
+              echo ""
+              echo "| | |"
+              echo "|---|---|"
+              echo "| **应用名称** | $BUILD_NAME |"
+              echo "| **版本** | $BUILD_VERSION |"
+              echo "| **下载链接** | $DOWNLOAD_URL |"
+              echo ""
+              echo "### 扫码安装"
+              echo ""
+              echo "![iOS QR Code]($BUILD_QRCODE)"
+              echo ""
+            } >> $GITHUB_STEP_SUMMARY
           else
             MSG=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('message','unknown'))" 2>/dev/null)
             echo "::error::Pgyer upload failed (code=$CODE): $MSG"
@@ -149,16 +169,36 @@ jobs:
 
           CODE=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('code','-1'))" 2>/dev/null)
           if [ "$CODE" = "0" ]; then
-            BUILD_KEY=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['buildKey'])" 2>/dev/null)
-            BUILD_VERSION=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['data'].get('buildVersion',''))" 2>/dev/null)
+            BUILD_KEY=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d['buildKey'])" 2>/dev/null)
+            BUILD_VERSION=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildVersion',''))" 2>/dev/null)
+            BUILD_SHORTCUT=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildShortcutUrl',''))" 2>/dev/null)
+            BUILD_QRCODE=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildQRCodeURL',''))" 2>/dev/null)
+            BUILD_NAME=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildName',''))" 2>/dev/null)
+
+            DOWNLOAD_URL="https://www.pgyer.com/${BUILD_SHORTCUT:-$BUILD_KEY}"
+
             echo ""
             echo "✅ Android upload successful!"
-            echo "  Download: https://www.pgyer.com/$BUILD_KEY"
+            echo "  App: $BUILD_NAME"
             echo "  Version: $BUILD_VERSION"
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 🤖 Android 蒲公英分发" >> $GITHUB_STEP_SUMMARY
-            echo "- 下载链接：https://www.pgyer.com/$BUILD_KEY" >> $GITHUB_STEP_SUMMARY
-            echo "- 版本：$BUILD_VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "  Download: $DOWNLOAD_URL"
+            echo "  QR Code: $BUILD_QRCODE"
+
+            {
+              echo ""
+              echo "## 🤖 Android 分发结果"
+              echo ""
+              echo "| | |"
+              echo "|---|---|"
+              echo "| **应用名称** | $BUILD_NAME |"
+              echo "| **版本** | $BUILD_VERSION |"
+              echo "| **下载链接** | $DOWNLOAD_URL |"
+              echo ""
+              echo "### 扫码安装"
+              echo ""
+              echo "![Android QR Code]($BUILD_QRCODE)"
+              echo ""
+            } >> $GITHUB_STEP_SUMMARY
           else
             MSG=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('message','unknown'))" 2>/dev/null)
             echo "::error::Pgyer upload failed (code=$CODE): $MSG"
