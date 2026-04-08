@@ -290,6 +290,9 @@ type Team struct {
 	ScorePortfolio   int      `gorm:"not null;default:0" json:"score_portfolio"`
 	ScoreBackground  int      `gorm:"not null;default:0" json:"score_background"`
 
+	// migration 014 — 团队审核状态
+	ApprovalStatus int16 `gorm:"not null;default:1" json:"approval_status"`
+
 	// migration 012 — 业务字段（团队实体对齐）
 	AvailableStatus int16    `gorm:"not null;default:1" json:"available_status"`
 	HourlyRate      *float64 `gorm:"type:decimal(10,2)" json:"hourly_rate,omitempty"`

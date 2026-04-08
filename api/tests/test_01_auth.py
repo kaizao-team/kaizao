@@ -286,29 +286,29 @@ def run():
             print(f"  [WARN] 无法通过 docker 提权管理员（跳过 1.5）: {ex}")
         else:
             ok, r = test(
-                "1.5a POST /admin/invite-codes",
+                "1.5a POST /admin/invite-codes (batch create)",
                 "POST",
                 "/api/v1/admin/invite-codes",
                 {
-                    "team_uuid": state.SEED_TEAM_UUID,
+                    "count": 5,
                     "note": "integration-test",
                 },
             )
             if ok and r.get("data"):
-                state.INVITE_CODE_PLAIN = r["data"].get("code_plain")
-                print(f"         invite_code_plain={state.INVITE_CODE_PLAIN!r}")
+                codes = r["data"].get("codes", [])
+                count = r["data"].get("count", 0)
+                batch_ok = isinstance(codes, list) and count > 0
+                print(f"  [{'PASS' if batch_ok else 'FAIL'}] 1.5a1 batch create returned {count} codes")
+                state.RESULTS.append(("1.5a1 batch invite-codes count", batch_ok, 200, 0 if batch_ok else -1))
+                if codes:
+                    state.INVITE_CODE_PLAIN = codes[0]
+                    print(f"         first invite_code={state.INVITE_CODE_PLAIN!r}")
             ok2, _ = test(
                 "1.5b GET /admin/invite-codes",
                 "GET",
                 "/api/v1/admin/invite-codes?page=1&page_size=10",
             )
             state.ADMIN_SETUP_OK = bool(ok and ok2 and state.INVITE_CODE_PLAIN)
-            if state.ADMIN_SETUP_OK:
-                test(
-                    "1.5c GET /admin/teams/:uuid/current-invite-code",
-                    "GET",
-                    f"/api/v1/admin/teams/{state.SEED_TEAM_UUID}/current-invite-code",
-                )
     else:
         print("  [WARN] USER_ID 非 UUID，跳过 1.5")
 

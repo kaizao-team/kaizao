@@ -29,14 +29,15 @@ func NewAdminHandler(auth *service.AuthService, user *service.UserService, admin
 	return &AdminHandler{authService: auth, userService: user, adminService: admin, log: log}
 }
 
-// ──────────── 邀请码（原有） ────────────
+// ──────────── 邀请码 ────────────
 
-type createInviteCodeReq struct {
-	TeamUUID  string  `json:"team_uuid" binding:"required"`
+type batchCreateInviteCodeReq struct {
+	Count     int     `json:"count"`
 	Note      string  `json:"note"`
 	ExpiresAt *string `json:"expires_at"`
 }
 
+// CreateInviteCode POST /admin/invite-codes — 批量创建全局邀请码
 func (h *AdminHandler) CreateInviteCode(c *gin.Context) {
 	adminUUID := c.GetString("user_uuid")
 	admin, err := h.userService.GetByUUID(adminUUID)
@@ -44,10 +45,13 @@ func (h *AdminHandler) CreateInviteCode(c *gin.Context) {
 		response.ErrorInternal(c, "管理员信息异常")
 		return
 	}
-	var req createInviteCodeReq
+	var req batchCreateInviteCodeReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
 		return
+	}
+	if req.Count <= 0 {
+		req.Count = 10
 	}
 	var exp *time.Time
 	if req.ExpiresAt != nil && *req.ExpiresAt != "" {
@@ -58,34 +62,21 @@ func (h *AdminHandler) CreateInviteCode(c *gin.Context) {
 		}
 		exp = &t
 	}
-	plain, rec, err := h.authService.CreateInviteCode(req.TeamUUID, admin.ID, req.Note, exp)
+	plains, err := h.authService.BatchCreateInviteCodes(req.Count, admin.ID, req.Note, exp)
 	if err != nil {
-		code, _ := strconv.Atoi(err.Error())
-		if code == errcode.ErrTeamNotFound {
-			response.ErrorNotFound(c, errcode.ErrTeamNotFound, errcode.GetMessage(errcode.ErrTeamNotFound))
-			return
-		}
 		response.ErrorInternal(c, "创建邀请码失败")
 		return
 	}
 	response.Success(c, gin.H{
-		"code_plain": plain,
-		"uuid":       rec.UUID,
-		"team_id":    rec.TeamID,
-		"max_uses":   rec.MaxUses,
-		"expires_at": rec.ExpiresAt,
-		"note":       rec.Note,
+		"codes": plains,
+		"count": len(plains),
 	})
 }
 
 func (h *AdminHandler) ListInviteCodes(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	var teamUUID *string
-	if q := c.Query("team_uuid"); q != "" {
-		teamUUID = &q
-	}
-	list, total, err := h.authService.ListInviteCodes(page, pageSize, teamUUID)
+	list, total, err := h.authService.ListInviteCodes(page, pageSize, nil)
 	if err != nil {
 		response.ErrorInternal(c, "查询失败")
 		return
@@ -114,31 +105,32 @@ func (h *AdminHandler) ListInviteCodes(c *gin.Context) {
 	response.SuccessWithMeta(c, out, response.BuildMeta(page, pageSize, total))
 }
 
-func (h *AdminHandler) GetTeamCurrentInviteCode(c *gin.Context) {
+// ReviewTeamApproval PUT /admin/teams/:uuid/approval — 管理端审核团队
+func (h *AdminHandler) ReviewTeamApproval(c *gin.Context) {
 	teamUUID := c.Param("uuid")
-	ic, err := h.authService.GetTeamCurrentInvite(teamUUID)
-	if err != nil {
-		code, _ := strconv.Atoi(err.Error())
-		if code == errcode.ErrTeamNotFound {
+	var req struct {
+		Status string  `json:"status" binding:"required,oneof=approved rejected"`
+		Reason *string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	var st int16
+	if req.Status == "approved" {
+		st = model.TeamApprovalApproved
+	} else {
+		st = model.TeamApprovalRejected
+	}
+	if err := h.adminService.UpdateTeamApproval(teamUUID, st); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			response.ErrorNotFound(c, errcode.ErrTeamNotFound, errcode.GetMessage(errcode.ErrTeamNotFound))
 			return
 		}
-		response.ErrorInternal(c, "查询失败")
+		response.ErrorInternal(c, "审核操作失败")
 		return
 	}
-	if ic == nil {
-		response.Success(c, gin.H{"has_active": false})
-		return
-	}
-	response.Success(c, gin.H{
-		"has_active": true,
-		"uuid":       ic.UUID,
-		"team_id":    ic.TeamID,
-		"code_plain": ic.CodePlain,
-		"code_hint":  ic.CodeHint,
-		"expires_at": ic.ExpiresAt,
-		"note":       ic.Note,
-	})
+	response.SuccessMsg(c, "已更新", nil)
 }
 
 type updateOnboardingReq struct {

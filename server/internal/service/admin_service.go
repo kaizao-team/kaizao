@@ -531,6 +531,17 @@ func (s *AdminService) UpdateReviewStatus(uuid string, status int) error {
 	return s.db().Model(&model.Review{}).Where("uuid = ?", uuid).Update("status", status).Error
 }
 
+// UpdateTeamApproval 管理端审核团队
+func (s *AdminService) UpdateTeamApproval(teamUUID string, approvalStatus int16) error {
+	team, err := s.repos.Team.FindByUUID(teamUUID)
+	if err != nil {
+		return err
+	}
+	return s.repos.Team.UpdateFields(team.ID, map[string]interface{}{
+		"approval_status": approvalStatus,
+	})
+}
+
 // DBStatusToFront 导出给 handler 层使用
 func DBStatusToFront(db int16) int {
 	return dbStatusToFront(db)

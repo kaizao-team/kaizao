@@ -13,6 +13,13 @@ const (
 	OnboardingRejected int16 = 3
 )
 
+// 团队审核状态（teams.approval_status）
+const (
+	TeamApprovalPending  int16 = 1
+	TeamApprovalApproved int16 = 2
+	TeamApprovalRejected int16 = 3
+)
+
 // InviteCode 团队邀请码（hash 核销；当前有效码的明文存 code_plain 供管理端查看）
 type InviteCode struct {
 	ID               int64      `gorm:"primaryKey;autoIncrement" json:"id"`

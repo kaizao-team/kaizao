@@ -526,27 +526,6 @@ func (h *UserHandler) SubmitOnboardingApplication(c *gin.Context) {
 	response.SuccessMsg(c, "已提交审核", nil)
 }
 
-// RedeemOnboardingInvite POST /api/v1/users/me/onboarding/redeem-invite
-func (h *UserHandler) RedeemOnboardingInvite(c *gin.Context) {
-	userUUID := c.GetString("user_uuid")
-	var req struct {
-		InviteCode string `json:"invite_code" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
-		return
-	}
-	if err := h.userService.RedeemTeamInviteForOnboarding(userUUID, req.InviteCode); err != nil {
-		code, _ := strconv.Atoi(err.Error())
-		if code > 0 {
-			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
-			return
-		}
-		response.ErrorInternal(c, "兑换失败")
-		return
-	}
-	response.SuccessMsg(c, "已通过团队邀请完成入驻", nil)
-}
 
 // ListExperts 专家列表（以团队为主实体）
 // GET /api/v1/market/experts

@@ -1,8 +1,8 @@
 # Kaizao API v2 测试报告
 
-- **测试时间**: 2026-04-07 22:26:09
+- **测试时间**: 2026-04-08 22:45:28
 - **服务地址**: http://127.0.0.1:39527
-- **总计**: 200 | **通过**: 200 | **失败**: 0
+- **总计**: 222 | **通过**: 222 | **失败**: 0
 
 ## 测试结果
 
@@ -25,9 +25,9 @@
 | 15 | 1.4b6 POST /auth/login-password | PASS | 200 | 0 |
 | 16 | 1.4b6a login-password token | PASS | 200 | 0 |
 | 17 | 1.4b7 POST /auth/login-password (wrong captcha -> 10026) | PASS | 400 | 10026 |
-| 18 | 1.5a POST /admin/invite-codes | PASS | 200 | 0 |
-| 19 | 1.5b GET /admin/invite-codes | PASS | 200 | 0 |
-| 20 | 1.5c GET /admin/teams/:uuid/current-invite-code | PASS | 200 | 0 |
+| 18 | 1.5a POST /admin/invite-codes (batch create) | PASS | 200 | 0 |
+| 19 | 1.5a1 batch invite-codes count | PASS | 200 | 0 |
+| 20 | 1.5b GET /admin/invite-codes | PASS | 200 | 0 |
 | 21 | 2.1 GET /users/me | PASS | 200 | 0 |
 | 22 | 2.2 PUT /users/me | PASS | 200 | 0 |
 | 23 | 2.2d PUT /users/me (contact_phone) | PASS | 200 | 0 |
@@ -193,21 +193,43 @@
 | 183 | 11b.8 PUT /notifications/:uuid/read (idempotent) | PASS | 200 | 0 |
 | 184 | 11b.8 mark read idempotent | PASS | 200 | 0 |
 | 185 | 12a.1 POST /teams (invalid budget -> 20005) | PASS | 400 | 20005 |
-| 186 | 12a.2 POST /teams (create) | PASS | 200 | 0 |
+| 186 | 12a.2 POST /teams (no invite_code) | PASS | 200 | 0 |
 | 187 | 12a.3 POST /teams (duplicate -> 11021) | PASS | 400 | 11021 |
-| 188 | 12.1 GET /teams (list) | PASS | 200 | 0 |
-| 189 | 12.2 POST /team-posts (create) | PASS | 200 | 0 |
-| 190 | 12b.1 GET /teams/:uuid (detail) | PASS | 200 | 0 |
-| 191 | 12b.1a team detail base fields | PASS | 200 | 0 |
-| 192 | 12b.1b team detail biz fields | PASS | 200 | 0 |
-| 193 | 12b.1c team detail leader fields | PASS | 200 | 0 |
-| 194 | 12b.1d skills is array | PASS | 200 | 0 |
-| 195 | 12b.1e members structure | PASS | 200 | 0 |
-| 196 | 12b.1f optional fields present | PASS | 200 | 0 |
-| 197 | 13.1 GET /projects/:id/reviews (list) | PASS | 200 | 0 |
-| 198 | 14.1 POST /auth/logout | PASS | 200 | 0 |
-| 199 | 14.2 GET /users/me (no token) | PASS | 401 | 10008 |
-| 200 | 14.3 PUT /projects/:id/close (matched project) | PASS | 400 | 20002 |
+| 188 | 12a.4a POST /auth/sms-code (new user for invite team) | PASS | 200 | 0 |
+| 189 | 12a.4b POST /auth/login (new user) | PASS | 200 | 0 |
+| 190 | 12a.4c POST /teams (with invite_code -> approved) | PASS | 200 | 0 |
+| 191 | 12a.4d sms-code for 2nd user | PASS | 200 | 0 |
+| 192 | 12a.4e login 2nd user | PASS | 200 | 0 |
+| 193 | 12a.4f POST /teams (reuse consumed invite_code -> 10013/10014) | PASS | 400 | 10014 |
+| 194 | 12a.5a PUT /admin/teams/:uuid/approval (approve) | PASS | 200 | 0 |
+| 195 | 12.1 GET /teams (list) | PASS | 200 | 0 |
+| 196 | 12.2 POST /team-posts (create) | PASS | 200 | 0 |
+| 197 | 12b.1 GET /teams/:uuid (detail) | PASS | 200 | 0 |
+| 198 | 12b.1a team detail base fields | PASS | 200 | 0 |
+| 199 | 12b.1b team detail biz fields | PASS | 200 | 0 |
+| 200 | 12b.1c team detail leader fields | PASS | 200 | 0 |
+| 201 | 12b.1d skills is array | PASS | 200 | 0 |
+| 202 | 12b.1e members structure | PASS | 200 | 0 |
+| 203 | 12b.1f optional fields present | PASS | 200 | 0 |
+| 204 | 13.1 GET /projects/:id/reviews (list) | PASS | 200 | 0 |
+| 205 | 14.1 POST /auth/logout | PASS | 200 | 0 |
+| 206 | 14.2 GET /users/me (no token) | PASS | 401 | 10008 |
+| 207 | 14.3 PUT /projects/:id/close (matched project) | PASS | 400 | 20002 |
+| 208 | 15.1 POST /admin/invite-codes (batch=3) | PASS | 200 | 0 |
+| 209 | 15.1a batch invite count=3 | PASS | 200 | 0 |
+| 210 | 15.2a sms-code | PASS | 200 | 0 |
+| 211 | 15.2b POST /auth/login (new expert) | PASS | 200 | 0 |
+| 212 | 15.2c POST /teams (with invite_code -> approved) | PASS | 200 | 0 |
+| 213 | 15.3a sms-code | PASS | 200 | 0 |
+| 214 | 15.3b login | PASS | 200 | 0 |
+| 215 | 15.3c POST /teams (reuse consumed code -> 10014) | PASS | 400 | 10014 |
+| 216 | 15.4a POST /teams (no invite_code -> pending) | PASS | 200 | 0 |
+| 217 | 15.4b PUT /admin/teams/:uuid/approval (approve) | PASS | 200 | 0 |
+| 218 | 15.4c sms-code | PASS | 200 | 0 |
+| 219 | 15.4d login | PASS | 200 | 0 |
+| 220 | 15.4e POST /teams (no invite_code, for reject test) | PASS | 200 | 0 |
+| 221 | 15.4f PUT /admin/teams/:uuid/approval (reject) | PASS | 200 | 0 |
+| 222 | 15.5 GET /admin/invite-codes (verify consumed) | PASS | 200 | 0 |
 
 ---
-*Generated at 2026-04-07T22:26:09.866573*
+*Generated at 2026-04-08T22:45:28.693939*

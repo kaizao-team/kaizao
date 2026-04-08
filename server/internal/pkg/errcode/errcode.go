@@ -55,6 +55,8 @@ const (
 	ErrBudgetNoPrimaryTeam          = 11020
 	ErrTeamAlreadyExists            = 11021
 	ErrTeamCreateRoleInvalid        = 11022
+	ErrTeamApprovalPending          = 11023
+	ErrTeamApprovalRejected         = 11024
 )
 
 // 项目模块（需求） 20001-20999
@@ -218,6 +220,8 @@ var ErrorMessages = map[int]string{
 	ErrBudgetNoPrimaryTeam:          "无主团队，无法设置预算区间",
 	ErrTeamAlreadyExists:            "已有主团队，不可重复创建",
 	ErrTeamCreateRoleInvalid:        "仅专家或团队方可创建团队",
+	ErrTeamApprovalPending:          "团队审核中，请等待管理员审核",
+	ErrTeamApprovalRejected:         "团队审核未通过",
 	ErrUserNotFound:                 "用户不存在",
 	ErrNicknameUsed:                 "昵称已被使用",
 	ErrSkillsExceedLimit:            "技能标签数量超过上限",

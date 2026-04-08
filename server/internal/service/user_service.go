@@ -232,27 +232,3 @@ func (s *UserService) SubmitOnboardingApplication(userUUID string, resumeURL *st
 	return s.repos.User.UpdateFields(user.ID, fields)
 }
 
-func (s *UserService) RedeemTeamInviteForOnboarding(userUUID, plain string) error {
-	user, err := s.repos.User.FindByUUID(userUUID)
-	if err != nil {
-		return err
-	}
-	if user.Role != 2 && user.Role != 3 {
-		return fmt.Errorf("%d", errcode.ErrOnboardingNeedExpertRole)
-	}
-	if user.OnboardingStatus == model.OnboardingApproved {
-		return fmt.Errorf("%d", errcode.ErrOnboardingAlreadyApproved)
-	}
-	consumed, _, err := s.repos.InviteCode.ConsumeTeamInviteAndRotate(strings.TrimSpace(plain))
-	if err != nil {
-		return err
-	}
-	icID := consumed.ID
-	return s.repos.User.UpdateFields(user.ID, map[string]interface{}{
-		"onboarding_status":        model.OnboardingApproved,
-		"invite_code_id":           &icID,
-		"onboarding_reject_reason": nil,
-		"onboarding_reviewed_at":   nil,
-		"onboarding_reviewer_id":   nil,
-	})
-}
