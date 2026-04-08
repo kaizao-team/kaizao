@@ -44,8 +44,7 @@ export const REPORT_STATUS: Record<number, { label: string; type: TagType }> = {
 
 export const ARBITRATION_STATUS: Record<number, { label: string; type: TagType }> = {
   1: { label: '待处理', type: 'warning' },
-  2: { label: '处理中', type: 'primary' },
-  3: { label: '已裁决', type: 'success' },
+  2: { label: '已裁决', type: 'success' },
 }
 
 export const REVIEW_STATUS: Record<number, { label: string; type: TagType }> = {
