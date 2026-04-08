@@ -1,50 +1,25 @@
-import 'dart:math';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../shared/skills/skill_particle_field.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_loading.dart';
-import '../../../shared/widgets/vcc_tag.dart';
 import '../../team/models/team_profile.dart';
 import '../../team/providers/team_provider.dart';
 
-class TeamProfilePage extends ConsumerStatefulWidget {
+class TeamProfilePage extends ConsumerWidget {
   final String teamId;
 
   const TeamProfilePage({super.key, required this.teamId});
 
   @override
-  ConsumerState<TeamProfilePage> createState() => _TeamProfilePageState();
-}
-
-class _TeamProfilePageState extends ConsumerState<TeamProfilePage>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _particleController;
-  late final List<_Particle> _particles;
-  final _rng = Random();
-
-  @override
-  void initState() {
-    super.initState();
-    _particles = List.generate(35, (_) => _Particle.random(_rng));
-    _particleController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _particleController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(teamProfileProvider(widget.teamId));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(teamProfileProvider(teamId));
 
     if (state.isLoading) {
       return const Scaffold(
@@ -58,13 +33,28 @@ class _TeamProfilePageState extends ConsumerState<TeamProfilePage>
       return Scaffold(
         backgroundColor: const Color(0xFFF9F9F9),
         appBar: AppBar(
+          backgroundColor: const Color(0xFFF9F9F9),
+          elevation: 0,
           title: const Text(
-            '团队资料',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            '团队档案',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: _ink,
+            ),
           ),
         ),
-        body: const Center(
-          child: Text('未找到团队信息', style: TextStyle(color: AppColors.gray400)),
+        body: Center(
+          child: Text(
+            state.errorMessage?.isNotEmpty == true
+                ? state.errorMessage!
+                : '未找到团队信息',
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.gray500,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
@@ -72,36 +62,30 @@ class _TeamProfilePageState extends ConsumerState<TeamProfilePage>
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildHeroSliver(context, profile),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 28),
-                  _buildStatsRow(profile),
-                  if (profile.description != null &&
-                      profile.description!.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    _buildDescBlock(profile),
-                  ],
-                  if (profile.skills.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    _buildSkillsBlock(profile),
-                  ],
-                  if (profile.members.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    _buildMembersBlock(profile),
-                  ],
-                  const SizedBox(height: 20),
-                  _buildInfoBlock(profile),
-                  const SizedBox(height: 32),
-                  VccButton(text: '发起沟通', onPressed: null),
-                  const SizedBox(height: 60),
-                ],
-              ),
+          SliverToBoxAdapter(child: _TeamHero(profile: profile)),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildSectionLabel('OVERVIEW'),
+                const SizedBox(height: 10),
+                _TeamMetricsCard(profile: profile),
+                const SizedBox(height: 28),
+                _buildSectionLabel('PRESENCE'),
+                const SizedBox(height: 10),
+                _TeamStoryCard(profile: profile),
+                const SizedBox(height: 28),
+                _buildSectionLabel('MEMBERS'),
+                const SizedBox(height: 10),
+                _TeamMembersCard(profile: profile),
+                const SizedBox(height: 28),
+                const VccButton(
+                  text: '发起沟通',
+                  onPressed: null,
+                ),
+              ]),
             ),
           ),
         ],
@@ -109,277 +93,383 @@ class _TeamProfilePageState extends ConsumerState<TeamProfilePage>
     );
   }
 
-  Widget _buildHeroSliver(BuildContext context, TeamProfile profile) {
-    return SliverToBoxAdapter(
-      child: AnimatedBuilder(
-        animation: _particleController,
-        builder: (context, child) {
-          _tickParticles();
-          return CustomPaint(
-            painter: _ParticlePainter(_particles),
-            child: child,
-          );
-        },
-        child: Container(
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF0A0A0A), Color(0xFF1A1A1A)],
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 36),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).maybePop(),
-                    behavior: HitTestBehavior.opaque,
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 18,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.06),
-                              blurRadius: 24,
-                              spreadRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: VccAvatar(
-                          imageUrl: profile.avatarUrl,
-                          size: VccAvatarSize.xlarge,
-                          fallbackText: profile.teamName.isNotEmpty
-                              ? profile.teamName[0]
-                              : 'T',
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text(
-                              profile.teamName,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                height: 1.2,
-                                letterSpacing: -0.5,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 6,
-                              children: [
-                                if (profile.vibeLevel != null &&
-                                    profile.vibeLevel!.isNotEmpty)
-                                  _HeroBadge(
-                                    text: profile.vibeLevel!,
-                                    bright: true,
-                                  ),
-                                _HeroBadge(
-                                  text: profile.memberCount > 1
-                                      ? '${profile.memberCount}人团队'
-                                      : '个人',
-                                ),
-                                if (profile.isAvailable)
-                                  const _HeroBadge(text: '接单中'),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (profile.tagline != null &&
-                      profile.tagline!.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    Text(
-                      profile.tagline!,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        height: 1.5,
-                        color: Colors.white54,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  Text(
-                    profile.rateDisplay,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ],
+  Widget _buildSectionLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: AppColors.gray400,
+        letterSpacing: 2.5,
+      ),
+    );
+  }
+}
+
+const Color _ink = Color(0xFF1A1C1C);
+
+class _TeamHero extends StatelessWidget {
+  final TeamProfile profile;
+
+  const _TeamHero({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    final heroSkills = _teamHeroSkills(profile);
+
+    return Container(
+      padding: EdgeInsets.only(top: topPadding),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF111111), Color(0xFF3C3B3B)],
+        ),
+      ),
+      child: Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          Positioned(
+            top: 18,
+            right: -26,
+            child: Transform.rotate(
+              angle: -0.18,
+              child: Container(
+                width: 144,
+                height: 112,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  color: Colors.white.withValues(alpha: 0.06),
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsRow(TeamProfile profile) {
-    final hasVibeLevel =
-        profile.vibeLevel != null && profile.vibeLevel!.isNotEmpty;
-
-    return Row(
-      children: [
-        _StatCard(
-          value: hasVibeLevel
-              ? profile.vibeLevel!
-              : (profile.avgRating > 0
-                  ? profile.avgRating.toStringAsFixed(1)
-                  : '-'),
-          label: hasVibeLevel ? '等级' : '评分',
-          icon: hasVibeLevel ? Icons.shield_rounded : Icons.star_rounded,
-          iconColor:
-              hasVibeLevel ? const Color(0xFF1A1C1C) : AppColors.accentGold,
-        ),
-        const SizedBox(width: 10),
-        _StatCard(
-          value: '${profile.totalProjects}',
-          label: '历史项目',
-          icon: Icons.folder_outlined,
-          iconColor: const Color(0xFF1A1C1C),
-        ),
-        const SizedBox(width: 10),
-        _StatCard(
-          value: profile.experienceYears > 0
-              ? '${profile.experienceYears}年'
-              : '-',
-          label: '经验',
-          icon: Icons.timeline_rounded,
-          iconColor: AppColors.gray500,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDescBlock(TeamProfile profile) {
-    return _CardBlock(
-      label: '团队介绍',
-      child: Text(
-        profile.description!,
-        style: const TextStyle(
-          fontSize: 14,
-          height: 1.7,
-          color: Color(0xFF555555),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSkillsBlock(TeamProfile profile) {
-    return _CardBlock(
-      label: '技术栈',
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 10,
-        children: profile.skills.map((s) => VccTag(label: s)).toList(),
-      ),
-    );
-  }
-
-  Widget _buildMembersBlock(TeamProfile profile) {
-    return _CardBlock(
-      label: '团队成员',
-      child: Column(
-        children: profile.members.asMap().entries.map((entry) {
-          final m = entry.value;
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: entry.key < profile.members.length - 1 ? 14 : 0,
+          Positioned(
+            right: 22,
+            top: 84,
+            child: Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+              ),
             ),
+          ),
+          if (heroSkills.isNotEmpty)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 64,
+              bottom: 0,
+              child: IgnorePointer(
+                child: SkillParticleField(skills: heroSkills),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'TEAM PROFILE',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.4),
+                        letterSpacing: 3,
+                      ),
+                    ),
+                    const Spacer(),
+                    _TopActionButton(
+                      label: '返回',
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      onTap: () => Navigator.of(context).maybePop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  '团队',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _HeroAvatarCard(profile: profile),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            profile.teamName,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: -0.3,
+                              height: 1.08,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              const _HeroBadge(label: '团队方'),
+                              if (profile.vibeLevel != null &&
+                                  profile.vibeLevel!.isNotEmpty)
+                                _HeroBadge(label: profile.vibeLevel!),
+                              _HeroBadge(
+                                label: profile.isAvailable ? '接单中' : '档期待确认',
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: heroSkills.isNotEmpty ? 110 : 18),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+const List<String> _debugPreviewSkills = [
+  'Flutter',
+  'Swift',
+  'Kotlin',
+  'React',
+  'Figma',
+  'Docker',
+];
+
+List<SkillParticleItem> _teamHeroSkills(TeamProfile profile) {
+  final officialSkills = profile.skills
+      .map((skill) => skill.trim())
+      .where((skill) => skill.isNotEmpty)
+      .toList(growable: false);
+  final displaySkills = officialSkills.isNotEmpty
+      ? officialSkills
+      : (kDebugMode ? _debugPreviewSkills : const <String>[]);
+
+  return displaySkills
+      .asMap()
+      .entries
+      .map(
+        (entry) => SkillParticleItem.resolve(
+          entry.value,
+          isPrimary: entry.key == 0,
+        ),
+      )
+      .toList(growable: false);
+}
+
+class _TopActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _TopActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: Colors.white.withValues(alpha: 0.84),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.white.withValues(alpha: 0.84),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroAvatarCard extends StatelessWidget {
+  final TeamProfile profile;
+
+  const _HeroAvatarCard({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback =
+        profile.teamName.isNotEmpty ? profile.teamName[0].toUpperCase() : 'T';
+
+    return Container(
+      width: 88,
+      height: 88,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: VccAvatar(
+          imageUrl: profile.avatarUrl,
+          size: VccAvatarSize.xlarge,
+          fallbackText: fallback,
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroBadge extends StatelessWidget {
+  final String label;
+
+  const _HeroBadge({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Colors.white.withValues(alpha: 0.78),
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamMetricsCard extends StatelessWidget {
+  final TeamProfile profile;
+
+  const _TeamMetricsCard({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      _MetricItem(
+        '${profile.totalProjects}',
+        '累计项目',
+        Icons.folder_outlined,
+      ),
+      _MetricItem(
+        '${profile.memberCount}',
+        '团队成员',
+        Icons.people_outline_rounded,
+      ),
+      _MetricItem(
+        profile.experienceYears > 0 ? '${profile.experienceYears}' : '-',
+        '经验年限',
+        Icons.timeline_rounded,
+      ),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: items.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          return Expanded(
             child: Row(
               children: [
-                VccAvatar(
-                  imageUrl: m.avatarUrl,
-                  size: VccAvatarSize.small,
-                  fallbackText: m.nickname.isNotEmpty ? m.nickname[0] : '?',
-                ),
-                const SizedBox(width: 12),
+                if (index != 0)
+                  Container(
+                    width: 1,
+                    height: 34,
+                    color: AppColors.gray100,
+                  ),
+                if (index != 0) const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        item.value,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: _ink,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
+                          Icon(
+                            item.icon,
+                            size: 13,
+                            color: AppColors.gray400,
+                          ),
+                          const SizedBox(width: 4),
                           Flexible(
                             child: Text(
-                              m.nickname,
+                              item.label,
                               style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1A1C1C),
+                                fontSize: 12,
+                                color: AppColors.gray400,
                               ),
-                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (m.isLeader) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1A1C1C),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                '队长',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
-                      if (m.role.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          m.role,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.gray400,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -390,255 +480,475 @@ class _TeamProfilePageState extends ConsumerState<TeamProfilePage>
       ),
     );
   }
-
-  Widget _buildInfoBlock(TeamProfile profile) {
-    return _CardBlock(
-      label: '详细信息',
-      child: Column(
-        children: [
-          _InfoRow(label: '团队规模', value: '${profile.memberCount} 人'),
-          if (profile.vibePower > 0) ...[
-            const SizedBox(height: 14),
-            _InfoRow(label: 'Vibe Power', value: '${profile.vibePower}'),
-          ],
-          const SizedBox(height: 14),
-          _InfoRow(
-            label: '完成项目',
-            value: '${profile.completedProjects} 个',
-          ),
-          if (profile.hourlyRate != null && profile.hourlyRate! > 0) ...[
-            const SizedBox(height: 14),
-            _InfoRow(
-              label: '报价范围',
-              value: '¥${profile.hourlyRate!.toInt()}/h',
-            ),
-          ],
-          if (profile.experienceYears > 0) ...[
-            const SizedBox(height: 14),
-            _InfoRow(
-              label: '经验年限',
-              value: '${profile.experienceYears} 年',
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  void _tickParticles() {
-    for (final p in _particles) {
-      p.vy += p.gravity;
-      p.x += p.vx;
-      p.y += p.vy;
-
-      if (p.y > 1.0) {
-        p.y = -0.02;
-        p.vy = _rng.nextDouble() * 0.002;
-        p.x = _rng.nextDouble();
-      }
-      if (p.x > 1.0) p.x = 0.0;
-      if (p.x < 0.0) p.x = 1.0;
-
-      p.opacity = (p.baseOpacity * (1.0 - p.y * 0.5)).clamp(0.0, 1.0);
-    }
-  }
 }
 
-class _HeroBadge extends StatelessWidget {
-  final String text;
-  final bool bright;
-
-  const _HeroBadge({required this.text, this.bright = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: bright ? 0.15 : 0.08),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: bright ? FontWeight.w600 : FontWeight.w500,
-          color: bright ? Colors.white : Colors.white60,
-          letterSpacing: 0.3,
-        ),
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
+class _MetricItem {
   final String value;
   final String label;
   final IconData icon;
-  final Color iconColor;
 
-  const _StatCard({
-    required this.value,
-    required this.label,
-    required this.icon,
-    required this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 20, color: iconColor),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1A1C1C),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.gray400,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  const _MetricItem(this.value, this.label, this.icon);
 }
 
-class _CardBlock extends StatelessWidget {
-  final String label;
-  final Widget child;
+class _TeamStoryCard extends StatelessWidget {
+  final TeamProfile profile;
 
-  const _CardBlock({required this.label, required this.child});
+  const _TeamStoryCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
+    final summary = _storySummary(profile);
+    final details = _storyDetails(profile);
+
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.gray400,
-              letterSpacing: 2,
+          if (summary != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+              child: Text(
+                summary,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.7,
+                  color: Color(0xFF555555),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          child,
+          ],
+          if (details.isNotEmpty) ...[
+            if (summary != null)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 18),
+                height: 1,
+                color: AppColors.gray100,
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: details
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(
+                          item,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            height: 1.6,
+                            color: AppColors.gray500,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+
+  static String? _storySummary(TeamProfile profile) {
+    final candidates = [
+      profile.resumeSummary,
+      profile.description,
+      profile.tagline,
+    ];
+    for (final item in candidates) {
+      final text = item?.trim() ?? '';
+      if (text.isNotEmpty) return text;
+    }
+    return null;
+  }
+
+  static List<String> _storyDetails(TeamProfile profile) {
+    final items = <String>[];
+    if (profile.avgRating > 0) {
+      items.add('综合评分 ${profile.avgRating.toStringAsFixed(1)}');
+    }
+    if (profile.completedProjects > 0) {
+      items.add('已完成 ${profile.completedProjects} 个项目');
+    }
+    if (profile.vibePower > 0) {
+      items.add('Vibe Power ${profile.vibePower}');
+    }
+    return items;
+  }
 }
 
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
+class _TeamMembersCard extends StatefulWidget {
+  final TeamProfile profile;
 
-  const _InfoRow({required this.label, required this.value});
+  const _TeamMembersCard({required this.profile});
+
+  @override
+  State<_TeamMembersCard> createState() => _TeamMembersCardState();
+}
+
+class _TeamMembersCardState extends State<_TeamMembersCard> {
+  static const double _leaderSize = 56;
+  static const double _memberSize = 42;
+  static const double _overlap = 10;
+
+  int? _selectedIndex;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final members = _displayMembers(widget.profile);
+    final selected =
+        _selectedIndex != null && _selectedIndex! < members.length
+            ? members[_selectedIndex!]
+            : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, color: AppColors.gray500),
+        Row(
+          children: [
+            const Text(
+              '核心成员',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
+                color: AppColors.gray400,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              _summaryText(widget.profile, members),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.gray500,
+              ),
+            ),
+          ],
         ),
-        const Spacer(),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF1A1C1C),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: SizedBox(
+            height: _leaderSize,
+            child: _buildAvatarStrip(members),
           ),
+        ),
+        _TeamMemberStatusLine(
+          member: selected,
+          onTap: selected?.canOpenProfile == true
+              ? () => _openProfile(selected!)
+              : null,
         ),
       ],
     );
   }
+
+  Widget _buildAvatarStrip(List<_TeamDisplayMember> members) {
+    if (members.isEmpty) return const SizedBox.shrink();
+
+    const step = _memberSize - _overlap;
+    final totalWidth = _leaderSize + ((members.length - 1) * step) + 20;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(right: 20),
+      child: SizedBox(
+        width: totalWidth,
+        height: _leaderSize,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            for (var i = 0; i < members.length; i++)
+              _buildPositionedAvatar(i, members[i], step),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPositionedAvatar(
+    int index,
+    _TeamDisplayMember member,
+    double step,
+  ) {
+    final isLeader = index == 0;
+    final isSelected = _selectedIndex == index;
+    final hasSelection = _selectedIndex != null;
+    final size = isLeader ? _leaderSize : _memberSize;
+    final left = isLeader ? 0.0 : _leaderSize + ((index - 1) * step) - _overlap;
+    final top = isLeader ? 0.0 : (_leaderSize - _memberSize) / 2;
+
+    return Positioned(
+      left: left,
+      top: top,
+      child: GestureDetector(
+        onTap: () => _handleTap(member, index),
+        child: AnimatedScale(
+          scale: isSelected ? 1.15 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutBack,
+          child: AnimatedOpacity(
+            opacity: hasSelection && !isSelected ? 0.45 : 1.0,
+            duration: const Duration(milliseconds: 180),
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.white,
+                border: Border.all(
+                  color: isSelected ? AppColors.accent : AppColors.white,
+                  width: isLeader ? 3 : 2.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected
+                        ? AppColors.accent.withValues(alpha: 0.18)
+                        : const Color(0x0C000000),
+                    blurRadius: isSelected ? 12 : 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: VccAvatar(
+                  imageUrl: member.avatarUrl,
+                  size: size > 50
+                      ? VccAvatarSize.large
+                      : VccAvatarSize.medium,
+                  fallbackText: member.displayName,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleTap(_TeamDisplayMember member, int index) {
+    if (_selectedIndex == index && member.canOpenProfile) {
+      _openProfile(member);
+      return;
+    }
+
+    setState(() {
+      _selectedIndex = _selectedIndex == index ? null : index;
+    });
+  }
+
+  void _openProfile(_TeamDisplayMember member) {
+    if (!member.canOpenProfile) return;
+    context.push(
+      RoutePaths.expertProfileView.replaceFirst(':userId', member.userId),
+    );
+  }
+
+  static List<_TeamDisplayMember> _displayMembers(TeamProfile profile) {
+    final leader = _findLeader(profile);
+    final leaderName = leader?.nickname.isNotEmpty == true
+        ? leader!.nickname
+        : (profile.nickname.isNotEmpty ? profile.nickname : '负责人');
+    final members = <_TeamDisplayMember>[
+      _TeamDisplayMember(
+        id: leader?.id.toString() ?? 'leader:${profile.id}',
+        userId: leader?.userId ?? profile.leaderUuid,
+        displayName: leaderName,
+        avatarUrl: leader?.avatarUrl ?? profile.leaderAvatarUrl ?? profile.avatarUrl,
+        roleLabel: leader?.role.isNotEmpty == true ? leader!.role : '团队负责人',
+        isLeader: true,
+      ),
+      ...profile.members.where((member) => !member.isLeader).map(
+            (member) => _TeamDisplayMember(
+              id: member.id.toString(),
+              userId: member.userId,
+              displayName: member.nickname.isNotEmpty ? member.nickname : '团队成员',
+              avatarUrl: member.avatarUrl,
+              roleLabel: member.role.isNotEmpty ? member.role : '团队成员',
+            ),
+          ),
+    ];
+
+    if (kDebugMode && members.length == 1) {
+      members.addAll(
+        _debugPreviewMembers.map(
+          (member) => _TeamDisplayMember(
+            id: member.id,
+            userId: '',
+            displayName: member.displayName,
+            avatarUrl: null,
+            roleLabel: member.roleLabel,
+            isPreview: true,
+          ),
+        ),
+      );
+    }
+
+    return members;
+  }
+
+  static TeamProfileMember? _findLeader(TeamProfile profile) {
+    for (final member in profile.members) {
+      if (member.isLeader) return member;
+    }
+    return null;
+  }
+
+  static String _summaryText(
+    TeamProfile profile,
+    List<_TeamDisplayMember> members,
+  ) {
+    if (members.any((member) => member.isPreview)) {
+      return '成员数据待回传';
+    }
+
+    final count = profile.memberCount > 0 ? profile.memberCount : members.length;
+    return count <= 1 ? '当前公开负责人' : '$count 位成员';
+  }
 }
 
-class _Particle {
-  double x;
-  double y;
-  double vx;
-  double vy;
-  double radius;
-  double opacity;
-  double baseOpacity;
-  double gravity;
+class _TeamMemberStatusLine extends StatelessWidget {
+  final _TeamDisplayMember? member;
+  final VoidCallback? onTap;
 
-  _Particle({
-    required this.x,
-    required this.y,
-    required this.vx,
-    required this.vy,
-    required this.radius,
-    required this.opacity,
-    required this.baseOpacity,
-    required this.gravity,
+  const _TeamMemberStatusLine({
+    required this.member,
+    this.onTap,
   });
 
-  factory _Particle.random(Random rng) {
-    final baseOp = 0.08 + rng.nextDouble() * 0.25;
-    return _Particle(
-      x: rng.nextDouble(),
-      y: rng.nextDouble(),
-      vx: (rng.nextDouble() - 0.5) * 0.0008,
-      vy: rng.nextDouble() * 0.002,
-      radius: 0.8 + rng.nextDouble() * 2.0,
-      opacity: baseOp,
-      baseOpacity: baseOp,
-      gravity: 0.00001 + rng.nextDouble() * 0.00004,
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, -0.3),
+            end: Offset.zero,
+          ).animate(animation),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      child: member == null
+          ? const SizedBox(key: ValueKey('empty'), height: 8)
+          : GestureDetector(
+              key: ValueKey(member!.id),
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Row(
+                  children: [
+                    Text(
+                      member!.displayName,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.black,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        '·',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.gray300,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        member!.roleLabel,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.gray500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (member!.canOpenProfile) ...[
+                      const SizedBox(width: 10),
+                      const Text(
+                        '主页',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.gray400,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.arrow_outward_rounded,
+                        size: 13,
+                        color: AppColors.gray400,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
     );
   }
 }
 
-class _ParticlePainter extends CustomPainter {
-  final List<_Particle> particles;
+class _TeamDisplayMember {
+  final String id;
+  final String userId;
+  final String displayName;
+  final String? avatarUrl;
+  final String roleLabel;
+  final bool isLeader;
+  final bool isPreview;
 
-  _ParticlePainter(this.particles);
+  const _TeamDisplayMember({
+    required this.id,
+    required this.userId,
+    required this.displayName,
+    required this.avatarUrl,
+    required this.roleLabel,
+    this.isLeader = false,
+    this.isPreview = false,
+  });
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final p in particles) {
-      final paint = Paint()
-        ..color = Colors.white.withValues(alpha: p.opacity)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(
-        Offset(p.x * size.width, p.y * size.height),
-        p.radius,
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ParticlePainter oldDelegate) => true;
+  bool get canOpenProfile => userId.isNotEmpty && !isPreview;
 }
+
+class _DebugPreviewMember {
+  final String id;
+  final String displayName;
+  final String roleLabel;
+
+  const _DebugPreviewMember({
+    required this.id,
+    required this.displayName,
+    required this.roleLabel,
+  });
+}
+
+const List<_DebugPreviewMember> _debugPreviewMembers = [
+  _DebugPreviewMember(
+    id: 'preview-design',
+    displayName: 'Ari',
+    roleLabel: '设计协作',
+  ),
+  _DebugPreviewMember(
+    id: 'preview-backend',
+    displayName: 'Bo',
+    roleLabel: '后端协作',
+  ),
+];

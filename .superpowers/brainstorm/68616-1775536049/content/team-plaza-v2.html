@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>团队广场 v2</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#E0E0E0; font-family: -apple-system, 'SF Pro Display', 'Inter', sans-serif; display:flex; justify-content:center; padding:24px 16px; min-height:100vh; }
+
+  .phone {
+    width:390px; max-width:100%; background:#F9F9F9; border-radius:40px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.12);
+    overflow:hidden;
+  }
+  .phone-inner {
+    height:844px; overflow-y:auto; scroll-behavior:smooth;
+    -webkit-overflow-scrolling:touch;
+  }
+  .phone-inner::-webkit-scrollbar { display:none; }
+  .safe-top { height:54px; }
+
+  /* Header */
+  .header { padding:0 20px 0; }
+  .header-row { display:flex; align-items:center; gap:16px; }
+  .header-title { font-size:22px; font-weight:700; letter-spacing:-0.6px; color:#1A1A1A; }
+  .tab-switch { flex:1; height:36px; background:#F3F3F3; border-radius:999px; padding:3px; display:flex; }
+  .tab { flex:1; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; border-radius:999px; }
+  .tab.active { background:#1A1A1A; color:#fff; }
+  .tab.inactive { color:#999; }
+
+  /* ── ZONE 1: Presence Hero ── */
+  .presence-hero {
+    padding:24px 20px 20px;
+    position:relative;
+  }
+  .presence-label-row {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .presence-label {
+    font-size:11px; font-weight:600; letter-spacing:1.2px; color:#999; text-transform:uppercase;
+  }
+  .presence-stat {
+    font-size:12px; font-weight:600; color:#1A1A1A;
+  }
+  .presence-stat span { color:#7C3AED; }
+
+  /* Avatar cluster: big center + smaller orbiting */
+  .avatar-cluster {
+    display:flex; align-items:center; justify-content:center;
+    position:relative; height:130px; margin-bottom:16px;
+  }
+  .av {
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-weight:700; border:3px solid #F9F9F9; position:absolute;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .av-hero {
+    width:72px; height:72px; font-size:24px; z-index:10;
+    border:3.5px solid #F9F9F9;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .av-md { width:48px; height:48px; font-size:16px; }
+  .av-sm { width:40px; height:40px; font-size:14px; }
+  .av-xs { width:34px; height:34px; font-size:12px; }
+
+  /* Skill tags floating around cluster */
+  .skill-float {
+    position:absolute; padding:4px 10px; border-radius:999px;
+    font-size:10px; font-weight:600; white-space:nowrap;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  }
+
+  /* Green online dot */
+  .online-dot {
+    width:8px; height:8px; border-radius:50%; background:#22C55E;
+    border:2px solid #F9F9F9; position:absolute;
+  }
+
+  /* Summary bar */
+  .presence-summary {
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .presence-summary-dot { width:6px; height:6px; border-radius:50%; background:#22C55E; }
+  .presence-summary-text { font-size:13px; color:#666; font-weight:500; }
+  .presence-summary-text b { color:#1A1A1A; font-weight:700; }
+
+  /* ── ZONE 2: Featured Scroll ── */
+  .featured-zone { padding:4px 0 0; }
+  .section-header { padding:0 20px; margin-bottom:14px; }
+  .section-eyebrow { font-size:11px; font-weight:600; letter-spacing:1.2px; color:#999; text-transform:uppercase; }
+  .section-title { font-size:20px; font-weight:700; letter-spacing:-0.5px; color:#1A1A1A; margin-top:3px; }
+
+  .cards-scroll {
+    display:flex; gap:12px; overflow-x:auto; padding:0 20px 4px;
+    scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+  }
+  .cards-scroll::-webkit-scrollbar { display:none; }
+
+  .team-card {
+    min-width:224px; max-width:224px; scroll-snap-align:start;
+    border-radius:20px; padding:16px; transition:transform 0.15s;
+  }
+  .team-card:active { transform:scale(0.985); }
+  .team-card.hi { background:#F4EEFF; border:1px solid #E4D8FF; }
+  .team-card.lo { background:#fff; border:1px solid #E8E8E8; }
+
+  .tc-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .tc-av {
+    width:40px; height:40px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px; font-weight:700; flex-shrink:0;
+  }
+  .tc-info { flex:1; min-width:0; }
+  .tc-name { font-size:14px; font-weight:700; color:#1A1A1A; letter-spacing:-0.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tc-meta { font-size:10px; color:#999; margin-top:1px; font-weight:500; }
+  .tc-meta.accent { color:#7C3AED; font-weight:600; }
+  .tc-desc { font-size:11px; color:#666; line-height:1.5; margin-bottom:10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .tc-tags { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:12px; }
+  .tc-tag { padding:3px 7px; border-radius:999px; font-size:10px; font-weight:500; }
+  .tc-tag.hi { background:#fff; color:#7C3AED; }
+  .tc-tag.lo { background:#F3F3F3; color:#666; }
+  .tc-bottom { display:flex; align-items:center; justify-content:space-between; }
+  .tc-members { font-size:11px; font-weight:600; color:#1A1A1A; }
+  .tc-vibe { font-size:10px; font-weight:600; }
+
+  /* ── ZONE 3: Masonry Waterfall ── */
+  .waterfall-zone { padding:28px 0 0; }
+  .masonry {
+    padding:0 20px;
+    columns:2; column-gap:10px;
+  }
+  .masonry-item {
+    break-inside:avoid; margin-bottom:10px;
+    border-radius:16px; padding:14px; overflow:hidden;
+    transition:transform 0.15s;
+  }
+  .masonry-item:active { transform:scale(0.985); }
+  .masonry-item.white { background:#fff; border:1px solid #ECECEC; }
+  .masonry-item.tinted { background:#F7F8FA; border:1px solid #E8E8E8; }
+
+  .mi-av {
+    width:36px; height:36px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; margin-bottom:10px;
+  }
+  .mi-name { font-size:13px; font-weight:700; color:#1A1A1A; letter-spacing:-0.2px; margin-bottom:3px; }
+  .mi-desc {
+    font-size:11px; color:#888; line-height:1.5;
+    display:-webkit-box; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .mi-tags { display:flex; gap:4px; flex-wrap:wrap; margin-top:8px; }
+  .mi-tag { padding:3px 7px; border-radius:999px; font-size:9px; font-weight:500; background:#F3F3F3; color:#666; }
+  .mi-bottom { display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+  .mi-members { font-size:10px; color:#BBB; font-weight:500; }
+  .mi-dot { width:5px; height:5px; border-radius:50%; }
+
+  /* Loading */
+  .feed-loading { padding:24px; text-align:center; }
+  .loading-dots { display:inline-flex; gap:4px; }
+  .loading-dots span { width:5px; height:5px; border-radius:50%; background:#CCC; animation:pulse 1.2s ease infinite; }
+  .loading-dots span:nth-child(2) { animation-delay:0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes pulse { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+
+  .safe-bottom { height:90px; }
+
+  .zone-tag {
+    position:absolute; right:8px;
+    font-size:9px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+    color:#7C3AED; background:#F4EEFF; padding:3px 8px; border-radius:6px;
+    z-index:20; pointer-events:none;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="phone-inner">
+<div class="safe-top"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-row">
+    <div class="header-title">广场</div>
+    <div class="tab-switch">
+      <div class="tab inactive">项目</div>
+      <div class="tab active">团队</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ZONE 1: Presence Hero ═══ -->
+<div class="presence-hero" style="position:relative;">
+  <div class="zone-tag" style="top:12px;">Zone 1</div>
+
+  <div class="presence-label-row">
+    <div class="presence-label"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22C55E;margin-right:5px;vertical-align:middle;"></span>今天在场</div>
+    <div class="presence-stat"><span>38</span> 种技能覆盖</div>
+  </div>
+
+  <!-- Avatar cluster -->
+  <div class="avatar-cluster">
+    <!-- Hero avatar (center) -->
+    <div class="av av-hero" style="background:linear-gradient(135deg,#E0D4F7,#C4AEEF); color:#5B21B6; left:50%; top:50%; transform:translate(-50%,-50%);">
+      张
+      <div class="online-dot" style="right:2px; bottom:2px;"></div>
+    </div>
+
+    <!-- Orbiting avatars -->
+    <div class="av av-md" style="background:linear-gradient(135deg,#E0E7EF,#C0CCD8); color:#555; left:8%; top:14%; z-index:5;">
+      李
+      <div class="online-dot" style="right:0; bottom:0;"></div>
+    </div>
+    <div class="av av-md" style="background:linear-gradient(135deg,#E0F2F1,#A5D6D0); color:#00695C; right:8%; top:8%; z-index:5;">
+      王
+    </div>
+    <div class="av av-sm" style="background:linear-gradient(135deg,#FFF3E0,#FFE0B2); color:#E65100; left:16%; bottom:6%; z-index:4;">
+      刘
+      <div class="online-dot" style="right:-1px; bottom:-1px;"></div>
+    </div>
+    <div class="av av-sm" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0); color:#C62828; right:14%; bottom:10%; z-index:4;">
+      孙
+    </div>
+    <div class="av av-xs" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9); color:#2E7D32; left:2%; top:54%; z-index:3;">
+      陈
+    </div>
+    <div class="av av-xs" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB); color:#1565C0; right:2%; top:52%; z-index:3;">
+      周
+    </div>
+    <div class="av av-xs" style="background:#EEEEEE; color:#999; right:26%; top:2%; z-index:2; font-size:10px;">
+      +5
+    </div>
+
+    <!-- Floating skill tags -->
+    <div class="skill-float" style="background:#F4EEFF; color:#7C3AED; top:2px; left:28%;">AI</div>
+    <div class="skill-float" style="background:#fff; color:#666; border:1px solid #E8E8E8; bottom:0; left:38%;">Flutter</div>
+    <div class="skill-float" style="background:#fff; color:#666; border:1px solid #E8E8E8; top:6px; right:28%;">Go</div>
+    <div class="skill-float" style="background:#E0F2F1; color:#00695C; bottom:2px; right:22%;">全栈</div>
+    <div class="skill-float" style="background:#FFF3E0; color:#E65100; top:42%; left:-2px;">设计</div>
+    <div class="skill-float" style="background:#F3E5F5; color:#7B1FA2; top:40%; right:-2px;">产品</div>
+  </div>
+
+  <div class="presence-summary">
+    <div class="presence-summary-dot"></div>
+    <div class="presence-summary-text"><b>12</b> 支团队正在广场</div>
+  </div>
+</div>
+
+<!-- ═══ ZONE 2: Featured Cards ═══ -->
+<div class="featured-zone" style="position:relative;">
+  <div class="zone-tag" style="top:0; right:28px;">Zone 2</div>
+  <div class="section-header">
+    <div class="section-eyebrow">社区精选</div>
+    <div class="section-title">值得认识的团队</div>
+  </div>
+  <div class="cards-scroll">
+    <!-- Card 1: Highlight -->
+    <div class="team-card hi">
+      <div class="tc-top">
+        <div class="tc-av" style="background:linear-gradient(135deg,#E0D4F7,#C4AEEF); color:#5B21B6;">张</div>
+        <div class="tc-info">
+          <div class="tc-name">星云工作室</div>
+          <div class="tc-meta accent">5 人 · 全栈</div>
+        </div>
+      </div>
+      <div class="tc-desc">专注 AI 产品，从需求拆解到上线交付一站搞定</div>
+      <div class="tc-tags">
+        <span class="tc-tag hi">#AI</span>
+        <span class="tc-tag hi">#Flutter</span>
+        <span class="tc-tag hi">#全栈</span>
+      </div>
+      <div class="tc-bottom">
+        <div class="tc-members">5 人协作</div>
+        <div class="tc-vibe" style="color:#7C3AED;">⚡ 活跃</div>
+      </div>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="team-card lo">
+      <div class="tc-top">
+        <div class="tc-av" style="background:linear-gradient(135deg,#E0E7EF,#C0CCD8); color:#555;">李</div>
+        <div class="tc-info">
+          <div class="tc-name">像素点阵</div>
+          <div class="tc-meta">3 人 · 前端</div>
+        </div>
+      </div>
+      <div class="tc-desc">App、小程序、响应式网站三端同步交付</div>
+      <div class="tc-tags">
+        <span class="tc-tag lo">#Flutter</span>
+        <span class="tc-tag lo">#React</span>
+      </div>
+      <div class="tc-bottom">
+        <div class="tc-members">3 人协作</div>
+        <div class="tc-vibe" style="color:#999;">⭐ 4.8</div>
+      </div>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="team-card lo">
+      <div class="tc-top">
+        <div class="tc-av" style="background:linear-gradient(135deg,#E0F2F1,#A5D6D0); color:#00695C;">王</div>
+        <div class="tc-info">
+          <div class="tc-name">码上行</div>
+          <div class="tc-meta">4 人 · 后端</div>
+        </div>
+      </div>
+      <div class="tc-desc">高并发架构、微服务拆分、DevOps 全套</div>
+      <div class="tc-tags">
+        <span class="tc-tag lo">#Go</span>
+        <span class="tc-tag lo">#K8s</span>
+      </div>
+      <div class="tc-bottom">
+        <div class="tc-members">4 人协作</div>
+        <div class="tc-vibe" style="color:#999;">⭐ 4.6</div>
+      </div>
+    </div>
+
+    <!-- Peek -->
+    <div class="team-card lo" style="opacity:.5;">
+      <div class="tc-top">
+        <div class="tc-av" style="background:linear-gradient(135deg,#FFF3E0,#FFE0B2); color:#E65100;">赵</div>
+        <div class="tc-info"><div class="tc-name">设计引力</div><div class="tc-meta">2 人</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ZONE 3: Masonry Waterfall ═══ -->
+<div class="waterfall-zone" style="position:relative;">
+  <div class="zone-tag" style="top:0; right:28px;">Zone 3</div>
+  <div class="section-header">
+    <div class="section-eyebrow">团队名录</div>
+    <div class="section-title">看看大家都在做什么</div>
+  </div>
+
+  <div class="masonry">
+    <!-- Tall item -->
+    <div class="masonry-item white">
+      <div class="mi-av" style="background:linear-gradient(135deg,#FFF3E0,#FFE0B2); color:#E65100;">赵</div>
+      <div class="mi-name">设计引力</div>
+      <div class="mi-desc" style="-webkit-line-clamp:3;">品牌视觉 + 产品交互，从 0 到 1 搭设计体系，帮你建立完整品牌形象</div>
+      <div class="mi-tags">
+        <span class="mi-tag">#UI</span>
+        <span class="mi-tag">#品牌</span>
+      </div>
+      <div class="mi-bottom">
+        <div class="mi-members">2人</div>
+        <div class="mi-dot" style="background:#22C55E;"></div>
+      </div>
+    </div>
+
+    <!-- Short item -->
+    <div class="masonry-item tinted">
+      <div class="mi-av" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9); color:#2E7D32;">孙</div>
+      <div class="mi-name">绿码科技</div>
+      <div class="mi-desc" style="-webkit-line-clamp:2;">微信生态开发，小程序+企微</div>
+      <div class="mi-tags">
+        <span class="mi-tag">#小程序</span>
+      </div>
+      <div class="mi-bottom">
+        <div class="mi-members">3人</div>
+        <div class="mi-dot" style="background:#22C55E;"></div>
+      </div>
+    </div>
+
+    <!-- Medium item -->
+    <div class="masonry-item tinted">
+      <div class="mi-av" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB); color:#1565C0;">周</div>
+      <div class="mi-name">数据织网</div>
+      <div class="mi-desc" style="-webkit-line-clamp:2;">数据管线、BI 看板、报表自动化</div>
+      <div class="mi-tags">
+        <span class="mi-tag">#数据</span>
+        <span class="mi-tag">#BI</span>
+      </div>
+      <div class="mi-bottom">
+        <div class="mi-members">4人</div>
+        <div class="mi-dot" style="background:transparent;"></div>
+      </div>
+    </div>
+
+    <!-- Tall item -->
+    <div class="masonry-item white">
+      <div class="mi-av" style="background:linear-gradient(135deg,#FFF8E1,#FFECB3); color:#F57F17;">吴</div>
+      <div class="mi-name">声波实验室</div>
+      <div class="mi-desc" style="-webkit-line-clamp:4;">音视频通话、直播架构、WebRTC，专注实时通信领域五年经验</div>
+      <div class="mi-tags">
+        <span class="mi-tag">#音视频</span>
+        <span class="mi-tag">#RTC</span>
+      </div>
+      <div class="mi-bottom">
+        <div class="mi-members">5人</div>
+        <div class="mi-dot" style="background:#22C55E;"></div>
+      </div>
+    </div>
+
+    <!-- Short item -->
+    <div class="masonry-item white">
+      <div class="mi-av" style="background:linear-gradient(135deg,#F3E5F5,#E1BEE7); color:#7B1FA2;">郑</div>
+      <div class="mi-name">无界创意</div>
+      <div class="mi-desc" style="-webkit-line-clamp:2;">3D 可视化、数字孪生</div>
+      <div class="mi-tags">
+        <span class="mi-tag">#3D</span>
+      </div>
+      <div class="mi-bottom">
+        <div class="mi-members">3人</div>
+        <div class="mi-dot" style="background:transparent;"></div>
+      </div>
+    </div>
+
+    <!-- Medium item -->
+    <div class="masonry-item tinted">
+      <div class="mi-av" style="background:linear-gradient(135deg,#EFEBE9,#D7CCC8); color:#4E342E;">钱</div>
+      <div class="mi-name">稳态工程</div>
+      <div class="mi-desc" style="-webkit-line-clamp:3;">SRE、监控告警、容灾方案，保障系统 99.99% 可用</div>
+      <div class="mi-tags">
+        <span class="mi-tag">#SRE</span>
+        <span class="mi-tag">#DevOps</span>
+      </div>
+      <div class="mi-bottom">
+        <div class="mi-members">2人</div>
+        <div class="mi-dot" style="background:#22C55E;"></div>
+      </div>
+    </div>
+
+    <!-- Another -->
+    <div class="masonry-item white">
+      <div class="mi-av" style="background:linear-gradient(135deg,#E0E0E0,#BDBDBD); color:#424242;">冯</div>
+      <div class="mi-name">黑盒安全</div>
+      <div class="mi-desc" style="-webkit-line-clamp:2;">渗透测试、安全审计</div>
+      <div class="mi-tags">
+        <span class="mi-tag">#安全</span>
+      </div>
+      <div class="mi-bottom">
+        <div class="mi-members">2人</div>
+        <div class="mi-dot" style="background:transparent;"></div>
+      </div>
+    </div>
+
+    <!-- Last visible -->
+    <div class="masonry-item tinted">
+      <div class="mi-av" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0); color:#C62828;">魏</div>
+      <div class="mi-name">增长飞轮</div>
+      <div class="mi-desc" style="-webkit-line-clamp:3;">用户增长策略、A/B 实验平台、数据驱动运营</div>
+      <div class="mi-tags">
+        <span class="mi-tag">#增长</span>
+        <span class="mi-tag">#数据</span>
+      </div>
+      <div class="mi-bottom">
+        <div class="mi-members">3人</div>
+        <div class="mi-dot" style="background:#22C55E;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="feed-loading">
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<div class="safe-bottom"></div>
+</div>
+</div>
+</body>
+</html>

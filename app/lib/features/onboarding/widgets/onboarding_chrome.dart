@@ -414,6 +414,7 @@ class OnboardingChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final IconData? icon;
+  final Widget Function(Color color)? iconBuilder;
 
   const OnboardingChip({
     super.key,
@@ -421,6 +422,7 @@ class OnboardingChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.icon,
+    this.iconBuilder,
   });
 
   @override
@@ -450,12 +452,15 @@ class OnboardingChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 15,
-                  color: selected ? AppColors.white : AppColors.gray700,
-                ),
+              if (icon != null || iconBuilder != null) ...[
+                if (iconBuilder != null)
+                  iconBuilder!(selected ? AppColors.white : AppColors.gray700)
+                else
+                  Icon(
+                    icon,
+                    size: 15,
+                    color: selected ? AppColors.white : AppColors.gray700,
+                  ),
                 const SizedBox(width: 8),
               ],
               Text(
@@ -476,12 +481,14 @@ class OnboardingChip extends StatelessWidget {
 class OnboardingIconTag extends StatelessWidget {
   final String label;
   final IconData icon;
+  final Widget? iconWidget;
   final bool compact;
 
   const OnboardingIconTag({
     super.key,
     required this.label,
     required this.icon,
+    this.iconWidget,
     this.compact = false,
   });
 
@@ -502,11 +509,14 @@ class OnboardingIconTag extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: compact ? 14 : 15,
-            color: AppColors.gray700,
-          ),
+          if (iconWidget != null)
+            iconWidget!
+          else
+            Icon(
+              icon,
+              size: compact ? 14 : 15,
+              color: AppColors.gray700,
+            ),
           const SizedBox(width: 7),
           Text(
             label,
@@ -826,6 +836,7 @@ class OnboardingChoiceCard extends StatelessWidget {
   final VoidCallback onTap;
   final String? badge;
   final IconData? icon;
+  final Widget Function(Color color)? iconBuilder;
 
   const OnboardingChoiceCard({
     super.key,
@@ -835,6 +846,7 @@ class OnboardingChoiceCard extends StatelessWidget {
     required this.onTap,
     this.badge,
     this.icon,
+    this.iconBuilder,
   });
 
   @override
@@ -860,10 +872,10 @@ class OnboardingChoiceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (badge != null || icon != null) ...[
+            if (badge != null || icon != null || iconBuilder != null) ...[
               Row(
                 children: [
-                  if (icon != null)
+                  if (icon != null || iconBuilder != null)
                     Container(
                       width: 32,
                       height: 32,
@@ -873,10 +885,18 @@ class OnboardingChoiceCard extends StatelessWidget {
                             : AppColors.onboardingSurfaceMuted,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(
-                        icon,
-                        size: 17,
-                        color: selected ? AppColors.white : AppColors.black,
+                      child: Center(
+                        child: iconBuilder != null
+                            ? iconBuilder!(
+                                selected ? AppColors.white : AppColors.black,
+                              )
+                            : Icon(
+                                icon,
+                                size: 17,
+                                color: selected
+                                    ? AppColors.white
+                                    : AppColors.black,
+                              ),
                       ),
                     ),
                   const Spacer(),

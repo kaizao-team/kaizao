@@ -1,0 +1,207 @@
+<h2>团队广场 — 设计方向</h2>
+<p class="subtitle">三种截然不同的"社区感"表达方式。点击你最有感觉的方向。</p>
+
+<div class="cards">
+
+  <!-- Option A: Avatar Mosaic / People Wall -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#F9F9F9; padding:24px 20px; min-height:340px;">
+      <!-- Header -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:11px; font-weight:600; letter-spacing:1.2px; color:#999; text-transform:uppercase;">今天谁在场</div>
+        <div style="font-size:20px; font-weight:700; color:#1A1A1A; margin-top:4px; letter-spacing:-0.5px;">12 支团队 · 38 种技能</div>
+      </div>
+
+      <!-- Avatar mosaic - dense, overlapping, social -->
+      <div style="position:relative; height:120px; margin-bottom:20px;">
+        <!-- Row 1 -->
+        <div style="position:absolute; left:0; top:0; width:56px; height:56px; border-radius:16px; background:linear-gradient(135deg,#E8E8E8,#D0D0D0); border:2.5px solid #F9F9F9; z-index:5; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#666;">张</div>
+        <div style="position:absolute; left:40px; top:4px; width:48px; height:48px; border-radius:14px; background:linear-gradient(135deg,#F4EEFF,#E0D4F7); border:2.5px solid #F9F9F9; z-index:4; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:#7C3AED;">李</div>
+        <div style="position:absolute; left:78px; top:0; width:56px; height:56px; border-radius:16px; background:linear-gradient(135deg,#E0E7EF,#C8D4E0); border:2.5px solid #F9F9F9; z-index:3; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#555;">王</div>
+        <div style="position:absolute; left:122px; top:6px; width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,#E8E8E8,#D8D8D8); border:2.5px solid #F9F9F9; z-index:2; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#777;">赵</div>
+        <div style="position:absolute; left:156px; top:2px; width:52px; height:52px; border-radius:15px; background:linear-gradient(135deg,#FFF3E0,#FFE0B2); border:2.5px solid #F9F9F9; z-index:1; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#E65100;">刘</div>
+
+        <!-- Row 2 - offset -->
+        <div style="position:absolute; left:16px; top:52px; width:50px; height:50px; border-radius:14px; background:linear-gradient(135deg,#E0F2F1,#B2DFDB); border:2.5px solid #F9F9F9; z-index:4; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#00695C;">陈</div>
+        <div style="position:absolute; left:58px; top:56px; width:46px; height:46px; border-radius:13px; background:linear-gradient(135deg,#E8E8E8,#CFCFCF); border:2.5px solid #F9F9F9; z-index:3; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:#666;">周</div>
+        <div style="position:absolute; left:96px; top:50px; width:54px; height:54px; border-radius:15px; background:linear-gradient(135deg,#FCE4EC,#F8BBD0); border:2.5px solid #F9F9F9; z-index:2; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700; color:#C62828;">孙</div>
+        <div style="position:absolute; left:142px; top:58px; width:42px; height:42px; border-radius:12px; background:#E8E8E8; border:2.5px solid #F9F9F9; z-index:1; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:#999;">+4</div>
+      </div>
+
+      <!-- Floating skill tags -->
+      <div style="display:flex; flex-wrap:wrap; gap:6px;">
+        <span style="padding:5px 10px; background:#fff; border-radius:999px; font-size:11px; font-weight:500; color:#666; border:1px solid #E8E8E8;">#Flutter</span>
+        <span style="padding:5px 10px; background:#fff; border-radius:999px; font-size:11px; font-weight:500; color:#666; border:1px solid #E8E8E8;">#AI</span>
+        <span style="padding:5px 10px; background:#fff; border-radius:999px; font-size:11px; font-weight:500; color:#666; border:1px solid #E8E8E8;">#后端</span>
+        <span style="padding:5px 10px; background:#fff; border-radius:999px; font-size:11px; font-weight:500; color:#666; border:1px solid #E8E8E8;">#产品设计</span>
+        <span style="padding:5px 10px; background:#F4EEFF; border-radius:999px; font-size:11px; font-weight:600; color:#7C3AED; border:1px solid #E4D8FF;">全栈 ×3</span>
+      </div>
+
+      <!-- Tap hint -->
+      <div style="margin-top:16px; display:flex; align-items:center; gap:6px;">
+        <div style="width:6px; height:6px; border-radius:50%; background:#7C3AED;"></div>
+        <span style="font-size:12px; color:#999;">点击任意头像进入团队主页</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · 头像墙 / People Mosaic</h3>
+      <p>密集的头像群构成视觉主体，技能标签漂浮在人群周围。像走进一个真实的聚会——先看到人，再了解细节。<strong>社区感最强</strong>，但单个团队的信息密度较低。</p>
+    </div>
+  </div>
+
+  <!-- Option B: Compact Profile Tiles -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#F9F9F9; padding:24px 20px; min-height:340px;">
+      <!-- Section header -->
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px; font-weight:600; letter-spacing:1.2px; color:#999; text-transform:uppercase;">活跃团队</div>
+        <div style="font-size:20px; font-weight:700; color:#1A1A1A; margin-top:4px; letter-spacing:-0.5px;">正在协作中</div>
+      </div>
+
+      <!-- Compact tiles - 2 column grid, people-centric -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <!-- Tile 1 - highlighted -->
+        <div style="background:#F4EEFF; border-radius:16px; padding:14px; border:1px solid #E4D8FF;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#E0D4F7,#C8B8F0); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#5B21B6;">张</div>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#1A1A1A; letter-spacing:-0.3px;">星云工作室</div>
+              <div style="font-size:10px; color:#7C3AED; font-weight:600;">5 人 · 全栈</div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:#666; line-height:1.5;">专注 AI 产品，从原型到上线</div>
+          <div style="display:flex; gap:4px; margin-top:8px; flex-wrap:wrap;">
+            <span style="padding:3px 7px; background:#fff; border-radius:999px; font-size:10px; color:#7C3AED; font-weight:500;">#AI</span>
+            <span style="padding:3px 7px; background:#fff; border-radius:999px; font-size:10px; color:#7C3AED; font-weight:500;">#全栈</span>
+          </div>
+        </div>
+
+        <!-- Tile 2 -->
+        <div style="background:#fff; border-radius:16px; padding:14px; border:1px solid #E8E8E8;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#E0E7EF,#C8D4E0); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#555;">李</div>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#1A1A1A; letter-spacing:-0.3px;">像素点阵</div>
+              <div style="font-size:10px; color:#999; font-weight:500;">3 人 · 前端</div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:#666; line-height:1.5;">App / 小程序 / 响应式网站</div>
+          <div style="display:flex; gap:4px; margin-top:8px; flex-wrap:wrap;">
+            <span style="padding:3px 7px; background:#F3F3F3; border-radius:999px; font-size:10px; color:#666;">#Flutter</span>
+            <span style="padding:3px 7px; background:#F3F3F3; border-radius:999px; font-size:10px; color:#666;">#React</span>
+          </div>
+        </div>
+
+        <!-- Tile 3 -->
+        <div style="background:#fff; border-radius:16px; padding:14px; border:1px solid #E8E8E8;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#E0F2F1,#B2DFDB); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#00695C;">王</div>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#1A1A1A; letter-spacing:-0.3px;">码上行</div>
+              <div style="font-size:10px; color:#999; font-weight:500;">4 人 · 后端</div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:#666; line-height:1.5;">高并发架构与微服务</div>
+          <div style="display:flex; gap:4px; margin-top:8px; flex-wrap:wrap;">
+            <span style="padding:3px 7px; background:#F3F3F3; border-radius:999px; font-size:10px; color:#666;">#Go</span>
+            <span style="padding:3px 7px; background:#F3F3F3; border-radius:999px; font-size:10px; color:#666;">#K8s</span>
+          </div>
+        </div>
+
+        <!-- Tile 4 -->
+        <div style="background:#fff; border-radius:16px; padding:14px; border:1px solid #E8E8E8;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#FFF3E0,#FFE0B2); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#E65100;">赵</div>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#1A1A1A; letter-spacing:-0.3px;">设计引力</div>
+              <div style="font-size:10px; color:#999; font-weight:500;">2 人 · 设计</div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:#666; line-height:1.5;">品牌视觉 + 产品交互</div>
+          <div style="display:flex; gap:4px; margin-top:8px; flex-wrap:wrap;">
+            <span style="padding:3px 7px; background:#F3F3F3; border-radius:999px; font-size:10px; color:#666;">#UI</span>
+            <span style="padding:3px 7px; background:#F3F3F3; border-radius:999px; font-size:10px; color:#666;">#品牌</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · 紧凑名片格 / Profile Tiles</h3>
+      <p>两列紧凑 tile，每个 tile 有头像 + 团队名 + 一句话 + 技能。像一个社交名片墙——能快速扫描，同时保留每个团队的识别度。<strong>信息效率和社区感的平衡点。</strong></p>
+    </div>
+  </div>
+
+  <!-- Option C: Mixed Flow -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#F9F9F9; padding:24px 20px; min-height:340px;">
+      <!-- Top: avatar row as "who's here" -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:11px; font-weight:600; letter-spacing:1.2px; color:#999; text-transform:uppercase; margin-bottom:10px;">今天在线</div>
+        <div style="display:flex; gap:-4px; align-items:center;">
+          <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg,#E8E8E8,#D0D0D0); border:2px solid #F9F9F9; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#666; margin-right:-8px; z-index:6;">张</div>
+          <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg,#F4EEFF,#E0D4F7); border:2px solid #F9F9F9; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#7C3AED; margin-right:-8px; z-index:5;">李</div>
+          <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg,#E0E7EF,#C8D4E0); border:2px solid #F9F9F9; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#555; margin-right:-8px; z-index:4;">王</div>
+          <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg,#E0F2F1,#B2DFDB); border:2px solid #F9F9F9; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#00695C; margin-right:-8px; z-index:3;">陈</div>
+          <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg,#FFF3E0,#FFE0B2); border:2px solid #F9F9F9; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#E65100; margin-right:-8px; z-index:2;">刘</div>
+          <div style="width:40px; height:40px; border-radius:12px; background:#F3F3F3; border:2px solid #F9F9F9; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:#999; margin-right:-8px; z-index:1;">+7</div>
+          <div style="margin-left:16px; font-size:12px; color:#999; font-weight:500;">12 支团队在场</div>
+        </div>
+      </div>
+
+      <!-- Highlighted team - wider, editorial feel -->
+      <div style="background:#F4EEFF; border-radius:16px; padding:16px; border:1px solid #E4D8FF; margin-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,#E0D4F7,#C8B8F0); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#5B21B6; flex-shrink:0;">张</div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <div style="font-size:15px; font-weight:700; color:#1A1A1A; letter-spacing:-0.3px;">星云工作室</div>
+              <span style="padding:2px 7px; background:#fff; border-radius:999px; font-size:10px; color:#7C3AED; font-weight:600;">社区精选</span>
+            </div>
+            <div style="font-size:12px; color:#666; margin-top:3px;">5 人 · 专注 AI 产品从原型到上线</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compact list below -->
+      <div style="display:flex; flex-direction:column; gap:1px;">
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid #F0F0F0;">
+          <div style="width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,#E0E7EF,#C8D4E0); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#555; flex-shrink:0;">李</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:600; color:#1A1A1A;">像素点阵</div>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <span style="padding:2px 6px; background:#F3F3F3; border-radius:999px; font-size:10px; color:#666;">#Flutter</span>
+          </div>
+          <div style="font-size:11px; color:#999;">3人</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid #F0F0F0;">
+          <div style="width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,#E0F2F1,#B2DFDB); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#00695C; flex-shrink:0;">王</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:600; color:#1A1A1A;">码上行</div>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <span style="padding:2px 6px; background:#F3F3F3; border-radius:999px; font-size:10px; color:#666;">#Go</span>
+          </div>
+          <div style="font-size:11px; color:#999;">4人</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 4px;">
+          <div style="width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,#FFF3E0,#FFE0B2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#E65100; flex-shrink:0;">赵</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:600; color:#1A1A1A;">设计引力</div>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <span style="padding:2px 6px; background:#F3F3F3; border-radius:999px; font-size:10px; color:#666;">#UI</span>
+          </div>
+          <div style="font-size:11px; color:#999;">2人</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · 混合流 / Social Feed</h3>
+      <p>顶部头像叠放条营造"在场感"，下方一个精选团队突出展示，其余用紧凑行排列。像 Discord 的在线列表 + 置顶频道。<strong>兼顾人群感和信息可扫描性。</strong></p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px; text-align:center; font-size:13px;">也可以在终端告诉我你的想法 — 比如混搭、改方向、或者完全不同的思路</p>

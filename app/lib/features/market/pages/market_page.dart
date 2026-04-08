@@ -5,12 +5,15 @@ import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_loading.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../project/providers/project_detail_provider.dart';
+import '../models/market_expert.dart';
 import '../models/market_filter.dart';
 import '../providers/market_provider.dart';
 import '../widgets/market_filter_bar.dart';
 import '../widgets/market_filter_sheet.dart';
 import '../widgets/market_project_card.dart';
-import '../widgets/market_expert_card.dart';
+import '../widgets/team_featured_card.dart';
+import '../widgets/team_presence_hero.dart';
+import '../widgets/team_waterfall_tile.dart';
 
 class MarketPage extends ConsumerStatefulWidget {
   final String? initialCategory;
@@ -26,7 +29,6 @@ class _MarketPageState extends ConsumerState<MarketPage>
     with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   late TabController _tabController;
-  bool _isDemander = true;
 
   StateNotifierProvider<MarketNotifier, MarketState> get _marketProvider =>
       marketStateProvider(widget.initialCategory);
@@ -39,6 +41,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
       vsync: this,
       initialIndex: _tabIndexFor(widget.initialTab),
     );
+    _tabController.addListener(_handleTabChange);
     _scrollController.addListener(_onScroll);
   }
 
@@ -55,10 +58,17 @@ class _MarketPageState extends ConsumerState<MarketPage>
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _handleTabChange() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _onScroll() {
@@ -76,8 +86,8 @@ class _MarketPageState extends ConsumerState<MarketPage>
   Widget build(BuildContext context) {
     final state = ref.watch(_marketProvider);
     final authState = ref.watch(authStateProvider);
+    final expertState = ref.watch(expertListProvider);
     final isExpert = authState.userRole == 2;
-    _isDemander = !isExpert;
     final hasActiveFilter = state.budgetMin != null || state.budgetMax != null;
 
     return Scaffold(
@@ -86,135 +96,119 @@ class _MarketPageState extends ConsumerState<MarketPage>
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+              child: _buildHeader(
+                state: state,
+                expertState: expertState,
+                hasActiveFilter: hasActiveFilter,
+                userRole: authState.userRole,
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
                 children: [
-                  const Text(
-                    '项目广场',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.black,
-                    ),
+                  _buildProjectList(
+                    state: state,
+                    isExpert: isExpert,
                   ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () {},
-                    child: const Icon(
-                      Icons.search,
-                      size: 24,
-                      color: AppColors.gray500,
-                    ),
-                  ),
+                  _buildExpertList(expertState),
                 ],
               ),
             ),
-            if (_isDemander) _buildDemanderTabs(),
-            if (_isDemander)
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildProjectList(
-                      state: state,
-                      isExpert: isExpert,
-                      hasActiveFilter: hasActiveFilter,
-                      userRole: authState.userRole,
-                    ),
-                    _buildExpertList(),
-                  ],
-                ),
-              )
-            else
-              Expanded(
-                child: _buildProjectList(
-                  state: state,
-                  isExpert: isExpert,
-                  hasActiveFilter: hasActiveFilter,
-                  userRole: authState.userRole,
-                ),
-              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDemanderTabs() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          color: AppColors.black,
-          borderRadius: BorderRadius.circular(8),
+  Widget _buildHeader({
+    required MarketState state,
+    required ExpertListState expertState,
+    required bool hasActiveFilter,
+    required int userRole,
+  }) {
+    final isProjectTab = _tabController.index == 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              '广场',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.6,
+                color: AppColors.black,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _MarketTopSwitch(
+                selectedIndex: _tabController.index,
+                onChanged: (index) => _tabController.animateTo(index),
+              ),
+            ),
+          ],
         ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: AppColors.white,
-        unselectedLabelColor: AppColors.gray600,
-        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
+        const SizedBox(height: 12),
+        AnimatedSwitcher(
+          duration: AppDurations.normal,
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeOutCubic,
+          child: isProjectTab
+              ? MarketFilterBar(
+                  selectedCategory: state.selectedCategory,
+                  sortBy: state.sortBy,
+                  hasActiveFilter: hasActiveFilter,
+                  userRole: userRole,
+                  onCategoryChanged: (cat) =>
+                      ref.read(_marketProvider.notifier).setCategory(cat),
+                  onSortChanged: (sort) =>
+                      ref.read(_marketProvider.notifier).setSort(sort),
+                  onFilterTap: () => _showFilterSheet(context, state),
+                )
+              : const SizedBox.shrink(
+                  key: ValueKey('team-header-empty'),
+                ),
         ),
-        dividerHeight: 0,
-        padding: const EdgeInsets.all(3),
-        tabs: const [
-          Tab(text: '项目', height: 36),
-          Tab(text: '找团队', height: 36),
-        ],
-      ),
+      ],
     );
   }
 
   Widget _buildProjectList({
     required MarketState state,
     required bool isExpert,
-    required bool hasActiveFilter,
-    required int userRole,
   }) {
-    return Column(
-      children: [
-        const SizedBox(height: 12),
-        MarketFilterBar(
-          selectedCategory: state.selectedCategory,
-          sortBy: state.sortBy,
-          hasActiveFilter: hasActiveFilter,
-          userRole: userRole,
-          onCategoryChanged: (cat) =>
-              ref.read(_marketProvider.notifier).setCategory(cat),
-          onSortChanged: (sort) =>
-              ref.read(_marketProvider.notifier).setSort(sort),
-          onFilterTap: () => _showFilterSheet(context, state),
+    if (state.isLoading) {
+      return _buildSkeleton();
+    }
+
+    if (state.errorMessage != null && state.projects.isEmpty) {
+      return _buildError(
+        state.errorMessage!,
+        onRetry: () => ref.read(_marketProvider.notifier).refresh(),
+      );
+    }
+
+    if (state.projects.isEmpty) {
+      return _buildEmpty();
+    }
+
+    return RefreshIndicator(
+      color: AppColors.black,
+      onRefresh: () => ref.read(_marketProvider.notifier).refresh(),
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.only(top: 4, bottom: 20),
+        children: _buildProjectFeed(
+          context: context,
+          state: state,
+          isExpert: isExpert,
         ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: state.isLoading
-              ? _buildSkeleton()
-              : state.errorMessage != null && state.projects.isEmpty
-                  ? _buildError(state.errorMessage!)
-                  : state.projects.isEmpty
-                      ? _buildEmpty()
-                      : RefreshIndicator(
-                          color: AppColors.black,
-                          onRefresh: () =>
-                              ref.read(_marketProvider.notifier).refresh(),
-                          child: ListView(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.only(top: 4, bottom: 20),
-                            children: _buildProjectFeed(
-                              context: context,
-                              state: state,
-                              isExpert: isExpert,
-                            ),
-                          ),
-                        ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -301,35 +295,95 @@ class _MarketPageState extends ConsumerState<MarketPage>
     ];
   }
 
-  Widget _buildExpertList() {
-    final expertState = ref.watch(expertListProvider);
-
+  Widget _buildExpertList(ExpertListState expertState) {
     if (expertState.isLoading) {
       return _buildSkeleton();
     }
 
     if (expertState.errorMessage != null && expertState.experts.isEmpty) {
-      return _buildError(expertState.errorMessage!);
+      return _buildError(
+        expertState.errorMessage!,
+        onRetry: () => ref.read(expertListProvider.notifier).refresh(),
+      );
     }
 
     if (expertState.experts.isEmpty) {
-      return _buildEmpty();
+      return _buildEmpty(
+        title: '还没有公开展示的团队',
+        subtitle: '稍后再来看看新的协作团队',
+      );
     }
+
+    final rankedExperts = [...expertState.experts]..sort(
+        (left, right) =>
+            _teamHighlightScore(right).compareTo(_teamHighlightScore(left)),
+      );
+
+    // Zone 2: top 4 as featured cards
+    final featured = rankedExperts.take(4).toList(growable: false);
+    // Zone 3: the rest as waterfall tiles
+    final waterfall = rankedExperts.skip(featured.length).toList(growable: false);
 
     return RefreshIndicator(
       color: AppColors.black,
       onRefresh: () => ref.read(expertListProvider.notifier).refresh(),
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        itemCount: expertState.experts.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final expert = expertState.experts[index];
-          return MarketExpertCard(
-            expert: expert,
-            onTap: () => context.push('/team/${expert.id}/profile'),
-          );
-        },
+      child: ListView(
+        padding: const EdgeInsets.only(top: 4, bottom: 20),
+        children: [
+          // ── Zone 1: Presence Hero ──
+          TeamPresenceHero(experts: rankedExperts),
+
+          // ── Zone 2: Featured Cards (horizontal scroll) ──
+          if (featured.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: _MarketSectionHeader(
+                eyebrow: '社区精选',
+                title: '值得认识的团队',
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 200,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: featured.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final expert = featured[index];
+                  return SizedBox(
+                    width: 220,
+                    child: TeamFeaturedCard(
+                      expert: expert,
+                      highlight: index == 0,
+                      onTap: () => context.push('/team/${expert.id}/profile'),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+
+          // ── Zone 3: Waterfall Feed ──
+          if (waterfall.isNotEmpty) ...[
+            const SizedBox(height: 28),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: _MarketSectionHeader(
+                eyebrow: '团队名录',
+                title: '看看大家都在做什么',
+              ),
+            ),
+            const SizedBox(height: 12),
+            _TeamWaterfall(
+              experts: waterfall,
+              onTapExpert: (expert) =>
+                  context.push('/team/${expert.id}/profile'),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -375,7 +429,10 @@ class _MarketPageState extends ConsumerState<MarketPage>
     );
   }
 
-  Widget _buildEmpty() {
+  Widget _buildEmpty({
+    String title = '暂无内容',
+    String subtitle = '调整筛选条件试试',
+  }) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -394,25 +451,25 @@ class _MarketPageState extends ConsumerState<MarketPage>
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            '暂无内容',
-            style: TextStyle(
+          Text(
+            title,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
               color: AppColors.gray500,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            '调整筛选条件试试',
-            style: TextStyle(fontSize: 13, color: AppColors.gray400),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 13, color: AppColors.gray400),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildError(String message) {
+  Widget _buildError(String message, {VoidCallback? onRetry}) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -439,7 +496,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
           ),
           const SizedBox(height: 20),
           GestureDetector(
-            onTap: () => ref.read(_marketProvider.notifier).refresh(),
+            onTap: onRetry,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               decoration: BoxDecoration(
@@ -513,6 +570,13 @@ class _MarketPageState extends ConsumerState<MarketPage>
     return '技能高度匹配，推荐优先沟通';
   }
 
+  double _teamHighlightScore(MarketExpertItem expert) {
+    return (expert.rating * 24) +
+        (expert.completedProjects * 3.5) +
+        (expert.memberCount * 4) +
+        (expert.vibePower * 0.6);
+  }
+
   void _showFilterSheet(BuildContext context, MarketState state) {
     MarketFilterSheet.show(
       context,
@@ -527,6 +591,79 @@ class _MarketPageState extends ConsumerState<MarketPage>
     );
   }
 }
+
+class _MarketTopSwitch extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  const _MarketTopSwitch({
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['项目', '团队'];
+
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.gray100,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final segmentWidth = constraints.maxWidth / labels.length;
+
+          return Stack(
+            children: [
+              // Sliding black thumb
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                left: segmentWidth * selectedIndex,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: segmentWidth,
+                  decoration: BoxDecoration(
+                    color: AppColors.black,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              // Fixed text labels
+              Row(
+                children: List.generate(labels.length, (index) {
+                  final selected = selectedIndex == index;
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => onChanged(index),
+                      behavior: HitTestBehavior.opaque,
+                      child: Center(
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 220),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: selected ? AppColors.white : AppColors.black,
+                          ),
+                          child: Text(labels[index]),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 
 class _MarketSectionHeader extends StatelessWidget {
   final String eyebrow;
@@ -566,6 +703,68 @@ class _MarketSectionHeader extends StatelessWidget {
   }
 }
 
+class _TeamWaterfall extends StatelessWidget {
+  final List<MarketExpertItem> experts;
+  final ValueChanged<MarketExpertItem> onTapExpert;
+
+  const _TeamWaterfall({
+    required this.experts,
+    required this.onTapExpert,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Split into two columns for masonry effect
+    final leftItems = <MarketExpertItem>[];
+    final rightItems = <MarketExpertItem>[];
+    for (var i = 0; i < experts.length; i++) {
+      if (i.isEven) {
+        leftItems.add(experts[i]);
+      } else {
+        rightItems.add(experts[i]);
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              children: [
+                for (var i = 0; i < leftItems.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 10),
+                  TeamWaterfallTile(
+                    expert: leftItems[i],
+                    tinted: i.isOdd,
+                    onTap: () => onTapExpert(leftItems[i]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              children: [
+                for (var i = 0; i < rightItems.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 10),
+                  TeamWaterfallTile(
+                    expert: rightItems[i],
+                    tinted: i.isEven,
+                    onTap: () => onTapExpert(rightItems[i]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MarketFeatureSkeletonCard extends StatelessWidget {
   const _MarketFeatureSkeletonCard();
 
@@ -578,55 +777,103 @@ class _MarketFeatureSkeletonCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: AppColors.gray200),
       ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxHeight < 248;
+          final titleHeight = compact ? 28.0 : 34.0;
+          final lineHeight = compact ? 14.0 : 16.0;
+          final tagHeight = compact ? 24.0 : 28.0;
+          final verticalGapLg = compact ? 16.0 : 26.0;
+          final verticalGapMd = compact ? 12.0 : 18.0;
+          final bottomMetricHeight = compact ? 22.0 : 26.0;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              VccSkeleton(width: 88, height: 26, borderRadius: 999),
-              Spacer(),
-              VccSkeleton(width: 54, height: 14),
-            ],
-          ),
-          SizedBox(height: 26),
-          VccSkeleton(width: 220, height: 34, borderRadius: 10),
-          SizedBox(height: 10),
-          VccSkeleton(width: 176, height: 34, borderRadius: 10),
-          SizedBox(height: 16),
-          VccSkeleton(height: 16),
-          SizedBox(height: 8),
-          VccSkeleton(width: 240, height: 16),
-          SizedBox(height: 18),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              VccSkeleton(width: 70, height: 28, borderRadius: 999),
-              VccSkeleton(width: 84, height: 28, borderRadius: 999),
-              VccSkeleton(width: 62, height: 28, borderRadius: 999),
-            ],
-          ),
-          Spacer(),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    VccSkeleton(width: 32, height: 12),
-                    SizedBox(height: 8),
-                    VccSkeleton(width: 120, height: 26),
-                  ],
-                ),
+              Row(
+                children: [
+                  VccSkeleton(
+                    width: compact ? 76 : 88,
+                    height: compact ? 24 : 26,
+                    borderRadius: 999,
+                  ),
+                  const Spacer(),
+                  VccSkeleton(
+                    width: compact ? 44 : 54,
+                    height: 14,
+                  ),
+                ],
               ),
-              SizedBox(width: 18),
-              VccSkeleton(width: 34, height: 14),
-              SizedBox(width: 12),
-              VccSkeleton(width: 34, height: 14),
+              SizedBox(height: verticalGapLg),
+              VccSkeleton(
+                width: compact ? 196 : 220,
+                height: titleHeight,
+                borderRadius: 10,
+              ),
+              const SizedBox(height: 8),
+              VccSkeleton(
+                width: compact ? 148 : 176,
+                height: titleHeight,
+                borderRadius: 10,
+              ),
+              SizedBox(height: compact ? 12 : 16),
+              VccSkeleton(height: lineHeight),
+              const SizedBox(height: 8),
+              if (!compact) ...[
+                const VccSkeleton(width: 240, height: 16),
+                SizedBox(height: verticalGapMd),
+              ] else ...[
+                const VccSkeleton(width: 196, height: 14),
+                const SizedBox(height: 12),
+              ],
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  VccSkeleton(
+                    width: compact ? 58 : 70,
+                    height: tagHeight,
+                    borderRadius: 999,
+                  ),
+                  VccSkeleton(
+                    width: compact ? 72 : 84,
+                    height: tagHeight,
+                    borderRadius: 999,
+                  ),
+                  if (!compact)
+                    const VccSkeleton(
+                      width: 62,
+                      height: 28,
+                      borderRadius: 999,
+                    ),
+                ],
+              ),
+              const Spacer(),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const VccSkeleton(width: 32, height: 12),
+                        const SizedBox(height: 8),
+                        VccSkeleton(
+                          width: compact ? 96 : 120,
+                          height: bottomMetricHeight,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: compact ? 12 : 18),
+                  const VccSkeleton(width: 34, height: 14),
+                  const SizedBox(width: 12),
+                  const VccSkeleton(width: 34, height: 14),
+                ],
+              ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -646,11 +893,15 @@ class _MarketShelfSkeletonCard extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact = constraints.maxWidth < 170;
+          final compact =
+              constraints.maxWidth < 170 || constraints.maxHeight < 178;
           final titleWidth = compact ? 92.0 : 120.0;
           final titleWidth2 = compact ? 76.0 : 96.0;
           final descWidth = compact ? 110.0 : 140.0;
           final tagWidth = compact ? 48.0 : 64.0;
+          final titleHeight = compact ? 22.0 : 28.0;
+          final topGap = compact ? 12.0 : 18.0;
+          final bottomGap = compact ? 10.0 : 16.0;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -669,34 +920,49 @@ class _MarketShelfSkeletonCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
-              VccSkeleton(width: titleWidth, height: 28, borderRadius: 10),
+              SizedBox(height: topGap),
+              VccSkeleton(
+                width: titleWidth,
+                height: titleHeight,
+                borderRadius: 10,
+              ),
               const SizedBox(height: 8),
-              VccSkeleton(width: titleWidth2, height: 28, borderRadius: 10),
-              const SizedBox(height: 12),
-              const VccSkeleton(height: 14),
+              VccSkeleton(
+                width: titleWidth2,
+                height: titleHeight,
+                borderRadius: 10,
+              ),
+              SizedBox(height: compact ? 8 : 12),
+              VccSkeleton(height: compact ? 12 : 14),
               const SizedBox(height: 8),
-              VccSkeleton(width: descWidth, height: 14),
+              VccSkeleton(
+                width: descWidth,
+                height: compact ? 12 : 14,
+              ),
               const Spacer(),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  VccSkeleton(width: tagWidth, height: 24, borderRadius: 999),
+                  VccSkeleton(
+                    width: tagWidth,
+                    height: compact ? 22 : 24,
+                    borderRadius: 999,
+                  ),
                   VccSkeleton(
                     width: tagWidth + (compact ? 6 : 10),
-                    height: 24,
+                    height: compact ? 22 : 24,
                     borderRadius: 999,
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: bottomGap),
               Row(
                 children: [
                   Expanded(
                     child: VccSkeleton(
                       width: compact ? 76 : 96,
-                      height: 18,
+                      height: compact ? 16 : 18,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -726,57 +992,89 @@ class _MarketEditorialSkeletonCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.gray200),
       ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 78,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                VccSkeleton(width: 30, height: 12),
-                SizedBox(height: 8),
-                VccSkeleton(width: 64, height: 18),
-                SizedBox(height: 18),
-                VccSkeleton(width: 28, height: 12),
-                SizedBox(height: 8),
-                VccSkeleton(width: 24, height: 12),
-              ],
-            ),
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxHeight < 170;
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: compact ? 68 : 78,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    VccSkeleton(width: 74, height: 24, borderRadius: 999),
-                    Spacer(),
-                    VccSkeleton(width: 44, height: 12),
+                    const VccSkeleton(width: 30, height: 12),
+                    const SizedBox(height: 8),
+                    VccSkeleton(
+                      width: compact ? 52 : 64,
+                      height: compact ? 16 : 18,
+                    ),
+                    SizedBox(height: compact ? 12 : 18),
+                    const VccSkeleton(width: 28, height: 12),
+                    const SizedBox(height: 8),
+                    const VccSkeleton(width: 24, height: 12),
                   ],
                 ),
-                SizedBox(height: 16),
-                VccSkeleton(width: 164, height: 28, borderRadius: 10),
-                SizedBox(height: 8),
-                VccSkeleton(width: 132, height: 28, borderRadius: 10),
-                SizedBox(height: 12),
-                VccSkeleton(height: 14),
-                SizedBox(height: 8),
-                VccSkeleton(width: 180, height: 14),
-                SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    VccSkeleton(width: 60, height: 24, borderRadius: 999),
-                    VccSkeleton(width: 72, height: 24, borderRadius: 999),
+                    Row(
+                      children: [
+                        VccSkeleton(
+                          width: compact ? 66 : 74,
+                          height: 24,
+                          borderRadius: 999,
+                        ),
+                        const Spacer(),
+                        const VccSkeleton(width: 44, height: 12),
+                      ],
+                    ),
+                    SizedBox(height: compact ? 12 : 16),
+                    VccSkeleton(
+                      width: compact ? 146 : 164,
+                      height: compact ? 24 : 28,
+                      borderRadius: 10,
+                    ),
+                    const SizedBox(height: 8),
+                    VccSkeleton(
+                      width: compact ? 116 : 132,
+                      height: compact ? 24 : 28,
+                      borderRadius: 10,
+                    ),
+                    SizedBox(height: compact ? 8 : 12),
+                    VccSkeleton(height: compact ? 12 : 14),
+                    const SizedBox(height: 8),
+                    VccSkeleton(
+                      width: compact ? 150 : 180,
+                      height: compact ? 12 : 14,
+                    ),
+                    SizedBox(height: compact ? 10 : 14),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        VccSkeleton(
+                          width: compact ? 52 : 60,
+                          height: compact ? 22 : 24,
+                          borderRadius: 999,
+                        ),
+                        VccSkeleton(
+                          width: compact ? 62 : 72,
+                          height: compact ? 22 : 24,
+                          borderRadius: 999,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

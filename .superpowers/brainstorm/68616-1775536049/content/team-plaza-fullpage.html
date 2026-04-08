@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>团队广场 — 完整页面</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#E8E8E8; font-family: -apple-system, 'SF Pro Display', 'Inter', sans-serif; display:flex; justify-content:center; padding:24px 16px; min-height:100vh; }
+
+  .phone {
+    width:390px; max-width:100%; background:#F9F9F9; border-radius:40px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.12);
+    overflow:hidden; position:relative;
+  }
+  .phone-inner {
+    height:844px; overflow-y:auto; scroll-behavior:smooth;
+    -webkit-overflow-scrolling:touch;
+  }
+  .phone-inner::-webkit-scrollbar { display:none; }
+
+  .safe-top { height:54px; }
+
+  /* --- Header zone --- */
+  .header { padding:0 20px; }
+  .header-title-row { display:flex; align-items:center; gap:16px; }
+  .header-title { font-size:22px; font-weight:700; letter-spacing:-0.6px; color:#1A1A1A; }
+  .tab-switch {
+    flex:1; height:36px; background:#F3F3F3; border-radius:999px; padding:3px;
+    display:flex;
+  }
+  .tab-switch .tab {
+    flex:1; display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:600; border-radius:999px; cursor:pointer;
+    transition:all 0.2s;
+  }
+  .tab.active { background:#1A1A1A; color:#fff; }
+  .tab.inactive { color:#999; }
+
+  /* --- Zone 1: Presence Bar --- */
+  .presence-zone {
+    padding:20px 20px 0;
+  }
+  .presence-label {
+    font-size:11px; font-weight:600; letter-spacing:1.2px; color:#999;
+    text-transform:uppercase; margin-bottom:10px;
+  }
+  .presence-row {
+    display:flex; align-items:center;
+  }
+  .presence-avatar {
+    width:42px; height:42px; border-radius:12px; border:2.5px solid #F9F9F9;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; flex-shrink:0;
+    margin-right:-10px; position:relative;
+  }
+  .presence-avatar:nth-child(1) { z-index:7; }
+  .presence-avatar:nth-child(2) { z-index:6; }
+  .presence-avatar:nth-child(3) { z-index:5; }
+  .presence-avatar:nth-child(4) { z-index:4; }
+  .presence-avatar:nth-child(5) { z-index:3; }
+  .presence-avatar:nth-child(6) { z-index:2; }
+  .presence-avatar:nth-child(7) { z-index:1; }
+  .presence-count {
+    margin-left:20px; font-size:13px; font-weight:500; color:#1A1A1A;
+  }
+  .presence-count span { font-weight:700; }
+  .presence-dot {
+    width:6px; height:6px; border-radius:50%; background:#22C55E;
+    display:inline-block; margin-right:5px;
+  }
+
+  /* --- Zone 2: Featured Cards (horizontal scroll) --- */
+  .featured-zone {
+    padding:28px 0 0;
+  }
+  .section-header {
+    padding:0 20px; margin-bottom:14px;
+  }
+  .section-eyebrow {
+    font-size:11px; font-weight:600; letter-spacing:1.2px; color:#999;
+    text-transform:uppercase;
+  }
+  .section-title {
+    font-size:20px; font-weight:700; letter-spacing:-0.5px; color:#1A1A1A;
+    margin-top:3px;
+  }
+  .cards-scroll {
+    display:flex; gap:12px; overflow-x:auto; padding:0 20px 4px;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+  }
+  .cards-scroll::-webkit-scrollbar { display:none; }
+
+  .team-card {
+    min-width:240px; max-width:240px; scroll-snap-align:start;
+    border-radius:20px; padding:18px; position:relative;
+    transition:transform 0.15s ease;
+  }
+  .team-card:active { transform:scale(0.985); }
+  .team-card.highlight {
+    background:#F4EEFF; border:1px solid #E4D8FF;
+  }
+  .team-card.neutral {
+    background:#fff; border:1px solid #E8E8E8;
+  }
+  .card-top { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .card-avatar {
+    width:44px; height:44px; border-radius:13px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:700; flex-shrink:0;
+  }
+  .card-info { flex:1; min-width:0; }
+  .card-name {
+    font-size:15px; font-weight:700; color:#1A1A1A; letter-spacing:-0.3px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .card-meta { font-size:11px; color:#999; margin-top:2px; font-weight:500; }
+  .card-meta.accent { color:#7C3AED; font-weight:600; }
+  .card-tagline {
+    font-size:12px; color:#666; line-height:1.55; margin-bottom:12px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .card-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:14px; }
+  .card-tag {
+    padding:3px 8px; border-radius:999px; font-size:10px; font-weight:500;
+  }
+  .card-tag.highlight-tag { background:#fff; color:#7C3AED; }
+  .card-tag.neutral-tag { background:#F3F3F3; color:#666; }
+  .card-badge {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:4px 8px; border-radius:999px;
+    font-size:10px; font-weight:600;
+  }
+  .card-badge.highlight-badge { background:#fff; color:#7C3AED; }
+  .card-badge.neutral-badge { background:#F3F3F3; color:#1A1A1A; }
+  .card-bottom { display:flex; align-items:center; justify-content:space-between; }
+  .card-members { font-size:12px; font-weight:600; color:#1A1A1A; }
+  .card-vibe { font-size:11px; font-weight:600; }
+
+  /* --- Zone 3: Infinite Feed --- */
+  .feed-zone {
+    padding:28px 0 0;
+  }
+  .feed-list {
+    padding:0 20px;
+  }
+  .feed-item {
+    display:flex; align-items:center; gap:12px;
+    padding:14px 0;
+    border-bottom:1px solid #F0F0F0;
+    transition:background 0.15s;
+  }
+  .feed-item:last-child { border-bottom:none; }
+  .feed-avatar {
+    width:40px; height:40px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:700; flex-shrink:0;
+  }
+  .feed-body { flex:1; min-width:0; }
+  .feed-name-row { display:flex; align-items:center; gap:6px; }
+  .feed-name {
+    font-size:14px; font-weight:600; color:#1A1A1A; letter-spacing:-0.2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .feed-vibe-dot {
+    width:5px; height:5px; border-radius:50%;
+  }
+  .feed-desc {
+    font-size:12px; color:#999; margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .feed-right {
+    display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;
+  }
+  .feed-tag {
+    padding:3px 7px; border-radius:999px; font-size:10px; font-weight:500;
+    background:#F3F3F3; color:#666;
+  }
+  .feed-members {
+    font-size:11px; color:#BBB; font-weight:500;
+  }
+
+  /* Loading indicator */
+  .feed-loading {
+    padding:20px; text-align:center;
+  }
+  .feed-loading-dots {
+    display:inline-flex; gap:4px;
+  }
+  .feed-loading-dots span {
+    width:5px; height:5px; border-radius:50%; background:#CCC;
+    animation:pulse 1.2s ease infinite;
+  }
+  .feed-loading-dots span:nth-child(2) { animation-delay:0.2s; }
+  .feed-loading-dots span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes pulse {
+    0%,100% { opacity:0.3; transform:scale(0.8); }
+    50% { opacity:1; transform:scale(1); }
+  }
+
+  .safe-bottom { height:90px; }
+
+  /* --- Annotation overlays --- */
+  .zone-label {
+    position:absolute; right:8px;
+    font-size:9px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase;
+    color:#7C3AED; background:#F4EEFF; padding:3px 8px; border-radius:6px;
+    z-index:10; pointer-events:none;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="phone-inner">
+    <div class="safe-top"></div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-title-row">
+        <div class="header-title">广场</div>
+        <div class="tab-switch">
+          <div class="tab inactive">项目</div>
+          <div class="tab active">团队</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONE 1: Presence Bar -->
+    <div class="presence-zone" style="position:relative;">
+      <div class="zone-label" style="top:8px;">Zone 1 · 在场感</div>
+      <div class="presence-label"><span class="presence-dot"></span>今天在场</div>
+      <div class="presence-row">
+        <div class="presence-avatar" style="background:linear-gradient(135deg,#E8E8E8,#D0D0D0); font-size:14px; color:#555;">张</div>
+        <div class="presence-avatar" style="background:linear-gradient(135deg,#F4EEFF,#E0D4F7); font-size:13px; color:#7C3AED;">李</div>
+        <div class="presence-avatar" style="background:linear-gradient(135deg,#E0E7EF,#C8D4E0); font-size:14px; color:#555;">王</div>
+        <div class="presence-avatar" style="background:linear-gradient(135deg,#E0F2F1,#B2DFDB); font-size:13px; color:#00695C;">陈</div>
+        <div class="presence-avatar" style="background:linear-gradient(135deg,#FFF3E0,#FFE0B2); font-size:13px; color:#E65100;">刘</div>
+        <div class="presence-avatar" style="background:linear-gradient(135deg,#FCE4EC,#F8BBD0); font-size:13px; color:#C62828;">孙</div>
+        <div class="presence-avatar" style="background:#F0F0F0; font-size:11px; color:#999;">+6</div>
+        <div class="presence-count"><span>12</span> 支团队 · <span>38</span> 种技能</div>
+      </div>
+    </div>
+
+    <!-- ZONE 2: Featured Cards -->
+    <div class="featured-zone" style="position:relative;">
+      <div class="zone-label" style="top:8px; right:28px;">Zone 2 · 精选卡片</div>
+      <div class="section-header">
+        <div class="section-eyebrow">社区精选</div>
+        <div class="section-title">值得认识的团队</div>
+      </div>
+      <div class="cards-scroll">
+        <!-- Card 1: Highlighted -->
+        <div class="team-card highlight">
+          <div class="card-top">
+            <div class="card-avatar" style="background:linear-gradient(135deg,#E0D4F7,#C8B8F0); color:#5B21B6;">张</div>
+            <div class="card-info">
+              <div class="card-name">星云工作室</div>
+              <div class="card-meta accent">5 人 · 全栈团队</div>
+            </div>
+          </div>
+          <div class="card-tagline">专注 AI 产品，从需求拆解到上线交付，一站搞定</div>
+          <div class="card-tags">
+            <span class="card-tag highlight-tag">#AI</span>
+            <span class="card-tag highlight-tag">#Flutter</span>
+            <span class="card-tag highlight-tag">#全栈</span>
+          </div>
+          <div class="card-bottom">
+            <div class="card-members">5 人协作</div>
+            <div class="card-vibe" style="color:#7C3AED;">⚡ 活跃</div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="team-card neutral">
+          <div class="card-top">
+            <div class="card-avatar" style="background:linear-gradient(135deg,#E0E7EF,#C8D4E0); color:#555;">李</div>
+            <div class="card-info">
+              <div class="card-name">像素点阵</div>
+              <div class="card-meta">3 人 · 前端团队</div>
+            </div>
+          </div>
+          <div class="card-tagline">App、小程序、响应式网站，三端同步交付</div>
+          <div class="card-tags">
+            <span class="card-tag neutral-tag">#Flutter</span>
+            <span class="card-tag neutral-tag">#React</span>
+          </div>
+          <div class="card-bottom">
+            <div class="card-members">3 人协作</div>
+            <div class="card-vibe" style="color:#999;">⭐ 4.8</div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="team-card neutral">
+          <div class="card-top">
+            <div class="card-avatar" style="background:linear-gradient(135deg,#E0F2F1,#B2DFDB); color:#00695C;">王</div>
+            <div class="card-info">
+              <div class="card-name">码上行</div>
+              <div class="card-meta">4 人 · 后端团队</div>
+            </div>
+          </div>
+          <div class="card-tagline">高并发架构、微服务拆分、DevOps 全套</div>
+          <div class="card-tags">
+            <span class="card-tag neutral-tag">#Go</span>
+            <span class="card-tag neutral-tag">#K8s</span>
+            <span class="card-tag neutral-tag">#微服务</span>
+          </div>
+          <div class="card-bottom">
+            <div class="card-members">4 人协作</div>
+            <div class="card-vibe" style="color:#999;">⭐ 4.6</div>
+          </div>
+        </div>
+
+        <!-- Peek card (partially visible to hint scrollability) -->
+        <div class="team-card neutral" style="opacity:0.6;">
+          <div class="card-top">
+            <div class="card-avatar" style="background:linear-gradient(135deg,#FFF3E0,#FFE0B2); color:#E65100;">赵</div>
+            <div class="card-info">
+              <div class="card-name">设计引力</div>
+              <div class="card-meta">2 人 · 设计</div>
+            </div>
+          </div>
+          <div class="card-tagline">品牌视觉 + 产品交互设计</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONE 3: Infinite Feed -->
+    <div class="feed-zone" style="position:relative;">
+      <div class="zone-label" style="top:8px; right:28px;">Zone 3 · 无限列表</div>
+      <div class="section-header">
+        <div class="section-eyebrow">团队名录</div>
+        <div class="section-title">看看大家都在做什么</div>
+      </div>
+      <div class="feed-list">
+        <div class="feed-item">
+          <div class="feed-avatar" style="background:linear-gradient(135deg,#FFF3E0,#FFE0B2); color:#E65100;">赵</div>
+          <div class="feed-body">
+            <div class="feed-name-row">
+              <div class="feed-name">设计引力</div>
+              <div class="feed-vibe-dot" style="background:#22C55E;"></div>
+            </div>
+            <div class="feed-desc">品牌视觉 + 产品交互，从 0 到 1 搭设计体系</div>
+          </div>
+          <div class="feed-right">
+            <div class="feed-tag">#UI</div>
+            <div class="feed-members">2人</div>
+          </div>
+        </div>
+
+        <div class="feed-item">
+          <div class="feed-avatar" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9); color:#2E7D32;">孙</div>
+          <div class="feed-body">
+            <div class="feed-name-row">
+              <div class="feed-name">绿码科技</div>
+              <div class="feed-vibe-dot" style="background:#22C55E;"></div>
+            </div>
+            <div class="feed-desc">微信生态开发，公众号+小程序+企微</div>
+          </div>
+          <div class="feed-right">
+            <div class="feed-tag">#小程序</div>
+            <div class="feed-members">3人</div>
+          </div>
+        </div>
+
+        <div class="feed-item">
+          <div class="feed-avatar" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB); color:#1565C0;">周</div>
+          <div class="feed-body">
+            <div class="feed-name-row">
+              <div class="feed-name">数据织网</div>
+            </div>
+            <div class="feed-desc">数据管线、BI 看板、自动化报表</div>
+          </div>
+          <div class="feed-right">
+            <div class="feed-tag">#数据</div>
+            <div class="feed-members">4人</div>
+          </div>
+        </div>
+
+        <div class="feed-item">
+          <div class="feed-avatar" style="background:linear-gradient(135deg,#FFF8E1,#FFECB3); color:#F57F17;">吴</div>
+          <div class="feed-body">
+            <div class="feed-name-row">
+              <div class="feed-name">声波实验室</div>
+              <div class="feed-vibe-dot" style="background:#22C55E;"></div>
+            </div>
+            <div class="feed-desc">音视频通话、直播架构、RTC</div>
+          </div>
+          <div class="feed-right">
+            <div class="feed-tag">#音视频</div>
+            <div class="feed-members">5人</div>
+          </div>
+        </div>
+
+        <div class="feed-item">
+          <div class="feed-avatar" style="background:linear-gradient(135deg,#F3E5F5,#E1BEE7); color:#7B1FA2;">郑</div>
+          <div class="feed-body">
+            <div class="feed-name-row">
+              <div class="feed-name">无界创意</div>
+            </div>
+            <div class="feed-desc">3D 可视化、WebGL、数字孪生</div>
+          </div>
+          <div class="feed-right">
+            <div class="feed-tag">#3D</div>
+            <div class="feed-members">3人</div>
+          </div>
+        </div>
+
+        <div class="feed-item">
+          <div class="feed-avatar" style="background:linear-gradient(135deg,#EFEBE9,#D7CCC8); color:#4E342E;">钱</div>
+          <div class="feed-body">
+            <div class="feed-name-row">
+              <div class="feed-name">稳态工程</div>
+            </div>
+            <div class="feed-desc">SRE、监控、容灾方案</div>
+          </div>
+          <div class="feed-right">
+            <div class="feed-tag">#SRE</div>
+            <div class="feed-members">2人</div>
+          </div>
+        </div>
+
+        <div class="feed-item">
+          <div class="feed-avatar" style="background:linear-gradient(135deg,#E0E0E0,#BDBDBD); color:#424242;">冯</div>
+          <div class="feed-body">
+            <div class="feed-name-row">
+              <div class="feed-name">黑盒安全</div>
+              <div class="feed-vibe-dot" style="background:#22C55E;"></div>
+            </div>
+            <div class="feed-desc">渗透测试、安全审计、合规咨询</div>
+          </div>
+          <div class="feed-right">
+            <div class="feed-tag">#安全</div>
+            <div class="feed-members">2人</div>
+          </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div class="feed-loading">
+          <div class="feed-loading-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="safe-bottom"></div>
+  </div>
+</div>
+
+</body>
+</html>

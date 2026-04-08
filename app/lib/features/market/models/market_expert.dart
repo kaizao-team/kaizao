@@ -39,13 +39,17 @@ class MarketExpertItem {
       nickname: json['nickname'] as String? ?? json['name'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
-      skills: (json['skills'] as List?)?.cast<String>() ?? [],
-      completedProjects: json['completed_projects'] as int? ?? 0,
-      hourlyRate: json['hourly_rate'] as int? ?? 0,
+      skills: (json['skills'] as List?)
+              ?.map((item) => item.toString())
+              .where((item) => item.isNotEmpty)
+              .toList() ??
+          const [],
+      completedProjects: (json['completed_projects'] as num?)?.toInt() ?? 0,
+      hourlyRate: (json['hourly_rate'] as num?)?.toInt() ?? 0,
       tagline: json['tagline'] as String? ?? '',
       vibeLevel: json['vibe_level'] as String?,
-      vibePower: json['vibe_power'] as int? ?? 0,
-      memberCount: json['member_count'] as int? ?? 1,
+      vibePower: (json['vibe_power'] as num?)?.toInt() ?? 0,
+      memberCount: (json['member_count'] as num?)?.toInt() ?? 1,
     );
   }
 }
