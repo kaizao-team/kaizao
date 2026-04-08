@@ -280,33 +280,6 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-      - name: Upload to Pgyer (蒲公英)
-        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
-        env:
-          PGYER_API_KEY: ${{ secrets.PGYER_API_KEY }}
-        run: |
-          IPA_FILE=$(find app/build/ios/ipa -name "*.ipa" | head -1)
-          if [ -z "$IPA_FILE" ]; then
-            echo "⚠️ No IPA found, skipping Pgyer upload"
-            exit 0
-          fi
-          echo "Uploading $IPA_FILE to Pgyer..."
-          RESPONSE=$(curl -s -F "file=@$IPA_FILE" \
-            -F "_api_key=$PGYER_API_KEY" \
-            -F "buildUpdateDescription=CI Build from ${{ github.ref_name }} @ ${{ github.sha }}" \
-            https://www.pgyer.com/apiv2/app/upload)
-          echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
-          CODE=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('code','-1'))" 2>/dev/null)
-          if [ "$CODE" = "0" ]; then
-            BUILD_KEY=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['buildKey'])" 2>/dev/null)
-            echo "✅ Upload successful! Download: https://www.pgyer.com/$BUILD_KEY"
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 📱 蒲公英分发" >> $GITHUB_STEP_SUMMARY
-            echo "- 下载链接：https://www.pgyer.com/$BUILD_KEY" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Pgyer upload failed (code=$CODE), but build artifacts are still available"
-          fi
-
       - name: Upload iOS build (no-codesign)
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
