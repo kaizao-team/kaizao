@@ -31,7 +31,7 @@ func teamEligibleForFavorite(team *model.Team) bool {
 	if team == nil {
 		return false
 	}
-	if team.Status != 1 || team.AvailableStatus != 1 {
+	if team.Status != 1 || team.AvailableStatus != 1 || team.ApprovalStatus != model.TeamApprovalApproved {
 		return false
 	}
 	leader := team.Leader
