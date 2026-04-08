@@ -140,9 +140,10 @@ func (s *AuthService) PasswordPublicKey() *dto.PasswordKeyResp {
 		return nil
 	}
 	return &dto.PasswordKeyResp{
-		KeyID:        s.passwordKeyID,
-		Algorithm:    "RSA-OAEP-SHA256",
-		PublicKeyPEM: passwordrsa.PublicKeyPEM(s.passwordRSA),
+		KeyID:            s.passwordKeyID,
+		Algorithm:        "RSA-OAEP-SHA256",
+		PublicKeyPEM:     passwordrsa.PublicKeyPEM(s.passwordRSA),
+		PublicKeySPKIPEM: passwordrsa.PublicKeySPKIPEM(s.passwordRSA),
 	}
 }
 

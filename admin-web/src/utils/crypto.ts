@@ -1,7 +1,10 @@
 /**
- * RSA-OAEP-SHA256 encryption using Web Crypto API.
- * Matches the server-side DecryptPasswordCipher (passwordrsa.go).
+ * RSA-OAEP-SHA256 encryption.
+ * Uses Web Crypto API in secure contexts (HTTPS/localhost),
+ * falls back to JSEncrypt (PKCS1v1.5) on plain HTTP.
  */
+
+import JSEncrypt from 'jsencrypt'
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
   const lines = pem
@@ -13,17 +16,39 @@ function pemToArrayBuffer(pem: string): ArrayBuffer {
   for (let i = 0; i < binary.length; i++) {
     buf[i] = binary.charCodeAt(i)
   }
-  return buf.buffer
+  return buf.buffer as ArrayBuffer
 }
 
+
 export async function encryptPassword(
+  publicKeyPEM: string,
+  plaintext: string,
+  publicKeySPKIPEM?: string,
+): Promise<string> {
+  // Prefer Web Crypto API in secure contexts (HTTPS / localhost)
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    return encryptWithWebCrypto(publicKeyPEM, plaintext)
+  }
+  // Fallback: JSEncrypt (works on plain HTTP), prefer SPKI PEM
+  return encryptWithJSEncrypt(publicKeySPKIPEM || publicKeyPEM, plaintext)
+}
+
+function encryptWithJSEncrypt(publicKeyPEM: string, plaintext: string): string {
+  const encrypt = new JSEncrypt()
+  encrypt.setPublicKey(publicKeyPEM)
+  const result = encrypt.encrypt(plaintext)
+  if (!result) {
+    throw new Error('RSA encryption failed')
+  }
+  return result
+}
+
+async function encryptWithWebCrypto(
   publicKeyPEM: string,
   plaintext: string,
 ): Promise<string> {
   const keyData = pemToArrayBuffer(publicKeyPEM)
 
-  // Server exports PKCS#1 ("RSA PUBLIC KEY"), Web Crypto needs SPKI.
-  // If it's PKCS#1, wrap it as SPKI. Try SPKI first.
   let cryptoKey: CryptoKey
   try {
     cryptoKey = await crypto.subtle.importKey(
@@ -34,7 +59,6 @@ export async function encryptPassword(
       ['encrypt'],
     )
   } catch {
-    // PKCS#1 DER → wrap into SPKI DER envelope
     const spkiData = wrapPkcs1InSpki(new Uint8Array(keyData))
     cryptoKey = await crypto.subtle.importKey(
       'spki',
@@ -63,30 +87,23 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary)
 }
 
-/**
- * Wrap PKCS#1 RSAPublicKey DER bytes into SPKI DER.
- * SPKI = SEQUENCE { AlgorithmIdentifier, BIT STRING { PKCS1Key } }
- */
 function wrapPkcs1InSpki(pkcs1: Uint8Array): ArrayBuffer {
-  // RSA AlgorithmIdentifier OID 1.2.840.113549.1.1.1 + NULL params
   const algorithmId = new Uint8Array([
     0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01,
     0x01, 0x05, 0x00,
   ])
 
-  // BIT STRING: 0x03 + length of (0x00 + pkcs1) + 0x00 (no unused bits) + pkcs1
   const bitStringPayload = new Uint8Array(1 + pkcs1.length)
   bitStringPayload[0] = 0x00
   bitStringPayload.set(pkcs1, 1)
 
   const bitString = encodeDerTLV(0x03, bitStringPayload)
 
-  // SEQUENCE { algorithmId, bitString }
   const spkiPayload = new Uint8Array(algorithmId.length + bitString.length)
   spkiPayload.set(algorithmId)
   spkiPayload.set(bitString, algorithmId.length)
 
-  return encodeDerTLV(0x30, spkiPayload).buffer
+  return encodeDerTLV(0x30, spkiPayload).buffer as ArrayBuffer
 }
 
 function encodeDerTLV(tag: number, value: Uint8Array): Uint8Array {

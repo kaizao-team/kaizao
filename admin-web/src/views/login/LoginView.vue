@@ -119,6 +119,7 @@ const captchaLoading = ref(false)
 const captchaId = ref('')
 const captchaImage = ref('')
 const publicKeyPEM = ref('')
+const publicKeySPKIPEM = ref('')
 
 const form = reactive({
   identity: '',
@@ -151,6 +152,7 @@ async function fetchPublicKey() {
   try {
     const res: any = await getPasswordKey()
     publicKeyPEM.value = res.data.public_key_pem
+    publicKeySPKIPEM.value = res.data.public_key_spki_pem || ''
   } catch {
     ElMessage.warning('无法获取加密公钥，请检查后端配置')
   }
@@ -176,7 +178,7 @@ async function handleLogin() {
 
   loading.value = true
   try {
-    const cipher = await encryptPassword(publicKeyPEM.value, form.password)
+    const cipher = await encryptPassword(publicKeyPEM.value, form.password, publicKeySPKIPEM.value)
 
     const res: any = await loginByPassword({
       login_type: detectLoginType(form.identity),

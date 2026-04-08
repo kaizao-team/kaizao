@@ -43,14 +43,30 @@ func PublicKeyPEM(priv *rsa.PrivateKey) string {
 	return string(pem.EncodeToMemory(b))
 }
 
-// DecryptPasswordCipher Base64 解码后 RSA-OAEP-SHA256 解密，返回 UTF-8 密码明文。
+// PublicKeySPKIPEM 导出 SPKI (PKCS#8) PEM 公钥，兼容 JSEncrypt 等纯 JS 库。
+func PublicKeySPKIPEM(priv *rsa.PrivateKey) string {
+	pubBytes, err := x509.MarshalPKIXPublicKey(&priv.PublicKey)
+	if err != nil {
+		return ""
+	}
+	b := &pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes}
+	return string(pem.EncodeToMemory(b))
+}
+
+// DecryptPasswordCipher Base64 解码后解密，优先 RSA-OAEP-SHA256，回退 PKCS1v1.5（兼容 HTTP 下 JSEncrypt）。
 func DecryptPasswordCipher(priv *rsa.PrivateKey, b64 string) (string, error) {
 	b64 = strings.TrimSpace(b64)
 	raw, err := base64.StdEncoding.DecodeString(b64)
 	if err != nil {
 		return "", fmt.Errorf("%d", errcode.ErrPasswordCipherInvalid)
 	}
+	// 优先 RSA-OAEP-SHA256 (Web Crypto API / HTTPS)
 	out, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, priv, raw, nil)
+	if err == nil {
+		return string(out), nil
+	}
+	// 回退 PKCS1v1.5 (JSEncrypt / HTTP)
+	out, err = rsa.DecryptPKCS1v15(rand.Reader, priv, raw)
 	if err != nil {
 		return "", fmt.Errorf("%d", errcode.ErrPasswordCipherInvalid)
 	}

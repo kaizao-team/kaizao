@@ -68,9 +68,10 @@ type TokenResp struct {
 
 // PasswordKeyResp GET /auth/password-key
 type PasswordKeyResp struct {
-	KeyID         string `json:"key_id"`
-	Algorithm     string `json:"algorithm"`
-	PublicKeyPEM  string `json:"public_key_pem"`
+	KeyID            string `json:"key_id"`
+	Algorithm        string `json:"algorithm"`
+	PublicKeyPEM     string `json:"public_key_pem"`
+	PublicKeySPKIPEM string `json:"public_key_spki_pem,omitempty"`
 }
 
 // CaptchaResp GET /auth/captcha

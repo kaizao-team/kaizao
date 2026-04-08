@@ -4,6 +4,7 @@ export interface PasswordKeyResponse {
   key_id: string
   algorithm: string
   public_key_pem: string
+  public_key_spki_pem?: string
 }
 
 export interface CaptchaResponse {
