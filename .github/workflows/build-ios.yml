@@ -112,11 +112,38 @@ jobs:
         run: flutter build ios --release --no-codesign
         working-directory: app
 
-      - name: Archive with xcodebuild (Manual signing)
+      - name: Patch Runner target for Manual signing
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
         env:
           TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
           PROVISION_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
+        run: |
+          PBXPROJ="app/ios/Runner.xcodeproj/project.pbxproj"
+
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' "$PBXPROJ"
+          sed -i '' "s/CODE_SIGN_IDENTITY = \"Apple Development\"/CODE_SIGN_IDENTITY = \"Apple Distribution\"/g" "$PBXPROJ"
+
+          python3 - "$PBXPROJ" "$PROVISION_PROFILE_NAME" "$PP_UUID" <<'PYEOF'
+          import sys, re
+          path, profile_name, profile_uuid = sys.argv[1], sys.argv[2], sys.argv[3]
+          with open(path, 'r') as f:
+              content = f.read()
+          content = re.sub(
+              r'(DEVELOPMENT_TEAM = \w+;)',
+              r'\1\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "' + profile_name + r'";',
+              content
+          )
+          with open(path, 'w') as f:
+              f.write(content)
+          PYEOF
+
+          echo "✅ Runner signing patched to Manual"
+          grep -E "CODE_SIGN_STYLE|PROVISIONING_PROFILE|CODE_SIGN_IDENTITY" "$PBXPROJ" | head -20
+
+      - name: Archive with xcodebuild
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        env:
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
           xcodebuild archive \
             -workspace app/ios/Runner.xcworkspace \
@@ -125,11 +152,7 @@ jobs:
             -sdk iphoneos \
             -destination generic/platform=iOS \
             -archivePath app/build/ios/archive/Runner.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROVISION_PROFILE_NAME" \
-            -allowProvisioningUpdates
+            DEVELOPMENT_TEAM="$TEAM_ID"
 
           echo "✅ Archive completed"
           ls -la app/build/ios/archive/Runner.xcarchive/
