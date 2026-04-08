@@ -24,6 +24,10 @@ concurrency:
   group: pgyer-distribute-${{ github.event.workflow_run.id || github.event.inputs.run_id }}
   cancel-in-progress: false
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
   distribute:
     name: Upload to Pgyer
