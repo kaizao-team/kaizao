@@ -391,12 +391,28 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 	hourlyRate := user.HourlyRate
 	availableStatus := user.AvailableStatus
 	var budgetMin, budgetMax *float64
+	var teamInfo interface{}
 	if user.Role == 2 || user.Role == 3 {
 		if team, err := h.repos.Team.FindPrimaryTeamForUser(user.ID); err == nil && team != nil {
 			hourlyRate = team.HourlyRate
 			availableStatus = team.AvailableStatus
 			budgetMin = team.BudgetMin
 			budgetMax = team.BudgetMax
+			teamInfo = gin.H{
+				"uuid":             team.UUID,
+				"name":             team.Name,
+				"avatar_url":       team.AvatarURL,
+				"description":      team.Description,
+				"vibe_level":       team.VibeLevel,
+				"vibe_power":       team.VibePower,
+				"avg_rating":       team.AvgRating,
+				"member_count":     team.MemberCount,
+				"total_projects":   team.TotalProjects,
+				"hourly_rate":      team.HourlyRate,
+				"available_status": team.AvailableStatus,
+				"budget_min":       team.BudgetMin,
+				"budget_max":       team.BudgetMax,
+			}
 		}
 	}
 
@@ -427,6 +443,7 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 		"skills":           userSkillsToResponse(skills),
 		"role_tags":        []interface{}{},
 		"stats":            stats,
+		"team":             teamInfo,
 	})
 }
 
