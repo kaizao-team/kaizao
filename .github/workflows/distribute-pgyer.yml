@@ -1,4 +1,5 @@
 name: Distribute to Pgyer (蒲公英)
+run-name: "Distribute ${{ github.event.workflow_run.name || github.event.inputs.platform || '' }} to Pgyer"
 
 on:
   workflow_run:
