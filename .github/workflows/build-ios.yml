@@ -1,0 +1,340 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/build-ios.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/build-ios.yml"
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: "构建模式"
+        required: true
+        default: "release"
+        type: choice
+        options:
+          - release
+          - debug
+      export_method:
+        description: "导出方式"
+        required: true
+        default: "ad-hoc"
+        type: choice
+        options:
+          - ad-hoc
+          - app-store
+          - development
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.41.5"
+
+jobs:
+  build-ios:
+    name: Build iOS IPA
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+        working-directory: app
+
+      - name: Get dependencies
+        run: flutter pub get
+        working-directory: app
+
+      - name: Analyze code
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        working-directory: app
+
+      - name: Install CocoaPods dependencies
+        run: pod install --repo-update
+        working-directory: app/ios
+
+      - name: Install Apple certificate and provisioning profile
+        if: github.event_name != 'pull_request'
+        env:
+          P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+          PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ github.run_id }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          echo -n "$P12_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$PROVISION_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          DECODED=$(/usr/bin/security cms -D -i $PP_PATH)
+          PP_PLIST=$(mktemp)
+          echo "$DECODED" > "$PP_PLIST"
+          PP_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$PP_PLIST")
+          PP_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$PP_PLIST")
+          PP_TEAM=$(/usr/libexec/PlistBuddy -c "Print TeamIdentifier:0" "$PP_PLIST")
+          PP_APPID=$(/usr/libexec/PlistBuddy -c "Print Entitlements:application-identifier" "$PP_PLIST")
+          rm -f "$PP_PLIST"
+
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PP_UUID.mobileprovision
+
+          echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
+          echo "PP_NAME=$PP_NAME" >> $GITHUB_ENV
+
+          echo "✅ Profile installed:"
+          echo "  Name: $PP_NAME"
+          echo "  UUID: $PP_UUID"
+          echo "  Team: $PP_TEAM"
+          echo "  AppID: $PP_APPID"
+          security find-identity -v -p codesigning $KEYCHAIN_PATH
+
+      - name: Build iOS (Release - no codesign for PR)
+        if: github.event_name == 'pull_request'
+        run: flutter build ios --release --no-codesign
+        working-directory: app
+
+      - name: Build Flutter iOS (no codesign)
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        run: flutter build ios --release --no-codesign
+        working-directory: app
+
+      - name: Diagnose provisioning profile
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        run: |
+          echo "=== Installed provisioning profiles ==="
+          for f in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
+            echo "--- $f ---"
+            DECODED=$(/usr/bin/security cms -D -i "$f" 2>/dev/null)
+            if [ -n "$DECODED" ]; then
+              PLIST_FILE=$(mktemp)
+              echo "$DECODED" > "$PLIST_FILE"
+              echo "  Name: $(/usr/libexec/PlistBuddy -c 'Print Name' "$PLIST_FILE" 2>/dev/null)"
+              echo "  UUID: $(/usr/libexec/PlistBuddy -c 'Print UUID' "$PLIST_FILE" 2>/dev/null)"
+              echo "  TeamID: $(/usr/libexec/PlistBuddy -c 'Print TeamIdentifier:0' "$PLIST_FILE" 2>/dev/null)"
+              echo "  AppID: $(/usr/libexec/PlistBuddy -c 'Print Entitlements:application-identifier' "$PLIST_FILE" 2>/dev/null)"
+              echo "  Expiry: $(/usr/libexec/PlistBuddy -c 'Print ExpirationDate' "$PLIST_FILE" 2>/dev/null)"
+              rm -f "$PLIST_FILE"
+            else
+              echo "  (could not decode)"
+            fi
+          done
+          echo ""
+          echo "=== Profile name used in pbxproj (from PP_NAME env) ==="
+          echo "  PP_NAME=$PP_NAME"
+          echo ""
+          echo "=== Keychain identities ==="
+          security find-identity -v -p codesigning
+          echo ""
+          echo "=== Keychain certificate details ==="
+          security find-certificate -a -p $RUNNER_TEMP/app-signing.keychain-db | openssl x509 -noout -subject -fingerprint -serial 2>/dev/null || echo "(no cert details)"
+
+      - name: Patch Runner target for Manual signing
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        env:
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          PBXPROJ="app/ios/Runner.xcodeproj/project.pbxproj"
+          echo "Using profile name from file: $PP_NAME (UUID: $PP_UUID)"
+
+          python3 - "$PBXPROJ" "$PP_NAME" "$PP_UUID" "$TEAM_ID" <<'PYEOF'
+          import sys, re
+          path = sys.argv[1]
+          profile_name = sys.argv[2]
+          profile_uuid = sys.argv[3]
+          team_id = sys.argv[4]
+
+          with open(path, 'r') as f:
+              content = f.read()
+
+          content = content.replace('CODE_SIGN_STYLE = Automatic', 'CODE_SIGN_STYLE = Manual')
+          content = content.replace(
+              '"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer"',
+              '"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution"'
+          )
+          content = content.replace(
+              'CODE_SIGN_IDENTITY = "Apple Development"',
+              'CODE_SIGN_IDENTITY = "Apple Distribution"'
+          )
+
+          content = re.sub(
+              r'(DEVELOPMENT_TEAM = \w+;)',
+              r'\1\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "' + profile_name + '";',
+              content
+          )
+
+          with open(path, 'w') as f:
+              f.write(content)
+
+          print("Replacements done")
+          PYEOF
+
+          echo "✅ Runner signing patched to Manual"
+          echo "=== Verify pbxproj signing settings ==="
+          grep -E "CODE_SIGN_STYLE|PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM" "$PBXPROJ" | head -30
+
+      - name: Archive with xcodebuild
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        env:
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          xcodebuild archive \
+            -workspace app/ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination generic/platform=iOS \
+            -archivePath app/build/ios/archive/Runner.xcarchive \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            2>&1 | tail -80
+
+          echo "✅ Archive completed"
+          ls -la app/build/ios/archive/Runner.xcarchive/
+
+      - name: Create ExportOptions.plist
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        env:
+          EXPORT_METHOD: ${{ github.event.inputs.export_method || 'ad-hoc' }}
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          cat > /tmp/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>${EXPORT_METHOD}</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>cc.kaizao</key>
+              <string>${PP_NAME}</string>
+            </dict>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+
+          echo "✅ ExportOptions.plist created:"
+          cat /tmp/ExportOptions.plist
+
+      - name: Export IPA
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath app/build/ios/archive/Runner.xcarchive \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            -exportPath app/build/ios/ipa
+
+          echo "✅ IPA exported"
+          ls -lh app/build/ios/ipa/
+
+      - name: Build iOS (Debug)
+        if: github.event.inputs.build_mode == 'debug'
+        run: flutter build ios --debug --no-codesign
+        working-directory: app
+
+      - name: Upload IPA artifact
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-${{ github.sha }}
+          path: app/build/ios/ipa/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload to Pgyer (蒲公英)
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        env:
+          PGYER_API_KEY: ${{ secrets.PGYER_API_KEY }}
+        run: |
+          IPA_FILE=$(find app/build/ios/ipa -name "*.ipa" | head -1)
+          if [ -z "$IPA_FILE" ]; then
+            echo "⚠️ No IPA found, skipping Pgyer upload"
+            exit 0
+          fi
+          echo "Uploading $IPA_FILE to Pgyer..."
+          RESPONSE=$(curl -s -F "file=@$IPA_FILE" \
+            -F "_api_key=$PGYER_API_KEY" \
+            -F "buildUpdateDescription=CI Build from ${{ github.ref_name }} @ ${{ github.sha }}" \
+            https://www.pgyer.com/apiv2/app/upload)
+          echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
+          CODE=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('code','-1'))" 2>/dev/null)
+          if [ "$CODE" = "0" ]; then
+            BUILD_KEY=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['buildKey'])" 2>/dev/null)
+            echo "✅ Upload successful! Download: https://www.pgyer.com/$BUILD_KEY"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📱 蒲公英分发" >> $GITHUB_STEP_SUMMARY
+            echo "- 下载链接：https://www.pgyer.com/$BUILD_KEY" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Pgyer upload failed (code=$CODE), but build artifacts are still available"
+          fi
+
+      - name: Upload iOS build (no-codesign)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-${{ github.sha }}
+          path: app/build/ios/iphoneos/Runner.app
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Clean up keychain
+        if: always() && github.event_name != 'pull_request'
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db 2>/dev/null || true
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## iOS Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Flutter | ${{ env.FLUTTER_VERSION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mode | ${{ github.event.inputs.build_mode || 'release' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Export | ${{ github.event.inputs.export_method || 'ad-hoc' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ref | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          if [ -d "app/build/ios/ipa" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### IPA Files" >> $GITHUB_STEP_SUMMARY
+            ls -lh app/build/ios/ipa/*.ipa 2>/dev/null | awk '{print "- `" $NF "` — " $5}' >> $GITHUB_STEP_SUMMARY || echo "- No IPA found" >> $GITHUB_STEP_SUMMARY
+          fi
