@@ -12,6 +12,8 @@ import '../../../shared/widgets/vcc_input.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/auth_provider.dart';
 import '../repositories/auth_repository.dart';
+import '../widgets/auth_form_sections.dart';
+import '../widgets/auth_page_shell.dart';
 import '../widgets/captcha_field.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -98,8 +100,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
   Future<void> _loadCaptcha() async {
     if (_isLoadingCaptcha) return;
     setState(() => _isLoadingCaptcha = true);
-    final result =
-        await ref.read(authStateProvider.notifier).getCaptcha();
+    final result = await ref.read(authStateProvider.notifier).getCaptcha();
     if (!mounted) return;
     setState(() {
       _captcha = result;
@@ -168,185 +169,51 @@ class _LoginPageState extends ConsumerState<LoginPage>
     final screenHeight = MediaQuery.of(context).size.height;
     final compact = screenHeight < 820 || keyboardInset > 0;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFEFCFD),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 392),
-                    child: CustomScrollView(
-                      slivers: [
-                        SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const SizedBox(height: AppSpacing.sm),
-                              const _LoginMetaBar(),
-                              const Spacer(flex: 2),
-                              _LoginHero(
-                                compact: compact,
-                                scale: _heroScale,
-                                lift: _heroLift,
-                              ),
-                              const Spacer(flex: 2),
-                              // Align(
-                              //   alignment: Alignment.centerLeft,
-                              //   child: Padding(
-                              //     padding: const EdgeInsets.only(
-                              //       bottom: AppSpacing.xs,
-                              //     ),
-                              //     child: Text(
-                              //       '账号密码登录',
-                              //       style: AppTextStyles.body1.copyWith(
-                              //         fontWeight: FontWeight.w700,
-                              //         color: AppColors.black,
-                              //       ),
-                              //     ),
-                              //   ),
-                              // ),
-                              SizedBox(
-                                height:
-                                    compact ? AppSpacing.md : AppSpacing.base,
-                              ),
-                              _PasswordPanel(
-                                usernameController: _usernameController,
-                                passwordController: _passwordController,
-                                captchaCodeController: _captchaCodeController,
-                                usernameFocus: _usernameFocus,
-                                passwordFocus: _passwordFocus,
-                                captchaFocus: _captchaFocus,
-                                obscurePassword: _obscurePassword,
-                                onPasswordToggle: () {
-                                  setState(
-                                    () =>
-                                        _obscurePassword = !_obscurePassword,
-                                  );
-                                },
-                                compact: compact,
-                                captcha: _captcha,
-                                isLoadingCaptcha: _isLoadingCaptcha,
-                                onRefreshCaptcha: _loadCaptcha,
-                              ),
-                              SizedBox(
-                                height:
-                                    compact ? AppSpacing.xl : AppSpacing.xxl,
-                              ),
-                              if (!compact) const Spacer(flex: 3),
-                              VccButton(
-                                text: '登录',
-                                onPressed: _submit,
-                                isLoading: isSubmitting,
-                              ),
-                              const SizedBox(height: AppSpacing.base),
-                              _AgreementRow(
-                                isChecked: _agreedToTerms,
-                                onUserAgreementTap: () {
-                                  context.push(RoutePaths.userAgreement);
-                                },
-                                onPrivacyPolicyTap: () {
-                                  context.push(RoutePaths.privacyPolicy);
-                                },
-                                onToggle: () {
-                                  setState(
-                                    () => _agreedToTerms = !_agreedToTerms,
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              _LoginFooter(
-                                onRegisterTap: () {
-                                  context.push(RoutePaths.register);
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+    return AuthPageShell(
+      compact: compact,
+      keyboardInset: keyboardInset,
+      heroScale: _heroScale,
+      heroLift: _heroLift,
+      heroSubtitle: '欢迎来到开造',
+      form: _PasswordPanel(
+        usernameController: _usernameController,
+        passwordController: _passwordController,
+        captchaCodeController: _captchaCodeController,
+        usernameFocus: _usernameFocus,
+        passwordFocus: _passwordFocus,
+        captchaFocus: _captchaFocus,
+        obscurePassword: _obscurePassword,
+        onPasswordToggle: () {
+          setState(() => _obscurePassword = !_obscurePassword);
+        },
+        compact: compact,
+        captcha: _captcha,
+        isLoadingCaptcha: _isLoadingCaptcha,
+        onRefreshCaptcha: _loadCaptcha,
       ),
-    );
-  }
-}
-
-class _LoginMetaBar extends StatelessWidget {
-  const _LoginMetaBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        'KAIZO',
-        style: AppTextStyles.overline.copyWith(
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.8,
-          color: AppColors.black,
-        ),
+      primaryAction: VccButton(
+        text: '登录',
+        onPressed: _submit,
+        isLoading: isSubmitting,
       ),
-    );
-  }
-}
-
-class _LoginHero extends StatelessWidget {
-  final bool compact;
-  final Animation<double> scale;
-  final Animation<double> lift;
-
-  const _LoginHero({
-    required this.compact,
-    required this.scale,
-    required this.lift,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final logoSize = compact ? 140.0 : 160.0;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedBuilder(
-          animation: Listenable.merge([scale, lift]),
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(0, lift.value),
-              child: Transform.scale(scale: scale.value, child: child),
-            );
-          },
-          child: Image.asset(
-            'assets/branding/app_launch_static_transparent_cropped.png',
-            width: logoSize,
-            height: logoSize,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-            isAntiAlias: true,
-          ),
-        ),
-        SizedBox(height: compact ? 6 : 10),
-        Text(
-          '欢迎来到开造',
-          style: AppTextStyles.body1.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppColors.gray500,
-            letterSpacing: 0.5,
-          ),
-        ),
-        SizedBox(height: compact ? AppSpacing.sm : AppSpacing.md),
-      ],
+      agreement: AuthAgreementRow(
+        isChecked: _agreedToTerms,
+        prefixText: '登录即代表同意',
+        onUserAgreementTap: () {
+          context.push(RoutePaths.userAgreement);
+        },
+        onPrivacyPolicyTap: () {
+          context.push(RoutePaths.privacyPolicy);
+        },
+        onToggle: () {
+          setState(() => _agreedToTerms = !_agreedToTerms);
+        },
+      ),
+      footer: _LoginFooter(
+        onRegisterTap: () {
+          context.push(RoutePaths.register);
+        },
+      ),
     );
   }
 }
@@ -386,7 +253,7 @@ class _PasswordPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _FieldShell(
+        AuthFieldShell(
           label: '用户名',
           child: VccInput(
             hint: '请输入用户名',
@@ -398,7 +265,7 @@ class _PasswordPanel extends StatelessWidget {
           ),
         ),
         SizedBox(height: compact ? AppSpacing.md : AppSpacing.base),
-        _FieldShell(
+        AuthFieldShell(
           label: '密码',
           child: VccInput(
             hint: '••••••••',
@@ -407,17 +274,9 @@ class _PasswordPanel extends StatelessWidget {
             obscureText: obscurePassword,
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => captchaFocus.requestFocus(),
-            suffixIcon: GestureDetector(
+            suffixIcon: AuthVisibilityToggle(
+              obscure: obscurePassword,
               onTap: onPasswordToggle,
-              behavior: HitTestBehavior.opaque,
-              child: const Padding(
-                padding: EdgeInsets.all(10),
-                child: Icon(
-                  Icons.remove_red_eye_outlined,
-                  size: 18,
-                  color: AppColors.gray500,
-                ),
-              ),
             ),
           ),
         ),
@@ -431,167 +290,6 @@ class _PasswordPanel extends StatelessWidget {
           compact: compact,
         ),
       ],
-    );
-  }
-}
-
-class _FieldShell extends StatelessWidget {
-  final String label;
-  final Widget child;
-
-  const _FieldShell({
-    required this.label,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: AppSpacing.xs),
-          child: Text(
-            label,
-            style: AppTextStyles.caption.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.gray500,
-            ),
-          ),
-        ),
-        Theme(
-          data: theme.copyWith(
-            inputDecorationTheme: theme.inputDecorationTheme.copyWith(
-              fillColor: AppColors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.base,
-                vertical: AppSpacing.base,
-              ),
-              hintStyle: AppTextStyles.inputHint.copyWith(
-                color: AppColors.gray300,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                borderSide: const BorderSide(
-                  color: AppColors.gray200,
-                  width: 1.2,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                borderSide: const BorderSide(
-                  color: AppColors.black,
-                  width: 1.4,
-                ),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                borderSide: const BorderSide(
-                  color: AppColors.gray200,
-                  width: 1.2,
-                ),
-              ),
-            ),
-          ),
-          child: child,
-        ),
-      ],
-    );
-  }
-}
-
-class _AgreementRow extends StatelessWidget {
-  final bool isChecked;
-  final VoidCallback onToggle;
-  final VoidCallback onUserAgreementTap;
-  final VoidCallback onPrivacyPolicyTap;
-
-  const _AgreementRow({
-    required this.isChecked,
-    required this.onToggle,
-    required this.onUserAgreementTap,
-    required this.onPrivacyPolicyTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onToggle,
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 18,
-            height: 18,
-            margin: const EdgeInsets.only(top: 1),
-            decoration: BoxDecoration(
-              color: isChecked ? AppColors.black : AppColors.white,
-              borderRadius: BorderRadius.circular(AppRadius.xs),
-              border: Border.all(
-                color: isChecked ? AppColors.black : AppColors.gray300,
-              ),
-            ),
-            child: isChecked
-                ? const Icon(Icons.check, size: 12, color: AppColors.white)
-                : null,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  '登录即代表同意 ',
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.gray500,
-                  ),
-                ),
-                _InlineLegalLink(
-                  text: '《用户协议》',
-                  onTap: onUserAgreementTap,
-                ),
-                Text(
-                  ' 与 ',
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.gray500,
-                  ),
-                ),
-                _InlineLegalLink(
-                  text: '《隐私政策》',
-                  onTap: onPrivacyPolicyTap,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InlineLegalLink extends StatelessWidget {
-  final String text;
-  final VoidCallback onTap;
-
-  const _InlineLegalLink({
-    required this.text,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Text(
-        text,
-        style: AppTextStyles.caption.copyWith(
-          color: AppColors.black,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
     );
   }
 }

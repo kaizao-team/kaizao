@@ -34,7 +34,7 @@ class VccAvatar extends StatelessWidget {
     }
   }
 
-  double get _borderRadius => isTeam ? 8 : 999;
+  double get _borderRadius => isTeam ? AppRadius.sm : AppRadius.full;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +56,8 @@ class VccAvatar extends StatelessWidget {
       avatar = Container(
         decoration: BoxDecoration(
           shape: isTeam ? BoxShape.rectangle : BoxShape.circle,
-          borderRadius: isTeam ? BorderRadius.circular(_borderRadius + 2) : null,
+          borderRadius:
+              isTeam ? BorderRadius.circular(_borderRadius + 2) : null,
           border: Border.all(color: AppColors.black, width: 2),
         ),
         child: avatar,
@@ -76,7 +77,7 @@ class VccAvatar extends StatelessWidget {
         width: _size,
         height: _size,
         decoration: BoxDecoration(
-          color: AppColors.gray100,
+          color: AppColors.surfaceStrong,
           borderRadius: BorderRadius.circular(_borderRadius),
         ),
         child: Center(
@@ -96,7 +97,7 @@ class VccAvatar extends StatelessWidget {
       width: _size,
       height: _size,
       decoration: BoxDecoration(
-        color: AppColors.gray100,
+        color: AppColors.surfaceStrong,
         borderRadius: BorderRadius.circular(_borderRadius),
       ),
       child: Icon(

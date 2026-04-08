@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_text_styles.dart';
 
 /// 简单技能标签（用于卡片内）
 class VccTag extends StatelessWidget {
@@ -12,14 +13,12 @@ class VccTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(4),
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
+        style: AppTextStyles.caption.copyWith(
           color: AppColors.gray600,
         ),
       ),
@@ -66,14 +65,12 @@ class VccStatusTag extends StatelessWidget {
       height: 28,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(4),
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
+        style: AppTextStyles.caption.copyWith(
           color: AppColors.gray600,
         ),
       ),
@@ -115,13 +112,11 @@ class VccStatusTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+        style: AppTextStyles.statusTag.copyWith(
           color: textColor,
         ),
       ),
@@ -155,13 +150,11 @@ class VccStatusTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         gradient: gradient,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+        style: AppTextStyles.statusTag.copyWith(
           color: Colors.white,
         ),
       ),
@@ -173,17 +166,15 @@ class VccStatusTag extends StatelessWidget {
       height: 32,
       padding: const EdgeInsets.only(left: 12, right: 8),
       decoration: BoxDecoration(
-        color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(999),
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
+            style: AppTextStyles.body2.copyWith(
               color: AppColors.gray700,
             ),
           ),

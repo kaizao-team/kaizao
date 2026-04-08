@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_text_styles.dart';
 
 enum VccButtonType { primary, secondary, ghost, text, danger, small }
 
@@ -69,19 +70,19 @@ class _VccButtonState extends State<VccButton> {
 
   Widget _buildPrimaryButton() {
     final bgColor = _isDisabled
-        ? AppColors.gray200
-        : (_isPressed ? AppColors.gray700 : AppColors.black);
+        ? AppColors.surfaceStrong
+        : (_isPressed ? AppColors.gray700 : AppColors.primary);
     final textColor = _isDisabled ? AppColors.gray400 : AppColors.white;
 
     return _wrapGesture(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
+        duration: AppDurations.fast,
         height: 48,
         width: _width,
         constraints: _constraints,
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.md),
         ),
         child: Center(
           child: widget.isLoading
@@ -93,7 +94,10 @@ class _VccButtonState extends State<VccButton> {
                     valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                   ),
                 )
-              : _buildContent(color: textColor, fontSize: 16, fontWeight: FontWeight.w600),
+              : _buildContent(
+                  color: textColor,
+                  style: AppTextStyles.button1,
+                ),
         ),
       ),
     );
@@ -101,47 +105,54 @@ class _VccButtonState extends State<VccButton> {
 
   Widget _buildSecondaryButton() {
     final borderColor = _isDisabled
-        ? AppColors.gray200
-        : (_isPressed ? AppColors.gray600 : AppColors.gray300);
+        ? AppColors.outlineVariant
+        : (_isPressed ? AppColors.outlineSoft : AppColors.outlineVariant);
     final bgColor = _isDisabled
-        ? AppColors.gray50
-        : (_isPressed ? AppColors.gray50 : AppColors.white);
-    final textColor = _isDisabled ? AppColors.gray400 : AppColors.black;
+        ? AppColors.surfaceAlt
+        : (_isPressed ? AppColors.surfaceAlt : AppColors.surfaceRaised);
+    final textColor = _isDisabled ? AppColors.gray400 : AppColors.onSurface;
 
     return _wrapGesture(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
+        duration: AppDurations.fast,
         height: 48,
         width: _width,
         constraints: _constraints,
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: borderColor, width: 1),
         ),
         child: Center(
-          child: _buildContent(color: textColor, fontSize: 16, fontWeight: FontWeight.w500),
+          child: _buildContent(
+            color: textColor,
+            style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w600),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildGhostButton() {
-    final borderColor = _isDisabled ? AppColors.gray200 : AppColors.gray300;
-    final textColor = _isDisabled ? AppColors.gray300 : AppColors.black;
+    final borderColor =
+        _isDisabled ? AppColors.outlineVariant : AppColors.outlineSoft;
+    final textColor = _isDisabled ? AppColors.gray300 : AppColors.onSurface;
 
     return _wrapGesture(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
+        duration: AppDurations.fast,
         height: 48,
         width: _width,
         decoration: BoxDecoration(
-          color: _isPressed ? AppColors.gray50 : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          color: _isPressed ? AppColors.surfaceAlt : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: borderColor, width: 1),
         ),
         child: Center(
-          child: _buildContent(color: textColor, fontSize: 14, fontWeight: FontWeight.w500),
+          child: _buildContent(
+            color: textColor,
+            style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.w600),
+          ),
         ),
       ),
     );
@@ -156,9 +167,8 @@ class _VccButtonState extends State<VccButton> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Text(
           widget.text,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+          style: AppTextStyles.body2.copyWith(
+            fontWeight: FontWeight.w600,
             color: textColor,
           ),
         ),
@@ -169,15 +179,20 @@ class _VccButtonState extends State<VccButton> {
   Widget _buildDangerButton() {
     return _wrapGesture(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
+        duration: AppDurations.fast,
         height: 48,
         width: _width,
         decoration: BoxDecoration(
-          color: _isPressed ? const Color(0xFFDC2626) : AppColors.error,
-          borderRadius: BorderRadius.circular(10),
+          color: _isPressed
+              ? AppColors.error.withValues(alpha: 0.92)
+              : AppColors.error,
+          borderRadius: BorderRadius.circular(AppRadius.md),
         ),
         child: Center(
-          child: _buildContent(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          child: _buildContent(
+            color: AppColors.white,
+            style: AppTextStyles.button1,
+          ),
         ),
       ),
     );
@@ -190,19 +205,18 @@ class _VccButtonState extends State<VccButton> {
 
     return _wrapGesture(
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
+        duration: AppDurations.fast,
         height: 32,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         child: Center(
           child: Text(
             widget.text,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+            style: AppTextStyles.body2.copyWith(
+              fontWeight: FontWeight.w600,
               color: _isDisabled ? AppColors.gray400 : AppColors.white,
             ),
           ),
@@ -213,8 +227,7 @@ class _VccButtonState extends State<VccButton> {
 
   Widget _buildContent({
     required Color color,
-    required double fontSize,
-    required FontWeight fontWeight,
+    required TextStyle style,
   }) {
     if (widget.icon != null) {
       return Row(
@@ -222,10 +235,10 @@ class _VccButtonState extends State<VccButton> {
         children: [
           Icon(widget.icon, color: color, size: 20),
           const SizedBox(width: 8),
-          Text(widget.text, style: TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color)),
+          Text(widget.text, style: style.copyWith(color: color)),
         ],
       );
     }
-    return Text(widget.text, style: TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color));
+    return Text(widget.text, style: style.copyWith(color: color));
   }
 }

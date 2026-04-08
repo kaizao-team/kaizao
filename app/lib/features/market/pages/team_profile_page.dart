@@ -5,10 +5,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/skills/skill_particle_field.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_button.dart';
+import '../../../shared/widgets/vcc_card.dart';
+import '../../../shared/widgets/vcc_identity_hero.dart';
 import '../../../shared/widgets/vcc_loading.dart';
+import '../../../shared/widgets/vcc_section_label.dart';
 import '../../team/models/team_profile.dart';
 import '../../team/providers/team_provider.dart';
 
@@ -23,7 +27,7 @@ class TeamProfilePage extends ConsumerWidget {
 
     if (state.isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF9F9F9),
+        backgroundColor: AppColors.surface,
         body: VccLoading(),
       );
     }
@@ -31,16 +35,17 @@ class TeamProfilePage extends ConsumerWidget {
     final profile = state.profile;
     if (profile == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF9F9F9),
+        backgroundColor: AppColors.surface,
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF9F9F9),
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
-          title: const Text(
+          title: Text(
             '团队档案',
-            style: TextStyle(
+            style: AppTextStyles.h3.copyWith(
               fontSize: 17,
               fontWeight: FontWeight.w600,
-              color: _ink,
+              color: AppColors.onSurface,
             ),
           ),
         ),
@@ -49,7 +54,7 @@ class TeamProfilePage extends ConsumerWidget {
             state.errorMessage?.isNotEmpty == true
                 ? state.errorMessage!
                 : '未找到团队信息',
-            style: const TextStyle(
+            style: AppTextStyles.body2.copyWith(
               fontSize: 14,
               color: AppColors.gray500,
             ),
@@ -60,7 +65,7 @@ class TeamProfilePage extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+      backgroundColor: AppColors.surface,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -69,15 +74,15 @@ class TeamProfilePage extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                _buildSectionLabel('OVERVIEW'),
+                const VccSectionLabel('OVERVIEW'),
                 const SizedBox(height: 10),
                 _TeamMetricsCard(profile: profile),
                 const SizedBox(height: 28),
-                _buildSectionLabel('PRESENCE'),
+                const VccSectionLabel('PRESENCE'),
                 const SizedBox(height: 10),
                 _TeamStoryCard(profile: profile),
                 const SizedBox(height: 28),
-                _buildSectionLabel('MEMBERS'),
+                const VccSectionLabel('MEMBERS'),
                 const SizedBox(height: 10),
                 _TeamMembersCard(profile: profile),
                 const SizedBox(height: 28),
@@ -92,21 +97,7 @@ class TeamProfilePage extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _buildSectionLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        color: AppColors.gray400,
-        letterSpacing: 2.5,
-      ),
-    );
-  }
 }
-
-const Color _ink = Color(0xFF1A1C1C);
 
 class _TeamHero extends StatelessWidget {
   final TeamProfile profile;
@@ -115,142 +106,76 @@ class _TeamHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
     final heroSkills = _teamHeroSkills(profile);
-
-    return Container(
-      padding: EdgeInsets.only(top: topPadding),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF111111), Color(0xFF3C3B3B)],
+    final layers = <Widget>[
+      Positioned(
+        top: 18,
+        right: -26,
+        child: Transform.rotate(
+          angle: -0.18,
+          child: Container(
+            width: 144,
+            height: 112,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              color: Colors.white.withValues(alpha: 0.06),
+            ),
+          ),
         ),
       ),
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          Positioned(
-            top: 18,
-            right: -26,
-            child: Transform.rotate(
-              angle: -0.18,
-              child: Container(
-                width: 144,
-                height: 112,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  color: Colors.white.withValues(alpha: 0.06),
-                ),
-              ),
+      Positioned(
+        right: 22,
+        top: 84,
+        child: Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
             ),
           ),
-          Positioned(
-            right: 22,
-            top: 84,
-            child: Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.08),
-                ),
-              ),
-            ),
-          ),
-          if (heroSkills.isNotEmpty)
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 64,
-              bottom: 0,
-              child: IgnorePointer(
-                child: SkillParticleField(skills: heroSkills),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'TEAM PROFILE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withValues(alpha: 0.4),
-                        letterSpacing: 3,
-                      ),
-                    ),
-                    const Spacer(),
-                    _TopActionButton(
-                      label: '返回',
-                      icon: Icons.arrow_back_ios_new_rounded,
-                      onTap: () => Navigator.of(context).maybePop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  '团队',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _HeroAvatarCard(profile: profile),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            profile.teamName,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: -0.3,
-                              height: 1.08,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              const _HeroBadge(label: '团队方'),
-                              if (profile.vibeLevel != null &&
-                                  profile.vibeLevel!.isNotEmpty)
-                                _HeroBadge(label: profile.vibeLevel!),
-                              _HeroBadge(
-                                label: profile.isAvailable ? '接单中' : '档期待确认',
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: heroSkills.isNotEmpty ? 110 : 18),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
+    ];
+
+    if (heroSkills.isNotEmpty) {
+      layers.add(
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 64,
+          bottom: 0,
+          child: IgnorePointer(
+            child: SkillParticleField(skills: heroSkills),
+          ),
+        ),
+      );
+    }
+
+    return VccIdentityHero(
+      eyebrow: 'TEAM PROFILE',
+      title: '团队',
+      headline: profile.teamName,
+      avatar: _HeroAvatarCard(profile: profile),
+      badges: [
+        const VccHeroBadge(label: '团队方'),
+        if (profile.vibeLevel != null && profile.vibeLevel!.isNotEmpty)
+          VccHeroBadge(label: profile.vibeLevel!),
+        VccHeroBadge(label: profile.isAvailable ? '接单中' : '档期待确认'),
+      ],
+      actionLabel: '返回',
+      actionIcon: Icons.arrow_back_ios_new_rounded,
+      onActionTap: () {
+        if (context.canPop()) {
+          context.pop();
+          return;
+        }
+        context.go(RoutePaths.square);
+      },
+      contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+      bottomSpacing: heroSkills.isNotEmpty ? 110 : 18,
+      layers: layers,
     );
   }
 }
@@ -283,51 +208,6 @@ List<SkillParticleItem> _teamHeroSkills(TeamProfile profile) {
         ),
       )
       .toList(growable: false);
-}
-
-class _TopActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _TopActionButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 14,
-              color: Colors.white.withValues(alpha: 0.84),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.84),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _HeroAvatarCard extends StatelessWidget {
@@ -367,31 +247,6 @@ class _HeroAvatarCard extends StatelessWidget {
   }
 }
 
-class _HeroBadge extends StatelessWidget {
-  final String label;
-
-  const _HeroBadge({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: Colors.white.withValues(alpha: 0.78),
-        ),
-      ),
-    );
-  }
-}
-
 class _TeamMetricsCard extends StatelessWidget {
   final TeamProfile profile;
 
@@ -399,95 +254,27 @@ class _TeamMetricsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      _MetricItem(
-        '${profile.totalProjects}',
-        '累计项目',
-        Icons.folder_outlined,
-      ),
-      _MetricItem(
-        '${profile.memberCount}',
-        '团队成员',
-        Icons.people_outline_rounded,
-      ),
-      _MetricItem(
-        profile.experienceYears > 0 ? '${profile.experienceYears}' : '-',
-        '经验年限',
-        Icons.timeline_rounded,
-      ),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: items.asMap().entries.map((entry) {
-          final index = entry.key;
-          final item = entry.value;
-          return Expanded(
-            child: Row(
-              children: [
-                if (index != 0)
-                  Container(
-                    width: 1,
-                    height: 34,
-                    color: AppColors.gray100,
-                  ),
-                if (index != 0) const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.value,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: _ink,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            item.icon,
-                            size: 13,
-                            color: AppColors.gray400,
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              item.label,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.gray400,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
+    return VccMetricsPanel(
+      items: [
+        VccMetricSpec(
+          value: '${profile.totalProjects}',
+          label: '累计项目',
+          icon: Icons.folder_outlined,
+        ),
+        VccMetricSpec(
+          value: '${profile.memberCount}',
+          label: '团队成员',
+          icon: Icons.people_outline_rounded,
+        ),
+        VccMetricSpec(
+          value:
+              profile.experienceYears > 0 ? '${profile.experienceYears}' : '-',
+          label: '经验年限',
+          icon: Icons.timeline_rounded,
+        ),
+      ],
     );
   }
-}
-
-class _MetricItem {
-  final String value;
-  final String label;
-  final IconData icon;
-
-  const _MetricItem(this.value, this.label, this.icon);
 }
 
 class _TeamStoryCard extends StatelessWidget {
@@ -500,11 +287,8 @@ class _TeamStoryCard extends StatelessWidget {
     final summary = _storySummary(profile);
     final details = _storyDetails(profile);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return VccCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -513,10 +297,9 @@ class _TeamStoryCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
               child: Text(
                 summary,
-                style: const TextStyle(
-                  fontSize: 14,
+                style: AppTextStyles.body2.copyWith(
+                  color: AppColors.textSecondary,
                   height: 1.7,
-                  color: Color(0xFF555555),
                 ),
               ),
             ),
@@ -526,27 +309,26 @@ class _TeamStoryCard extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 18),
                 height: 1,
-                color: AppColors.gray100,
+                color: AppColors.outlineVariant,
               ),
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: details
-                    .map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          item,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            height: 1.6,
-                            color: AppColors.gray500,
-                          ),
-                        ),
+                children: details.asMap().entries.map((entry) {
+                  final isLast = entry.key == details.length - 1;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+                    child: Text(
+                      entry.value,
+                      style: AppTextStyles.body2.copyWith(
+                        fontSize: 13,
+                        height: 1.6,
+                        color: AppColors.gray500,
                       ),
-                    )
-                    .toList(),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
           ],
@@ -602,21 +384,19 @@ class _TeamMembersCardState extends State<_TeamMembersCard> {
   @override
   Widget build(BuildContext context) {
     final members = _displayMembers(widget.profile);
-    final selected =
-        _selectedIndex != null && _selectedIndex! < members.length
-            ? members[_selectedIndex!]
-            : null;
+    final selected = _selectedIndex != null && _selectedIndex! < members.length
+        ? members[_selectedIndex!]
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Text(
+            Text(
               '核心成员',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+              style: AppTextStyles.caption.copyWith(
+                fontWeight: FontWeight.w700,
                 letterSpacing: 1.2,
                 color: AppColors.gray400,
               ),
@@ -624,8 +404,7 @@ class _TeamMembersCardState extends State<_TeamMembersCard> {
             const Spacer(),
             Text(
               _summaryText(widget.profile, members),
-              style: const TextStyle(
-                fontSize: 12,
+              style: AppTextStyles.caption.copyWith(
                 fontWeight: FontWeight.w500,
                 color: AppColors.gray500,
               ),
@@ -722,9 +501,7 @@ class _TeamMembersCardState extends State<_TeamMembersCard> {
               child: ClipOval(
                 child: VccAvatar(
                   imageUrl: member.avatarUrl,
-                  size: size > 50
-                      ? VccAvatarSize.large
-                      : VccAvatarSize.medium,
+                  size: size > 50 ? VccAvatarSize.large : VccAvatarSize.medium,
                   fallbackText: member.displayName,
                 ),
               ),
@@ -763,7 +540,8 @@ class _TeamMembersCardState extends State<_TeamMembersCard> {
         id: leader?.id.toString() ?? 'leader:${profile.id}',
         userId: leader?.userId ?? profile.leaderUuid,
         displayName: leaderName,
-        avatarUrl: leader?.avatarUrl ?? profile.leaderAvatarUrl ?? profile.avatarUrl,
+        avatarUrl:
+            leader?.avatarUrl ?? profile.leaderAvatarUrl ?? profile.avatarUrl,
         roleLabel: leader?.role.isNotEmpty == true ? leader!.role : '团队负责人',
         isLeader: true,
       ),
@@ -771,7 +549,8 @@ class _TeamMembersCardState extends State<_TeamMembersCard> {
             (member) => _TeamDisplayMember(
               id: member.id.toString(),
               userId: member.userId,
-              displayName: member.nickname.isNotEmpty ? member.nickname : '团队成员',
+              displayName:
+                  member.nickname.isNotEmpty ? member.nickname : '团队成员',
               avatarUrl: member.avatarUrl,
               roleLabel: member.role.isNotEmpty ? member.role : '团队成员',
             ),
@@ -811,7 +590,8 @@ class _TeamMembersCardState extends State<_TeamMembersCard> {
       return '成员数据待回传';
     }
 
-    final count = profile.memberCount > 0 ? profile.memberCount : members.length;
+    final count =
+        profile.memberCount > 0 ? profile.memberCount : members.length;
     return count <= 1 ? '当前公开负责人' : '$count 位成员';
   }
 }
@@ -852,41 +632,36 @@ class _TeamMemberStatusLine extends StatelessWidget {
                   children: [
                     Text(
                       member!.displayName,
-                      style: const TextStyle(
+                      style: AppTextStyles.body2.copyWith(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: AppColors.black,
                         letterSpacing: -0.2,
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        '·',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.gray300,
-                        ),
+                    Text(
+                      ' · ',
+                      style: AppTextStyles.caption.copyWith(
+                        fontSize: 13,
+                        color: AppColors.gray300,
                       ),
                     ),
                     Expanded(
                       child: Text(
                         member!.roleLabel,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.gray500,
-                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.gray500,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                     if (member!.canOpenProfile) ...[
                       const SizedBox(width: 10),
-                      const Text(
+                      Text(
                         '主页',
-                        style: TextStyle(
-                          fontSize: 11,
+                        style: AppTextStyles.caption.copyWith(
                           fontWeight: FontWeight.w600,
                           color: AppColors.gray400,
                         ),

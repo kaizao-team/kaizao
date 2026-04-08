@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_text_styles.dart';
 import 'vcc_tag.dart';
 
 /// 开造 VCC 通用卡片组件 — 白底 + 细边框，Notion 风格
@@ -38,14 +39,16 @@ class VccCard extends StatelessWidget {
         padding: padding ?? const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: gradient == null
-              ? (backgroundColor ?? (isDark ? AppColors.darkCard : AppColors.white))
+              ? (backgroundColor ??
+                  (isDark ? AppColors.darkCard : AppColors.surfaceRaised))
               : null,
           gradient: gradient,
-          borderRadius: BorderRadius.circular(borderRadius ?? 12),
+          borderRadius: BorderRadius.circular(borderRadius ?? AppRadius.md),
           border: border ??
               Border.all(
-                color: isDark ? AppColors.darkDivider : AppColors.gray200,
-                width: 1,
+                color:
+                    isDark ? AppColors.darkDivider : AppColors.outlineVariant,
+                width: 0.8,
               ),
           boxShadow: boxShadow,
         ),
@@ -82,13 +85,8 @@ class VccProjectCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return VccCard(
       onTap: onTap,
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x08000000),
-          blurRadius: 12,
-          offset: Offset(0, 2),
-        ),
-      ],
+      backgroundColor: AppColors.surfaceRaised,
+      boxShadow: AppShadows.shadow1,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -97,11 +95,9 @@ class VccProjectCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: AppTextStyles.h3.copyWith(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.black,
-                    height: 1.3,
+                    color: AppColors.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -110,16 +106,16 @@ class VccProjectCard extends StatelessWidget {
               if (matchScore != null) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: AppColors.accentLight,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: Text(
                     '匹配 $matchScore%',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                    style: AppTextStyles.caption.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: AppColors.accent,
                     ),
                   ),
@@ -130,9 +126,7 @@ class VccProjectCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             description,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
+            style: AppTextStyles.body2.copyWith(
               color: AppColors.gray500,
               height: 1.5,
             ),
@@ -153,13 +147,11 @@ class VccProjectCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: AppColors.accentLight,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Text(
                 aiTip!,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
+                style: AppTextStyles.caption.copyWith(
                   color: AppColors.accent,
                 ),
               ),
@@ -171,21 +163,17 @@ class VccProjectCard extends StatelessWidget {
               if (amount != null)
                 Text(
                   amount!,
-                  style: const TextStyle(
+                  style: AppTextStyles.h3.copyWith(
                     fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.black,
+                    color: AppColors.onSurface,
                   ),
                 ),
               const Spacer(),
               if (footerInfo != null)
                 Text(
                   footerInfo!,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.gray400,
-                  ),
+                  style:
+                      AppTextStyles.caption.copyWith(color: AppColors.gray400),
                 ),
             ],
           ),
