@@ -285,8 +285,8 @@ class VccMetricsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return VccCard(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+    return VccSurfaceCard(
+      padding: const EdgeInsets.fromLTRB(12, 18, 12, 16),
       child: IntrinsicHeight(
         child: Row(
           children: items.asMap().entries.expand((entry) {
@@ -306,7 +306,7 @@ class VccMetricsPanel extends StatelessWidget {
                 Center(
                   child: Container(
                     width: 1,
-                    height: 30,
+                    height: 36,
                     color: AppColors.outlineVariant,
                   ),
                 ),
@@ -333,7 +333,7 @@ class _MetricColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -349,7 +349,7 @@ class _MetricColumn extends StatelessWidget {
             children: [
               Icon(
                 item.icon,
-                size: 13,
+                size: 14,
                 color: AppColors.gray400,
               ),
               const SizedBox(width: 4),

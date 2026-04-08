@@ -58,6 +58,41 @@ class VccCard extends StatelessWidget {
   }
 }
 
+class VccSurfaceCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+  final VoidCallback? onTap;
+  final Border? border;
+  final List<BoxShadow>? boxShadow;
+  final Color? backgroundColor;
+
+  const VccSurfaceCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.margin,
+    this.onTap,
+    this.border,
+    this.boxShadow,
+    this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return VccCard(
+      margin: margin,
+      padding: padding ?? const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      borderRadius: AppRadius.xxl,
+      onTap: onTap,
+      border: border,
+      boxShadow: boxShadow,
+      backgroundColor: backgroundColor ?? AppColors.surfaceRaised,
+      child: child,
+    );
+  }
+}
+
 /// 项目卡片 — 白底 + 微妙阴影，Notion 风格
 class VccProjectCard extends StatelessWidget {
   final String title;

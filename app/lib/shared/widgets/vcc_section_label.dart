@@ -30,3 +30,35 @@ class VccSectionLabel extends StatelessWidget {
     );
   }
 }
+
+class VccPageSection extends StatelessWidget {
+  final String label;
+  final Widget child;
+  final Widget? trailing;
+  final double spacing;
+
+  const VccPageSection({
+    super.key,
+    required this.label,
+    required this.child,
+    this.trailing,
+    this.spacing = 10,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: VccSectionLabel(label)),
+            if (trailing != null) trailing!,
+          ],
+        ),
+        SizedBox(height: spacing),
+        child,
+      ],
+    );
+  }
+}

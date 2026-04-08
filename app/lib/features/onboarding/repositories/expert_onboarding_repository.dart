@@ -25,6 +25,7 @@ class ExpertOnboardingRepository {
   Future<Map<String, dynamic>> updateProfile({
     String? nickname,
     String? bio,
+    String? avatarUrl,
     double? hourlyRate,
     int? availableStatus,
     int? role,
@@ -35,6 +36,7 @@ class ExpertOnboardingRepository {
       data: {
         if (nickname != null) 'nickname': nickname,
         if (bio != null) 'bio': bio,
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
         if (hourlyRate != null) 'hourly_rate': hourlyRate,
         if (availableStatus != null) 'available_status': availableStatus,
         if (role != null) 'role': role,

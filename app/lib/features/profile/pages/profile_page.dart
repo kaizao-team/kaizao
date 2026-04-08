@@ -18,6 +18,9 @@ import '../../project/providers/project_list_provider.dart';
 import '../models/profile_models.dart';
 import '../providers/profile_provider.dart';
 
+const double _kProfilePageHorizontalPadding = 20;
+const double _kProfileSectionGap = 28;
+
 class ProfilePage extends ConsumerWidget {
   final String? userId;
 
@@ -84,57 +87,67 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
+                padding: const EdgeInsets.fromLTRB(
+                  _kProfilePageHorizontalPadding,
+                  18,
+                  _kProfilePageHorizontalPadding,
+                  40,
+                ),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    const VccSectionLabel('OVERVIEW'),
-                    const SizedBox(height: 10),
-                    _ProfileMetricsCard(profile: profile),
-                    const SizedBox(height: 28),
-                    const VccSectionLabel('ACCOUNT'),
-                    const SizedBox(height: 10),
-                    _ProfileInfoCard(profile: profile),
+                    VccPageSection(
+                      label: 'OVERVIEW',
+                      child: _ProfileMetricsCard(profile: profile),
+                    ),
+                    const SizedBox(height: _kProfileSectionGap),
+                    VccPageSection(
+                      label: 'ACCOUNT',
+                      child: _ProfileInfoCard(profile: profile),
+                    ),
                     if (isSelf) ...[
-                      const SizedBox(height: 28),
-                      const VccSectionLabel('QUICK ACTIONS'),
-                      const SizedBox(height: 10),
-                      _ProfileMenuGroup(
+                      const SizedBox(height: _kProfileSectionGap),
+                      VccPageSection(
+                        label: 'QUICK ACTIONS',
+                        child: _ProfileMenuGroup(
+                          items: [
+                            _ProfileMenuItem(
+                              label: '编辑资料',
+                              trailingText: '完善资料',
+                              onTap: () => context.push(RoutePaths.editProfile),
+                            ),
+                            _ProfileMenuItem(
+                              label: '我的钱包',
+                              trailingText: '余额与记录',
+                              onTap: () => context.push(RoutePaths.wallet),
+                            ),
+                            _ProfileMenuItem(
+                              label: '消息通知',
+                              onTap: () =>
+                                  context.push(RoutePaths.notifications),
+                            ),
+                            _ProfileMenuItem(
+                              label: '我的收藏',
+                              onTap: () => context.push(RoutePaths.favorites),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: _kProfileSectionGap),
+                    VccPageSection(
+                      label: 'SUPPORT',
+                      child: _ProfileMenuGroup(
                         items: [
                           _ProfileMenuItem(
-                            label: '编辑资料',
-                            trailingText: '完善资料',
-                            onTap: () => context.push(RoutePaths.editProfile),
+                            label: '帮助与反馈',
+                            onTap: () => context.push(RoutePaths.helpFeedback),
                           ),
                           _ProfileMenuItem(
-                            label: '我的钱包',
-                            trailingText: '余额与记录',
-                            onTap: () => context.push(RoutePaths.wallet),
-                          ),
-                          _ProfileMenuItem(
-                            label: '消息通知',
-                            onTap: () => context.push(RoutePaths.notifications),
-                          ),
-                          _ProfileMenuItem(
-                            label: '我的收藏',
-                            onTap: () => context.push(RoutePaths.favorites),
+                            label: '关于 KAIZO',
+                            onTap: () => context.push(RoutePaths.about),
                           ),
                         ],
                       ),
-                    ],
-                    const SizedBox(height: 28),
-                    const VccSectionLabel('SUPPORT'),
-                    const SizedBox(height: 10),
-                    _ProfileMenuGroup(
-                      items: [
-                        _ProfileMenuItem(
-                          label: '帮助与反馈',
-                          onTap: () => context.push(RoutePaths.helpFeedback),
-                        ),
-                        _ProfileMenuItem(
-                          label: '关于 KAIZO',
-                          onTap: () => context.push(RoutePaths.about),
-                        ),
-                      ],
                     ),
                   ]),
                 ),
@@ -239,7 +252,7 @@ class _ProfileHero extends ConsumerWidget {
         }
         context.go(RoutePaths.home);
       },
-      contentPadding: const EdgeInsets.fromLTRB(20, 12, 12, 18),
+      contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
       bottomSpacing: hasSkillParticles
           ? 110
           : hasDemandBoard
@@ -784,14 +797,14 @@ class _ProfileInfoCard extends StatelessWidget {
       if (_formatJoinLabel(profile.createdAt) != null)
         _InfoItem('加入时间', _formatJoinLabel(profile.createdAt)!),
     ];
-    return VccCard(
+    return VccSurfaceCard(
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (summary != null) ...[
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
               child: Text(
                 summary,
                 style: isMotto
@@ -816,39 +829,12 @@ class _ProfileInfoCard extends StatelessWidget {
             ),
           ],
           Padding(
-            padding: EdgeInsets.fromLTRB(18, summary != null ? 14 : 18, 18, 16),
+            padding: EdgeInsets.fromLTRB(18, summary != null ? 4 : 8, 18, 6),
             child: Column(
               children: rows.asMap().entries.map((entry) {
-                final isLast = entry.key == rows.length - 1;
-                final row = entry.value;
-                return Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
-                  child: Row(
-                    children: [
-                      Text(
-                        row.label,
-                        style: AppTextStyles.caption.copyWith(
-                          fontSize: 13,
-                          color: AppColors.gray400,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            row.value,
-                            textAlign: TextAlign.right,
-                            style: AppTextStyles.body2.copyWith(
-                              fontSize: 14,
-                              color: AppColors.onSurface,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                return _ProfileInfoRow(
+                  item: entry.value,
+                  isLast: entry.key == rows.length - 1,
                 );
               }).toList(),
             ),
@@ -903,7 +889,7 @@ class _ProfileMenuGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return VccCard(
+    return VccSurfaceCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: items.asMap().entries.map((entry) {
@@ -934,7 +920,7 @@ class _ProfileMenuRow extends StatelessWidget {
       onTap: item.onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 54,
+        height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(
           border: isLast
@@ -957,6 +943,7 @@ class _ProfileMenuRow extends StatelessWidget {
               Text(
                 item.trailingText!,
                 style: AppTextStyles.caption.copyWith(
+                  fontSize: 12,
                   color: AppColors.gray400,
                 ),
               ),
@@ -969,6 +956,56 @@ class _ProfileMenuRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ProfileInfoRow extends StatelessWidget {
+  final _InfoItem item;
+  final bool isLast;
+
+  const _ProfileInfoRow({
+    required this.item,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 46,
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: AppColors.outlineVariant),
+              ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            item.label,
+            style: AppTextStyles.caption.copyWith(
+              fontSize: 13,
+              color: AppColors.gray400,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                item.value,
+                textAlign: TextAlign.right,
+                style: AppTextStyles.body2.copyWith(
+                  fontSize: 14,
+                  color: AppColors.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

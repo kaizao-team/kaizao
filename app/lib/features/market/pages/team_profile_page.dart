@@ -16,6 +16,9 @@ import '../../../shared/widgets/vcc_section_label.dart';
 import '../../team/models/team_profile.dart';
 import '../../team/providers/team_provider.dart';
 
+const double _kTeamPageHorizontalPadding = 20;
+const double _kTeamSectionGap = 28;
+
 class TeamProfilePage extends ConsumerWidget {
   final String teamId;
 
@@ -64,6 +67,8 @@ class TeamProfilePage extends ConsumerWidget {
       );
     }
 
+    final hasStorySection = _TeamStoryCard.hasVisibleContent(profile);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: CustomScrollView(
@@ -71,21 +76,31 @@ class TeamProfilePage extends ConsumerWidget {
         slivers: [
           SliverToBoxAdapter(child: _TeamHero(profile: profile)),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
+            padding: const EdgeInsets.fromLTRB(
+              _kTeamPageHorizontalPadding,
+              18,
+              _kTeamPageHorizontalPadding,
+              40,
+            ),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                const VccSectionLabel('OVERVIEW'),
-                const SizedBox(height: 10),
-                _TeamMetricsCard(profile: profile),
-                const SizedBox(height: 28),
-                const VccSectionLabel('PRESENCE'),
-                const SizedBox(height: 10),
-                _TeamStoryCard(profile: profile),
-                const SizedBox(height: 28),
-                const VccSectionLabel('MEMBERS'),
-                const SizedBox(height: 10),
-                _TeamMembersCard(profile: profile),
-                const SizedBox(height: 28),
+                VccPageSection(
+                  label: 'OVERVIEW',
+                  child: _TeamMetricsCard(profile: profile),
+                ),
+                if (hasStorySection) ...[
+                  const SizedBox(height: _kTeamSectionGap),
+                  VccPageSection(
+                    label: 'PRESENCE',
+                    child: _TeamStoryCard(profile: profile),
+                  ),
+                ],
+                const SizedBox(height: _kTeamSectionGap),
+                VccPageSection(
+                  label: 'MEMBERS',
+                  child: _TeamMembersCard(profile: profile),
+                ),
+                const SizedBox(height: _kTeamSectionGap),
                 const VccButton(
                   text: '发起沟通',
                   onPressed: null,
@@ -107,28 +122,36 @@ class _TeamHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final heroSkills = _teamHeroSkills(profile);
+    final heroSummary = _teamHeroSummary(profile);
     final layers = <Widget>[
+      const Positioned.fill(
+        child: IgnorePointer(
+          child: CustomPaint(
+            painter: _TeamHeroGridPainter(),
+          ),
+        ),
+      ),
       Positioned(
         top: 18,
-        right: -26,
+        right: -20,
         child: Transform.rotate(
-          angle: -0.18,
+          angle: -0.14,
           child: Container(
-            width: 144,
-            height: 112,
+            width: 136,
+            height: 104,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              color: Colors.white.withValues(alpha: 0.06),
+              color: Colors.white.withValues(alpha: 0.05),
             ),
           ),
         ),
       ),
       Positioned(
-        right: 22,
-        top: 84,
+        right: 20,
+        top: 88,
         child: Container(
-          width: 54,
-          height: 54,
+          width: 52,
+          height: 52,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
@@ -157,6 +180,7 @@ class _TeamHero extends StatelessWidget {
       eyebrow: 'TEAM PROFILE',
       title: '团队',
       headline: profile.teamName,
+      summary: heroSummary,
       avatar: _HeroAvatarCard(profile: profile),
       badges: [
         const VccHeroBadge(label: '团队方'),
@@ -174,10 +198,74 @@ class _TeamHero extends StatelessWidget {
         context.go(RoutePaths.square);
       },
       contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
-      bottomSpacing: heroSkills.isNotEmpty ? 110 : 18,
+      bottomSpacing: _teamHeroBottomSpacing(
+        skillCount: heroSkills.length,
+        hasSummary: heroSummary != null,
+      ),
       layers: layers,
     );
   }
+}
+
+String? _teamHeroSummary(TeamProfile profile) {
+  final candidates = [
+    profile.tagline,
+    profile.description,
+    profile.resumeSummary,
+  ];
+  for (final item in candidates) {
+    final normalized = item?.replaceAll(RegExp(r'\s+'), ' ').trim() ?? '';
+    if (normalized.isNotEmpty && !_isRepeatedHeroSummary(normalized, profile)) {
+      return _truncateHeroSummary(normalized);
+    }
+  }
+  return null;
+}
+
+String _truncateHeroSummary(String text) {
+  const maxLength = 34;
+  if (text.length <= maxLength) return text;
+  return '${text.substring(0, maxLength).trimRight()}…';
+}
+
+bool _isRepeatedHeroSummary(String text, TeamProfile profile) {
+  final normalizedText = _normalizeHeroText(text);
+  final normalizedName = _normalizeHeroText(profile.teamName);
+  final normalizedNickname = _normalizeHeroText(profile.nickname);
+
+  if (normalizedText.isEmpty) return true;
+  if (normalizedName.isNotEmpty &&
+      (normalizedText == normalizedName ||
+          normalizedText.contains(normalizedName))) {
+    return true;
+  }
+  if (normalizedNickname.isNotEmpty &&
+      (normalizedText == normalizedNickname ||
+          normalizedText.contains(normalizedNickname))) {
+    return true;
+  }
+
+  return false;
+}
+
+String _normalizeHeroText(String value) {
+  return value.replaceAll(RegExp(r'\s+'), '').trim().toLowerCase();
+}
+
+double _teamHeroBottomSpacing({
+  required int skillCount,
+  required bool hasSummary,
+}) {
+  if (skillCount <= 0) {
+    return hasSummary ? 28 : 18;
+  }
+  if (skillCount <= 4) {
+    return hasSummary ? 72 : 82;
+  }
+  if (skillCount <= 8) {
+    return hasSummary ? 80 : 92;
+  }
+  return hasSummary ? 88 : 100;
 }
 
 const List<String> _debugPreviewSkills = [
@@ -259,12 +347,15 @@ class _TeamStoryCard extends StatelessWidget {
 
   const _TeamStoryCard({required this.profile});
 
+  static bool hasVisibleContent(TeamProfile profile) =>
+      _storySummary(profile) != null || _storyDetails(profile).isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     final summary = _storySummary(profile);
     final details = _storyDetails(profile);
 
-    return VccCard(
+    return VccSurfaceCard(
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,21 +380,12 @@ class _TeamStoryCard extends StatelessWidget {
                 color: AppColors.outlineVariant,
               ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+              padding: EdgeInsets.fromLTRB(18, summary != null ? 4 : 8, 18, 6),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: details.asMap().entries.map((entry) {
-                  final isLast = entry.key == details.length - 1;
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
-                    child: Text(
-                      entry.value,
-                      style: AppTextStyles.body2.copyWith(
-                        fontSize: 13,
-                        height: 1.6,
-                        color: AppColors.gray500,
-                      ),
-                    ),
+                  return _TeamStoryRow(
+                    item: entry.value,
+                    isLast: entry.key == details.length - 1,
                   );
                 }).toList(),
               ),
@@ -339,6 +421,39 @@ class _TeamStoryCard extends StatelessWidget {
       items.add('Vibe Power ${profile.vibePower}');
     }
     return items;
+  }
+}
+
+class _TeamStoryRow extends StatelessWidget {
+  final String item;
+  final bool isLast;
+
+  const _TeamStoryRow({
+    required this.item,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: AppColors.outlineVariant),
+              ),
+      ),
+      child: Text(
+        item,
+        style: AppTextStyles.body2.copyWith(
+          fontSize: 13,
+          color: AppColors.gray500,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 }
 
@@ -704,3 +819,24 @@ const List<_DebugPreviewMember> _debugPreviewMembers = [
     roleLabel: '后端协作',
   ),
 ];
+
+class _TeamHeroGridPainter extends CustomPainter {
+  const _TeamHeroGridPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x09FFFFFF)
+      ..strokeWidth = 0.5;
+
+    const spacing = 18.0;
+    for (double x = 0; x <= size.width; x += spacing) {
+      for (double y = 0; y <= size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), 0.85, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/widgets/local_avatar_picker.dart';
+import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
@@ -22,11 +24,7 @@ class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
   final _nicknameController = TextEditingController();
   final _phoneController = TextEditingController();
   String? _avatarUrl;
-  final _nicknameSuggestions = const [
-    'Dylan',
-    'KAIZO Studio',
-    'Aurora Studio'
-  ];
+  final _nicknameSuggestions = const ['Dylan', 'KAIZO Studio', 'Aurora Studio'];
 
   @override
   void initState() {
@@ -211,8 +209,8 @@ class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
             style: AppTextStyles.h2.copyWith(fontSize: 22),
             decoration: InputDecoration(
               hintText: '请输入手机号',
-              hintStyle: AppTextStyles.inputHint
-                  .copyWith(color: AppColors.gray300),
+              hintStyle:
+                  AppTextStyles.inputHint.copyWith(color: AppColors.gray300),
               counterText: '',
               enabledBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(
@@ -254,11 +252,31 @@ class _DemanderProfilePageState extends ConsumerState<DemanderProfilePage> {
             ),
           ),
           const SizedBox(height: 22),
-          _AvatarInlinePrompt(
-            avatarUrl: _avatarUrl,
-            onTap: () {
-              // TODO: 图片上传能力接入后补齐。
-            },
+          LocalAvatarPickerTrigger(
+            value: _avatarUrl,
+            title: _avatarUrl == null ? '再补一张头像' : '调整头像',
+            hint: _avatarUrl == null
+                ? '加上头像，整张身份卡会立刻更有存在感。'
+                : '这张头像会跟着你的资料、项目和对话一起出现。',
+            onChanged: (value) => setState(() => _avatarUrl = value),
+            sheetTitle: '选择项目方头像',
+            avatarDiameter: 52,
+            trailing: Icon(
+              _avatarUrl == null ? Icons.add_rounded : Icons.refresh_rounded,
+              size: 20,
+              color: AppColors.black,
+            ),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: AppColors.onboardingHairline.withValues(alpha: 0.9),
+                ),
+                bottom: BorderSide(
+                  color: AppColors.onboardingHairline.withValues(alpha: 0.9),
+                ),
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 14),
           ),
           const SizedBox(height: 16),
           Text(
@@ -385,18 +403,12 @@ class _IdentityFocusCardState extends State<_IdentityFocusCard>
                       color: AppColors.onboardingHairline,
                     ),
                   ),
-                  child: widget.avatarUrl == null
-                      ? const Icon(
-                          Icons.person_outline_rounded,
-                          size: 28,
-                          color: AppColors.gray400,
-                        )
-                      : ClipOval(
-                          child: Image.network(
-                            widget.avatarUrl!,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+                  child: Center(
+                    child: VccAvatar(
+                      imageUrl: widget.avatarUrl,
+                      size: VccAvatarSize.large,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -509,92 +521,6 @@ class _IdentityTrack extends StatelessWidget {
             color: AppColors.gray700,
             fontWeight: FontWeight.w600,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AvatarInlinePrompt extends StatelessWidget {
-  final String? avatarUrl;
-  final VoidCallback onTap;
-
-  const _AvatarInlinePrompt({
-    required this.avatarUrl,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: AppColors.onboardingHairline.withValues(alpha: 0.9),
-            ),
-            bottom: BorderSide(
-              color: AppColors.onboardingHairline.withValues(alpha: 0.9),
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.onboardingSurfaceMuted,
-                border: Border.all(
-                  color: AppColors.onboardingHairline,
-                ),
-              ),
-              child: avatarUrl == null
-                  ? const Icon(
-                      Icons.camera_alt_outlined,
-                      size: 20,
-                      color: AppColors.gray400,
-                    )
-                  : ClipOval(
-                      child: Image.network(
-                        avatarUrl!,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '再补一张头像',
-                    style: AppTextStyles.body1.copyWith(
-                      color: AppColors.black,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '加上头像，整张身份卡会立刻更有存在感。',
-                    style: AppTextStyles.body2.copyWith(
-                      color: AppColors.onboardingMutedText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Icon(
-              Icons.add_rounded,
-              size: 20,
-              color: AppColors.black,
-            ),
-          ],
         ),
       ),
     );
