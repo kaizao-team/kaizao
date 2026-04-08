@@ -112,6 +112,18 @@ jobs:
         run: flutter build ios --release --no-codesign
         working-directory: app
 
+      - name: Diagnose provisioning profile
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        run: |
+          echo "=== Installed provisioning profiles ==="
+          for f in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
+            echo "--- $f ---"
+            /usr/bin/security cms -D -i "$f" 2>/dev/null | /usr/libexec/PlistBuddy -c "Print Name" -c "Print UUID" -c "Print TeamIdentifier:0" /dev/stdin 2>/dev/null || echo "(parse error)"
+          done
+          echo ""
+          echo "=== Keychain identities ==="
+          security find-identity -v -p codesigning
+
       - name: Patch Runner target for Manual signing
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
         env:
@@ -120,25 +132,41 @@ jobs:
         run: |
           PBXPROJ="app/ios/Runner.xcodeproj/project.pbxproj"
 
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' "$PBXPROJ"
-          sed -i '' "s/CODE_SIGN_IDENTITY = \"Apple Development\"/CODE_SIGN_IDENTITY = \"Apple Distribution\"/g" "$PBXPROJ"
-
-          python3 - "$PBXPROJ" "$PROVISION_PROFILE_NAME" "$PP_UUID" <<'PYEOF'
+          python3 - "$PBXPROJ" "$PROVISION_PROFILE_NAME" "$PP_UUID" "$TEAM_ID" <<'PYEOF'
           import sys, re
-          path, profile_name, profile_uuid = sys.argv[1], sys.argv[2], sys.argv[3]
+          path = sys.argv[1]
+          profile_name = sys.argv[2]
+          profile_uuid = sys.argv[3]
+          team_id = sys.argv[4]
+
           with open(path, 'r') as f:
               content = f.read()
+
+          content = content.replace('CODE_SIGN_STYLE = Automatic', 'CODE_SIGN_STYLE = Manual')
+          content = content.replace(
+              '"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer"',
+              '"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution"'
+          )
+          content = content.replace(
+              'CODE_SIGN_IDENTITY = "Apple Development"',
+              'CODE_SIGN_IDENTITY = "Apple Distribution"'
+          )
+
           content = re.sub(
               r'(DEVELOPMENT_TEAM = \w+;)',
-              r'\1\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "' + profile_name + r'";',
+              r'\1\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "' + profile_name + '";',
               content
           )
+
           with open(path, 'w') as f:
               f.write(content)
+
+          print("Replacements done")
           PYEOF
 
           echo "✅ Runner signing patched to Manual"
-          grep -E "CODE_SIGN_STYLE|PROVISIONING_PROFILE|CODE_SIGN_IDENTITY" "$PBXPROJ" | head -20
+          echo "=== Verify pbxproj signing settings ==="
+          grep -E "CODE_SIGN_STYLE|PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM" "$PBXPROJ" | head -30
 
       - name: Archive with xcodebuild
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
@@ -152,7 +180,8 @@ jobs:
             -sdk iphoneos \
             -destination generic/platform=iOS \
             -archivePath app/build/ios/archive/Runner.xcarchive \
-            DEVELOPMENT_TEAM="$TEAM_ID"
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            2>&1 | tail -80
 
           echo "✅ Archive completed"
           ls -la app/build/ios/archive/Runner.xcarchive/
