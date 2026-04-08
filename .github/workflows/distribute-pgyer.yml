@@ -33,7 +33,7 @@ jobs:
   distribute:
     name: Upload to Pgyer
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     if: >-
       (github.event_name == 'workflow_dispatch') ||
       (github.event.workflow_run.conclusion == 'success' &&
@@ -94,11 +94,17 @@ jobs:
           FILE_SIZE=$(du -h "$IPA_FILE" | cut -f1)
           echo "Uploading $IPA_FILE ($FILE_SIZE) to Pgyer..."
 
-          RESPONSE=$(curl -s --connect-timeout 30 --max-time 300 \
-            -F "file=@$IPA_FILE" \
-            -F "_api_key=$PGYER_API_KEY" \
-            -F "buildUpdateDescription=CI Build #${{ steps.source.outputs.run_id }} from ${{ github.repository }}@${{ github.ref_name }}" \
-            https://www.pgyer.com/apiv2/app/upload)
+          RESPONSE=""
+          for ATTEMPT in 1 2 3; do
+            echo "  Attempt $ATTEMPT/3..."
+            RESPONSE=$(curl -s --connect-timeout 60 --max-time 600 \
+              -F "file=@$IPA_FILE" \
+              -F "_api_key=$PGYER_API_KEY" \
+              -F "buildUpdateDescription=CI Build #${{ steps.source.outputs.run_id }} from ${{ github.repository }}@${{ github.ref_name }}" \
+              https://www.pgyer.com/apiv2/app/upload) && break
+            echo "  Upload attempt $ATTEMPT failed (exit $?), retrying in 15s..."
+            sleep 15
+          done
 
           echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
 
@@ -164,11 +170,17 @@ jobs:
           FILE_SIZE=$(du -h "$APK_FILE" | cut -f1)
           echo "Uploading $APK_FILE ($FILE_SIZE) to Pgyer..."
 
-          RESPONSE=$(curl -s --connect-timeout 30 --max-time 300 \
-            -F "file=@$APK_FILE" \
-            -F "_api_key=$PGYER_API_KEY" \
-            -F "buildUpdateDescription=CI Build #${{ steps.source.outputs.run_id }} from ${{ github.repository }}@${{ github.ref_name }}" \
-            https://www.pgyer.com/apiv2/app/upload)
+          RESPONSE=""
+          for ATTEMPT in 1 2 3; do
+            echo "  Attempt $ATTEMPT/3..."
+            RESPONSE=$(curl -s --connect-timeout 60 --max-time 600 \
+              -F "file=@$APK_FILE" \
+              -F "_api_key=$PGYER_API_KEY" \
+              -F "buildUpdateDescription=CI Build #${{ steps.source.outputs.run_id }} from ${{ github.repository }}@${{ github.ref_name }}" \
+              https://www.pgyer.com/apiv2/app/upload) && break
+            echo "  Upload attempt $ATTEMPT failed (exit $?), retrying in 15s..."
+            sleep 15
+          done
 
           echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
 
