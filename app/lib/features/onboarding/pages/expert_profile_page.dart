@@ -5,10 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/skills/app_skill_icon.dart';
+import '../../../shared/skills/app_skill_registry.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
-import '../widgets/expert_onboarding_icons.dart';
 
 const _expertStepLabels = ['资料', '补充', '等级'];
 
@@ -31,42 +32,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
   double _rateMin = 200;
   double _rateMax = 800;
 
-  final _skillOptions = const [
-    'Flutter',
-    'React',
-    'Vue.js',
-    'Python',
-    'Go',
-    'Rust',
-    'UI设计',
-    'AI/ML',
-    '后端',
-    '全栈',
-  ];
-
-  final _toolOptions = const [
-    'Git',
-    'Figma',
-    'Notion',
-    'Cursor',
-    'VS Code',
-    'Docker',
-    'Jira',
-  ];
-
   final _availabilityOptions = const ['1周内', '1-2周', '1个月内', '随时'];
-  final _skillDescriptions = const {
-    'Flutter': '适合移动端产品、跨端应用与交互型工具。',
-    'React': '适合 Web 应用、后台系统与复杂前端交互。',
-    'Vue.js': '适合官网、中后台和快速交付型项目。',
-    'Python': '适合数据处理、自动化、AI 服务与后端逻辑。',
-    'Go': '适合高并发 API、服务架构与工程稳定性建设。',
-    'Rust': '适合高性能模块、底层工具与安全要求较高的项目。',
-    'UI设计': '适合界面方案、交互细化与视觉统一。',
-    'AI/ML': '适合 AI 功能接入、模型应用与智能流程。',
-    '后端': '适合业务接口、数据库设计与服务端治理。',
-    '全栈': '适合从产品原型到完整上线的整体推进。',
-  };
   final _ratingTitles = const ['入门执行', '稳定交付', '独立推进', '资深协作', '团队主导'];
   final _ratingDescriptions = const [
     '适合明确需求与标准流程任务，能在协作中快速进入状态。',
@@ -108,6 +74,12 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
         _selectedSkills.isNotEmpty &&
         _selectedTools.isNotEmpty;
   }
+
+  List<AppSkillDefinition> get _skillOptions =>
+      AppSkillRegistry.expertOnboardingSkills;
+
+  List<AppSkillDefinition> get _toolOptions =>
+      AppSkillRegistry.expertOnboardingTools;
 
   Future<void> _next() async {
     FocusScope.of(context).unfocus();
@@ -253,8 +225,8 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
               style: AppTextStyles.h2.copyWith(fontSize: 22),
               decoration: InputDecoration(
                 hintText: '请输入手机号',
-                hintStyle: AppTextStyles.inputHint
-                    .copyWith(color: AppColors.gray300),
+                hintStyle:
+                    AppTextStyles.inputHint.copyWith(color: AppColors.gray300),
                 counterText: '',
                 enabledBorder: const UnderlineInputBorder(
                   borderSide: BorderSide(
@@ -307,17 +279,22 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
                   return SizedBox(
                     width: itemWidth,
                     child: OnboardingChoiceCard(
-                      title: skill,
-                      description: _skillDescriptions[skill]!,
-                      selected: _selectedSkills.contains(skill),
+                      title: skill.label,
+                      description: skill.onboardingDescription ?? '能力信息待补充',
+                      selected: _selectedSkills.contains(skill.label),
                       badge: '能力',
-                      icon: onboardingExpertSkillIcon(skill),
+                      iconBuilder: (color) => AppSkillIcon(
+                        skill: skill.label,
+                        category: skill.category,
+                        size: 17,
+                        color: color,
+                      ),
                       onTap: () {
                         setState(() {
-                          if (_selectedSkills.contains(skill)) {
-                            _selectedSkills.remove(skill);
+                          if (_selectedSkills.contains(skill.label)) {
+                            _selectedSkills.remove(skill.label);
                           } else {
-                            _selectedSkills.add(skill);
+                            _selectedSkills.add(skill.label);
                           }
                         });
                       },
@@ -339,15 +316,20 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
               runSpacing: 10,
               children: _toolOptions.map((tool) {
                 return OnboardingChip(
-                  label: tool,
-                  icon: onboardingExpertToolIcon(tool),
-                  selected: _selectedTools.contains(tool),
+                  label: tool.label,
+                  iconBuilder: (color) => AppSkillIcon(
+                    skill: tool.label,
+                    category: tool.category,
+                    size: 15,
+                    color: color,
+                  ),
+                  selected: _selectedTools.contains(tool.label),
                   onTap: () {
                     setState(() {
-                      if (_selectedTools.contains(tool)) {
-                        _selectedTools.remove(tool);
+                      if (_selectedTools.contains(tool.label)) {
+                        _selectedTools.remove(tool.label);
                       } else {
-                        _selectedTools.add(tool);
+                        _selectedTools.add(tool.label);
                       }
                     });
                   },
@@ -474,7 +456,8 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
                     .map(
                       (skill) => OnboardingIconTag(
                         label: skill,
-                        icon: onboardingExpertSkillIcon(skill),
+                        icon: Icons.bolt_rounded,
+                        iconWidget: AppSkillIcon(skill: skill, size: 15),
                       ),
                     )
                     .toList(),
@@ -549,7 +532,8 @@ class _PreviewToolStrip extends StatelessWidget {
                   .map(
                     (tool) => OnboardingIconTag(
                       label: tool,
-                      icon: onboardingExpertToolIcon(tool),
+                      icon: Icons.build_rounded,
+                      iconWidget: AppSkillIcon(skill: tool, size: 14),
                       compact: true,
                     ),
                   )

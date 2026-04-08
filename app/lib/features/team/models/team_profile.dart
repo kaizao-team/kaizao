@@ -61,20 +61,24 @@ class TeamProfile {
       description: json['description'] as String?,
       avatarUrl: json['avatar_url'] as String?,
       vibeLevel: json['vibe_level'] as String?,
-      vibePower: json['vibe_power'] as int? ?? 0,
+      vibePower: (json['vibe_power'] as num?)?.toInt() ?? 0,
       hourlyRate: (json['hourly_rate'] as num?)?.toDouble(),
       avgRating: (json['avg_rating'] as num?)?.toDouble() ?? 0.0,
-      memberCount: json['member_count'] as int? ?? 1,
-      totalProjects: json['total_projects'] as int? ?? 0,
-      availableStatus: json['available_status'] as int? ?? 1,
-      experienceYears: json['experience_years'] as int? ?? 0,
+      memberCount: (json['member_count'] as num?)?.toInt() ?? 1,
+      totalProjects: (json['total_projects'] as num?)?.toInt() ?? 0,
+      availableStatus: (json['available_status'] as num?)?.toInt() ?? 1,
+      experienceYears: (json['experience_years'] as num?)?.toInt() ?? 0,
       resumeSummary: json['resume_summary'] as String?,
       leaderUuid: json['leader_uuid'] as String? ?? '',
       nickname: json['nickname'] as String? ?? '',
       leaderAvatarUrl: json['leader_avatar_url'] as String?,
-      completedProjects: json['completed_projects'] as int? ?? 0,
+      completedProjects: (json['completed_projects'] as num?)?.toInt() ?? 0,
       tagline: json['tagline'] as String?,
-      skills: (json['skills'] as List?)?.cast<String>() ?? [],
+      skills: (json['skills'] as List?)
+              ?.map((item) => item.toString())
+              .where((item) => item.isNotEmpty)
+              .toList() ??
+          const [],
       createdAt: json['created_at'] as String? ?? '',
       members: (json['members'] as List?)
               ?.whereType<Map<String, dynamic>>()
@@ -108,12 +112,12 @@ class TeamProfileMember {
 
   factory TeamProfileMember.fromJson(Map<String, dynamic> json) {
     return TeamProfileMember(
-      id: json['id'] as int? ?? 0,
+      id: (json['id'] as num?)?.toInt() ?? 0,
       userId: json['user_id'] as String? ?? '',
       nickname: json['nickname'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
       role: json['role'] as String? ?? '',
-      ratio: json['ratio'] as int? ?? 0,
+      ratio: (json['ratio'] as num?)?.toInt() ?? 0,
       isLeader: json['is_leader'] as bool? ?? false,
       status: json['status'] as String? ?? 'pending',
     );

@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/skills/app_skill_icon.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../providers/onboarding_provider.dart';
-import '../widgets/expert_onboarding_icons.dart';
 import '../widgets/onboarding_chrome.dart';
 
 const _expertLevelStepLabels = ['资料', '补充', '等级'];
@@ -399,7 +399,8 @@ class _AssessmentResultView extends StatelessWidget {
                       .map(
                         (skill) => OnboardingIconTag(
                           label: skill,
-                          icon: onboardingExpertSkillIcon(skill),
+                          icon: Icons.bolt_rounded,
+                          iconWidget: AppSkillIcon(skill: skill, size: 15),
                         ),
                       )
                       .toList(),

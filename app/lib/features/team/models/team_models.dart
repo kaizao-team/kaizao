@@ -12,7 +12,7 @@ class TeamRoleSlot {
   factory TeamRoleSlot.fromJson(Map<String, dynamic> json) {
     return TeamRoleSlot(
       name: json['name'] as String? ?? '',
-      ratio: json['ratio'] as int? ?? 0,
+      ratio: (json['ratio'] as num?)?.toInt() ?? 0,
       filled: json['filled'] as bool? ?? false,
     );
   }
@@ -81,17 +81,18 @@ class TeamPost {
       projectName: json['project_name'] as String? ?? '',
       projectId: json['project_id'] as String? ?? '',
       creator: TeamPostCreator.fromJson(
-          json['creator'] as Map<String, dynamic>? ?? {}),
+        json['creator'] as Map<String, dynamic>? ?? {},
+      ),
       neededRoles: (json['needed_roles'] as List?)
               ?.whereType<Map<String, dynamic>>()
               .map((e) => TeamRoleSlot.fromJson(e))
               .toList() ??
           [],
       description: json['description'] as String? ?? '',
-      filledCount: json['filled_count'] as int? ?? 0,
-      totalCount: json['total_count'] as int? ?? 0,
+      filledCount: (json['filled_count'] as num?)?.toInt() ?? 0,
+      totalCount: (json['total_count'] as num?)?.toInt() ?? 0,
       isAiRecommended: json['is_ai_recommended'] as bool? ?? false,
-      matchScore: json['match_score'] as int? ?? 0,
+      matchScore: (json['match_score'] as num?)?.toInt() ?? 0,
       status: json['status'] as String? ?? 'recruiting',
       createdAt: json['created_at'] as String? ?? '',
     );
@@ -119,11 +120,11 @@ class TeamMember {
 
   factory TeamMember.fromJson(Map<String, dynamic> json) {
     return TeamMember(
-      id: json['id'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
       nickname: json['nickname'] as String? ?? '',
-      avatar: json['avatar'] as String?,
+      avatar: json['avatar'] as String? ?? json['avatar_url'] as String?,
       role: json['role'] as String? ?? '',
-      ratio: json['ratio'] as int? ?? 0,
+      ratio: (json['ratio'] as num?)?.toInt() ?? 0,
       isLeader: json['is_leader'] as bool? ?? false,
       status: json['status'] as String? ?? 'pending',
     );

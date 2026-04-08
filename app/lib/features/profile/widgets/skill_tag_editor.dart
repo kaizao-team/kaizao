@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../../../app/theme/app_colors.dart';
+import '../../../shared/skills/app_skill_registry.dart';
 import '../models/profile_models.dart';
 
 class SkillTagEditor extends StatefulWidget {
@@ -21,13 +23,6 @@ class SkillTagEditor extends StatefulWidget {
 class _SkillTagEditorState extends State<SkillTagEditor> {
   late List<SkillTag> _skills;
   final _inputController = TextEditingController();
-
-  static const _presetSkills = [
-    'Flutter', 'React', 'Vue.js', 'Angular', 'Swift', 'Kotlin',
-    'Go', 'Rust', 'Python', 'Java', 'Node.js', 'TypeScript',
-    'PostgreSQL', 'MongoDB', 'Redis', 'Docker', 'K8s',
-    'AI/ML', 'Figma', 'UI/UX',
-  ];
 
   @override
   void initState() {
@@ -57,10 +52,12 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
     if (_skills.any((s) => s.name == name.trim())) return;
 
     setState(() {
-      _skills.add(SkillTag(
-        id: 'skill_${DateTime.now().millisecondsSinceEpoch}',
-        name: name.trim(),
-      ));
+      _skills.add(
+        SkillTag(
+          id: 'skill_${DateTime.now().millisecondsSinceEpoch}',
+          name: name.trim(),
+        ),
+      );
     });
     widget.onChanged(_skills);
     _inputController.clear();
@@ -76,7 +73,8 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
   @override
   Widget build(BuildContext context) {
     final existingNames = _skills.map((s) => s.name).toSet();
-    final available = _presetSkills
+    final available = AppSkillRegistry.profilePresetSkills
+        .map((definition) => definition.label)
         .where((s) => !existingNames.contains(s))
         .toList();
 
@@ -166,7 +164,8 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
                     color: AppColors.black,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.add, size: 20, color: AppColors.white),
+                  child:
+                      const Icon(Icons.add, size: 20, color: AppColors.white),
                 ),
               ),
             ],
@@ -196,7 +195,11 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.add, size: 14, color: AppColors.gray500),
+                        const Icon(
+                          Icons.add,
+                          size: 14,
+                          color: AppColors.gray500,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           name,

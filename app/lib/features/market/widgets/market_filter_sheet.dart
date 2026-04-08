@@ -28,6 +28,7 @@ class MarketFilterSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (_) => MarketFilterSheet(
         selectedCategory: selectedCategory,
         budgetMin: budgetMin,
@@ -117,20 +118,20 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                       onTap: () => setState(() => _category = cat.key),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.black
-                              : AppColors.gray100,
+                          color:
+                              isSelected ? AppColors.black : AppColors.gray100,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           cat.name,
                           style: TextStyle(
                             fontSize: 13,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
+                            fontWeight:
+                                isSelected ? FontWeight.w600 : FontWeight.w400,
                             color: isSelected
                                 ? AppColors.white
                                 : AppColors.gray600,
@@ -185,11 +186,13 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                   flex: 2,
                   child: ElevatedButton(
                     onPressed: () {
-                      widget.onApply(MarketFilterResult(
-                        category: _category,
-                        budgetMin: _budgetMin,
-                        budgetMax: _budgetMax,
-                      ));
+                      widget.onApply(
+                        MarketFilterResult(
+                          category: _category,
+                          budgetMin: _budgetMin,
+                          budgetMax: _budgetMax,
+                        ),
+                      );
                       Navigator.of(context).pop();
                     },
                     style: ElevatedButton.styleFrom(

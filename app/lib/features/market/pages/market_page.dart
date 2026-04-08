@@ -612,93 +612,58 @@ class _MarketTopSwitch extends StatelessWidget {
         color: AppColors.gray100,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Row(
-        children: List.generate(labels.length, (index) {
-          final selected = selectedIndex == index;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(index),
-              child: AnimatedContainer(
-                duration: AppDurations.fast,
-                curve: Curves.easeOut,
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.black : Colors.transparent,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  labels[index],
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: selected ? AppColors.white : AppColors.gray600,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final segmentWidth = constraints.maxWidth / labels.length;
+
+          return Stack(
+            children: [
+              // Sliding black thumb
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                left: segmentWidth * selectedIndex,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: segmentWidth,
+                  decoration: BoxDecoration(
+                    color: AppColors.black,
+                    borderRadius: BorderRadius.circular(999),
                   ),
                 ),
               ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class _TeamHeaderSummary extends StatelessWidget {
-  final ExpertListState expertState;
-
-  const _TeamHeaderSummary({
-    super.key,
-    required this.expertState,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final experts = expertState.experts;
-    final skillCount = experts.expand((expert) => expert.skills).toSet().length;
-    final String summary;
-    if (expertState.isLoading) {
-      summary = '正在整理团队社区';
-    } else if (expertState.errorMessage != null && experts.isEmpty) {
-      summary = '团队广场加载失败';
-    } else if (experts.isEmpty) {
-      summary = '现在还没有公开展示的团队';
-    } else if (skillCount == 0) {
-      summary = '今天有 ${experts.length} 支团队公开展示协作方式';
-    } else {
-      summary = '今天有 ${experts.length} 支团队公开展示协作方式，覆盖 $skillCount 种技能';
-    }
-
-    return SizedBox(
-      key: const ValueKey('team-header-note'),
-      height: 38,
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: AppColors.accent,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              summary,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.gray600,
+              // Fixed text labels
+              Row(
+                children: List.generate(labels.length, (index) {
+                  final selected = selectedIndex == index;
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => onChanged(index),
+                      behavior: HitTestBehavior.opaque,
+                      child: Center(
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 220),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: selected ? AppColors.white : AppColors.black,
+                          ),
+                          child: Text(labels[index]),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 }
+
 
 class _MarketSectionHeader extends StatelessWidget {
   final String eyebrow;

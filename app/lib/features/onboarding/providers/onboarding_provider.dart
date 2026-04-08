@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/storage/storage_service.dart';
+import '../../../shared/skills/app_skill_registry.dart';
 import '../repositories/demander_onboarding_repository.dart';
 import '../repositories/expert_onboarding_repository.dart';
 
@@ -120,27 +122,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   }
 
   String _categoryForExpertSkill(String value) {
-    switch (value) {
-      case 'Flutter':
-      case 'React':
-      case 'Vue.js':
-        return 'framework';
-      case 'Python':
-      case 'Go':
-      case 'Rust':
-        return 'language';
-      case 'UI设计':
-        return 'design';
-      case 'AI/ML':
-        return 'tool';
-      case '后端':
-      case '全栈':
-        return 'other';
-      case 'Figma':
-        return 'design';
-      default:
-        return 'tool';
-    }
+    return AppSkillRegistry.categoryOf(value, fallbackCategory: 'tool');
   }
 
   List<ExpertSkillDraft> _buildExpertSkills({

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>团队详情 — Studio Page</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#d0d0d0; font-family:-apple-system,'SF Pro Display','Inter',sans-serif; display:flex; justify-content:center; padding:24px 16px; min-height:100vh; }
+
+  .phone {
+    width:390px; max-width:100%; background:#F9F9F9; border-radius:40px;
+    box-shadow:0 24px 80px rgba(0,0,0,0.15);
+    overflow:hidden;
+  }
+  .phone-inner {
+    height:844px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
+  .phone-inner::-webkit-scrollbar { display:none; }
+
+  /* ── Hero: Studio Style ── */
+  .hero {
+    background:#0A0A0A;
+    padding:54px 24px 36px;
+    position:relative;
+  }
+
+  .hero-nav {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:32px;
+  }
+  .back-btn {
+    color:rgba(255,255,255,0.5); font-size:18px; cursor:pointer;
+    width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+  }
+  .hero-action {
+    padding:6px 14px; border-radius:8px;
+    background:rgba(255,255,255,0.08);
+    font-size:12px; font-weight:500; color:rgba(255,255,255,0.5);
+  }
+
+  /* Big team name, editorial style */
+  .team-name {
+    font-size:32px; font-weight:800; color:#fff;
+    letter-spacing:-1.2px; line-height:1.05;
+    margin-bottom:12px;
+  }
+  .team-tagline {
+    font-size:15px; color:rgba(255,255,255,0.4);
+    line-height:1.55; max-width:300px;
+  }
+
+  /* Metric strip */
+  .metric-strip {
+    display:flex; gap:24px; margin-top:28px;
+    padding-top:20px;
+    border-top:1px solid rgba(255,255,255,0.06);
+  }
+  .metric { display:flex; flex-direction:column; }
+  .metric-val {
+    font-size:22px; font-weight:700; color:#fff; letter-spacing:-0.5px;
+  }
+  .metric-label {
+    font-size:10px; font-weight:500; color:rgba(255,255,255,0.3);
+    letter-spacing:1.5px; text-transform:uppercase; margin-top:4px;
+  }
+
+  /* ── Members Grid ── */
+  .section {
+    padding:28px 20px 0;
+  }
+  .section-label {
+    font-size:11px; font-weight:600; color:#999;
+    letter-spacing:2px; text-transform:uppercase;
+    margin-bottom:16px;
+  }
+
+  .members-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:12px;
+  }
+  .member-card {
+    background:#fff; border-radius:14px; padding:18px 14px;
+    display:flex; flex-direction:column; align-items:center;
+    text-align:center;
+  }
+  .member-card.leader {
+    grid-column:1 / -1;
+    flex-direction:row; text-align:left; align-items:flex-start;
+    padding:20px 18px; gap:16px;
+  }
+  .member-avatar {
+    width:52px; height:52px; border-radius:50%; object-fit:cover;
+    border:2px solid #F0F0F0;
+  }
+  .member-card.leader .member-avatar {
+    width:64px; height:64px;
+  }
+  .member-name {
+    font-size:14px; font-weight:700; color:#1A1A1A;
+    margin-top:10px; letter-spacing:-0.2px;
+  }
+  .member-card.leader .member-name { margin-top:0; font-size:16px; }
+  .member-role {
+    font-size:11px; color:#999; margin-top:2px; font-weight:500;
+  }
+  .member-skills {
+    display:flex; gap:4px; flex-wrap:wrap; margin-top:8px;
+    justify-content:center;
+  }
+  .member-card.leader .member-skills { justify-content:flex-start; }
+  .member-skill {
+    padding:3px 8px; border-radius:999px;
+    font-size:9px; font-weight:600; color:#666;
+    background:#F3F3F3;
+  }
+  .leader-badge {
+    display:inline-block;
+    padding:2px 6px; border-radius:4px;
+    background:#1A1A1A; color:#fff;
+    font-size:9px; font-weight:600; margin-left:6px;
+    vertical-align:middle;
+  }
+  .member-card.leader .member-info { flex:1; }
+
+  /* ── Skills Coverage ── */
+  .skills-bar {
+    display:flex; flex-wrap:wrap; gap:8px;
+  }
+  .skill-chip {
+    padding:7px 14px; border-radius:8px;
+    font-size:13px; font-weight:500; color:#1A1A1A;
+    background:#fff;
+    display:flex; align-items:center; gap:6px;
+  }
+  .skill-chip .dot {
+    width:6px; height:6px; border-radius:50%;
+  }
+  .skill-chip .count {
+    font-size:10px; color:#999; font-weight:600;
+  }
+
+  /* ── Description ── */
+  .desc-text {
+    font-size:14px; line-height:1.75; color:#555;
+  }
+
+  /* ── Info Rows ── */
+  .info-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 0;
+  }
+  .info-row + .info-row { border-top:1px solid #F3F3F3; }
+  .info-label { font-size:14px; color:#999; }
+  .info-value { font-size:14px; font-weight:500; color:#1A1A1A; }
+
+  /* ── CTA ── */
+  .cta-area { padding:20px 20px 60px; }
+  .cta-btn {
+    width:100%; padding:16px;
+    background:#1A1A1A; color:#fff;
+    border:none; border-radius:12px;
+    font-size:15px; font-weight:600;
+    cursor:pointer;
+  }
+
+  .card-block {
+    background:#fff; border-radius:14px; padding:20px;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="phone-inner">
+
+  <!-- ══ Hero ══ -->
+  <div class="hero">
+    <div class="hero-nav">
+      <div class="back-btn">‹</div>
+      <div class="hero-action">分享</div>
+    </div>
+
+    <div class="team-name">极速移动<br>工作室</div>
+    <div class="team-tagline">从需求到上架，移动端全链路交付，已帮 23 个项目落地</div>
+
+    <div class="metric-strip">
+      <div class="metric">
+        <div class="metric-val">23</div>
+        <div class="metric-label">项目</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">5</div>
+        <div class="metric-label">成员</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">4.9</div>
+        <div class="metric-label">评分</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">¥300</div>
+        <div class="metric-label">时薪</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Team Members ══ -->
+  <div class="section">
+    <div class="section-label">团队成员</div>
+    <div class="members-grid">
+      <!-- Leader card (full width) -->
+      <div class="member-card leader">
+        <img class="member-avatar" src="https://randomuser.me/api/portraits/men/32.jpg"/>
+        <div class="member-info">
+          <div class="member-name">阿杰 <span class="leader-badge">队长</span></div>
+          <div class="member-role">全栈工程师 · 架构负责</div>
+          <div class="member-skills">
+            <span class="member-skill">Flutter</span>
+            <span class="member-skill">Dart</span>
+            <span class="member-skill">Firebase</span>
+          </div>
+        </div>
+      </div>
+      <!-- Regular members -->
+      <div class="member-card">
+        <img class="member-avatar" src="https://randomuser.me/api/portraits/women/44.jpg"/>
+        <div class="member-name">小雨</div>
+        <div class="member-role">前端工程师</div>
+        <div class="member-skills">
+          <span class="member-skill">Flutter</span>
+          <span class="member-skill">UI</span>
+        </div>
+      </div>
+      <div class="member-card">
+        <img class="member-avatar" src="https://randomuser.me/api/portraits/men/75.jpg"/>
+        <div class="member-name">王磊</div>
+        <div class="member-role">后端工程师</div>
+        <div class="member-skills">
+          <span class="member-skill">Dart</span>
+          <span class="member-skill">Go</span>
+        </div>
+      </div>
+      <div class="member-card">
+        <img class="member-avatar" src="https://randomuser.me/api/portraits/men/22.jpg"/>
+        <div class="member-name">赵强</div>
+        <div class="member-role">DevOps</div>
+        <div class="member-skills">
+          <span class="member-skill">Firebase</span>
+          <span class="member-skill">CI/CD</span>
+        </div>
+      </div>
+      <div class="member-card">
+        <img class="member-avatar" src="https://randomuser.me/api/portraits/women/68.jpg"/>
+        <div class="member-name">小梦</div>
+        <div class="member-role">设计师</div>
+        <div class="member-skills">
+          <span class="member-skill">Figma</span>
+          <span class="member-skill">UI</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Skills Coverage ══ -->
+  <div class="section">
+    <div class="section-label">技术覆盖</div>
+    <div class="skills-bar">
+      <div class="skill-chip">
+        <span class="dot" style="background:#7C3AED;"></span>
+        Flutter <span class="count">×3</span>
+      </div>
+      <div class="skill-chip">
+        <span class="dot" style="background:#1A1A1A;"></span>
+        Dart <span class="count">×2</span>
+      </div>
+      <div class="skill-chip">
+        <span class="dot" style="background:#06B6D4;"></span>
+        Firebase <span class="count">×2</span>
+      </div>
+      <div class="skill-chip">
+        <span class="dot" style="background:#F59E0B;"></span>
+        Figma <span class="count">×1</span>
+      </div>
+      <div class="skill-chip">
+        <span class="dot" style="background:#22C55E;"></span>
+        Go <span class="count">×1</span>
+      </div>
+      <div class="skill-chip">
+        <span class="dot" style="background:#999;"></span>
+        CI/CD <span class="count">×1</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Description ══ -->
+  <div class="section">
+    <div class="section-label">关于</div>
+    <div class="card-block">
+      <div class="desc-text">全栈移动端开发团队，专注 Flutter 生态。从需求分析、UI 设计到 App Store 上架，全链路交付。团队成员平均 3 年以上移动端经验，已帮助 23 个项目成功落地。</div>
+    </div>
+  </div>
+
+  <!-- ══ Details ══ -->
+  <div class="section">
+    <div class="section-label">详细信息</div>
+    <div class="card-block">
+      <div class="info-row"><span class="info-label">团队规模</span><span class="info-value">5 人</span></div>
+      <div class="info-row"><span class="info-label">完成项目</span><span class="info-value">23 个</span></div>
+      <div class="info-row"><span class="info-label">报价范围</span><span class="info-value">¥300/h</span></div>
+      <div class="info-row"><span class="info-label">经验年限</span><span class="info-value">3 年</span></div>
+      <div class="info-row"><span class="info-label">状态</span><span class="info-value">接单中</span></div>
+    </div>
+  </div>
+
+  <!-- ══ CTA ══ -->
+  <div class="cta-area">
+    <button class="cta-btn">发起沟通</button>
+  </div>
+
+</div>
+</div>
+</body>
+</html>
