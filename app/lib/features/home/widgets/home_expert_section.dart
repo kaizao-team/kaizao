@@ -110,17 +110,14 @@ class _ExpertCard extends StatelessWidget {
                 color: AppColors.black,
               ),
             ),
-            if (expert.skills.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 5,
-                runSpacing: 5,
-                children: expert.skills
-                    .take(2)
-                    .map((label) => _SkillTag(label: label))
-                    .toList(),
-              ),
-            ],
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 5,
+              runSpacing: 5,
+              children: _skillLabels(expert)
+                  .map((label) => _SkillTag(label: label))
+                  .toList(),
+            ),
             const Spacer(),
             Row(
               children: [
@@ -176,17 +173,15 @@ class _ExpertCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (_rateText(expert) != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _rateText(expert)!,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.black,
-                ),
+            const SizedBox(height: 8),
+            Text(
+              _rateText(expert),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.black,
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -221,7 +216,12 @@ class _SkillTag extends StatelessWidget {
   }
 }
 
-String? _rateText(RecommendedExpert expert) {
+List<String> _skillLabels(RecommendedExpert expert) {
+  if (expert.skills.isNotEmpty) return expert.skills.take(2).toList();
+  return ['综合交付'];
+}
+
+String _rateText(RecommendedExpert expert) {
   if (expert.budgetMin > 0 && expert.budgetMax > 0) {
     return '¥${_formatWholeAmount(expert.budgetMin)}-${_formatWholeAmount(expert.budgetMax)}';
   }
@@ -229,7 +229,7 @@ String? _rateText(RecommendedExpert expert) {
     return '¥${_formatWholeAmount(expert.budgetMin)}起';
   }
   if (expert.hourlyRate > 0) return '¥${expert.hourlyRate}/h';
-  return null;
+  return '预算面议';
 }
 
 String _formatWholeAmount(double amount) {
