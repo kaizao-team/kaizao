@@ -1,0 +1,218 @@
+name: Distribute to Pgyer (蒲公英)
+
+on:
+  workflow_run:
+    workflows: ["Build iOS", "Build Android"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "构建 workflow 的 Run ID（从 Actions 页面获取）"
+        required: true
+        type: string
+      platform:
+        description: "平台"
+        required: true
+        type: choice
+        options:
+          - auto
+          - ios
+          - android
+
+concurrency:
+  group: pgyer-distribute-${{ github.event.workflow_run.id || github.event.inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  distribute:
+    name: Upload to Pgyer
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event != 'pull_request')
+
+    steps:
+      - name: Determine source workflow
+        id: source
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RUN_ID="${{ github.event.inputs.run_id }}"
+            PLATFORM="${{ github.event.inputs.platform }}"
+          else
+            RUN_ID="${{ github.event.workflow_run.id }}"
+            WF_NAME="${{ github.event.workflow_run.name }}"
+            case "$WF_NAME" in
+              *iOS*)  PLATFORM="ios" ;;
+              *Android*) PLATFORM="android" ;;
+              *) PLATFORM="auto" ;;
+            esac
+          fi
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "platform=$PLATFORM" >> $GITHUB_OUTPUT
+          echo "Source run: $RUN_ID, platform: $PLATFORM"
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/
+
+      - name: List downloaded artifacts
+        run: |
+          echo "=== Downloaded artifacts ==="
+          find artifacts/ -type f | head -30
+          echo ""
+          du -sh artifacts/*/ 2>/dev/null || echo "No subdirectories"
+
+      - name: Upload iOS IPA to Pgyer
+        if: >-
+          steps.source.outputs.platform == 'ios' ||
+          steps.source.outputs.platform == 'auto'
+        env:
+          PGYER_API_KEY: ${{ secrets.PGYER_API_KEY }}
+        run: |
+          if [ -z "$PGYER_API_KEY" ]; then
+            echo "::error::PGYER_API_KEY secret is not configured"
+            exit 1
+          fi
+
+          IPA_FILE=$(find artifacts/ -name "*.ipa" -type f | head -1)
+          if [ -z "$IPA_FILE" ]; then
+            echo "⚠️ No IPA file found in artifacts, skipping iOS upload"
+            exit 0
+          fi
+
+          FILE_SIZE=$(du -h "$IPA_FILE" | cut -f1)
+          echo "Uploading $IPA_FILE ($FILE_SIZE) to Pgyer..."
+
+          RESPONSE=$(curl -s --connect-timeout 30 --max-time 300 \
+            -F "file=@$IPA_FILE" \
+            -F "_api_key=$PGYER_API_KEY" \
+            -F "buildUpdateDescription=CI Build #${{ steps.source.outputs.run_id }} from ${{ github.repository }}@${{ github.ref_name }}" \
+            https://www.pgyer.com/apiv2/app/upload)
+
+          echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
+
+          CODE=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('code','-1'))" 2>/dev/null)
+          if [ "$CODE" = "0" ]; then
+            BUILD_KEY=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d['buildKey'])" 2>/dev/null)
+            BUILD_VERSION=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildVersion',''))" 2>/dev/null)
+            BUILD_SHORTCUT=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildShortcutUrl',''))" 2>/dev/null)
+            BUILD_QRCODE=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildQRCodeURL',''))" 2>/dev/null)
+            BUILD_NAME=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildName',''))" 2>/dev/null)
+
+            DOWNLOAD_URL="https://www.pgyer.com/${BUILD_SHORTCUT:-$BUILD_KEY}"
+
+            echo ""
+            echo "✅ iOS upload successful!"
+            echo "  App: $BUILD_NAME"
+            echo "  Version: $BUILD_VERSION"
+            echo "  Download: $DOWNLOAD_URL"
+            echo "  QR Code: $BUILD_QRCODE"
+
+            {
+              echo ""
+              echo "## 📱 iOS 分发结果"
+              echo ""
+              echo "| | |"
+              echo "|---|---|"
+              echo "| **应用名称** | $BUILD_NAME |"
+              echo "| **版本** | $BUILD_VERSION |"
+              echo "| **下载链接** | $DOWNLOAD_URL |"
+              echo ""
+              echo "### 扫码安装"
+              echo ""
+              echo "![iOS QR Code]($BUILD_QRCODE)"
+              echo ""
+            } >> $GITHUB_STEP_SUMMARY
+          else
+            MSG=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('message','unknown'))" 2>/dev/null)
+            echo "::error::Pgyer upload failed (code=$CODE): $MSG"
+            exit 1
+          fi
+
+      - name: Upload Android APK to Pgyer
+        if: >-
+          steps.source.outputs.platform == 'android' ||
+          steps.source.outputs.platform == 'auto'
+        env:
+          PGYER_API_KEY: ${{ secrets.PGYER_API_KEY }}
+        run: |
+          if [ -z "$PGYER_API_KEY" ]; then
+            echo "::error::PGYER_API_KEY secret is not configured"
+            exit 1
+          fi
+
+          APK_FILE=$(find artifacts/ -name "*arm64*release*.apk" -type f | head -1)
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find artifacts/ -name "*release*.apk" -type f | head -1)
+          fi
+          if [ -z "$APK_FILE" ]; then
+            echo "⚠️ No release APK found in artifacts, skipping Android upload"
+            exit 0
+          fi
+
+          FILE_SIZE=$(du -h "$APK_FILE" | cut -f1)
+          echo "Uploading $APK_FILE ($FILE_SIZE) to Pgyer..."
+
+          RESPONSE=$(curl -s --connect-timeout 30 --max-time 300 \
+            -F "file=@$APK_FILE" \
+            -F "_api_key=$PGYER_API_KEY" \
+            -F "buildUpdateDescription=CI Build #${{ steps.source.outputs.run_id }} from ${{ github.repository }}@${{ github.ref_name }}" \
+            https://www.pgyer.com/apiv2/app/upload)
+
+          echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
+
+          CODE=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('code','-1'))" 2>/dev/null)
+          if [ "$CODE" = "0" ]; then
+            BUILD_KEY=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d['buildKey'])" 2>/dev/null)
+            BUILD_VERSION=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildVersion',''))" 2>/dev/null)
+            BUILD_SHORTCUT=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildShortcutUrl',''))" 2>/dev/null)
+            BUILD_QRCODE=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildQRCodeURL',''))" 2>/dev/null)
+            BUILD_NAME=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d.get('buildName',''))" 2>/dev/null)
+
+            DOWNLOAD_URL="https://www.pgyer.com/${BUILD_SHORTCUT:-$BUILD_KEY}"
+
+            echo ""
+            echo "✅ Android upload successful!"
+            echo "  App: $BUILD_NAME"
+            echo "  Version: $BUILD_VERSION"
+            echo "  Download: $DOWNLOAD_URL"
+            echo "  QR Code: $BUILD_QRCODE"
+
+            {
+              echo ""
+              echo "## 🤖 Android 分发结果"
+              echo ""
+              echo "| | |"
+              echo "|---|---|"
+              echo "| **应用名称** | $BUILD_NAME |"
+              echo "| **版本** | $BUILD_VERSION |"
+              echo "| **下载链接** | $DOWNLOAD_URL |"
+              echo ""
+              echo "### 扫码安装"
+              echo ""
+              echo "![Android QR Code]($BUILD_QRCODE)"
+              echo ""
+            } >> $GITHUB_STEP_SUMMARY
+          else
+            MSG=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('message','unknown'))" 2>/dev/null)
+            echo "::error::Pgyer upload failed (code=$CODE): $MSG"
+            exit 1
+          fi
+
+      - name: Distribution summary
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "### 分发信息" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Source Run | [#${{ steps.source.outputs.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ steps.source.outputs.run_id }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | ${{ steps.source.outputs.platform }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY

@@ -222,7 +222,7 @@ IOS_TEAM_ID                   Updated just now
 
 ## 三、蒲公英分发配置（1 个 Secret）
 
-构建成功后会自动上传 APK/IPA 到蒲公英平台，团队成员扫码即可安装。
+蒲公英分发已拆为独立 workflow（`distribute-pgyer.yml`），在 Build iOS / Build Android 构建成功后自动触发。也支持手动指定 Run ID 上传。
 
 ### 获取 API Key
 
@@ -241,12 +241,13 @@ IOS_TEAM_ID                   Updated just now
 
 点击 **Add secret**
 
-### 构建完成后
+### 工作方式
 
-- 构建成功后，Android APK 和 iOS IPA 会自动上传到蒲公英
-- 在 GitHub Actions 的 **Build Summary** 中会显示蒲公英下载链接
-- 团队成员打开链接扫码即可安装
-- 如果没有配置 `PGYER_API_KEY`，上传步骤会跳过，不影响构建本身
+- Build iOS / Build Android 在 `main` 分支构建成功后，会自动触发 `Distribute to Pgyer` workflow
+- 分发 workflow 从构建的 Artifacts 中下载 APK/IPA，上传到蒲公英
+- 在 Actions 的 **Build Summary** 中会显示蒲公英下载链接
+- 也可以手动触发：Actions → Distribute to Pgyer → Run workflow → 填入构建的 Run ID
+- 如果未配置 `PGYER_API_KEY`，分发 workflow 会报错提示（不影响打包本身）
 
 ---
 
