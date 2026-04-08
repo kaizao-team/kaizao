@@ -39,7 +39,10 @@ class RecommendedExpert {
   final String? avatarUrl;
   final double rating;
   final String skill;
+  final List<String> skills;
   final int hourlyRate;
+  final double budgetMin;
+  final double budgetMax;
   final int completedOrders;
   final String? vibeLevel;
   final int vibePower;
@@ -55,7 +58,10 @@ class RecommendedExpert {
     this.avatarUrl,
     required this.rating,
     required this.skill,
+    this.skills = const [],
     required this.hourlyRate,
+    this.budgetMin = 0,
+    this.budgetMax = 0,
     required this.completedOrders,
     this.vibeLevel,
     this.vibePower = 0,
@@ -71,7 +77,14 @@ class RecommendedExpert {
       avatarUrl: json['avatar_url'] as String?,
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       skill: json['skill'] as String? ?? '',
+      skills: (json['skills'] as List?)
+              ?.map((e) => e.toString())
+              .where((e) => e.isNotEmpty)
+              .toList() ??
+          const [],
       hourlyRate: json['hourly_rate'] as int? ?? 0,
+      budgetMin: (json['budget_min'] as num?)?.toDouble() ?? 0,
+      budgetMax: (json['budget_max'] as num?)?.toDouble() ?? 0,
       completedOrders: json['completed_orders'] as int? ?? json['completed_projects'] as int? ?? 0,
       vibeLevel: json['vibe_level'] as String?,
       vibePower: json['vibe_power'] as int? ?? 0,

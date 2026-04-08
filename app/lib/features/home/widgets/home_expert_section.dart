@@ -111,7 +111,13 @@ class _ExpertCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            _SkillTag(label: _primarySkill(expert)),
+            Wrap(
+              spacing: 5,
+              runSpacing: 5,
+              children: _skillLabels(expert)
+                  .map((label) => _SkillTag(label: label))
+                  .toList(),
+            ),
             const Spacer(),
             Row(
               children: [
@@ -210,15 +216,32 @@ class _SkillTag extends StatelessWidget {
   }
 }
 
-String _primarySkill(RecommendedExpert expert) {
+List<String> _skillLabels(RecommendedExpert expert) {
+  if (expert.skills.isNotEmpty) return expert.skills.take(2).toList();
   final value = expert.skill.trim();
-  if (value.isNotEmpty) return value;
-  return '综合交付';
+  if (value.isNotEmpty) return [value];
+  return ['综合交付'];
 }
 
 String _rateText(RecommendedExpert expert) {
+  if (expert.budgetMin > 0 && expert.budgetMax > 0) {
+    return '¥${_formatWholeAmount(expert.budgetMin)}-${_formatWholeAmount(expert.budgetMax)}';
+  }
+  if (expert.budgetMin > 0) {
+    return '¥${_formatWholeAmount(expert.budgetMin)}起';
+  }
   if (expert.hourlyRate > 0) return '¥${expert.hourlyRate}/h';
-  return '时薪面议';
+  return '预算面议';
+}
+
+String _formatWholeAmount(double amount) {
+  if (amount >= 10000) {
+    final wan = amount / 10000;
+    return wan == wan.truncateToDouble()
+        ? '${wan.toInt()}w'
+        : '${wan.toStringAsFixed(1)}w';
+  }
+  return amount.toStringAsFixed(0);
 }
 
 String _experienceText(RecommendedExpert expert) {
