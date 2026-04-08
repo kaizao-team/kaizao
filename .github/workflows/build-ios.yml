@@ -95,41 +95,93 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH
 
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+          PP_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i $PP_PATH))
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PP_UUID.mobileprovision
+          echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
 
-      - name: Switch Xcode signing to Manual for CI
-        if: github.event_name != 'pull_request'
-        env:
-          PROVISION_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
-          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
-        run: |
-          PBXPROJ="app/ios/Runner.xcodeproj/project.pbxproj"
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' "$PBXPROJ"
-          sed -i '' "s/DEVELOPMENT_TEAM = $TEAM_ID;/DEVELOPMENT_TEAM = $TEAM_ID; PROVISIONING_PROFILE_SPECIFIER = \"$PROVISION_PROFILE_NAME\";/g" "$PBXPROJ"
-          sed -i '' 's/CODE_SIGN_IDENTITY = "Apple Development"/CODE_SIGN_IDENTITY = "iPhone Distribution"/g' "$PBXPROJ"
-          grep -c "CODE_SIGN_STYLE = Manual" "$PBXPROJ" && echo "✅ Signing switched to Manual"
+          echo "✅ Certificate imported, profile installed as $PP_UUID.mobileprovision"
+          security find-identity -v -p codesigning $KEYCHAIN_PATH
 
       - name: Build iOS (Release - no codesign for PR)
         if: github.event_name == 'pull_request'
         run: flutter build ios --release --no-codesign
         working-directory: app
 
-      - name: Build IPA (Release)
+      - name: Build Flutter iOS (no codesign)
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        run: flutter build ios --release --no-codesign
+        working-directory: app
+
+      - name: Archive with xcodebuild (Manual signing)
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        env:
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          PROVISION_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
+        run: |
+          xcodebuild archive \
+            -workspace app/ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination generic/platform=iOS \
+            -archivePath app/build/ios/archive/Runner.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROVISION_PROFILE_NAME" \
+            -allowProvisioningUpdates
+
+          echo "✅ Archive completed"
+          ls -la app/build/ios/archive/Runner.xcarchive/
+
+      - name: Create ExportOptions.plist
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
         env:
           EXPORT_METHOD: ${{ github.event.inputs.export_method || 'ad-hoc' }}
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          PROVISION_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
         run: |
-          flutter build ipa --release --export-method "$EXPORT_METHOD" -v
-          echo "=== Checking build output ==="
-          echo "--- build/ios/ipa/ ---"
-          ls -laR build/ios/ipa/ 2>/dev/null || echo "Directory not found: build/ios/ipa/"
-          echo "--- build/ios/archive/ ---"
-          ls -la build/ios/archive/ 2>/dev/null || echo "Directory not found: build/ios/archive/"
-          echo "--- Searching for .ipa files ---"
-          find build -name "*.ipa" 2>/dev/null || echo "No .ipa files found in build/"
-          echo "--- Searching for .xcarchive ---"
-          find build -name "*.xcarchive" -maxdepth 3 2>/dev/null || echo "No .xcarchive found"
-        working-directory: app
+          cat > /tmp/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>${EXPORT_METHOD}</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>cc.kaizao</key>
+              <string>${PROVISION_PROFILE_NAME}</string>
+            </dict>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+
+          echo "✅ ExportOptions.plist created:"
+          cat /tmp/ExportOptions.plist
+
+      - name: Export IPA
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath app/build/ios/archive/Runner.xcarchive \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            -exportPath app/build/ios/ipa
+
+          echo "✅ IPA exported"
+          ls -lh app/build/ios/ipa/
 
       - name: Build iOS (Debug)
         if: github.event.inputs.build_mode == 'debug'
@@ -141,8 +193,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa-${{ github.sha }}
-          path: |
-            app/build/ios/ipa/
+          path: app/build/ios/ipa/
           retention-days: 14
           if-no-files-found: error
 
