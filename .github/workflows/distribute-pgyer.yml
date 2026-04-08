@@ -2,7 +2,7 @@ name: Distribute to Pgyer (蒲公英)
 
 on:
   workflow_run:
-    workflows: ["Build iOS", "Build Android"]
+    workflows: ["Build App (iOS)", "Build App (Android)"]
     types: [completed]
     branches: [main]
   workflow_dispatch:
