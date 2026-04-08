@@ -12,7 +12,6 @@ class DarkTheme {
       brightness: Brightness.dark,
       primaryColor: AppColors.white,
       scaffoldBackgroundColor: AppColors.darkBg,
-
       colorScheme: const ColorScheme.dark(
         primary: AppColors.white,
         secondary: AppColors.accent,
@@ -25,7 +24,6 @@ class DarkTheme {
         onError: AppColors.white,
         outline: AppColors.darkDivider,
       ),
-
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.darkBg,
         foregroundColor: AppColors.darkText,
@@ -45,21 +43,22 @@ class DarkTheme {
           statusBarBrightness: Brightness.dark,
         ),
       ),
-
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         type: BottomNavigationBarType.fixed,
         backgroundColor: AppColors.darkBg,
         selectedItemColor: AppColors.darkText,
         unselectedItemColor: AppColors.darkTextSecondary,
         elevation: 0,
-        selectedLabelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
-        unselectedLabelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.w400),
+        selectedLabelStyle:
+            TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+        unselectedLabelStyle:
+            TextStyle(fontSize: 10, fontWeight: FontWeight.w400),
       ),
-
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.darkBg2,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w400,
@@ -90,13 +89,11 @@ class DarkTheme {
           borderSide: const BorderSide(color: AppColors.darkDivider, width: 1),
         ),
       ),
-
       dividerTheme: const DividerThemeData(
         color: AppColors.darkDivider,
         thickness: 0.5,
         space: 0,
       ),
-
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.darkCard,
         surfaceTintColor: AppColors.darkCard,
@@ -104,7 +101,6 @@ class DarkTheme {
           borderRadius: BorderRadius.circular(16),
         ),
       ),
-
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.darkCard,
         surfaceTintColor: AppColors.darkCard,
@@ -118,7 +114,6 @@ class DarkTheme {
         dragHandleColor: AppColors.darkTextSecondary,
         dragHandleSize: Size(40, 4),
       ),
-
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.darkCard,
         contentTextStyle: const TextStyle(
@@ -131,7 +126,6 @@ class DarkTheme {
         ),
         behavior: SnackBarBehavior.floating,
       ),
-
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.all(AppColors.white),
         trackColor: WidgetStateProperty.resolveWith((states) {
@@ -142,23 +136,20 @@ class DarkTheme {
         }),
         trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
       ),
-
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: AppColors.white,
         selectionColor: Color.fromRGBO(124, 58, 237, 0.3),
         selectionHandleColor: AppColors.accent,
       ),
-
       cardTheme: CardThemeData(
         color: AppColors.darkCard,
         surfaceTintColor: AppColors.darkCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.darkDivider, width: 1),
+          side: const BorderSide(color: AppColors.darkDivider, width: 0.6),
         ),
       ),
-
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: CupertinoPageTransitionsBuilder(),

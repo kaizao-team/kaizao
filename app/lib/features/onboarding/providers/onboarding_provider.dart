@@ -299,6 +299,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
   Future<bool> submitExpertProfile({
     required String nickname,
+    String? avatarUrl,
     required List<String> skills,
     required List<String> tools,
     required int selfRating,
@@ -311,6 +312,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         (contactPhone != null && contactPhone.isNotEmpty) ? contactPhone : null;
     final payload = {
       'nickname': nickname,
+      'avatar_url': avatarUrl,
       'skills': skills,
       'tools': tools,
       'self_rating': selfRating,
@@ -324,6 +326,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     try {
       await _expertRepository.updateProfile(
         nickname: nickname,
+        avatarUrl: avatarUrl ?? '',
         hourlyRate: rateMin,
         availableStatus: _mapAvailabilityStatus(availability),
         role: 2,

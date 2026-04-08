@@ -19,7 +19,7 @@ class DemanderOnboardingRepository {
       ApiEndpoints.currentUser,
       data: {
         'nickname': nickname,
-        'avatar_url': avatarUrl,
+        'avatar_url': avatarUrl ?? '',
         if (AppConstants.enableContactPhone &&
             contactPhone != null &&
             contactPhone.isNotEmpty)

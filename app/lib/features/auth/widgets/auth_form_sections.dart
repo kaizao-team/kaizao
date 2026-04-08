@@ -28,12 +28,14 @@ class AuthBrandHero extends StatelessWidget {
   final bool compact;
   final Animation<double>? scale;
   final Animation<double>? lift;
+  final String subtitle;
 
   const AuthBrandHero({
     super.key,
     required this.compact,
     this.scale,
     this.lift,
+    this.subtitle = 'KAIZO，连接新的生产力',
   });
 
   @override
@@ -68,7 +70,7 @@ class AuthBrandHero extends StatelessWidget {
         animatedLogo,
         SizedBox(height: compact ? AppSpacing.sm : AppSpacing.md),
         Text(
-          'KAIZO，连接新的生产力',
+          subtitle,
           textAlign: TextAlign.center,
           style: AppTextStyles.body2.copyWith(
             color: AppColors.gray500,
@@ -76,6 +78,35 @@ class AuthBrandHero extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class AuthVisibilityToggle extends StatelessWidget {
+  final bool obscure;
+  final VoidCallback onTap;
+
+  const AuthVisibilityToggle({
+    super.key,
+    required this.obscure,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Icon(
+          obscure
+              ? Icons.visibility_off_outlined
+              : Icons.remove_red_eye_outlined,
+          size: 18,
+          color: AppColors.gray500,
+        ),
+      ),
     );
   }
 }

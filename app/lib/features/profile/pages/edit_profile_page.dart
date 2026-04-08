@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../shared/widgets/local_avatar_picker.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/profile_provider.dart';
@@ -17,6 +18,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   final _nicknameController = TextEditingController();
   final _taglineController = TextEditingController();
   final _bioController = TextEditingController();
+  String? _avatarUrl;
   bool _initialized = false;
   bool _isSaving = false;
 
@@ -35,6 +37,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _nicknameController.text = p.nickname;
     _taglineController.text = p.tagline;
     _bioController.text = p.bio;
+    _avatarUrl = p.avatar;
     _initialized = true;
   }
 
@@ -44,6 +47,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
     final notifier = ref.read(profileProvider('me').notifier);
     final success = await notifier.updateProfile({
+      'avatar_url': _avatarUrl ?? '',
       'nickname': _nicknameController.text.trim(),
       'tagline': _taglineController.text.trim(),
       'bio': _bioController.text.trim(),
@@ -97,13 +101,32 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          LocalAvatarPickerTrigger(
+            value: _avatarUrl,
+            title: _avatarUrl == null ? '选择头像' : '更换头像',
+            hint:
+                _avatarUrl == null ? '从本地头像里挑一个，资料页会立刻更新' : '当前资料和广场卡片都会使用这张头像',
+            onChanged: (value) => setState(() => _avatarUrl = value),
+            sheetTitle: '选择个人头像',
+            avatarDiameter: 60,
+          ),
+          const SizedBox(height: 24),
           _buildField('昵称', _nicknameController, '输入你的昵称', maxLength: 20),
           const SizedBox(height: 20),
-          _buildField('一句话介绍', _taglineController, '如：全栈 Vibe Coder',
-              maxLength: 30),
+          _buildField(
+            '一句话介绍',
+            _taglineController,
+            '如：全栈 Vibe Coder',
+            maxLength: 30,
+          ),
           const SizedBox(height: 20),
-          _buildField('个人简介', _bioController, '介绍你的经验和技能...',
-              maxLines: 4, maxLength: 200),
+          _buildField(
+            '个人简介',
+            _bioController,
+            '介绍你的经验和技能...',
+            maxLines: 4,
+            maxLength: 200,
+          ),
           const SizedBox(height: 28),
           SkillTagEditor(
             skills: state.skills,

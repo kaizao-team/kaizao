@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_loading.dart';
+import '../../../shared/widgets/vcc_top_switch.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../project/providers/project_detail_provider.dart';
 import '../models/market_expert.dart';
@@ -146,7 +147,8 @@ class _MarketPageState extends ConsumerState<MarketPage>
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: _MarketTopSwitch(
+              child: VccTopSwitch(
+                labels: const ['项目', '团队'],
                 selectedIndex: _tabController.index,
                 onChanged: (index) => _tabController.animateTo(index),
               ),
@@ -322,7 +324,8 @@ class _MarketPageState extends ConsumerState<MarketPage>
     // Zone 2: top 4 as featured cards
     final featured = rankedExperts.take(4).toList(growable: false);
     // Zone 3: the rest as waterfall tiles
-    final waterfall = rankedExperts.skip(featured.length).toList(growable: false);
+    final waterfall =
+        rankedExperts.skip(featured.length).toList(growable: false);
 
     return RefreshIndicator(
       color: AppColors.black,
@@ -591,79 +594,6 @@ class _MarketPageState extends ConsumerState<MarketPage>
     );
   }
 }
-
-class _MarketTopSwitch extends StatelessWidget {
-  final int selectedIndex;
-  final ValueChanged<int> onChanged;
-
-  const _MarketTopSwitch({
-    required this.selectedIndex,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const labels = ['项目', '团队'];
-
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final segmentWidth = constraints.maxWidth / labels.length;
-
-          return Stack(
-            children: [
-              // Sliding black thumb
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                left: segmentWidth * selectedIndex,
-                top: 0,
-                bottom: 0,
-                child: Container(
-                  width: segmentWidth,
-                  decoration: BoxDecoration(
-                    color: AppColors.black,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              // Fixed text labels
-              Row(
-                children: List.generate(labels.length, (index) {
-                  final selected = selectedIndex == index;
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => onChanged(index),
-                      behavior: HitTestBehavior.opaque,
-                      child: Center(
-                        child: AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 220),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: selected ? AppColors.white : AppColors.black,
-                          ),
-                          child: Text(labels[index]),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
 
 class _MarketSectionHeader extends StatelessWidget {
   final String eyebrow;

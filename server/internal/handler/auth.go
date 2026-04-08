@@ -446,7 +446,12 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 		fields["nickname"] = *req.Nickname
 	}
 	if req.AvatarURL != nil {
-		fields["avatar_url"] = *req.AvatarURL
+		avatar := strings.TrimSpace(*req.AvatarURL)
+		if avatar == "" {
+			fields["avatar_url"] = nil
+		} else {
+			fields["avatar_url"] = avatar
+		}
 	}
 	if req.Gender != nil {
 		fields["gender"] = *req.Gender

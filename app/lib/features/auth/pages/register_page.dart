@@ -11,6 +11,7 @@ import '../../../shared/widgets/vcc_input.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_form_sections.dart';
+import '../widgets/auth_page_shell.dart';
 import '../../onboarding/providers/onboarding_provider.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -175,120 +176,50 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     final screenHeight = MediaQuery.of(context).size.height;
     final compact = screenHeight < 820 || keyboardInset > 0;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFEFCFD),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 392),
-                    child: SingleChildScrollView(
-                      keyboardDismissBehavior:
-                          ScrollViewKeyboardDismissBehavior.onDrag,
-                      padding: EdgeInsets.only(
-                        bottom: keyboardInset > 0 ? AppSpacing.lg : 0,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            SizedBox(
-                              height: compact ? AppSpacing.sm : AppSpacing.md,
-                            ),
-                            const AuthMetaBar(),
-                            SizedBox(height: compact ? 32 : 52),
-                            AuthBrandHero(
-                              compact: compact,
-                              scale: _heroScale,
-                              lift: _heroLift,
-                            ),
-                            SizedBox(
-                              height: compact ? AppSpacing.xl : AppSpacing.xxxl,
-                            ),
-                            // const Text('新用户注册', style: AppTextStyles.h2),
-                            // const SizedBox(height: AppSpacing.xs),
-                            // Text(
-                            //   '创建账号密码即可使用 KAIZO，首次登录后选择你的身份即可开始。',
-                            //   style: AppTextStyles.body2.copyWith(
-                            //     color: AppColors.gray500,
-                            //   ),
-                            // ),
-                            SizedBox(
-                              height: compact ? AppSpacing.lg : AppSpacing.xl,
-                            ),
-                            _RegisterForm(
-                              usernameController: _usernameController,
-                              passwordController: _passwordController,
-                              confirmPasswordController:
-                                  _confirmPasswordController,
-                              phoneController: _phoneController,
-                              usernameFocus: _usernameFocus,
-                              passwordFocus: _passwordFocus,
-                              confirmPasswordFocus: _confirmPasswordFocus,
-                              phoneFocus: _phoneFocus,
-                              obscurePassword: _obscurePassword,
-                              obscureConfirm: _obscureConfirm,
-                              onPasswordToggle: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                              onConfirmToggle: () => setState(
-                                () => _obscureConfirm = !_obscureConfirm,
-                              ),
-                              compact: compact,
-                            ),
-                            SizedBox(
-                              height: keyboardInset > 0
-                                  ? AppSpacing.xl
-                                  : (compact ? AppSpacing.xxl : 48),
-                            ),
-                            VccButton(
-                              text: '注册',
-                              onPressed: _submit,
-                              isLoading: isSubmitting,
-                            ),
-                            const SizedBox(height: AppSpacing.base),
-                            AuthAgreementRow(
-                              isChecked: _agreedToTerms,
-                              prefixText: '注册即代表同意',
-                              onToggle: () {
-                                setState(
-                                  () => _agreedToTerms = !_agreedToTerms,
-                                );
-                              },
-                              onUserAgreementTap: () {
-                                context.push(RoutePaths.userAgreement);
-                              },
-                              onPrivacyPolicyTap: () {
-                                context.push(RoutePaths.privacyPolicy);
-                              },
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            _RegisterFooter(
-                              onLoginTap: () => context.go(RoutePaths.login),
-                            ),
-                            SizedBox(
-                              height: keyboardInset > 0
-                                  ? AppSpacing.xl
-                                  : AppSpacing.lg,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+    return AuthPageShell(
+      compact: compact,
+      keyboardInset: keyboardInset,
+      heroScale: _heroScale,
+      heroLift: _heroLift,
+      form: _RegisterForm(
+        usernameController: _usernameController,
+        passwordController: _passwordController,
+        confirmPasswordController: _confirmPasswordController,
+        phoneController: _phoneController,
+        usernameFocus: _usernameFocus,
+        passwordFocus: _passwordFocus,
+        confirmPasswordFocus: _confirmPasswordFocus,
+        phoneFocus: _phoneFocus,
+        obscurePassword: _obscurePassword,
+        obscureConfirm: _obscureConfirm,
+        onPasswordToggle: () => setState(
+          () => _obscurePassword = !_obscurePassword,
         ),
+        onConfirmToggle: () => setState(
+          () => _obscureConfirm = !_obscureConfirm,
+        ),
+        compact: compact,
+      ),
+      primaryAction: VccButton(
+        text: '注册',
+        onPressed: _submit,
+        isLoading: isSubmitting,
+      ),
+      agreement: AuthAgreementRow(
+        isChecked: _agreedToTerms,
+        prefixText: '注册即代表同意',
+        onToggle: () {
+          setState(() => _agreedToTerms = !_agreedToTerms);
+        },
+        onUserAgreementTap: () {
+          context.push(RoutePaths.userAgreement);
+        },
+        onPrivacyPolicyTap: () {
+          context.push(RoutePaths.privacyPolicy);
+        },
+      ),
+      footer: _RegisterFooter(
+        onLoginTap: () => context.go(RoutePaths.login),
       ),
     );
   }
@@ -357,7 +288,7 @@ class _RegisterForm extends StatelessWidget {
             obscureText: obscurePassword,
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => confirmPasswordFocus.requestFocus(),
-            suffixIcon: _EyeToggle(
+            suffixIcon: AuthVisibilityToggle(
               obscure: obscurePassword,
               onTap: onPasswordToggle,
             ),
@@ -373,7 +304,7 @@ class _RegisterForm extends StatelessWidget {
             obscureText: obscureConfirm,
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => phoneFocus.requestFocus(),
-            suffixIcon: _EyeToggle(
+            suffixIcon: AuthVisibilityToggle(
               obscure: obscureConfirm,
               onTap: onConfirmToggle,
             ),
@@ -409,29 +340,6 @@ class _RegisterForm extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _EyeToggle extends StatelessWidget {
-  final bool obscure;
-  final VoidCallback onTap;
-
-  const _EyeToggle({required this.obscure, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Icon(
-          obscure ? Icons.visibility_off_outlined : Icons.remove_red_eye_outlined,
-          size: 18,
-          color: AppColors.gray500,
-        ),
-      ),
     );
   }
 }

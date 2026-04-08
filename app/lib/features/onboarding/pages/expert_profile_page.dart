@@ -7,6 +7,8 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/skills/app_skill_icon.dart';
 import '../../../shared/skills/app_skill_registry.dart';
+import '../../../shared/widgets/local_avatar_picker.dart';
+import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_chrome.dart';
@@ -26,6 +28,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
   final _phoneController = TextEditingController();
   final Set<String> _selectedSkills = {};
   final Set<String> _selectedTools = {};
+  String? _avatarUrl;
 
   int _selfRating = 3;
   String _availability = '';
@@ -48,6 +51,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
     final draft = ref.read(onboardingProvider).draft;
     _nicknameController.text = draft['nickname'] as String? ?? '';
     _phoneController.text = draft['contact_phone'] as String? ?? '';
+    _avatarUrl = draft['avatar_url'] as String?;
     if (draft['skills'] is List) {
       _selectedSkills.addAll((draft['skills'] as List).cast<String>());
     }
@@ -88,6 +92,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
     final notifier = ref.read(onboardingProvider.notifier);
     final success = await notifier.submitExpertProfile(
       nickname: _nicknameController.text.trim(),
+      avatarUrl: _avatarUrl,
       skills: _selectedSkills.toList(),
       tools: _selectedTools.toList(),
       selfRating: _selfRating,
@@ -182,6 +187,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
           ),
           const SizedBox(height: 28),
           _ExpertProfilePreviewCard(
+            avatarUrl: _avatarUrl,
             nickname: nickname,
             skills: _selectedSkills.toList(),
             tools: _selectedTools.toList(),
@@ -208,6 +214,36 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
               onChanged: (_) => setState(() {}),
               style: AppTextStyles.h2.copyWith(fontSize: 26),
               decoration: _nicknameDecoration(),
+            ),
+          ),
+          const SizedBox(height: 28),
+          const OnboardingSectionHeader(
+            title: '团队头像',
+            description: '先选一个本地头像，推荐卡片和资料页会立刻更完整。',
+          ),
+          const SizedBox(height: 8),
+          LocalAvatarPickerTrigger(
+            value: _avatarUrl,
+            title: _avatarUrl == null ? '选择团队头像' : '更换团队头像',
+            hint: _avatarUrl == null
+                ? '这一步不是必填，但选了会更容易被记住。'
+                : '这张头像会同步到你的团队资料展示。',
+            onChanged: (value) => setState(() => _avatarUrl = value),
+            sheetTitle: '选择团队头像',
+            avatarDiameter: 56,
+            decoration: BoxDecoration(
+              color: AppColors.onboardingSurface,
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(
+                color: AppColors.onboardingHairline.withValues(alpha: 0.85),
+              ),
+            ),
+            trailing: Icon(
+              _avatarUrl == null
+                  ? Icons.add_circle_outline_rounded
+                  : Icons.refresh_rounded,
+              size: 20,
+              color: AppColors.gray500,
             ),
           ),
           const SizedBox(height: 28),
@@ -375,6 +411,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
 }
 
 class _ExpertProfilePreviewCard extends StatelessWidget {
+  final String? avatarUrl;
   final String nickname;
   final List<String> skills;
   final List<String> tools;
@@ -382,6 +419,7 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
   final String rateText;
 
   const _ExpertProfilePreviewCard({
+    required this.avatarUrl,
     required this.nickname,
     required this.skills,
     required this.tools,
@@ -415,9 +453,20 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            nickname,
-            style: AppTextStyles.h2.copyWith(fontSize: 25),
+          Row(
+            children: [
+              VccAvatar(
+                imageUrl: avatarUrl,
+                size: VccAvatarSize.large,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  nickname,
+                  style: AppTextStyles.h2.copyWith(fontSize: 25),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Text(

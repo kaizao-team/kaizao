@@ -1,15 +1,25 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/models/project_category.dart';
+import '../../../shared/models/project_model.dart';
 import '../../../shared/skills/skill_particle_field.dart';
+import '../../../shared/widgets/vcc_card.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
+import '../../../shared/widgets/vcc_identity_hero.dart';
 import '../../../shared/widgets/vcc_loading.dart';
+import '../../../shared/widgets/vcc_section_label.dart';
+import '../../project/providers/project_list_provider.dart';
 import '../models/profile_models.dart';
 import '../providers/profile_provider.dart';
+
+const double _kProfilePageHorizontalPadding = 20;
+const double _kProfileSectionGap = 28;
 
 class ProfilePage extends ConsumerWidget {
   final String? userId;
@@ -23,12 +33,15 @@ class ProfilePage extends ConsumerWidget {
     final state = ref.watch(profileProvider(effectiveId));
 
     if (state.isLoading && state.profile == null) {
-      return const Scaffold(body: VccLoading());
+      return const Scaffold(
+        backgroundColor: AppColors.surface,
+        body: VccLoading(),
+      );
     }
 
     if (state.errorMessage != null && state.profile == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF9F9F9),
+        backgroundColor: AppColors.surface,
         appBar: isSelf ? null : AppBar(),
         body: VccEmptyState(
           icon: Icons.error_outline,
@@ -42,102 +55,112 @@ class ProfilePage extends ConsumerWidget {
     }
 
     final profile = state.profile;
-    if (profile == null) return const Scaffold(body: VccLoading());
+    if (profile == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.surface,
+        body: VccLoading(),
+      );
+    }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
-      body: RefreshIndicator(
-        color: AppColors.black,
-        onRefresh: () =>
-            ref.read(profileProvider(effectiveId).notifier).loadProfile(),
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          slivers: [
-            SliverToBoxAdapter(
-              child: _ProfileHero(
-                profile: profile,
-                isSelf: isSelf,
-                skills: state.skills,
-              ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: AppColors.surface,
+        body: RefreshIndicator(
+          color: AppColors.black,
+          onRefresh: () async {
+            await ref.read(profileProvider(effectiveId).notifier).loadProfile();
+            if (isSelf && profile.isDemander) {
+              await ref.read(projectListProvider.notifier).refresh();
+            }
+          },
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
             ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  _buildSectionLabel('OVERVIEW'),
-                  const SizedBox(height: 10),
-                  _ProfileMetricsCard(profile: profile),
-                  const SizedBox(height: 28),
-                  _buildSectionLabel('ACCOUNT'),
-                  const SizedBox(height: 10),
-                  _ProfileInfoCard(profile: profile),
-                  if (isSelf) ...[
-                    const SizedBox(height: 28),
-                    _buildSectionLabel('QUICK ACTIONS'),
-                    const SizedBox(height: 10),
-                    _ProfileMenuGroup(
-                      items: [
-                        _ProfileMenuItem(
-                          label: '编辑资料',
-                          trailingText: '完善资料',
-                          onTap: () => context.push(RoutePaths.editProfile),
-                        ),
-                        _ProfileMenuItem(
-                          label: '我的钱包',
-                          trailingText: '余额与记录',
-                          onTap: () => context.push(RoutePaths.wallet),
-                        ),
-                        _ProfileMenuItem(
-                          label: '消息通知',
-                          onTap: () => context.push(RoutePaths.notifications),
-                        ),
-                        _ProfileMenuItem(
-                          label: '我的收藏',
-                          onTap: () => context.push(RoutePaths.favorites),
-                        ),
-                      ],
+            slivers: [
+              SliverToBoxAdapter(
+                child: _ProfileHero(
+                  profile: profile,
+                  isSelf: isSelf,
+                  skills: state.skills,
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  _kProfilePageHorizontalPadding,
+                  18,
+                  _kProfilePageHorizontalPadding,
+                  40,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    VccPageSection(
+                      label: 'OVERVIEW',
+                      child: _ProfileMetricsCard(profile: profile),
                     ),
-                  ],
-                  const SizedBox(height: 28),
-                  _buildSectionLabel('SUPPORT'),
-                  const SizedBox(height: 10),
-                  _ProfileMenuGroup(
-                    items: [
-                      _ProfileMenuItem(
-                        label: '帮助与反馈',
-                        onTap: () => context.push(RoutePaths.helpFeedback),
-                      ),
-                      _ProfileMenuItem(
-                        label: '关于 KAIZO',
-                        onTap: () => context.push(RoutePaths.about),
+                    const SizedBox(height: _kProfileSectionGap),
+                    VccPageSection(
+                      label: 'ACCOUNT',
+                      child: _ProfileInfoCard(profile: profile),
+                    ),
+                    if (isSelf) ...[
+                      const SizedBox(height: _kProfileSectionGap),
+                      VccPageSection(
+                        label: 'QUICK ACTIONS',
+                        child: _ProfileMenuGroup(
+                          items: [
+                            _ProfileMenuItem(
+                              label: '编辑资料',
+                              trailingText: '完善资料',
+                              onTap: () => context.push(RoutePaths.editProfile),
+                            ),
+                            _ProfileMenuItem(
+                              label: '我的钱包',
+                              trailingText: '余额与记录',
+                              onTap: () => context.push(RoutePaths.wallet),
+                            ),
+                            _ProfileMenuItem(
+                              label: '消息通知',
+                              onTap: () =>
+                                  context.push(RoutePaths.notifications),
+                            ),
+                            _ProfileMenuItem(
+                              label: '我的收藏',
+                              onTap: () => context.push(RoutePaths.favorites),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
-                  ),
-                ]),
+                    const SizedBox(height: _kProfileSectionGap),
+                    VccPageSection(
+                      label: 'SUPPORT',
+                      child: _ProfileMenuGroup(
+                        items: [
+                          _ProfileMenuItem(
+                            label: '帮助与反馈',
+                            onTap: () => context.push(RoutePaths.helpFeedback),
+                          ),
+                          _ProfileMenuItem(
+                            label: '关于 KAIZO',
+                            onTap: () => context.push(RoutePaths.about),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ]),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        color: AppColors.gray400,
-        letterSpacing: 2.5,
       ),
     );
   }
 }
 
-class _ProfileHero extends StatelessWidget {
+class _ProfileHero extends ConsumerWidget {
   final UserProfile profile;
   final bool isSelf;
   final List<SkillTag> skills;
@@ -149,153 +172,93 @@ class _ProfileHero extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
+  Widget build(BuildContext context, WidgetRef ref) {
     final summary = _profileSummary(profile);
-
-    return Container(
-      padding: EdgeInsets.only(top: topPadding),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF111111), Color(0xFF3C3B3B)],
+    final skillParticles = skills
+        .where((skill) => skill.name.trim().isNotEmpty)
+        .map(
+          (skill) => SkillParticleItem(
+            id: skill.id,
+            name: skill.name,
+            category: skill.category,
+            isPrimary: skill.isPrimary,
+          ),
+        )
+        .toList(growable: false);
+    final demandNotes = profile.isDemander && isSelf
+        ? _buildDemandBoardNotes(ref.watch(projectListProvider).projects)
+        : const <_DemandBoardNote>[];
+    final hasSkillParticles = skillParticles.isNotEmpty;
+    final hasDemandBoard = demandNotes.isNotEmpty;
+    final heroLayers = <Widget>[
+      const Positioned.fill(
+        child: IgnorePointer(
+          child: CustomPaint(
+            painter: _DotGridPainter(),
+          ),
         ),
       ),
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          Positioned(
-            right: -30,
-            top: -10,
-            child: CustomPaint(
-              size: const Size(180, 180),
-              painter: _DotGridPainter(),
-            ),
+    ];
+
+    if (hasSkillParticles) {
+      heroLayers.add(
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 64,
+          bottom: 0,
+          child: IgnorePointer(
+            child: SkillParticleField(skills: skillParticles),
           ),
-          if (skills.any((skill) => skill.name.trim().isNotEmpty))
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 64,
-              bottom: 0,
-              child: IgnorePointer(
-                child: SkillParticleField(
-                  skills: skills
-                      .where((skill) => skill.name.trim().isNotEmpty)
-                      .map(
-                        (skill) => SkillParticleItem(
-                          id: skill.id,
-                          name: skill.name,
-                          category: skill.category,
-                          isPrimary: skill.isPrimary,
-                        ),
-                      )
-                      .toList(growable: false),
-                ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 12, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'PROFILE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withValues(alpha: 0.4),
-                        letterSpacing: 3,
-                      ),
-                    ),
-                    const Spacer(),
-                    _TopActionButton(
-                      label: isSelf ? '设置' : '返回',
-                      icon: isSelf
-                          ? Icons.settings_outlined
-                          : Icons.arrow_back_ios_new_rounded,
-                      onTap: () {
-                        if (isSelf) {
-                          context.push(RoutePaths.settings);
-                          return;
-                        }
-                        if (context.canPop()) {
-                          context.pop();
-                          return;
-                        }
-                        context.go(RoutePaths.home);
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  '我的',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _HeroAvatarCard(profile: profile),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            profile.nickname,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _HeroBadge(label: profile.roleName),
-                              if (profile.isVerified)
-                                const _HeroBadge(label: '已认证'),
-                              if (profile.wechatBound)
-                                const _HeroBadge(label: '微信已绑定'),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          if (summary != null)
-                            Text(
-                              summary,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 14,
-                                height: 1.55,
-                                color: Colors.white.withValues(alpha: 0.72),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 110),
-              ],
-            ),
+        ),
+      );
+    }
+
+    if (hasDemandBoard) {
+      heroLayers.add(
+        Positioned(
+          left: 18,
+          right: 18,
+          bottom: 18,
+          child: IgnorePointer(
+            child: _DemandKeywordBoard(notes: demandNotes),
           ),
-        ],
-      ),
+        ),
+      );
+    }
+
+    return VccIdentityHero(
+      eyebrow: 'PROFILE',
+      title: '我的',
+      headline: profile.nickname,
+      summary: summary,
+      avatar: _HeroAvatarCard(profile: profile),
+      badges: [
+        VccHeroBadge(label: profile.roleName),
+        if (profile.isVerified) const VccHeroBadge(label: '已认证'),
+        if (profile.wechatBound) const VccHeroBadge(label: '微信已绑定'),
+      ],
+      actionLabel: isSelf ? '设置' : '返回',
+      actionIcon:
+          isSelf ? Icons.settings_outlined : Icons.arrow_back_ios_new_rounded,
+      onActionTap: () {
+        if (isSelf) {
+          context.push(RoutePaths.settings);
+          return;
+        }
+        if (context.canPop()) {
+          context.pop();
+          return;
+        }
+        context.go(RoutePaths.home);
+      },
+      contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+      bottomSpacing: hasSkillParticles
+          ? 110
+          : hasDemandBoard
+              ? 126
+              : 28,
+      layers: heroLayers,
     );
   }
 
@@ -310,6 +273,453 @@ class _ProfileHero extends StatelessWidget {
   }
 }
 
+class _DemandKeywordBoard extends StatelessWidget {
+  final List<_DemandBoardNote> notes;
+
+  const _DemandKeywordBoard({required this.notes});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 96,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final placements = _boardPlacementsFor(notes.length);
+          return Stack(
+            clipBehavior: Clip.none,
+            children: List.generate(notes.length, (index) {
+              final placement = placements[index];
+              final note = notes[index];
+              final width = constraints.maxWidth * placement.widthFactor;
+              return Positioned(
+                left: constraints.maxWidth * placement.leftFactor,
+                top: placement.top,
+                child: Transform.rotate(
+                  angle: placement.angle,
+                  child: _DemandPaperNote(
+                    note: note,
+                    width: width,
+                  ),
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DemandPaperNote extends StatelessWidget {
+  final _DemandBoardNote note;
+  final double width;
+
+  const _DemandPaperNote({
+    required this.note,
+    required this.width,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.fromLTRB(14, 11, 12, 12),
+      decoration: BoxDecoration(
+        color: note.color,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -3,
+            left: 2,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: AppColors.black.withValues(alpha: 0.68),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    blurRadius: 1,
+                    offset: const Offset(0, 0.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: -4,
+            right: 10,
+            child: Transform.rotate(
+              angle: 0.2,
+              child: Container(
+                width: 16,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.32),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                note.caption,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.overline.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.gray500,
+                  letterSpacing: 0.9,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                note.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.body1.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.black,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DemandBoardNote {
+  final String caption;
+  final String label;
+  final Color color;
+
+  const _DemandBoardNote({
+    required this.caption,
+    required this.label,
+    required this.color,
+  });
+}
+
+class _DemandBoardPlacement {
+  final double leftFactor;
+  final double top;
+  final double widthFactor;
+  final double angle;
+
+  const _DemandBoardPlacement({
+    required this.leftFactor,
+    required this.top,
+    required this.widthFactor,
+    required this.angle,
+  });
+}
+
+List<_DemandBoardPlacement> _boardPlacementsFor(int count) {
+  switch (count) {
+    case 1:
+      return const [
+        _DemandBoardPlacement(
+          leftFactor: 0.24,
+          top: 18,
+          widthFactor: 0.52,
+          angle: -0.05,
+        ),
+      ];
+    case 2:
+      return const [
+        _DemandBoardPlacement(
+          leftFactor: 0.08,
+          top: 14,
+          widthFactor: 0.42,
+          angle: -0.06,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.50,
+          top: 30,
+          widthFactor: 0.34,
+          angle: 0.07,
+        ),
+      ];
+    case 3:
+      return const [
+        _DemandBoardPlacement(
+          leftFactor: 0.02,
+          top: 12,
+          widthFactor: 0.34,
+          angle: -0.06,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.34,
+          top: 2,
+          widthFactor: 0.30,
+          angle: 0.04,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.63,
+          top: 20,
+          widthFactor: 0.29,
+          angle: -0.08,
+        ),
+      ];
+    case 4:
+      return const [
+        _DemandBoardPlacement(
+          leftFactor: 0.01,
+          top: 10,
+          widthFactor: 0.30,
+          angle: -0.06,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.28,
+          top: 0,
+          widthFactor: 0.28,
+          angle: 0.05,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.56,
+          top: 12,
+          widthFactor: 0.27,
+          angle: -0.07,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.22,
+          top: 46,
+          widthFactor: 0.38,
+          angle: 0.09,
+        ),
+      ];
+    default:
+      return const [
+        _DemandBoardPlacement(
+          leftFactor: 0.01,
+          top: 10,
+          widthFactor: 0.27,
+          angle: -0.05,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.24,
+          top: 0,
+          widthFactor: 0.25,
+          angle: 0.04,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.50,
+          top: 8,
+          widthFactor: 0.25,
+          angle: -0.08,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.72,
+          top: 18,
+          widthFactor: 0.22,
+          angle: 0.06,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.14,
+          top: 48,
+          widthFactor: 0.31,
+          angle: 0.08,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.48,
+          top: 48,
+          widthFactor: 0.34,
+          angle: -0.03,
+        ),
+      ];
+  }
+}
+
+List<_DemandBoardNote> _buildDemandBoardNotes(List<ProjectModel> projects) {
+  if (projects.isEmpty) return const [];
+
+  final sorted = [...projects]..sort((a, b) {
+      final aTime = a.publishedAt ?? a.createdAt;
+      final bTime = b.publishedAt ?? b.createdAt;
+      return bTime.compareTo(aTime);
+    });
+
+  final notes = <_DemandBoardNote>[];
+  final usedLabels = <String>{};
+  final palette = <Color>[
+    const Color(0xFFF5EFE3),
+    const Color(0xFFF2F1EC),
+    const Color(0xFFEDE8F7),
+    const Color(0xFFE9EEF7),
+    const Color(0xFFF4E8E3),
+    const Color(0xFFE8F1EB),
+  ];
+
+  for (final project in sorted.take(3)) {
+    final categoryLabel = projectCategoryLabel(project.category);
+    final fragments = _projectKeywordFragments(project);
+
+    if (fragments.isNotEmpty) {
+      final primary = fragments.first;
+      if (usedLabels.add(primary)) {
+        notes.add(
+          _DemandBoardNote(
+            caption: primary == categoryLabel ? '最近需求' : categoryLabel,
+            label: primary,
+            color: palette[notes.length % palette.length],
+          ),
+        );
+      }
+    } else if (usedLabels.add(categoryLabel)) {
+      notes.add(
+        _DemandBoardNote(
+          caption: '最近需求',
+          label: categoryLabel,
+          color: palette[notes.length % palette.length],
+        ),
+      );
+    }
+
+    final budgetLabel = _compactBudgetLabel(project);
+    if (budgetLabel != null &&
+        notes.length < 6 &&
+        usedLabels.add(budgetLabel)) {
+      notes.add(
+        _DemandBoardNote(
+          caption: '预算区间',
+          label: budgetLabel,
+          color: palette[notes.length % palette.length],
+        ),
+      );
+    }
+
+    final statusLabel = project.homeStatusName;
+    if (notes.length < 6 && usedLabels.add(statusLabel)) {
+      notes.add(
+        _DemandBoardNote(
+          caption: '当前状态',
+          label: statusLabel,
+          color: palette[notes.length % palette.length],
+        ),
+      );
+    }
+  }
+
+  return notes.take(6).toList(growable: false);
+}
+
+List<String> _projectKeywordFragments(ProjectModel project) {
+  final fragments = <String>[];
+
+  void collectTokens(String raw) {
+    final text = raw.trim();
+    if (text.isEmpty) return;
+
+    final compact = text.replaceAll(RegExp(r'\s+'), ' ');
+    final pieces = compact
+        .split(RegExp(r'[、,，;；/|·•\-_\n\r\t ]+'))
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty);
+
+    for (final piece in pieces) {
+      final normalized = _normalizeKeyword(piece);
+      if (normalized == null || fragments.contains(normalized)) continue;
+      fragments.add(normalized);
+      if (fragments.length >= 2) return;
+    }
+  }
+
+  collectTokens(project.title);
+  if (fragments.length < 2) {
+    collectTokens(project.description);
+  }
+  if (fragments.length < 2) {
+    for (final tech in project.techRequirements) {
+      final normalized = _normalizeKeyword(tech);
+      if (normalized == null || fragments.contains(normalized)) continue;
+      fragments.add(normalized);
+      if (fragments.length >= 2) break;
+    }
+  }
+
+  return fragments;
+}
+
+String? _normalizeKeyword(String input) {
+  final text = input.trim();
+  if (text.isEmpty || text.length > 16) return null;
+
+  final condensed = text.replaceAll(RegExp(r'\s+'), ' ');
+  final hasChinese = RegExp(r'[\u4e00-\u9fff]').hasMatch(condensed);
+  final hasLetters = RegExp(r'[A-Za-z]').hasMatch(condensed);
+  final hasDigits = RegExp(r'\d').hasMatch(condensed);
+
+  if (hasChinese) {
+    if (condensed.length < 2) return null;
+    return condensed;
+  }
+
+  if (hasLetters) {
+    final lower = condensed.toLowerCase();
+    if (lower.length < 3) return null;
+    final uniqueChars = lower.runes.toSet().length;
+    final vowelCount = RegExp(r'[aeiou]').allMatches(lower).length;
+    if (!hasDigits && uniqueChars <= 3) return null;
+    if (!hasDigits && vowelCount == 0) return null;
+    return condensed;
+  }
+
+  return null;
+}
+
+String? _compactBudgetLabel(ProjectModel project) {
+  if (project.budgetMin == null && project.budgetMax == null) return null;
+
+  String formatAmount(double value) {
+    if (value >= 10000) {
+      final w = value / 10000;
+      final hasDecimal = (w * 10).round() % 10 != 0;
+      return '${hasDecimal ? w.toStringAsFixed(1) : w.toStringAsFixed(0)}w';
+    }
+    if (value >= 1000) {
+      final k = value / 1000;
+      final hasDecimal = (k * 10).round() % 10 != 0;
+      return '${hasDecimal ? k.toStringAsFixed(1) : k.toStringAsFixed(0)}k';
+    }
+    return value.toStringAsFixed(0);
+  }
+
+  final min = project.budgetMin;
+  final max = project.budgetMax;
+  if (min != null && max != null) {
+    return '¥${formatAmount(min)}-${formatAmount(max)}';
+  }
+  if (min != null) {
+    return '¥${formatAmount(min)}+';
+  }
+  if (max != null) {
+    return '≤¥${formatAmount(max)}';
+  }
+  return null;
+}
+
 class _HeroAvatarCard extends StatelessWidget {
   final UserProfile profile;
 
@@ -317,61 +727,9 @@ class _HeroAvatarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initial =
-        profile.nickname.isNotEmpty ? profile.nickname[0].toUpperCase() : 'U';
-    final avatarUrl = profile.avatar?.trim() ?? '';
-
-    return Container(
-      width: 88,
-      height: 88,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.12),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: avatarUrl.isNotEmpty
-            ? CachedNetworkImage(
-                imageUrl: avatarUrl,
-                fit: BoxFit.cover,
-                placeholder: (_, __) =>
-                    _HeroAvatarPlaceholder(initial: initial),
-                errorWidget: (_, __, ___) =>
-                    _HeroAvatarPlaceholder(initial: initial),
-              )
-            : _HeroAvatarPlaceholder(initial: initial),
-      ),
-    );
-  }
-}
-
-class _HeroAvatarPlaceholder extends StatelessWidget {
-  final String initial;
-
-  const _HeroAvatarPlaceholder({required this.initial});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white.withValues(alpha: 0.12),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          fontSize: 38,
-          fontWeight: FontWeight.w600,
-          color: Colors.white.withValues(alpha: 0.82),
-        ),
-      ),
+    return VccHeroAvatar(
+      imageUrl: profile.avatar,
+      fallbackText: profile.nickname.isNotEmpty ? profile.nickname : 'U',
     );
   }
 }
@@ -384,98 +742,37 @@ class _ProfileMetricsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = profile.isDemander
-        ? [
-            _MetricItem(
-              '${profile.stats.publishedProjects}',
-              '发布需求',
-              Icons.track_changes_outlined,
-            ),
-            _MetricItem(
-              profile.rating.toStringAsFixed(1),
-              '综合评分',
-              Icons.star_outline_rounded,
-            ),
-            _MetricItem(
-              '${profile.creditScore}',
-              '信用分',
-              Icons.verified_user_outlined,
-            ),
+        ? const [
+            (label: '发布需求', icon: Icons.track_changes_outlined),
+            (label: '综合评分', icon: Icons.star_outline_rounded),
+            (label: '信用分', icon: Icons.verified_user_outlined),
           ]
-        : [
-            _MetricItem(
-              '${profile.stats.completedProjects}',
-              '完成项目',
-              Icons.task_alt_outlined,
-            ),
-            _MetricItem(
-              profile.rating.toStringAsFixed(1),
-              '综合评分',
-              Icons.star_outline_rounded,
-            ),
-            _MetricItem(
-              '${profile.creditScore}',
-              '信用分',
-              Icons.verified_user_outlined,
-            ),
+        : const [
+            (label: '完成项目', icon: Icons.task_alt_outlined),
+            (label: '综合评分', icon: Icons.star_outline_rounded),
+            (label: '信用分', icon: Icons.verified_user_outlined),
           ];
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: items.asMap().entries.map((entry) {
-          final index = entry.key;
-          final item = entry.value;
-          return Expanded(
-            child: Row(
-              children: [
-                if (index != 0)
-                  Container(
-                    width: 1,
-                    height: 34,
-                    color: AppColors.gray100,
-                  ),
-                if (index != 0) const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.value,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A1C1C),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            item.icon,
-                            size: 13,
-                            color: AppColors.gray400,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            item.label,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.gray400,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
+    final values = profile.isDemander
+        ? [
+            '${profile.stats.publishedProjects}',
+            profile.rating.toStringAsFixed(1),
+            '${profile.creditScore}',
+          ]
+        : [
+            '${profile.stats.completedProjects}',
+            profile.rating.toStringAsFixed(1),
+            '${profile.creditScore}',
+          ];
+
+    return VccMetricsPanel(
+      items: List.generate(
+        items.length,
+        (index) => VccMetricSpec(
+          value: values[index],
+          label: items[index].label,
+          icon: items[index].icon,
+        ),
       ),
     );
   }
@@ -488,7 +785,8 @@ class _ProfileInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final summary = _profileSummary(profile);
+    final summary = _profileMotto(profile);
+    final isMotto = summary != null && _isMottoLike(summary);
     final rows = <_InfoItem>[
       _InfoItem('身份', profile.roleName),
       _InfoItem('认证状态', profile.isVerified ? '已认证' : '未认证'),
@@ -499,65 +797,44 @@ class _ProfileInfoCard extends StatelessWidget {
       if (_formatJoinLabel(profile.createdAt) != null)
         _InfoItem('加入时间', _formatJoinLabel(profile.createdAt)!),
     ];
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return VccSurfaceCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (summary != null) ...[
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
               child: Text(
                 summary,
-                style: const TextStyle(
-                  fontSize: 14,
-                  height: 1.7,
-                  color: Color(0xFF555555),
-                ),
+                style: isMotto
+                    ? AppTextStyles.h3.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        fontStyle: FontStyle.italic,
+                        letterSpacing: -0.2,
+                        color: AppColors.gray700,
+                        height: 1.45,
+                      )
+                    : AppTextStyles.body2.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.7,
+                      ),
               ),
             ),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 18),
               height: 1,
-              color: AppColors.gray100,
+              color: AppColors.outlineVariant,
             ),
           ],
           Padding(
-            padding: EdgeInsets.fromLTRB(18, summary != null ? 14 : 18, 18, 16),
+            padding: EdgeInsets.fromLTRB(18, summary != null ? 4 : 8, 18, 6),
             child: Column(
               children: rows.asMap().entries.map((entry) {
-                final isLast = entry.key == rows.length - 1;
-                final row = entry.value;
-                return Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 72,
-                        child: Text(
-                          row.label,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.gray400,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          row.value,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF1A1C1C),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                return _ProfileInfoRow(
+                  item: entry.value,
+                  isLast: entry.key == rows.length - 1,
                 );
               }).toList(),
             ),
@@ -567,14 +844,23 @@ class _ProfileInfoCard extends StatelessWidget {
     );
   }
 
-  static String? _profileSummary(UserProfile profile) {
-    final bio = profile.bio.trim();
-    if (bio.isNotEmpty) return bio;
-
+  static String? _profileMotto(UserProfile profile) {
     final tagline = profile.tagline.trim();
     if (tagline.isNotEmpty) return tagline;
 
+    final bio = profile.bio.trim();
+    if (bio.isNotEmpty) return bio;
+
     return null;
+  }
+
+  static bool _isMottoLike(String text) {
+    final compact = text.trim();
+    return compact.isNotEmpty &&
+        compact.length <= 48 &&
+        !compact.contains('\n') &&
+        !compact.contains('。') &&
+        !compact.contains('，');
   }
 
   static String? _formatMaskedPhone(String? phone) {
@@ -603,11 +889,8 @@ class _ProfileMenuGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return VccSurfaceCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: items.asMap().entries.map((entry) {
           final isLast = entry.key == items.length - 1;
@@ -637,29 +920,29 @@ class _ProfileMenuRow extends StatelessWidget {
       onTap: item.onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 54,
+        height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(
           border: isLast
               ? null
               : const Border(
-                  bottom: BorderSide(color: AppColors.gray100),
+                  bottom: BorderSide(color: AppColors.outlineVariant),
                 ),
         ),
         child: Row(
           children: [
             Text(
               item.label,
-              style: const TextStyle(
+              style: AppTextStyles.body1.copyWith(
                 fontSize: 15,
-                color: Color(0xFF1A1C1C),
+                color: AppColors.onSurface,
               ),
             ),
             const Spacer(),
             if (item.trailingText != null) ...[
               Text(
                 item.trailingText!,
-                style: const TextStyle(
+                style: AppTextStyles.caption.copyWith(
                   fontSize: 12,
                   color: AppColors.gray400,
                 ),
@@ -678,85 +961,54 @@ class _ProfileMenuRow extends StatelessWidget {
   }
 }
 
-class _TopActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
+class _ProfileInfoRow extends StatelessWidget {
+  final _InfoItem item;
+  final bool isLast;
 
-  const _TopActionButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
+  const _ProfileInfoRow({
+    required this.item,
+    required this.isLast,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.08),
+    return Container(
+      height: 46,
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: AppColors.outlineVariant),
+              ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            item.label,
+            style: AppTextStyles.caption.copyWith(
+              fontSize: 13,
+              color: AppColors.gray400,
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: Colors.white),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                item.value,
+                textAlign: TextAlign.right,
+                style: AppTextStyles.body2.copyWith(
+                  fontSize: 14,
+                  color: AppColors.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-}
-
-class _HeroBadge extends StatelessWidget {
-  final String label;
-
-  const _HeroBadge({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: Colors.white.withValues(alpha: 0.86),
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricItem {
-  final String value;
-  final String label;
-  final IconData icon;
-
-  const _MetricItem(this.value, this.label, this.icon);
 }
 
 class _InfoItem {
@@ -779,28 +1031,30 @@ class _ProfileMenuItem {
 }
 
 class _DotGridPainter extends CustomPainter {
+  const _DotGridPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
+      ..color = const Color(0x09FFFFFF)
       ..strokeWidth = 0.5
       ..style = PaintingStyle.stroke;
 
     const step = 20.0;
-    for (double i = 0; i < size.width; i += step) {
+    for (double i = 0; i <= size.width; i += step) {
       canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
     }
-    for (double j = 0; j < size.height; j += step) {
+    for (double j = 0; j <= size.height; j += step) {
       canvas.drawLine(Offset(0, j), Offset(size.width, j), paint);
     }
 
     final dotPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
+      ..color = const Color(0x0EFFFFFF)
       ..style = PaintingStyle.fill;
 
-    for (double i = 0; i < size.width; i += step) {
-      for (double j = 0; j < size.height; j += step) {
-        canvas.drawCircle(Offset(i, j), 1.2, dotPaint);
+    for (double i = 0; i <= size.width; i += step) {
+      for (double j = 0; j <= size.height; j += step) {
+        canvas.drawCircle(Offset(i, j), 1.0, dotPaint);
       }
     }
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_text_styles.dart';
 
 /// 开造 VCC 输入框组件 — Notion 风格
 class VccInput extends StatelessWidget {
@@ -47,7 +48,7 @@ class VccInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isSearch) return _buildSearchInput();
+    if (isSearch) return _buildSearchInput(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,9 +59,8 @@ class VccInput extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 6),
             child: Text(
               label!,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+              style: AppTextStyles.caption.copyWith(
+                fontWeight: FontWeight.w600,
                 color: errorText != null ? AppColors.error : AppColors.gray700,
               ),
             ),
@@ -78,9 +78,7 @@ class VccInput extends StatelessWidget {
           onChanged: onChanged,
           onFieldSubmitted: onSubmitted,
           inputFormatters: inputFormatters,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
+          style: AppTextStyles.input.copyWith(
             color: enabled ? AppColors.black : AppColors.gray400,
           ),
           decoration: InputDecoration(
@@ -95,7 +93,36 @@ class VccInput extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchInput() {
+  Widget _buildSearchInput(BuildContext context) {
+    final theme = Theme.of(context);
+    final decoration = InputDecoration(
+      hintText: hint ?? '搜索...',
+      hintStyle: AppTextStyles.inputHint.copyWith(
+        color: AppColors.gray400,
+      ),
+      filled: true,
+      fillColor: AppColors.surfaceRaised,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      prefixIcon: const Padding(
+        padding: EdgeInsets.only(left: 16, right: 8),
+        child: Icon(Icons.search, size: 20, color: AppColors.gray400),
+      ),
+      prefixIconConstraints: const BoxConstraints(minWidth: 44),
+      suffixIcon: suffixIcon,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderSide: const BorderSide(color: AppColors.outlineSoft, width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderSide: const BorderSide(color: AppColors.outlineSoft, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+    ).applyDefaults(theme.inputDecorationTheme);
+
     return SizedBox(
       height: 44,
       child: TextField(
@@ -104,40 +131,8 @@ class VccInput extends StatelessWidget {
         textInputAction: textInputAction,
         onChanged: onChanged,
         onSubmitted: onSubmitted,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w400,
-          color: AppColors.black,
-        ),
-        decoration: InputDecoration(
-          hintText: hint ?? '搜索...',
-          hintStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            color: AppColors.gray400,
-          ),
-          filled: true,
-          fillColor: AppColors.gray50,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          prefixIcon: const Padding(
-            padding: EdgeInsets.only(left: 16, right: 8),
-            child: Icon(Icons.search, size: 20, color: AppColors.gray400),
-          ),
-          prefixIconConstraints: const BoxConstraints(minWidth: 44),
-          suffixIcon: suffixIcon,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.gray200, width: 1),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.gray200, width: 1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.black, width: 1.5),
-          ),
-        ),
+        style: AppTextStyles.input,
+        decoration: decoration,
       ),
     );
   }

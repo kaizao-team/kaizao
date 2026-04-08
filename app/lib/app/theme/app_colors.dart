@@ -5,6 +5,20 @@ class AppColors {
   AppColors._();
 
   // ============================================================
+  // Semantic surfaces — aligned to DESIGN_SPEC.md
+  // ============================================================
+  static const Color surface = Color(0xFFF9F9F9);
+  static const Color surfaceCanvas = Color(0xFFFEFCFD);
+  static const Color surfaceAlt = Color(0xFFF3F3F3);
+  static const Color surfaceRaised = Color(0xFFFFFFFF);
+  static const Color surfaceStrong = Color(0xFFE8E8E8);
+  static const Color onSurface = Color(0xFF1A1C1C);
+  static const Color textSecondary = Color(0xFF555555);
+  static const Color outlineSoft = Color(0xFFC6C6C6);
+  static const Color outlineVariant = Color(0x33C6C6C6);
+  static const Color tonalHeroEnd = Color(0xFF3C3B3B);
+
+  // ============================================================
   // 品牌强调色（紫色点缀）
   // ============================================================
   static const Color accent = Color(0xFF7C3AED);
@@ -28,6 +42,7 @@ class AppColors {
   // ============================================================
   static const Color black = Color(0xFF111111);
   static const Color white = Color(0xFFFFFFFF);
+  static const Color primary = black;
 
   // ============================================================
   // 中性色阶 — 浅色模式

@@ -29,6 +29,13 @@ class UserMock {
   static Map<String, dynamic> get currentUserData =>
       Map<String, dynamic>.from(_currentUser);
 
+  static void mergeCurrentUser(Map<String, dynamic> data) {
+    _currentUser = {
+      ..._currentUser,
+      ...data,
+    };
+  }
+
   static void register(Map<String, MockHandler> handlers) {
     handlers['GET:/api/v1/users/me'] = MockHandler(
       handler: (_) => _getCurrentUser(),
@@ -85,10 +92,11 @@ class UserMock {
 
   static Map<String, dynamic> _updateUser(RequestOptions options) {
     final data = options.data as Map<String, dynamic>? ?? {};
-    _currentUser = {
-      ..._currentUser,
-      ...data,
-    };
+    final normalized = Map<String, dynamic>.from(data);
+    if (normalized['avatar_url'] == '') {
+      normalized['avatar_url'] = null;
+    }
+    mergeCurrentUser(normalized);
 
     return {
       'code': 0,

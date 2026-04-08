@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../mock_interceptor.dart';
+import 'user_mock.dart';
 
 /// AUTH 模块 Mock 数据
 class AuthMock {
@@ -119,8 +120,7 @@ class AuthMock {
       'code': 0,
       'message': 'ok',
       'data': {
-        'captcha_id':
-            'mock_captcha_${DateTime.now().millisecondsSinceEpoch}',
+        'captcha_id': 'mock_captcha_${DateTime.now().millisecondsSinceEpoch}',
         'image_base64': _mockCaptchaBase64,
         'expires_in': 300,
       },
@@ -151,6 +151,24 @@ class AuthMock {
   }
 
   static Map<String, dynamic> _registerPassword(RequestOptions options) {
+    final request = options.data as Map<String, dynamic>? ?? const {};
+    final avatarUrl = request['avatar_url']?.toString();
+    final userId = 'user_new_${DateTime.now().millisecondsSinceEpoch}';
+    UserMock.mergeCurrentUser({
+      'id': userId,
+      'uuid': userId,
+      'nickname': request['username'] ?? 'KAIZO 用户',
+      'avatar_url': avatarUrl,
+      'role': 0,
+      'bio': null,
+      'city': null,
+      'is_verified': false,
+      'credit_score': 500,
+      'level': 1,
+      'skills': <String>[],
+      'role_tags': <String>[],
+    });
+
     return {
       'code': 0,
       'message': '注册成功',
@@ -161,10 +179,9 @@ class AuthMock {
             'mock_reg_refresh_${DateTime.now().millisecondsSinceEpoch}',
         'expires_in': 7200,
         'user': {
-          'uuid': 'user_new_${DateTime.now().millisecondsSinceEpoch}',
-          'nickname': (options.data as Map<String, dynamic>?)?['username'] ??
-              'KAIZO 用户',
-          'avatar_url': null,
+          'uuid': userId,
+          'nickname': request['username'] ?? 'KAIZO 用户',
+          'avatar_url': avatarUrl,
           'role': 0,
           'level': 1,
           'credit_score': 500,
