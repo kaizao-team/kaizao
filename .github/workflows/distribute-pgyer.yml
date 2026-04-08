@@ -97,13 +97,22 @@ jobs:
           RESPONSE=""
           for ATTEMPT in 1 2 3; do
             echo "  Attempt $ATTEMPT/3..."
-            RESPONSE=$(curl -s --connect-timeout 60 --max-time 600 \
+            HTTP_CODE=0
+            RESPONSE=$(curl -s -w "\n%{http_code}" --connect-timeout 60 --max-time 600 \
               -F "file=@$IPA_FILE" \
               -F "_api_key=$PGYER_API_KEY" \
               -F "buildUpdateDescription=CI Build #${{ steps.source.outputs.run_id }} from ${{ github.repository }}@${{ github.ref_name }}" \
-              https://www.pgyer.com/apiv2/app/upload) && break
-            echo "  Upload attempt $ATTEMPT failed (exit $?), retrying in 15s..."
-            sleep 15
+              https://www.pgyer.com/apiv2/app/upload) || true
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            RESPONSE=$(echo "$RESPONSE" | sed '$d')
+            if echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if d.get('code')==0 else 1)" 2>/dev/null; then
+              echo "  Upload succeeded (HTTP $HTTP_CODE)"
+              break
+            fi
+            echo "  Upload attempt $ATTEMPT failed (HTTP $HTTP_CODE), retrying in 30s..."
+            echo "  Response: $(echo "$RESPONSE" | head -3)"
+            RESPONSE=""
+            [ "$ATTEMPT" -lt 3 ] && sleep 30
           done
 
           echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
@@ -173,13 +182,22 @@ jobs:
           RESPONSE=""
           for ATTEMPT in 1 2 3; do
             echo "  Attempt $ATTEMPT/3..."
-            RESPONSE=$(curl -s --connect-timeout 60 --max-time 600 \
+            HTTP_CODE=0
+            RESPONSE=$(curl -s -w "\n%{http_code}" --connect-timeout 60 --max-time 600 \
               -F "file=@$APK_FILE" \
               -F "_api_key=$PGYER_API_KEY" \
               -F "buildUpdateDescription=CI Build #${{ steps.source.outputs.run_id }} from ${{ github.repository }}@${{ github.ref_name }}" \
-              https://www.pgyer.com/apiv2/app/upload) && break
-            echo "  Upload attempt $ATTEMPT failed (exit $?), retrying in 15s..."
-            sleep 15
+              https://www.pgyer.com/apiv2/app/upload) || true
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            RESPONSE=$(echo "$RESPONSE" | sed '$d')
+            if echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if d.get('code')==0 else 1)" 2>/dev/null; then
+              echo "  Upload succeeded (HTTP $HTTP_CODE)"
+              break
+            fi
+            echo "  Upload attempt $ATTEMPT failed (HTTP $HTTP_CODE), retrying in 30s..."
+            echo "  Response: $(echo "$RESPONSE" | head -3)"
+            RESPONSE=""
+            [ "$ATTEMPT" -lt 3 ] && sleep 30
           done
 
           echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
