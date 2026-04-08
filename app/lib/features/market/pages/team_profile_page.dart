@@ -217,32 +217,9 @@ class _HeroAvatarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fallback =
-        profile.teamName.isNotEmpty ? profile.teamName[0].toUpperCase() : 'T';
-
-    return Container(
-      width: 88,
-      height: 88,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.12),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipOval(
-        child: VccAvatar(
-          imageUrl: profile.avatarUrl,
-          size: VccAvatarSize.xlarge,
-          fallbackText: fallback,
-        ),
-      ),
+    return VccHeroAvatar(
+      imageUrl: profile.avatarUrl,
+      fallbackText: profile.teamName.isNotEmpty ? profile.teamName : 'T',
     );
   }
 }

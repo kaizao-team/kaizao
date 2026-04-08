@@ -1,16 +1,20 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/models/project_category.dart';
+import '../../../shared/models/project_model.dart';
 import '../../../shared/skills/skill_particle_field.dart';
 import '../../../shared/widgets/vcc_card.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
 import '../../../shared/widgets/vcc_identity_hero.dart';
 import '../../../shared/widgets/vcc_loading.dart';
 import '../../../shared/widgets/vcc_section_label.dart';
+import '../../project/providers/project_list_provider.dart';
 import '../models/profile_models.dart';
 import '../providers/profile_provider.dart';
 
@@ -26,7 +30,10 @@ class ProfilePage extends ConsumerWidget {
     final state = ref.watch(profileProvider(effectiveId));
 
     if (state.isLoading && state.profile == null) {
-      return const Scaffold(body: VccLoading());
+      return const Scaffold(
+        backgroundColor: AppColors.surface,
+        body: VccLoading(),
+      );
     }
 
     if (state.errorMessage != null && state.profile == null) {
@@ -45,90 +52,102 @@ class ProfilePage extends ConsumerWidget {
     }
 
     final profile = state.profile;
-    if (profile == null) return const Scaffold(body: VccLoading());
+    if (profile == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.surface,
+        body: VccLoading(),
+      );
+    }
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: RefreshIndicator(
-        color: AppColors.black,
-        onRefresh: () =>
-            ref.read(profileProvider(effectiveId).notifier).loadProfile(),
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          slivers: [
-            SliverToBoxAdapter(
-              child: _ProfileHero(
-                profile: profile,
-                isSelf: isSelf,
-                skills: state.skills,
-              ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: AppColors.surface,
+        body: RefreshIndicator(
+          color: AppColors.black,
+          onRefresh: () async {
+            await ref.read(profileProvider(effectiveId).notifier).loadProfile();
+            if (isSelf && profile.isDemander) {
+              await ref.read(projectListProvider.notifier).refresh();
+            }
+          },
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
             ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  const VccSectionLabel('OVERVIEW'),
-                  const SizedBox(height: 10),
-                  _ProfileMetricsCard(profile: profile),
-                  const SizedBox(height: 28),
-                  const VccSectionLabel('ACCOUNT'),
-                  const SizedBox(height: 10),
-                  _ProfileInfoCard(profile: profile),
-                  if (isSelf) ...[
+            slivers: [
+              SliverToBoxAdapter(
+                child: _ProfileHero(
+                  profile: profile,
+                  isSelf: isSelf,
+                  skills: state.skills,
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const VccSectionLabel('OVERVIEW'),
+                    const SizedBox(height: 10),
+                    _ProfileMetricsCard(profile: profile),
                     const SizedBox(height: 28),
-                    const VccSectionLabel('QUICK ACTIONS'),
+                    const VccSectionLabel('ACCOUNT'),
+                    const SizedBox(height: 10),
+                    _ProfileInfoCard(profile: profile),
+                    if (isSelf) ...[
+                      const SizedBox(height: 28),
+                      const VccSectionLabel('QUICK ACTIONS'),
+                      const SizedBox(height: 10),
+                      _ProfileMenuGroup(
+                        items: [
+                          _ProfileMenuItem(
+                            label: '编辑资料',
+                            trailingText: '完善资料',
+                            onTap: () => context.push(RoutePaths.editProfile),
+                          ),
+                          _ProfileMenuItem(
+                            label: '我的钱包',
+                            trailingText: '余额与记录',
+                            onTap: () => context.push(RoutePaths.wallet),
+                          ),
+                          _ProfileMenuItem(
+                            label: '消息通知',
+                            onTap: () => context.push(RoutePaths.notifications),
+                          ),
+                          _ProfileMenuItem(
+                            label: '我的收藏',
+                            onTap: () => context.push(RoutePaths.favorites),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 28),
+                    const VccSectionLabel('SUPPORT'),
                     const SizedBox(height: 10),
                     _ProfileMenuGroup(
                       items: [
                         _ProfileMenuItem(
-                          label: '编辑资料',
-                          trailingText: '完善资料',
-                          onTap: () => context.push(RoutePaths.editProfile),
+                          label: '帮助与反馈',
+                          onTap: () => context.push(RoutePaths.helpFeedback),
                         ),
                         _ProfileMenuItem(
-                          label: '我的钱包',
-                          trailingText: '余额与记录',
-                          onTap: () => context.push(RoutePaths.wallet),
-                        ),
-                        _ProfileMenuItem(
-                          label: '消息通知',
-                          onTap: () => context.push(RoutePaths.notifications),
-                        ),
-                        _ProfileMenuItem(
-                          label: '我的收藏',
-                          onTap: () => context.push(RoutePaths.favorites),
+                          label: '关于 KAIZO',
+                          onTap: () => context.push(RoutePaths.about),
                         ),
                       ],
                     ),
-                  ],
-                  const SizedBox(height: 28),
-                  const VccSectionLabel('SUPPORT'),
-                  const SizedBox(height: 10),
-                  _ProfileMenuGroup(
-                    items: [
-                      _ProfileMenuItem(
-                        label: '帮助与反馈',
-                        onTap: () => context.push(RoutePaths.helpFeedback),
-                      ),
-                      _ProfileMenuItem(
-                        label: '关于 KAIZO',
-                        onTap: () => context.push(RoutePaths.about),
-                      ),
-                    ],
-                  ),
-                ]),
+                  ]),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _ProfileHero extends StatelessWidget {
+class _ProfileHero extends ConsumerWidget {
   final UserProfile profile;
   final bool isSelf;
   final List<SkillTag> skills;
@@ -140,20 +159,35 @@ class _ProfileHero extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final summary = _profileSummary(profile);
+    final skillParticles = skills
+        .where((skill) => skill.name.trim().isNotEmpty)
+        .map(
+          (skill) => SkillParticleItem(
+            id: skill.id,
+            name: skill.name,
+            category: skill.category,
+            isPrimary: skill.isPrimary,
+          ),
+        )
+        .toList(growable: false);
+    final demandNotes = profile.isDemander && isSelf
+        ? _buildDemandBoardNotes(ref.watch(projectListProvider).projects)
+        : const <_DemandBoardNote>[];
+    final hasSkillParticles = skillParticles.isNotEmpty;
+    final hasDemandBoard = demandNotes.isNotEmpty;
     final heroLayers = <Widget>[
-      Positioned(
-        right: -30,
-        top: -10,
-        child: CustomPaint(
-          size: const Size(180, 180),
-          painter: _DotGridPainter(),
+      const Positioned.fill(
+        child: IgnorePointer(
+          child: CustomPaint(
+            painter: _DotGridPainter(),
+          ),
         ),
       ),
     ];
 
-    if (skills.any((skill) => skill.name.trim().isNotEmpty)) {
+    if (hasSkillParticles) {
       heroLayers.add(
         Positioned(
           left: 0,
@@ -161,19 +195,20 @@ class _ProfileHero extends StatelessWidget {
           top: 64,
           bottom: 0,
           child: IgnorePointer(
-            child: SkillParticleField(
-              skills: skills
-                  .where((skill) => skill.name.trim().isNotEmpty)
-                  .map(
-                    (skill) => SkillParticleItem(
-                      id: skill.id,
-                      name: skill.name,
-                      category: skill.category,
-                      isPrimary: skill.isPrimary,
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
+            child: SkillParticleField(skills: skillParticles),
+          ),
+        ),
+      );
+    }
+
+    if (hasDemandBoard) {
+      heroLayers.add(
+        Positioned(
+          left: 18,
+          right: 18,
+          bottom: 18,
+          child: IgnorePointer(
+            child: _DemandKeywordBoard(notes: demandNotes),
           ),
         ),
       );
@@ -205,7 +240,11 @@ class _ProfileHero extends StatelessWidget {
         context.go(RoutePaths.home);
       },
       contentPadding: const EdgeInsets.fromLTRB(20, 12, 12, 18),
-      bottomSpacing: 110,
+      bottomSpacing: hasSkillParticles
+          ? 110
+          : hasDemandBoard
+              ? 126
+              : 28,
       layers: heroLayers,
     );
   }
@@ -221,6 +260,453 @@ class _ProfileHero extends StatelessWidget {
   }
 }
 
+class _DemandKeywordBoard extends StatelessWidget {
+  final List<_DemandBoardNote> notes;
+
+  const _DemandKeywordBoard({required this.notes});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 96,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final placements = _boardPlacementsFor(notes.length);
+          return Stack(
+            clipBehavior: Clip.none,
+            children: List.generate(notes.length, (index) {
+              final placement = placements[index];
+              final note = notes[index];
+              final width = constraints.maxWidth * placement.widthFactor;
+              return Positioned(
+                left: constraints.maxWidth * placement.leftFactor,
+                top: placement.top,
+                child: Transform.rotate(
+                  angle: placement.angle,
+                  child: _DemandPaperNote(
+                    note: note,
+                    width: width,
+                  ),
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DemandPaperNote extends StatelessWidget {
+  final _DemandBoardNote note;
+  final double width;
+
+  const _DemandPaperNote({
+    required this.note,
+    required this.width,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.fromLTRB(14, 11, 12, 12),
+      decoration: BoxDecoration(
+        color: note.color,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -3,
+            left: 2,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: AppColors.black.withValues(alpha: 0.68),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    blurRadius: 1,
+                    offset: const Offset(0, 0.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: -4,
+            right: 10,
+            child: Transform.rotate(
+              angle: 0.2,
+              child: Container(
+                width: 16,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.32),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                note.caption,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.overline.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.gray500,
+                  letterSpacing: 0.9,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                note.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.body1.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.black,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DemandBoardNote {
+  final String caption;
+  final String label;
+  final Color color;
+
+  const _DemandBoardNote({
+    required this.caption,
+    required this.label,
+    required this.color,
+  });
+}
+
+class _DemandBoardPlacement {
+  final double leftFactor;
+  final double top;
+  final double widthFactor;
+  final double angle;
+
+  const _DemandBoardPlacement({
+    required this.leftFactor,
+    required this.top,
+    required this.widthFactor,
+    required this.angle,
+  });
+}
+
+List<_DemandBoardPlacement> _boardPlacementsFor(int count) {
+  switch (count) {
+    case 1:
+      return const [
+        _DemandBoardPlacement(
+          leftFactor: 0.24,
+          top: 18,
+          widthFactor: 0.52,
+          angle: -0.05,
+        ),
+      ];
+    case 2:
+      return const [
+        _DemandBoardPlacement(
+          leftFactor: 0.08,
+          top: 14,
+          widthFactor: 0.42,
+          angle: -0.06,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.50,
+          top: 30,
+          widthFactor: 0.34,
+          angle: 0.07,
+        ),
+      ];
+    case 3:
+      return const [
+        _DemandBoardPlacement(
+          leftFactor: 0.02,
+          top: 12,
+          widthFactor: 0.34,
+          angle: -0.06,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.34,
+          top: 2,
+          widthFactor: 0.30,
+          angle: 0.04,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.63,
+          top: 20,
+          widthFactor: 0.29,
+          angle: -0.08,
+        ),
+      ];
+    case 4:
+      return const [
+        _DemandBoardPlacement(
+          leftFactor: 0.01,
+          top: 10,
+          widthFactor: 0.30,
+          angle: -0.06,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.28,
+          top: 0,
+          widthFactor: 0.28,
+          angle: 0.05,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.56,
+          top: 12,
+          widthFactor: 0.27,
+          angle: -0.07,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.22,
+          top: 46,
+          widthFactor: 0.38,
+          angle: 0.09,
+        ),
+      ];
+    default:
+      return const [
+        _DemandBoardPlacement(
+          leftFactor: 0.01,
+          top: 10,
+          widthFactor: 0.27,
+          angle: -0.05,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.24,
+          top: 0,
+          widthFactor: 0.25,
+          angle: 0.04,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.50,
+          top: 8,
+          widthFactor: 0.25,
+          angle: -0.08,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.72,
+          top: 18,
+          widthFactor: 0.22,
+          angle: 0.06,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.14,
+          top: 48,
+          widthFactor: 0.31,
+          angle: 0.08,
+        ),
+        _DemandBoardPlacement(
+          leftFactor: 0.48,
+          top: 48,
+          widthFactor: 0.34,
+          angle: -0.03,
+        ),
+      ];
+  }
+}
+
+List<_DemandBoardNote> _buildDemandBoardNotes(List<ProjectModel> projects) {
+  if (projects.isEmpty) return const [];
+
+  final sorted = [...projects]..sort((a, b) {
+      final aTime = a.publishedAt ?? a.createdAt;
+      final bTime = b.publishedAt ?? b.createdAt;
+      return bTime.compareTo(aTime);
+    });
+
+  final notes = <_DemandBoardNote>[];
+  final usedLabels = <String>{};
+  final palette = <Color>[
+    const Color(0xFFF5EFE3),
+    const Color(0xFFF2F1EC),
+    const Color(0xFFEDE8F7),
+    const Color(0xFFE9EEF7),
+    const Color(0xFFF4E8E3),
+    const Color(0xFFE8F1EB),
+  ];
+
+  for (final project in sorted.take(3)) {
+    final categoryLabel = projectCategoryLabel(project.category);
+    final fragments = _projectKeywordFragments(project);
+
+    if (fragments.isNotEmpty) {
+      final primary = fragments.first;
+      if (usedLabels.add(primary)) {
+        notes.add(
+          _DemandBoardNote(
+            caption: primary == categoryLabel ? '最近需求' : categoryLabel,
+            label: primary,
+            color: palette[notes.length % palette.length],
+          ),
+        );
+      }
+    } else if (usedLabels.add(categoryLabel)) {
+      notes.add(
+        _DemandBoardNote(
+          caption: '最近需求',
+          label: categoryLabel,
+          color: palette[notes.length % palette.length],
+        ),
+      );
+    }
+
+    final budgetLabel = _compactBudgetLabel(project);
+    if (budgetLabel != null &&
+        notes.length < 6 &&
+        usedLabels.add(budgetLabel)) {
+      notes.add(
+        _DemandBoardNote(
+          caption: '预算区间',
+          label: budgetLabel,
+          color: palette[notes.length % palette.length],
+        ),
+      );
+    }
+
+    final statusLabel = project.homeStatusName;
+    if (notes.length < 6 && usedLabels.add(statusLabel)) {
+      notes.add(
+        _DemandBoardNote(
+          caption: '当前状态',
+          label: statusLabel,
+          color: palette[notes.length % palette.length],
+        ),
+      );
+    }
+  }
+
+  return notes.take(6).toList(growable: false);
+}
+
+List<String> _projectKeywordFragments(ProjectModel project) {
+  final fragments = <String>[];
+
+  void collectTokens(String raw) {
+    final text = raw.trim();
+    if (text.isEmpty) return;
+
+    final compact = text.replaceAll(RegExp(r'\s+'), ' ');
+    final pieces = compact
+        .split(RegExp(r'[、,，;；/|·•\-_\n\r\t ]+'))
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty);
+
+    for (final piece in pieces) {
+      final normalized = _normalizeKeyword(piece);
+      if (normalized == null || fragments.contains(normalized)) continue;
+      fragments.add(normalized);
+      if (fragments.length >= 2) return;
+    }
+  }
+
+  collectTokens(project.title);
+  if (fragments.length < 2) {
+    collectTokens(project.description);
+  }
+  if (fragments.length < 2) {
+    for (final tech in project.techRequirements) {
+      final normalized = _normalizeKeyword(tech);
+      if (normalized == null || fragments.contains(normalized)) continue;
+      fragments.add(normalized);
+      if (fragments.length >= 2) break;
+    }
+  }
+
+  return fragments;
+}
+
+String? _normalizeKeyword(String input) {
+  final text = input.trim();
+  if (text.isEmpty || text.length > 16) return null;
+
+  final condensed = text.replaceAll(RegExp(r'\s+'), ' ');
+  final hasChinese = RegExp(r'[\u4e00-\u9fff]').hasMatch(condensed);
+  final hasLetters = RegExp(r'[A-Za-z]').hasMatch(condensed);
+  final hasDigits = RegExp(r'\d').hasMatch(condensed);
+
+  if (hasChinese) {
+    if (condensed.length < 2) return null;
+    return condensed;
+  }
+
+  if (hasLetters) {
+    final lower = condensed.toLowerCase();
+    if (lower.length < 3) return null;
+    final uniqueChars = lower.runes.toSet().length;
+    final vowelCount = RegExp(r'[aeiou]').allMatches(lower).length;
+    if (!hasDigits && uniqueChars <= 3) return null;
+    if (!hasDigits && vowelCount == 0) return null;
+    return condensed;
+  }
+
+  return null;
+}
+
+String? _compactBudgetLabel(ProjectModel project) {
+  if (project.budgetMin == null && project.budgetMax == null) return null;
+
+  String formatAmount(double value) {
+    if (value >= 10000) {
+      final w = value / 10000;
+      final hasDecimal = (w * 10).round() % 10 != 0;
+      return '${hasDecimal ? w.toStringAsFixed(1) : w.toStringAsFixed(0)}w';
+    }
+    if (value >= 1000) {
+      final k = value / 1000;
+      final hasDecimal = (k * 10).round() % 10 != 0;
+      return '${hasDecimal ? k.toStringAsFixed(1) : k.toStringAsFixed(0)}k';
+    }
+    return value.toStringAsFixed(0);
+  }
+
+  final min = project.budgetMin;
+  final max = project.budgetMax;
+  if (min != null && max != null) {
+    return '¥${formatAmount(min)}-${formatAmount(max)}';
+  }
+  if (min != null) {
+    return '¥${formatAmount(min)}+';
+  }
+  if (max != null) {
+    return '≤¥${formatAmount(max)}';
+  }
+  return null;
+}
+
 class _HeroAvatarCard extends StatelessWidget {
   final UserProfile profile;
 
@@ -228,61 +714,9 @@ class _HeroAvatarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initial =
-        profile.nickname.isNotEmpty ? profile.nickname[0].toUpperCase() : 'U';
-    final avatarUrl = profile.avatar?.trim() ?? '';
-
-    return Container(
-      width: 88,
-      height: 88,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.12),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: avatarUrl.isNotEmpty
-            ? CachedNetworkImage(
-                imageUrl: avatarUrl,
-                fit: BoxFit.cover,
-                placeholder: (_, __) =>
-                    _HeroAvatarPlaceholder(initial: initial),
-                errorWidget: (_, __, ___) =>
-                    _HeroAvatarPlaceholder(initial: initial),
-              )
-            : _HeroAvatarPlaceholder(initial: initial),
-      ),
-    );
-  }
-}
-
-class _HeroAvatarPlaceholder extends StatelessWidget {
-  final String initial;
-
-  const _HeroAvatarPlaceholder({required this.initial});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white.withValues(alpha: 0.12),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          fontSize: 38,
-          fontWeight: FontWeight.w600,
-          color: Colors.white.withValues(alpha: 0.82),
-        ),
-      ),
+    return VccHeroAvatar(
+      imageUrl: profile.avatar,
+      fallbackText: profile.nickname.isNotEmpty ? profile.nickname : 'U',
     );
   }
 }
@@ -338,7 +772,8 @@ class _ProfileInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final summary = _profileSummary(profile);
+    final summary = _profileMotto(profile);
+    final isMotto = summary != null && _isMottoLike(summary);
     final rows = <_InfoItem>[
       _InfoItem('身份', profile.roleName),
       _InfoItem('认证状态', profile.isVerified ? '已认证' : '未认证'),
@@ -359,8 +794,19 @@ class _ProfileInfoCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
               child: Text(
                 summary,
-                style: const TextStyle(
-                    fontSize: 14, height: 1.7, color: AppColors.textSecondary),
+                style: isMotto
+                    ? AppTextStyles.h3.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        fontStyle: FontStyle.italic,
+                        letterSpacing: -0.2,
+                        color: AppColors.gray700,
+                        height: 1.45,
+                      )
+                    : AppTextStyles.body2.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.7,
+                      ),
               ),
             ),
             Container(
@@ -379,24 +825,26 @@ class _ProfileInfoCard extends StatelessWidget {
                   padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
                   child: Row(
                     children: [
-                      SizedBox(
-                        width: 72,
-                        child: Text(
-                          row.label,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.gray400,
-                          ),
+                      Text(
+                        row.label,
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 13,
+                          color: AppColors.gray400,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
                       Expanded(
-                        child: Text(
-                          row.value,
-                          style: const TextStyle(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            row.value,
+                            textAlign: TextAlign.right,
+                            style: AppTextStyles.body2.copyWith(
                               fontSize: 14,
                               color: AppColors.onSurface,
-                              fontWeight: FontWeight.w500),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -410,14 +858,23 @@ class _ProfileInfoCard extends StatelessWidget {
     );
   }
 
-  static String? _profileSummary(UserProfile profile) {
-    final bio = profile.bio.trim();
-    if (bio.isNotEmpty) return bio;
-
+  static String? _profileMotto(UserProfile profile) {
     final tagline = profile.tagline.trim();
     if (tagline.isNotEmpty) return tagline;
 
+    final bio = profile.bio.trim();
+    if (bio.isNotEmpty) return bio;
+
     return null;
+  }
+
+  static bool _isMottoLike(String text) {
+    final compact = text.trim();
+    return compact.isNotEmpty &&
+        compact.length <= 48 &&
+        !compact.contains('\n') &&
+        !compact.contains('。') &&
+        !compact.contains('，');
   }
 
   static String? _formatMaskedPhone(String? phone) {
@@ -490,14 +947,16 @@ class _ProfileMenuRow extends StatelessWidget {
           children: [
             Text(
               item.label,
-              style: const TextStyle(fontSize: 15, color: AppColors.onSurface),
+              style: AppTextStyles.body1.copyWith(
+                fontSize: 15,
+                color: AppColors.onSurface,
+              ),
             ),
             const Spacer(),
             if (item.trailingText != null) ...[
               Text(
                 item.trailingText!,
-                style: const TextStyle(
-                  fontSize: 12,
+                style: AppTextStyles.caption.copyWith(
                   color: AppColors.gray400,
                 ),
               ),
@@ -535,28 +994,30 @@ class _ProfileMenuItem {
 }
 
 class _DotGridPainter extends CustomPainter {
+  const _DotGridPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
+      ..color = const Color(0x09FFFFFF)
       ..strokeWidth = 0.5
       ..style = PaintingStyle.stroke;
 
     const step = 20.0;
-    for (double i = 0; i < size.width; i += step) {
+    for (double i = 0; i <= size.width; i += step) {
       canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
     }
-    for (double j = 0; j < size.height; j += step) {
+    for (double j = 0; j <= size.height; j += step) {
       canvas.drawLine(Offset(0, j), Offset(size.width, j), paint);
     }
 
     final dotPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
+      ..color = const Color(0x0EFFFFFF)
       ..style = PaintingStyle.fill;
 
-    for (double i = 0; i < size.width; i += step) {
-      for (double j = 0; j < size.height; j += step) {
-        canvas.drawCircle(Offset(i, j), 1.2, dotPaint);
+    for (double i = 0; i <= size.width; i += step) {
+      for (double j = 0; j <= size.height; j += step) {
+        canvas.drawCircle(Offset(i, j), 1.0, dotPaint);
       }
     }
   }
