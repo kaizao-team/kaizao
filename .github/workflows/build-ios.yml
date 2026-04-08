@@ -114,12 +114,31 @@ jobs:
 
       - name: Diagnose provisioning profile
         if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        env:
+          PROVISION_PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
         run: |
           echo "=== Installed provisioning profiles ==="
           for f in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
             echo "--- $f ---"
-            /usr/bin/security cms -D -i "$f" 2>/dev/null | /usr/libexec/PlistBuddy -c "Print Name" -c "Print UUID" -c "Print TeamIdentifier:0" /dev/stdin 2>/dev/null || echo "(parse error)"
+            DECODED=$(/usr/bin/security cms -D -i "$f" 2>/dev/null)
+            if [ -n "$DECODED" ]; then
+              PLIST_FILE=$(mktemp)
+              echo "$DECODED" > "$PLIST_FILE"
+              echo "  Name: $(/usr/libexec/PlistBuddy -c 'Print Name' "$PLIST_FILE" 2>/dev/null)"
+              echo "  UUID: $(/usr/libexec/PlistBuddy -c 'Print UUID' "$PLIST_FILE" 2>/dev/null)"
+              echo "  TeamID: $(/usr/libexec/PlistBuddy -c 'Print TeamIdentifier:0' "$PLIST_FILE" 2>/dev/null)"
+              echo "  AppID: $(/usr/libexec/PlistBuddy -c 'Print Entitlements:application-identifier' "$PLIST_FILE" 2>/dev/null)"
+              echo "  Type: $(/usr/libexec/PlistBuddy -c 'Print ProvisionsAllDevices' "$PLIST_FILE" 2>/dev/null && echo 'Enterprise' || echo 'Ad-Hoc/Dev')"
+              echo "  Expiry: $(/usr/libexec/PlistBuddy -c 'Print ExpirationDate' "$PLIST_FILE" 2>/dev/null)"
+              echo "  Certs count: $(/usr/libexec/PlistBuddy -c 'Print DeveloperCertificates' "$PLIST_FILE" 2>/dev/null | grep -c 'Data')"
+              rm -f "$PLIST_FILE"
+            else
+              echo "  (could not decode)"
+            fi
           done
+          echo ""
+          echo "=== Expected profile name from secret ==="
+          echo "  IOS_PROVISION_PROFILE_NAME = $PROVISION_PROFILE_NAME"
           echo ""
           echo "=== Keychain identities ==="
           security find-identity -v -p codesigning
