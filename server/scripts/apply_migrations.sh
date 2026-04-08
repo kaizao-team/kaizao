@@ -62,6 +62,7 @@ INCREMENTAL_FILES=(
   012_teams_biz_fields.up.sql
   013_notification_source_target_uuid.up.sql
   013_teams_budget_range.up.sql
+  014_teams_approval_status.up.sql
 )
 
 mysql_exec() {
@@ -110,7 +111,7 @@ if [ "$FULL" = 1 ]; then
   apply_file "$MIGRATIONS_DIR/001_init_schema.up.sql" 0
 fi
 
-echo "=== 执行增量迁移 002–013（含 notifications 扩展与 teams 预算；utf8mb4 客户端）==="
+echo "=== 执行增量迁移 002–014（含 notifications 扩展、teams 预算、团队审核；utf8mb4 客户端）==="
 for f in "${INCREMENTAL_FILES[@]}"; do
   apply_file "$MIGRATIONS_DIR/$f" 1
 done

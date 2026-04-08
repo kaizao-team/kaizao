@@ -425,18 +425,6 @@ func (s *AuthService) RegisterByPassword(ctx context.Context, req *dto.RegisterB
 	}
 
 	role := req.Role
-	if reg.RoleNeedsInvite(role) && strings.TrimSpace(req.InviteCode) == "" {
-		return nil, nil, fmt.Errorf("%d", errcode.ErrInviteRequired)
-	}
-	var inviteID *int64
-	if reg.RoleNeedsInvite(role) {
-		consumed, _, ierr := s.repos.InviteCode.ConsumeTeamInviteAndRotate(strings.TrimSpace(req.InviteCode))
-		if ierr != nil {
-			return nil, nil, ierr
-		}
-		id := consumed.ID
-		inviteID = &id
-	}
 
 	hashB, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
 	if err != nil {
@@ -464,7 +452,6 @@ func (s *AuthService) RegisterByPassword(ctx context.Context, req *dto.RegisterB
 		Level:            1,
 		Status:           1,
 		OnboardingStatus: onboard,
-		InviteCodeID:     inviteID,
 		LastLoginAt:      model.NowPtr(),
 	}
 	if err := s.repos.User.Create(user); err != nil {
@@ -544,60 +531,40 @@ func (s *AuthService) LoginByPassword(_ context.Context, req *dto.LoginByPasswor
 	return user, tokenPair, nil
 }
 
-// CreateInviteCode 管理端为团队生成当前有效邀请码（单次使用，核销后自动轮换）
-func (s *AuthService) CreateInviteCode(teamUUID string, createdByUserID int64, note string, expiresAt *time.Time) (plain string, rec *model.InviteCode, err error) {
-	team, err := s.repos.Team.FindByUUID(teamUUID)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return "", nil, fmt.Errorf("%d", errcode.ErrTeamNotFound)
+// BatchCreateInviteCodes 管理端批量创建邀请码（不绑定团队，使用时核销）
+func (s *AuthService) BatchCreateInviteCodes(count int, createdByUserID int64, note string, expiresAt *time.Time) ([]string, error) {
+	if count <= 0 {
+		count = 10
+	}
+	if count > 200 {
+		count = 200
+	}
+	codes := make([]*model.InviteCode, 0, count)
+	plains := make([]string, 0, count)
+	for i := 0; i < count; i++ {
+		p := invitehash.GeneratePlain("KZ-")
+		h := invitehash.Hash(p)
+		hint := p
+		if len(p) >= 4 {
+			hint = p[len(p)-4:]
 		}
-		return "", nil, err
+		cp := p
+		codes = append(codes, &model.InviteCode{
+			CodeHash:        h,
+			CodePlain:       &cp,
+			CodeHint:        hint,
+			Note:            note,
+			MaxUses:         1,
+			UsedCount:       0,
+			ExpiresAt:       expiresAt,
+			CreatedByUserID: &createdByUserID,
+		})
+		plains = append(plains, p)
 	}
-	tid := team.ID
-	if err := s.repos.InviteCode.DisableActiveUnusedForTeam(tid); err != nil {
-		return "", nil, err
-	}
-	plain = invitehash.GeneratePlain("KZ-")
-	h := invitehash.Hash(plain)
-	hint := plain
-	if len(plain) >= 4 {
-		hint = plain[len(plain)-4:]
-	}
-	p := plain
-	ic := &model.InviteCode{
-		TeamID:          &tid,
-		CodeHash:        h,
-		CodePlain:       &p,
-		CodeHint:        hint,
-		Note:            note,
-		MaxUses:         1,
-		UsedCount:       0,
-		ExpiresAt:       expiresAt,
-		CreatedByUserID: &createdByUserID,
-	}
-	if err := s.repos.InviteCode.Create(ic); err != nil {
-		return "", nil, err
-	}
-	return plain, ic, nil
-}
-
-// GetTeamCurrentInvite 管理端查看团队当前有效邀请码（含明文）
-func (s *AuthService) GetTeamCurrentInvite(teamUUID string) (*model.InviteCode, error) {
-	team, err := s.repos.Team.FindByUUID(teamUUID)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("%d", errcode.ErrTeamNotFound)
-		}
+	if err := s.repos.InviteCode.BatchCreate(codes); err != nil {
 		return nil, err
 	}
-	ic, err := s.repos.InviteCode.FindActiveByTeamID(team.ID)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return ic, nil
+	return plains, nil
 }
 
 // ListInviteCodes 管理端分页列表

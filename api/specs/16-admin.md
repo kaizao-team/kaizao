@@ -1,30 +1,48 @@
-## 13. 管理后台 — 团队邀请码与入驻审核
+## 13. 管理后台 — 邀请码与团队/入驻审核
 
 > 路由组：`/api/v1/admin/*`，需 **JWT** 且数据库用户 **`role=9` 管理员**（中间件以库中角色为准）。
 
-邀请码**绑定团队**（`team_id`），每条有效码默认 **仅用一次**；专家在 **2.4** 兑换后旧码作废，系统**自动为该团队生成新码**（新码明文写入新行，供列表与「当前码」接口查看）。
+邀请码为**全局码**（不绑定团队），由管理端批量创建，每码仅用一次。用户在 `POST /api/v1/teams` 创建团队时传入有效邀请码可跳过审核，邀请码同时被核销。
 
-### 13.1 POST `/api/v1/admin/invite-codes` — 为团队创建/刷新邀请码
+### 13.1 POST `/api/v1/admin/invite-codes` — 批量创建邀请码
 
 **Body**:
 ```json
 {
-  "team_uuid": "团队UUID",
+  "count": 10,
   "note": "首批专家",
   "expires_at": "2027-12-31T23:59:59Z"
 }
 ```
-- 若该团队已有**未使用且未禁用**的码，会先全部作废再插入新码。
-- **响应** `data`：`code_plain`、`uuid`、`team_id`、`max_uses`（固定为 1）、`expires_at`、`note`。
+- `count`：创建数量，默认 10，最大 200。
+- `note`：备注（可选）。
+- `expires_at`：过期时间 RFC3339（可选，不填则永不过期）。
+- 创建新码**不会**禁用已有的旧码。
+- **响应** `data`：
+```json
+{
+  "codes": ["KZ-ABCD1234", "KZ-EFGH5678", "..."],
+  "count": 10
+}
+```
 
 ### 13.2 GET `/api/v1/admin/invite-codes` — 邀请码列表
 
-- **Query**: `page`, `page_size`, `team_uuid`（可选，按团队筛选）
-- **响应**: 列表项含 `team_id`、`code_hint`、`code_plain`（当前行若曾存明文则返回；已核销的历史行通常无明文）、`used_count`/`max_uses`、`expires_at`、`note`、`disabled_at`、`created_at`。
+- **Query**: `page`, `page_size`
+- **响应**: 列表项含 `uuid`、`team_id`（核销后回填的团队 ID）、`code_hint`、`code_plain`（未核销时返回明文；已核销为 null）、`used_count`/`max_uses`、`expires_at`、`note`、`disabled_at`、`created_at`。
 
-### 13.3 GET `/api/v1/admin/teams/:uuid/current-invite-code` — 查看团队当前有效邀请码
+### 13.3 PUT `/api/v1/admin/teams/:uuid/approval` — 审核团队
 
-- **响应**：无有效码时 `data.has_active=false`；有则 `has_active=true` 且含 `code_plain`、`uuid`、`expires_at`、`note` 等。
+**Body**:
+```json
+{
+  "status": "approved",
+  "reason": "可选，拒绝时建议填写"
+}
+```
+- `status`：`approved` 或 `rejected`。
+- **响应**: `{ "code": 0, "message": "已更新" }`
+- 仅对 `approval_status=1`（待审核）的团队有意义；已通过/已拒绝的团队也可重新审核。
 
 ### 13.4 PUT `/api/v1/admin/users/:uuid/onboarding` — 审核入驻（材料通道）
 
@@ -38,9 +56,6 @@
 |------|------|
 | 10013 | 邀请码无效或已过期 |
 | 10014 | 邀请码使用次数已用尽 |
-| 10016 | 注册申请未通过审核（历史文案，仍可用于业务提示） |
-| 10017 | 请先完成注册后再登录 |
-| 10018 | 已完成入驻审核 |
-| 10019 | 仅专家角色可提交入驻或兑换团队邀请码 |
-| 11011 | 请至少提供简历链接或有效作品集 |
 | 11012 | 团队不存在 |
+| 11023 | 团队审核中，请等待管理员审核 |
+| 11024 | 团队审核未通过 |

@@ -191,7 +191,7 @@ func (s *TeamService) GetDetail(teamUUID string) (*model.Team, error) {
 // CreateTeam 创建团队，当前用户为队长。
 // role 非 2/3 时自动提升为专家（role=2）；已有主团队则拒绝。
 // 唯一性检查在事务内执行，避免并发重复创建。
-func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *float64, availableStatus *int, budgetMin, budgetMax *float64, description *string) (*model.Team, error) {
+func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *float64, availableStatus *int, budgetMin, budgetMax *float64, description *string, inviteCode *string) (*model.Team, error) {
 	u, err := s.repos.User.FindByUUID(userUUID)
 	if err != nil {
 		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
@@ -218,6 +218,8 @@ func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *floa
 		avail = int16(*availableStatus)
 	}
 
+	hasInviteCode := inviteCode != nil && strings.TrimSpace(*inviteCode) != ""
+
 	t := &model.Team{
 		Name:            teamName,
 		LeaderID:        u.ID,
@@ -226,6 +228,7 @@ func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *floa
 		SkillsCoverage:  model.JSON([]byte("[]")),
 		MemberCount:     1,
 		Status:          1,
+		ApprovalStatus:  model.TeamApprovalPending,
 		HourlyRate:      hourlyRate,
 		AvailableStatus: avail,
 		BudgetMin:       budgetMin,
@@ -245,6 +248,19 @@ func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *floa
 			if err := txRepos.User.UpdateFields(u.ID, map[string]interface{}{"role": 2}); err != nil {
 				return err
 			}
+		}
+		if hasInviteCode {
+			consumed, cerr := txRepos.InviteCode.ConsumeWithTx(tx, strings.TrimSpace(*inviteCode))
+			if cerr != nil {
+				return cerr
+			}
+			t.ApprovalStatus = model.TeamApprovalApproved
+			// 创建团队后回填 team_id 到邀请码记录，便于追溯
+			defer func() {
+				if t.ID > 0 {
+					tx.Model(&model.InviteCode{}).Where("id = ?", consumed.ID).Update("team_id", t.ID)
+				}
+			}()
 		}
 		if err := txRepos.Team.Create(t); err != nil {
 			return err
