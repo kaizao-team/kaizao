@@ -1,3 +1,4 @@
+import '../../../shared/models/project_category.dart';
 import '../../../shared/models/project_model.dart';
 
 String _formatWholeAmount(num amount) {
@@ -22,13 +23,39 @@ class CategoryItem {
   });
 
   factory CategoryItem.fromJson(Map<String, dynamic> json) {
+    final key = json['key'] as String? ?? '';
+    final rawName = json['name'] as String? ?? '';
     return CategoryItem(
-      key: json['key'] as String? ?? '',
-      name: json['name'] as String? ?? '',
+      key: key,
+      name: _resolveCategoryName(rawName, key),
       icon: json['icon'] as String? ?? '',
       count: json['count'] as int? ?? 0,
     );
   }
+}
+
+const _homeCategoryLabelFallback = <String, String>{
+  'dev': '研发',
+  'data': '数据',
+  'visual': '视觉设计',
+  'design': '视觉设计',
+  'solution': '解决方案',
+  'content': '内容',
+  'consulting': '咨询',
+};
+
+String _resolveCategoryName(String rawName, String key) {
+  final trimmed = rawName.trim();
+  final looksLikeRawKey = trimmed.isEmpty ||
+      RegExp(r'^[a-zA-Z_]+$').hasMatch(trimmed);
+  if (!looksLikeRawKey) return trimmed;
+
+  final source = trimmed.isNotEmpty ? trimmed : key;
+  final normalized = source.toLowerCase();
+  if (supportsProjectCategory(normalized)) {
+    return projectCategoryLabel(normalized, fallback: source);
+  }
+  return _homeCategoryLabelFallback[normalized] ?? source;
 }
 
 class RecommendedExpert {
