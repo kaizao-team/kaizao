@@ -270,6 +270,9 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		// 评价管理
 		admin.GET("/reviews", handlers.Admin.ListReviews)
 		admin.PUT("/reviews/:uuid/status", handlers.Admin.UpdateReviewStatus)
+		// AI 模型配置
+		admin.GET("/ai-models", handlers.Admin.GetAIModelConfig)
+		admin.PUT("/ai-models", handlers.Admin.UpdateAIModelConfig)
 	}
 
 	// ==================== AI服务模块 ====================

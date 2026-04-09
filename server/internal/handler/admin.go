@@ -3,11 +3,15 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vibebuild/server/internal/config"
 	"github.com/vibebuild/server/internal/dto"
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
@@ -19,14 +23,21 @@ import (
 
 // AdminHandler 管理端（邀请码、入驻审核 + 全部 admin API）
 type AdminHandler struct {
-	authService  *service.AuthService
-	userService  *service.UserService
-	adminService *service.AdminService
-	log          *zap.Logger
+	authService    *service.AuthService
+	userService    *service.UserService
+	adminService   *service.AdminService
+	aiAgentBaseURL string
+	log            *zap.Logger
 }
 
-func NewAdminHandler(auth *service.AuthService, user *service.UserService, admin *service.AdminService, log *zap.Logger) *AdminHandler {
-	return &AdminHandler{authService: auth, userService: user, adminService: admin, log: log}
+func NewAdminHandler(auth *service.AuthService, user *service.UserService, admin *service.AdminService, aiCfg config.AIAgentConfig, log *zap.Logger) *AdminHandler {
+	return &AdminHandler{
+		authService:    auth,
+		userService:    user,
+		adminService:   admin,
+		aiAgentBaseURL: strings.TrimRight(strings.TrimSpace(aiCfg.BaseURL), "/"),
+		log:            log,
+	}
 }
 
 // ──────────── 邀请码 ────────────
@@ -702,6 +713,56 @@ func (h *AdminHandler) UpdateReviewStatus(c *gin.Context) {
 		return
 	}
 	response.SuccessMsg(c, "已更新", nil)
+}
+
+// ──────────── AI 模型配置（代理转发到 ai-agent） ────────────
+
+// GetAIModelConfig GET /admin/ai-models → ai-agent GET /api/v2/models/config
+func (h *AdminHandler) GetAIModelConfig(c *gin.Context) {
+	h.proxyAIAgent(c, http.MethodGet, "/api/v2/models/config", nil)
+}
+
+// UpdateAIModelConfig PUT /admin/ai-models → ai-agent PUT /api/v2/models/config
+func (h *AdminHandler) UpdateAIModelConfig(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "读取请求体失败")
+		return
+	}
+	h.proxyAIAgent(c, http.MethodPut, "/api/v2/models/config", body)
+}
+
+func (h *AdminHandler) proxyAIAgent(c *gin.Context, method, path string, body []byte) {
+	if h.aiAgentBaseURL == "" {
+		response.ErrorInternal(c, "ai-agent 未配置")
+		return
+	}
+	url := h.aiAgentBaseURL + path
+	var reqBody io.Reader
+	if body != nil {
+		reqBody = strings.NewReader(string(body))
+	}
+	req, err := http.NewRequestWithContext(c.Request.Context(), method, url, reqBody)
+	if err != nil {
+		response.ErrorInternal(c, fmt.Sprintf("构建请求失败: %v", err))
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if rid := c.GetString("request_id"); rid != "" {
+		req.Header.Set("X-Request-ID", rid)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		h.log.Warn("proxy_ai_agent_error", zap.Error(err))
+		response.ErrorInternal(c, "ai-agent 服务不可用")
+		return
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+
+	// 透传 ai-agent 的 JSON 响应
+	c.Data(resp.StatusCode, "application/json; charset=utf-8", raw)
 }
 
 // ──────────── helpers ────────────

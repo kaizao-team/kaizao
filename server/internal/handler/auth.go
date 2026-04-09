@@ -52,7 +52,7 @@ func NewHandlers(services *service.Services, cfg *config.Config, log *zap.Logger
 	}
 	return &Handlers{
 		Auth:         NewAuthHandler(services.Auth, log),
-		Admin:        NewAdminHandler(services.Auth, services.User, services.Admin, log),
+		Admin:        NewAdminHandler(services.Auth, services.User, services.Admin, cfg.AIAgent, log),
 		User:         NewUserHandler(services.User, services.Favorite, services.Repos, log),
 		Project:      NewProjectHandler(services.Project, services.ProjectFile, services.Milestone, log),
 		Home:         NewHomeHandler(services.Home, log),
