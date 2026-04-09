@@ -97,3 +97,9 @@ class MinioDocStore:
             if 'response' in locals():
                 response.close()
                 response.release_conn()
+
+    def remove(self, object_key: str) -> None:
+        """Delete object from MinIO bucket."""
+        client = self._ensure_client()
+        client.remove_object(self._bucket, object_key)
+        logger.info("minio_remove_ok", object_key=object_key)

@@ -194,6 +194,16 @@ class ProjectRepository:
                 for doc in q.scalars().all()
             ]
 
+    async def delete_documents_by_ids(self, doc_ids: list[int]) -> None:
+        """Delete ai_documents records by primary keys."""
+        if not doc_ids:
+            return
+        async with get_session_factory()() as session:
+            async with session.begin():
+                await session.execute(
+                    delete(AIDocument).where(AIDocument.id.in_(doc_ids))
+                )
+
     # ---- 智能撮合查询 ----
 
     async def get_project_for_matching(self, project_uuid: str) -> Optional[dict]:

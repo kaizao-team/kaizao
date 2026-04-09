@@ -57,7 +57,14 @@
 
         <el-tab-pane label="PRD 文档" name="prd">
           <div v-loading="loadingPrd" class="prd-panel">
-            <div v-if="prdText" class="prd-toolbar">
+            <div class="prd-toolbar">
+              <el-upload
+                :show-file-list="false"
+                :http-request="handlePrdUpload"
+                :disabled="prdUploading"
+              >
+                <el-button type="primary" size="small" :loading="prdUploading">覆盖 PRD</el-button>
+              </el-upload>
               <el-button type="primary" size="small" @click="downloadPrdText">下载 PRD</el-button>
             </div>
             <pre v-if="prdText" class="prd-text">{{ prdText }}</pre>
@@ -281,6 +288,7 @@ import {
   getProjectDetail,
   getProjectFiles,
   uploadProjectFile,
+  uploadProjectPrdDocument,
   getProjectBids,
   getProjectMilestones,
   getProjectTasks,
@@ -309,6 +317,7 @@ const prdText = ref('')
 const aiDocs = ref<Record<string, any>[]>([])
 const loadingPrd = ref(false)
 const tabPrdLoaded = ref(false)
+const prdUploading = ref(false)
 
 const files = ref<ProjectFile[]>([])
 const loadingFiles = ref(false)
@@ -388,6 +397,21 @@ function normalizePrdPayload(payload: unknown): string {
 
 async function loadPrd() {
   if (tabPrdLoaded.value) return
+  await refreshPrdAndDocs()
+  tabPrdLoaded.value = true
+}
+
+function normalizeAIDocPayload(payload: unknown): Record<string, any>[] {
+  if (Array.isArray(payload)) return payload as Record<string, any>[]
+  if (payload && typeof payload === 'object') {
+    const obj = payload as Record<string, unknown>
+    if (Array.isArray(obj.documents)) return obj.documents as Record<string, any>[]
+    if (Array.isArray(obj.list)) return obj.list as Record<string, any>[]
+  }
+  return []
+}
+
+async function refreshPrdAndDocs() {
   loadingPrd.value = true
   try {
     const [prdRes, docsRes] = await Promise.allSettled([
@@ -398,12 +422,9 @@ async function loadPrd() {
       prdText.value = normalizePrdPayload((prdRes.value as any)?.data)
     }
     if (docsRes.status === 'fulfilled') {
-      aiDocs.value = ((docsRes.value as any)?.data ?? []).map((d: any) => ({ ...d, _downloading: false }))
+      const docs = normalizeAIDocPayload((docsRes.value as any)?.data)
+      aiDocs.value = docs.map((d: any) => ({ ...d, _downloading: false }))
     }
-    tabPrdLoaded.value = true
-  } catch {
-    prdText.value = ''
-    aiDocs.value = []
   } finally {
     loadingPrd.value = false
   }
@@ -445,6 +466,23 @@ async function downloadAIDoc(row: Record<string, any>) {
     ElMessage.error('下载失败')
   } finally {
     row._downloading = false
+  }
+}
+
+async function handlePrdUpload(options: UploadRequestOptions) {
+  prdUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', options.file)
+    await uploadProjectPrdDocument(uuid, formData)
+    ElMessage.success('涓婁紶鎴愬姛')
+    options.onSuccess?.({})
+    await refreshPrdAndDocs()
+    tabPrdLoaded.value = true
+  } catch {
+    options.onError?.(new Error('upload failed') as any)
+  } finally {
+    prdUploading.value = false
   }
 }
 
@@ -697,6 +735,10 @@ onMounted(() => {
 }
 
 .prd-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 
