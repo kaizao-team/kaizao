@@ -176,17 +176,59 @@ class _BottomActions extends ConsumerWidget {
   }
 }
 
-class _DetailContent extends StatelessWidget {
+class _DetailContent extends StatefulWidget {
   final ProjectDetailState state;
   final String projectId;
 
   const _DetailContent({required this.state, required this.projectId});
 
   @override
-  Widget build(BuildContext context) {
-    final s = state;
+  State<_DetailContent> createState() => _DetailContentState();
+}
 
-    return CustomScrollView(
+class _DetailContentState extends State<_DetailContent>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _enterController;
+  late final Animation<double> _fadeIn;
+  late final Animation<Offset> _slideUp;
+
+  @override
+  void initState() {
+    super.initState();
+    _enterController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _fadeIn = CurvedAnimation(
+      parent: _enterController,
+      curve: Curves.easeOut,
+    );
+    _slideUp = Tween<Offset>(
+      begin: const Offset(0, 0.03),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _enterController,
+      curve: Curves.easeOutCubic,
+    ));
+    _enterController.forward();
+  }
+
+  @override
+  void dispose() {
+    _enterController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.state;
+    final projectId = widget.projectId;
+
+    return FadeTransition(
+      opacity: _fadeIn,
+      child: SlideTransition(
+        position: _slideUp,
+        child: CustomScrollView(
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
@@ -239,6 +281,8 @@ class _DetailContent extends StatelessWidget {
           ),
         ),
       ],
+    ),
+    ),
     );
   }
 
@@ -775,49 +819,52 @@ class _ProjectHeroSliver extends StatelessWidget {
                               ),
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 6,
-                                child: _HeroStat(
-                                  value: s.budgetDisplay,
-                                  label: '预算',
-                                  alignment: CrossAxisAlignment.start,
-                                  textAlign: TextAlign.left,
-                                  staggerIndex: 0,
+                          child: IntrinsicHeight(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _HeroStat(
+                                    value: s.budgetDisplay,
+                                    label: '预算',
+                                    alignment: CrossAxisAlignment.start,
+                                    textAlign: TextAlign.left,
+                                    staggerIndex: 0,
+                                  ),
                                 ),
-                              ),
-                              Container(
-                                width: 1,
-                                height: 34,
-                                color: Colors.white.withValues(alpha: 0.08),
-                              ),
-                              Expanded(
-                                flex: 4,
-                                child: _HeroStat(
-                                  value: s.viewCount.toString(),
-                                  label: '浏览',
-                                  alignment: CrossAxisAlignment.center,
-                                  textAlign: TextAlign.center,
-                                  staggerIndex: 1,
+                                Container(
+                                  width: 1,
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  color: Colors.white.withValues(alpha: 0.1),
                                 ),
-                              ),
-                              Container(
-                                width: 1,
-                                height: 34,
-                                color: Colors.white.withValues(alpha: 0.08),
-                              ),
-                              Expanded(
-                                flex: 4,
-                                child: _HeroStat(
-                                  value: s.bidCount.toString(),
-                                  label: '投标',
-                                  alignment: CrossAxisAlignment.end,
-                                  textAlign: TextAlign.right,
-                                  staggerIndex: 2,
+                                Expanded(
+                                  child: _HeroStat(
+                                    value: s.viewCount.toString(),
+                                    label: '浏览',
+                                    alignment: CrossAxisAlignment.center,
+                                    textAlign: TextAlign.center,
+                                    staggerIndex: 1,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                Container(
+                                  width: 1,
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                ),
+                                Expanded(
+                                  child: _HeroStat(
+                                    value: s.bidCount.toString(),
+                                    label: '投标',
+                                    alignment: CrossAxisAlignment.center,
+                                    textAlign: TextAlign.center,
+                                    staggerIndex: 2,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
