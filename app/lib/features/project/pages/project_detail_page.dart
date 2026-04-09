@@ -697,7 +697,13 @@ class _ProjectHeroSliver extends StatelessWidget {
                         Row(
                           children: [
                             GestureDetector(
-                              onTap: () => Navigator.of(context).maybePop(),
+                              onTap: () {
+                                if (Navigator.of(context).canPop()) {
+                                  Navigator.of(context).maybePop();
+                                } else {
+                                  context.go('/home');
+                                }
+                              },
                               behavior: HitTestBehavior.opaque,
                               child: Container(
                                 width: 38,

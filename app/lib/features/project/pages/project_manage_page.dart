@@ -5,6 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/project_models.dart';
+import '../providers/project_detail_provider.dart';
 import '../providers/project_manage_provider.dart';
 import '../widgets/progress_ring.dart';
 import '../widgets/kanban_board.dart';
@@ -33,12 +34,16 @@ class _ProjectManagePageState extends ConsumerState<ProjectManagePage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(projectManageProvider(widget.projectId));
+    final detailState = ref.watch(projectDetailProvider(widget.projectId));
+    final displayTitle = detailState.title.isNotEmpty
+        ? detailState.title
+        : (widget.projectTitle ?? '项目管理');
 
     return Scaffold(
       backgroundColor: AppColors.gray50,
       appBar: AppBar(
         title: Text(
-          widget.projectTitle ?? '项目管理',
+          displayTitle,
           style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
         actions: [

@@ -57,8 +57,11 @@ class ProjectDetailState {
     switch (category) {
       case 'dev': return '开发';
       case 'visual': return '视觉设计';
+      case 'design': return '视觉设计';
       case 'content': return '内容';
       case 'consulting': return '咨询';
+      case 'data': return '数据';
+      case 'solution': return '解决方案';
       default: return category.isNotEmpty ? category : '未分类';
     }
   }
