@@ -202,20 +202,20 @@ class _DetailContent extends StatelessWidget {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               VccPageSection(
-                label: 'OVERVIEW',
+                label: '概览',
                 child: _buildOverviewCard(s),
               ),
               if (s.prdSummary.isNotEmpty) ...[
                 const SizedBox(height: _kProjectSectionGap),
                 VccPageSection(
-                  label: 'PRD NOTE',
+                  label: '需求摘要',
                   child: _buildPrdSection(s),
                 ),
               ],
               if (s.milestones.isNotEmpty) ...[
                 const SizedBox(height: _kProjectSectionGap),
                 VccPageSection(
-                  label: 'MILESTONES',
+                  label: '里程碑',
                   trailing: s.progress > 0
                       ? Text(
                           '${s.progress}%',
@@ -231,7 +231,7 @@ class _DetailContent extends StatelessWidget {
               if (s.ownerName.isNotEmpty) ...[
                 const SizedBox(height: _kProjectSectionGap),
                 VccPageSection(
-                  label: 'OWNER',
+                  label: '项目方',
                   child: _buildOwnerCard(context, s),
                 ),
               ],
@@ -339,15 +339,15 @@ class _DetailContent extends StatelessWidget {
                   child: _ProjectInfoStrip(
                     items: [
                       _ProjectInfoSpec(
-                        label: 'CATEGORY',
+                        label: '分类',
                         value: s.categoryName,
                       ),
                       _ProjectInfoSpec(
-                        label: 'PUBLISHED',
+                        label: '发布于',
                         value: s.timeAgo.isNotEmpty ? s.timeAgo : '刚刚',
                       ),
                       _ProjectInfoSpec(
-                        label: 'STATUS',
+                        label: '状态',
                         value: s.statusName,
                       ),
                     ],
@@ -370,7 +370,7 @@ class _DetailContent extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'TECH REQUIREMENTS',
+                    '技术要求',
                     style: AppTextStyles.overline.copyWith(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -781,7 +781,7 @@ class _ProjectHeroSliver extends StatelessWidget {
                                 flex: 6,
                                 child: _HeroStat(
                                   value: s.budgetDisplay,
-                                  label: 'BUDGET',
+                                  label: '预算',
                                   alignment: CrossAxisAlignment.start,
                                   textAlign: TextAlign.left,
                                   staggerIndex: 0,
@@ -795,8 +795,8 @@ class _ProjectHeroSliver extends StatelessWidget {
                               Expanded(
                                 flex: 4,
                                 child: _HeroStat(
-                                  value: s.viewCount.toString().padLeft(2, '0'),
-                                  label: 'VIEWS',
+                                  value: s.viewCount.toString(),
+                                  label: '浏览',
                                   alignment: CrossAxisAlignment.center,
                                   textAlign: TextAlign.center,
                                   staggerIndex: 1,
@@ -810,8 +810,8 @@ class _ProjectHeroSliver extends StatelessWidget {
                               Expanded(
                                 flex: 4,
                                 child: _HeroStat(
-                                  value: s.bidCount.toString().padLeft(2, '0'),
-                                  label: 'BIDS',
+                                  value: s.bidCount.toString(),
+                                  label: '投标',
                                   alignment: CrossAxisAlignment.end,
                                   textAlign: TextAlign.right,
                                   staggerIndex: 2,
