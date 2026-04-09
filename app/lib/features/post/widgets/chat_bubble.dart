@@ -876,20 +876,13 @@ class AiTypingIndicator extends StatefulWidget {
   State<AiTypingIndicator> createState() => _AiTypingIndicatorState();
 }
 
-class _AiTypingIndicatorState extends State<AiTypingIndicator>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _dotsController;
+class _AiTypingIndicatorState extends State<AiTypingIndicator> {
   Timer? _messageTimer;
   int _messageIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _dotsController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-
     _messageTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       if (!mounted) return;
       setState(() {
@@ -902,7 +895,6 @@ class _AiTypingIndicatorState extends State<AiTypingIndicator>
   @override
   void dispose() {
     _messageTimer?.cancel();
-    _dotsController.dispose();
     super.dispose();
   }
 
@@ -945,53 +937,18 @@ class _AiTypingIndicatorState extends State<AiTypingIndicator>
                 bottomRight: Radius.circular(16),
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
-                  switchInCurve: Curves.easeIn,
-                  switchOutCurve: Curves.easeOut,
-                  child: Text(
-                    statusText,
-                    key: ValueKey<int>(_messageIndex),
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.gray500,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              switchInCurve: Curves.easeIn,
+              switchOutCurve: Curves.easeOut,
+              child: Text(
+                statusText,
+                key: ValueKey<int>(_messageIndex),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.gray500,
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(width: 6),
-                AnimatedBuilder(
-                  animation: _dotsController,
-                  builder: (context, _) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(3, (i) {
-                        final delay = i * 0.2;
-                        final value =
-                            ((_dotsController.value + delay) % 1.0);
-                        final opacity =
-                            value < 0.5 ? value * 2 : 2 - value * 2;
-                        return Padding(
-                          padding: EdgeInsets.only(left: i > 0 ? 3 : 0),
-                          child: Opacity(
-                            opacity: 0.3 + opacity * 0.7,
-                            child: Container(
-                              width: 4,
-                              height: 4,
-                              decoration: const BoxDecoration(
-                                color: AppColors.gray400,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    );
-                  },
-                ),
-              ],
+              ),
             ),
           ),
         ],
