@@ -1480,7 +1480,7 @@ class _BudgetStage extends StatelessWidget {
           border: Border.all(color: AppColors.gray200),
           child: MarketBudgetSlider(
             min: 0,
-            max: 50000,
+            max: 500000,
             currentMin: budgetMin,
             currentMax: budgetMax,
             onChanged: onChanged,
