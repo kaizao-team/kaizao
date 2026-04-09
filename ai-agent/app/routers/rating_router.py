@@ -585,3 +585,73 @@ async def adjust_points(provider_id: str, req: AdjustPointsRequest, request: Req
     except Exception as e:
         logger.error("rating_adjust_error", error=str(e), request_id=request_id)
         return APIResponse(code=50001, message=f"积分调整失败: {e}", request_id=request_id)
+
+
+# ============================================================
+# 7. 同步团队方档案（Go 后端回调，不触发 AI 评估）
+# ============================================================
+
+provider_sync_router = APIRouter(tags=["v2-团队方档案同步"])
+
+
+@provider_sync_router.post(
+    "/api/v2/providers/sync",
+    response_model=APIResponse,
+    summary="同步团队方档案（Go 后端调用）",
+)
+async def sync_provider_profile(request: Request):
+    """
+    接收 Go 后端传来的团队+技能数据，写入 ai_provider_profiles 并同步到 Milvus。
+    不触发 AI 评估，仅做数据落库和向量同步。
+    """
+    body = await request.json()
+    provider_id = body.get("provider_id") or body.get("team_uuid", "")
+    if not provider_id:
+        return APIResponse(code=400, message="missing provider_id or team_uuid")
+
+    user_id = body.get("user_id", provider_id)
+    display_name = body.get("display_name", "")
+    vibe_level = body.get("vibe_level", "vc-T1")
+    vibe_power = body.get("vibe_power", 0)
+
+    # Build skills JSON from raw skill names
+    raw_skills = body.get("skills", [])
+    skills_json = []
+    for s in raw_skills:
+        if isinstance(s, str):
+            skills_json.append({"name": s, "years": 0, "category": "other", "proficiency": "unknown"})
+        elif isinstance(s, dict):
+            skills_json.append(s)
+
+    profile_data = {
+        "id": provider_id,
+        "user_id": user_id,
+        "type": body.get("type", "team"),
+        "display_name": display_name,
+        "vibe_power": vibe_power,
+        "vibe_level": vibe_level,
+        "level_weight": body.get("level_weight", 1.0),
+        "skills": skills_json,
+        "experience_years": body.get("experience_years", 0),
+        "ai_tools": body.get("ai_tools", []),
+        "resume_summary": body.get("resume_summary", display_name),
+        "review_tags": body.get("review_tags", []),
+        "score_tech_depth": 0,
+        "score_project_exp": 0,
+        "score_ai_proficiency": 0,
+        "score_portfolio": 0,
+        "score_background": 0,
+        "total_projects": body.get("total_projects", 0),
+        "completed_projects": body.get("completed_projects", 0),
+        "avg_rating": body.get("avg_rating", 0),
+        "on_time_rate": body.get("on_time_rate", 0),
+    }
+
+    try:
+        await rating_repo.save_provider_profile(profile_data)
+        await _sync_provider_to_milvus(provider_id, profile_data)
+    except Exception as e:
+        logger.warning("provider_sync_failed", error=str(e), provider_id=provider_id)
+        return APIResponse(code=500, message=f"sync failed: {e}")
+
+    return APIResponse(code=0, message="success", data={"provider_id": provider_id})

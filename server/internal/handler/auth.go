@@ -63,7 +63,7 @@ func NewHandlers(services *service.Services, cfg *config.Config, log *zap.Logger
 		Order:        NewOrderHandler(services.Order, services.Wallet, log),
 		Wallet:       NewWalletHandler(services.Wallet, log),
 		Review:       NewReviewHandler(services.Review, log),
-		Team:         NewTeamHandler(services.Team, log),
+		Team:         NewTeamHandler(services.Team, aiClient, log),
 		Notification: NewNotificationHandler(services.Notification, log),
 		Upload:       NewUploadHandler(services.Upload, publicBase, log),
 	}

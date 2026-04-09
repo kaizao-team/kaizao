@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vibebuild/server/internal/dto"
+	"github.com/vibebuild/server/internal/pkg/aiagent"
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/pkg/response"
 	"github.com/vibebuild/server/internal/service"
@@ -101,11 +103,12 @@ func (h *ReviewHandler) ListByProject(c *gin.Context) {
 
 type TeamHandler struct {
 	teamService *service.TeamService
+	aiAgent     *aiagent.Client
 	log         *zap.Logger
 }
 
-func NewTeamHandler(teamService *service.TeamService, log *zap.Logger) *TeamHandler {
-	return &TeamHandler{teamService: teamService, log: log}
+func NewTeamHandler(teamService *service.TeamService, aiAgent *aiagent.Client, log *zap.Logger) *TeamHandler {
+	return &TeamHandler{teamService: teamService, aiAgent: aiAgent, log: log}
 }
 
 func (h *TeamHandler) ListTeams(c *gin.Context) {
@@ -168,6 +171,22 @@ func (h *TeamHandler) CreateTeam(c *gin.Context) {
 			response.ErrorInternal(c, "创建团队失败")
 		}
 		return
+	}
+
+	// Async sync to AI Agent provider profiles
+	if h.aiAgent != nil {
+		go func() {
+			skills := h.teamService.LeaderSkillNames(team.LeaderID)
+			_ = h.aiAgent.SyncProviderProfile(context.Background(), map[string]interface{}{
+				"provider_id":  team.UUID,
+				"user_id":      userUUID,
+				"display_name": team.Name,
+				"type":         "team",
+				"vibe_level":   team.VibeLevel,
+				"vibe_power":   team.VibePower,
+				"skills":       skills,
+			})
+		}()
 	}
 
 	response.SuccessMsg(c, "团队创建成功", gin.H{
