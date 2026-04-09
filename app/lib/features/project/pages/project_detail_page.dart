@@ -254,6 +254,20 @@ class _DetailContentState extends State<_DetailContent>
                   child: _buildPrdSection(s),
                 ),
               ],
+              if (s.prdItems.isNotEmpty) ...[
+                const SizedBox(height: _kProjectSectionGap),
+                VccPageSection(
+                  label: '需求条目',
+                  trailing: Text(
+                    '${s.prdItems.length} 条',
+                    style: AppTextStyles.caption.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gray400,
+                    ),
+                  ),
+                  child: _buildPrdItemCards(s.prdItems),
+                ),
+              ],
               if (s.milestones.isNotEmpty) ...[
                 const SizedBox(height: _kProjectSectionGap),
                 VccPageSection(
@@ -450,6 +464,127 @@ class _DetailContentState extends State<_DetailContent>
         ),
       ),
     );
+  }
+
+  Widget _buildPrdItemCards(List<Map<String, dynamic>> items) {
+    return Column(
+      children: items.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        final title = item['title']?.toString() ?? '';
+        final description = item['description']?.toString() ?? '';
+        final itemId = item['item_id']?.toString() ?? '';
+        final moduleName = item['module_name']?.toString() ?? '';
+        final priority = item['priority']?.toString().toUpperCase() ?? '';
+
+        return Padding(
+          padding: EdgeInsets.only(top: index == 0 ? 0 : 10),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.outlineVariant,
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (priority.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _priorityColor(priority).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          priority,
+                          style: AppTextStyles.caption.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: _priorityColor(priority),
+                          ),
+                        ),
+                      ),
+                    if (priority.isNotEmpty) const SizedBox(width: 8),
+                    if (moduleName.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceAlt,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          moduleName,
+                          style: AppTextStyles.caption.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.gray500,
+                          ),
+                        ),
+                      ),
+                    const Spacer(),
+                    if (itemId.isNotEmpty)
+                      Text(
+                        itemId,
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 11,
+                          color: AppColors.gray400,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: AppTextStyles.body1.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    style: AppTextStyles.body2.copyWith(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Color _priorityColor(String priority) {
+    switch (priority) {
+      case 'P0':
+        return AppColors.error;
+      case 'P1':
+        return AppColors.warning;
+      default:
+        return AppColors.gray400;
+    }
   }
 
   Widget _buildMilestoneSection(ProjectDetailState s) {
@@ -826,8 +961,8 @@ class _ProjectHeroSliver extends StatelessWidget {
                                   child: _HeroStat(
                                     value: s.budgetDisplay,
                                     label: '预算',
-                                    alignment: CrossAxisAlignment.start,
-                                    textAlign: TextAlign.left,
+                                    alignment: CrossAxisAlignment.center,
+                                    textAlign: TextAlign.center,
                                     staggerIndex: 0,
                                   ),
                                 ),
