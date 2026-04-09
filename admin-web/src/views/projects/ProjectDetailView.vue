@@ -57,6 +57,9 @@
 
         <el-tab-pane label="PRD 文档" name="prd">
           <div v-loading="loadingPrd" class="prd-panel">
+            <div v-if="prdText" class="prd-toolbar">
+              <el-button type="primary" size="small" @click="downloadPrdText">下载 PRD</el-button>
+            </div>
             <pre v-if="prdText" class="prd-text">{{ prdText }}</pre>
             <el-empty v-else-if="!loadingPrd" description="暂无 PRD 内容" :image-size="80" />
           </div>
@@ -284,7 +287,6 @@ import {
   getProjectReviews,
   getProjectPRD,
   getAIDocuments,
-  getAIDocumentDownloadUrl,
   reviewProject,
 } from '@/api/projects'
 import type { Project, ProjectFile } from '@/types/project'
@@ -407,16 +409,38 @@ async function loadPrd() {
   }
 }
 
+function downloadPrdText() {
+  if (!prdText.value) return
+  const title = project.value?.title || '项目'
+  const blob = new Blob([prdText.value], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${title}-PRD.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 async function downloadAIDoc(row: Record<string, any>) {
   row._downloading = true
   try {
-    const res: any = await getAIDocumentDownloadUrl(uuid, row.id)
-    const url = res?.data?.download_url
-    if (url) {
-      window.open(url, '_blank')
-    } else {
-      ElMessage.error('无法获取下载链接')
+    const token = localStorage.getItem('admin_token')
+    const baseURL = import.meta.env.VITE_API_BASE_URL || ''
+    const url = `${baseURL}/admin/projects/${uuid}/ai-documents/${row.id}/download`
+    const resp = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!resp.ok) {
+      ElMessage.error('下载失败')
+      return
     }
+    const blob = await resp.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = row.filename || 'document.md'
+    a.click()
+    URL.revokeObjectURL(blobUrl)
   } catch {
     ElMessage.error('下载失败')
   } finally {
@@ -670,6 +694,10 @@ onMounted(() => {
 
 .prd-panel {
   min-height: 200px;
+}
+
+.prd-toolbar {
+  margin-bottom: 12px;
 }
 
 .ai-docs-section {
