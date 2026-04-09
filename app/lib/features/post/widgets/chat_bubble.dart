@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -863,31 +865,51 @@ class _ChatBubbleState extends State<ChatBubble> {
 class AiTypingIndicator extends StatefulWidget {
   const AiTypingIndicator({super.key});
 
+  static const List<String> _statusMessages = [
+    '正在理解你的需求…',
+    '正在分析项目方向…',
+    '正在整理关键信息…',
+    '正在生成回复…',
+  ];
+
   @override
   State<AiTypingIndicator> createState() => _AiTypingIndicatorState();
 }
 
 class _AiTypingIndicatorState extends State<AiTypingIndicator>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  late AnimationController _dotsController;
+  Timer? _messageTimer;
+  int _messageIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _dotsController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat();
+
+    _messageTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!mounted) return;
+      setState(() {
+        _messageIndex =
+            (_messageIndex + 1) % AiTypingIndicator._statusMessages.length;
+      });
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _messageTimer?.cancel();
+    _dotsController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final statusText = AiTypingIndicator._statusMessages[_messageIndex];
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -913,37 +935,63 @@ class _AiTypingIndicatorState extends State<AiTypingIndicator>
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: const BoxDecoration(
               color: AppColors.gray100,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+                bottomLeft: Radius.circular(4),
+                bottomRight: Radius.circular(16),
+              ),
             ),
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(3, (i) {
-                    final delay = i * 0.2;
-                    final value = ((_controller.value + delay) % 1.0);
-                    final opacity = value < 0.5 ? value * 2 : 2 - value * 2;
-                    return Padding(
-                      padding: EdgeInsets.only(left: i > 0 ? 4 : 0),
-                      child: Opacity(
-                        opacity: 0.3 + opacity * 0.7,
-                        child: Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: AppColors.gray500,
-                            shape: BoxShape.circle,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  switchInCurve: Curves.easeIn,
+                  switchOutCurve: Curves.easeOut,
+                  child: Text(
+                    statusText,
+                    key: ValueKey<int>(_messageIndex),
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.gray500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                AnimatedBuilder(
+                  animation: _dotsController,
+                  builder: (context, _) {
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(3, (i) {
+                        final delay = i * 0.2;
+                        final value =
+                            ((_dotsController.value + delay) % 1.0);
+                        final opacity =
+                            value < 0.5 ? value * 2 : 2 - value * 2;
+                        return Padding(
+                          padding: EdgeInsets.only(left: i > 0 ? 3 : 0),
+                          child: Opacity(
+                            opacity: 0.3 + opacity * 0.7,
+                            child: Container(
+                              width: 4,
+                              height: 4,
+                              decoration: const BoxDecoration(
+                                color: AppColors.gray400,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      }),
                     );
-                  }),
-                );
-              },
+                  },
+                ),
+              ],
             ),
           ),
         ],
