@@ -273,6 +273,9 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		// AI 模型配置
 		admin.GET("/ai-models", handlers.Admin.GetAIModelConfig)
 		admin.PUT("/ai-models", handlers.Admin.UpdateAIModelConfig)
+		// AI 文档下载
+		admin.GET("/projects/:uuid/ai-documents", handlers.Admin.ListAIDocuments)
+		admin.GET("/projects/:uuid/ai-documents/:docId/download", handlers.Admin.DownloadAIDocument)
 	}
 
 	// ==================== AI服务模块 ====================

@@ -732,6 +732,21 @@ func (h *AdminHandler) UpdateAIModelConfig(c *gin.Context) {
 	h.proxyAIAgent(c, http.MethodPut, "/api/v2/models/config", body)
 }
 
+// ──────────── AI 文档下载（代理转发到 ai-agent） ────────────
+
+// ListAIDocuments GET /admin/projects/:uuid/ai-documents
+func (h *AdminHandler) ListAIDocuments(c *gin.Context) {
+	uuid := c.Param("uuid")
+	h.proxyAIAgent(c, http.MethodGet, "/api/v2/documents/"+uuid, nil)
+}
+
+// DownloadAIDocument GET /admin/projects/:uuid/ai-documents/:docId/download
+func (h *AdminHandler) DownloadAIDocument(c *gin.Context) {
+	uuid := c.Param("uuid")
+	docID := c.Param("docId")
+	h.proxyAIAgent(c, http.MethodGet, "/api/v2/documents/"+uuid+"/download/"+docID, nil)
+}
+
 func (h *AdminHandler) proxyAIAgent(c *gin.Context, method, path string, body []byte) {
 	if h.aiAgentBaseURL == "" {
 		response.ErrorInternal(c, "ai-agent 未配置")
