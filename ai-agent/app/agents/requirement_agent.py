@@ -92,6 +92,13 @@ class RequirementAgent(ToolUseBaseAgent):
                 self._persist_prd_items(self._project_id, prd)
                 # 持久化项目级概览信息 → 写入 ai_project_overview
                 self._persist_project_overview(self._project_id, prd, complexity)
+                # 保存 PRD markdown 到 MinIO / 文件系统
+                md_preview = tool_input.get("markdown_preview", "")
+                if md_preview:
+                    path = self.doc_writer.save_document(
+                        self._project_id, "requirement.md", md_preview, stage="requirement",
+                    )
+                    logger.info("prd_document_saved", project_id=self._project_id, path=path)
             return "PRD 已生成，等待用户确认。"
 
         elif tool_name == "decompose_to_ears":
