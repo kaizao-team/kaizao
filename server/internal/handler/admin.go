@@ -747,6 +747,12 @@ func (h *AdminHandler) DownloadAIDocument(c *gin.Context) {
 	h.proxyAIAgent(c, http.MethodGet, "/api/v2/documents/"+uuid+"/download/"+docID, nil)
 }
 
+// UploadProjectPRDDocument PUT /admin/projects/:uuid/prd/document
+func (h *AdminHandler) UploadProjectPRDDocument(c *gin.Context) {
+	uuid := c.Param("uuid")
+	h.proxyAIAgentMultipart(c, http.MethodPut, "/api/v2/documents/"+uuid+"/prd/document")
+}
+
 func (h *AdminHandler) proxyAIAgent(c *gin.Context, method, path string, body []byte) {
 	if h.aiAgentBaseURL == "" {
 		response.ErrorInternal(c, "ai-agent 未配置")
@@ -781,6 +787,39 @@ func (h *AdminHandler) proxyAIAgent(c *gin.Context, method, path string, body []
 }
 
 // ──────────── helpers ────────────
+
+func (h *AdminHandler) proxyAIAgentMultipart(c *gin.Context, method, path string) {
+	if h.aiAgentBaseURL == "" {
+		response.ErrorInternal(c, "ai-agent not configured")
+		return
+	}
+	url := h.aiAgentBaseURL + path
+	req, err := http.NewRequestWithContext(c.Request.Context(), method, url, c.Request.Body)
+	if err != nil {
+		response.ErrorInternal(c, fmt.Sprintf("build request failed: %v", err))
+		return
+	}
+	if ct := strings.TrimSpace(c.GetHeader("Content-Type")); ct != "" {
+		req.Header.Set("Content-Type", ct)
+	}
+	if rid := c.GetString("request_id"); rid != "" {
+		req.Header.Set("X-Request-ID", rid)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		h.log.Warn("proxy_ai_agent_multipart_error", zap.Error(err))
+		response.ErrorInternal(c, "ai-agent service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	contentType := strings.TrimSpace(resp.Header.Get("Content-Type"))
+	if contentType == "" {
+		contentType = "application/json; charset=utf-8"
+	}
+	c.Data(resp.StatusCode, contentType, raw)
+}
 
 func maskPhone(phone string) string {
 	if len(phone) < 7 {

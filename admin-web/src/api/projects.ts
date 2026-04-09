@@ -49,3 +49,9 @@ export function getAIDocuments(uuid: string) {
 export function getAIDocumentDownloadUrl(uuid: string, docId: number) {
   return request.get(`/admin/projects/${uuid}/ai-documents/${docId}/download`)
 }
+
+export function uploadProjectPrdDocument(uuid: string, formData: FormData) {
+  return request.put(`/admin/projects/${uuid}/prd/document`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
