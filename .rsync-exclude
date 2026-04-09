@@ -1,0 +1,25 @@
+# 部署 rsync 排除规则
+# 用法: rsync -avz --exclude-from=.rsync-exclude ...
+
+# 环境配置（本地和生产不同，禁止覆盖）
+.env
+.env.local
+.env.production
+
+# 缓存和临时文件
+__pycache__
+*.pyc
+.git
+.venv
+venv
+node_modules
+outputs/
+
+# IDE
+.idea
+.vscode
+.cursor
+
+# 测试数据
+test_*.py
+**/tests/
