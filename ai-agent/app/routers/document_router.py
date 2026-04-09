@@ -1,17 +1,23 @@
 """
 开造 VibeBuild — AI 文档下载路由
 
-管理端通过此接口查询项目 AI 文档列表，直接返回文件内容供前端下载。
+管理端通过此接口查询项目 AI 文档列表，返回 MinIO 预签名下载 URL。
 """
+
+import os
 
 import structlog
 from fastapi import APIRouter
 
+from app.config import settings
 from app.schemas.common import APIResponse
 
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/api/v2/documents", tags=["documents"])
+
+# MinIO 外网地址，如 47.236.165.75:39531
+MINIO_PUBLIC_ENDPOINT = os.getenv("MINIO_PUBLIC_ENDPOINT", "")
 
 
 @router.get("/{project_id}")
@@ -29,7 +35,7 @@ async def list_project_documents(project_id: str):
 
 @router.get("/{project_id}/download/{doc_id}")
 async def download_document(project_id: str, doc_id: int):
-    """读取文档内容并返回，前端用 Blob 下载"""
+    """返回文档的 MinIO 预签名下载 URL"""
     try:
         from app.db.repository import ProjectRepository
         repo = ProjectRepository()
@@ -40,32 +46,21 @@ async def download_document(project_id: str, doc_id: int):
             return APIResponse(code=404, message="文档不存在", data=None)
 
         file_path = doc["file_path"]
-        filename = doc["filename"]
 
-        # 优先从 MinIO 读取
         from app.main import v2_minio_store
         if v2_minio_store:
             try:
-                content_bytes = v2_minio_store.get_object(file_path)
-                content = content_bytes.decode("utf-8")
+                url = v2_minio_store.download_url(file_path, expires_hours=1)
+                # 将内网地址替换为外网可访问地址
+                if MINIO_PUBLIC_ENDPOINT:
+                    internal = f"http://{settings.minio_endpoint}"
+                    url = url.replace(internal, f"http://{MINIO_PUBLIC_ENDPOINT}")
                 return APIResponse(
                     code=0, message="success",
-                    data={"content": content, "filename": filename},
+                    data={"download_url": url, "filename": doc["filename"]},
                 )
             except Exception as e:
-                logger.warning("minio_get_object_failed", error=str(e))
-
-        # 降级：本地文件读取
-        from app.main import v2_doc_writer
-        if v2_doc_writer:
-            content = v2_doc_writer.read_document(
-                project_id, filename, doc.get("version")
-            )
-            if content:
-                return APIResponse(
-                    code=0, message="success",
-                    data={"content": content, "filename": filename},
-                )
+                logger.warning("minio_presign_failed", error=str(e))
 
         return APIResponse(code=404, message="文档文件不可用", data=None)
 

@@ -57,7 +57,12 @@
 
         <el-tab-pane label="PRD 文档" name="prd">
           <div v-loading="loadingPrd" class="prd-panel">
-            <el-table v-if="aiDocs.length" :data="aiDocs" stripe>
+            <pre v-if="prdText" class="prd-text">{{ prdText }}</pre>
+            <el-empty v-else-if="!loadingPrd" description="暂无 PRD 内容" :image-size="80" />
+          </div>
+          <div v-if="aiDocs.length" class="ai-docs-section">
+            <h3 class="sub-title">AI 生成文档</h3>
+            <el-table :data="aiDocs" stripe size="small">
               <el-table-column prop="filename" label="文件名" min-width="200" />
               <el-table-column prop="stage" label="阶段" width="120" />
               <el-table-column label="版本" width="80" align="center">
@@ -77,7 +82,6 @@
                 </template>
               </el-table-column>
             </el-table>
-            <el-empty v-else description="暂无 AI 生成文档" :image-size="80" />
           </div>
         </el-tab-pane>
 
@@ -278,6 +282,7 @@ import {
   getProjectMilestones,
   getProjectTasks,
   getProjectReviews,
+  getProjectPRD,
   getAIDocuments,
   getAIDocumentDownloadUrl,
   reviewProject,
@@ -298,6 +303,7 @@ const reviewLoading = ref(false)
 const closeDialogVisible = ref(false)
 const closeReason = ref('')
 
+const prdText = ref('')
 const aiDocs = ref<Record<string, any>[]>([])
 const loadingPrd = ref(false)
 const tabPrdLoaded = ref(false)
@@ -360,14 +366,41 @@ async function loadProject() {
   }
 }
 
+function normalizePrdPayload(payload: unknown): string {
+  if (payload == null) return ''
+  if (typeof payload === 'string') return payload
+  if (typeof payload === 'object') {
+    const o = payload as Record<string, unknown>
+    if (typeof o.content === 'string') return o.content
+    if (typeof o.body === 'string') return o.body
+    if (typeof o.markdown === 'string') return o.markdown
+    if (typeof o.text === 'string') return o.text
+    if (typeof o.data === 'string') return o.data
+  }
+  try {
+    return JSON.stringify(payload, null, 2)
+  } catch {
+    return String(payload)
+  }
+}
+
 async function loadPrd() {
   if (tabPrdLoaded.value) return
   loadingPrd.value = true
   try {
-    const res: any = await getAIDocuments(uuid)
-    aiDocs.value = (res?.data ?? []).map((d: any) => ({ ...d, _downloading: false }))
+    const [prdRes, docsRes] = await Promise.allSettled([
+      getProjectPRD(uuid),
+      getAIDocuments(uuid),
+    ])
+    if (prdRes.status === 'fulfilled') {
+      prdText.value = normalizePrdPayload((prdRes.value as any)?.data)
+    }
+    if (docsRes.status === 'fulfilled') {
+      aiDocs.value = ((docsRes.value as any)?.data ?? []).map((d: any) => ({ ...d, _downloading: false }))
+    }
     tabPrdLoaded.value = true
   } catch {
+    prdText.value = ''
     aiDocs.value = []
   } finally {
     loadingPrd.value = false
@@ -378,17 +411,9 @@ async function downloadAIDoc(row: Record<string, any>) {
   row._downloading = true
   try {
     const res: any = await getAIDocumentDownloadUrl(uuid, row.id)
-    const data = res?.data
-    if (data?.download_url) {
-      window.open(data.download_url, '_blank')
-    } else if (data?.content) {
-      const blob = new Blob([data.content], { type: 'text/markdown;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = data.filename || row.filename || 'document.md'
-      a.click()
-      URL.revokeObjectURL(url)
+    const url = res?.data?.download_url
+    if (url) {
+      window.open(url, '_blank')
     } else {
       ElMessage.error('无法获取下载链接')
     }
@@ -647,8 +672,10 @@ onMounted(() => {
   min-height: 200px;
 }
 
-.prd-toolbar {
-  margin-bottom: 12px;
+.ai-docs-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .prd-text {
