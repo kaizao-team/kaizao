@@ -866,23 +866,29 @@ class AiTypingIndicator extends StatefulWidget {
   const AiTypingIndicator({super.key});
 
   static const List<String> _statusMessages = [
-    '正在理解你的需求…',
-    '正在分析项目方向…',
-    '正在整理关键信息…',
-    '正在生成回复…',
+    '正在理解你的需求',
+    '正在分析项目方向',
+    '正在整理关键信息',
+    '正在生成回复',
   ];
 
   @override
   State<AiTypingIndicator> createState() => _AiTypingIndicatorState();
 }
 
-class _AiTypingIndicatorState extends State<AiTypingIndicator> {
+class _AiTypingIndicatorState extends State<AiTypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _dotsController;
   Timer? _messageTimer;
   int _messageIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _dotsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
     _messageTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       if (!mounted) return;
       setState(() {
@@ -895,6 +901,7 @@ class _AiTypingIndicatorState extends State<AiTypingIndicator> {
   @override
   void dispose() {
     _messageTimer?.cancel();
+    _dotsController.dispose();
     super.dispose();
   }
 
@@ -937,18 +944,52 @@ class _AiTypingIndicatorState extends State<AiTypingIndicator> {
                 bottomRight: Radius.circular(16),
               ),
             ),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              switchInCurve: Curves.easeIn,
-              switchOutCurve: Curves.easeOut,
-              child: Text(
-                statusText,
-                key: ValueKey<int>(_messageIndex),
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.gray500,
-                  fontWeight: FontWeight.w500,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  switchInCurve: Curves.easeIn,
+                  switchOutCurve: Curves.easeOut,
+                  child: Text(
+                    statusText,
+                    key: ValueKey<int>(_messageIndex),
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.gray500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 6),
+                AnimatedBuilder(
+                  animation: _dotsController,
+                  builder: (context, _) {
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(3, (i) {
+                        final phase =
+                            ((_dotsController.value + i * 0.2) % 1.0);
+                        final opacity =
+                            phase < 0.5 ? phase * 2 : 2 - phase * 2;
+                        return Padding(
+                          padding: EdgeInsets.only(left: i > 0 ? 3 : 0),
+                          child: Opacity(
+                            opacity: 0.3 + opacity * 0.7,
+                            child: Container(
+                              width: 4,
+                              height: 4,
+                              decoration: const BoxDecoration(
+                                color: AppColors.gray400,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ],
