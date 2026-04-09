@@ -103,10 +103,13 @@ class RequirementAgent(ToolUseBaseAgent):
 
         elif tool_name == "decompose_to_ears":
             self._sub_stage = "tasks_ready"
-            # 解析 ears_tasks → 写入 ai_ears_tasks
+            # EARS 任务直接写 Go 的 tasks 表，里程碑写 Go 的 milestones 表
             if self._project_id:
                 tasks = tool_input.get("ears_tasks", [])
-                self._persist_ears_tasks(self._project_id, tasks)
+                milestones = tool_input.get("milestones", [])
+                self._persist_ears_to_go_tasks(self._project_id, tasks)
+                if milestones:
+                    self._persist_milestones_to_go(self._project_id, milestones)
             # 自动保存文档
             md_content = tool_input.get("markdown_preview", "")
             if md_content and self._project_id:
@@ -193,7 +196,7 @@ class RequirementAgent(ToolUseBaseAgent):
 
     @staticmethod
     def _persist_ears_tasks(project_id: str, tasks: list[dict]) -> None:
-        """解析 ears_tasks，异步写入 ai_ears_tasks"""
+        """[DEPRECATED] 旧的 ai_ears_tasks 落库，保留供兼容，新流程请用 _persist_ears_to_go_tasks"""
         import asyncio
 
         if not tasks:
@@ -206,6 +209,52 @@ class RequirementAgent(ToolUseBaseAgent):
                 await repo.save_ears_tasks(project_id, tasks)
             except Exception as e:
                 logger.warning("persist_ears_tasks_failed", error=str(e))
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_do())
+        except RuntimeError:
+            pass
+
+    @staticmethod
+    def _persist_ears_to_go_tasks(project_id: str, tasks: list[dict]) -> None:
+        """EARS 任务直接写入 Go 的 tasks 表（使用 projects.uuid 关联到内部 bigint id）"""
+        import asyncio
+
+        if not tasks:
+            return
+
+        async def _do():
+            try:
+                from app.db.repository import GoTasksRepository
+                repo = GoTasksRepository()
+                count = await repo.save_ears_to_tasks(project_id, tasks)
+                logger.info("ears_tasks_written_to_go", project_id=project_id, count=count)
+            except Exception as e:
+                logger.warning("persist_ears_to_go_tasks_failed", project_id=project_id, error=str(e))
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_do())
+        except RuntimeError:
+            pass
+
+    @staticmethod
+    def _persist_milestones_to_go(project_id: str, milestones: list[dict]) -> None:
+        """AI 规划的里程碑直接写入 Go 的 milestones 表"""
+        import asyncio
+
+        if not milestones:
+            return
+
+        async def _do():
+            try:
+                from app.db.repository import GoTasksRepository
+                repo = GoTasksRepository()
+                count = await repo.save_milestones_to_go(project_id, milestones)
+                logger.info("milestones_written_to_go", project_id=project_id, count=count)
+            except Exception as e:
+                logger.warning("persist_milestones_to_go_failed", project_id=project_id, error=str(e))
 
         try:
             loop = asyncio.get_running_loop()

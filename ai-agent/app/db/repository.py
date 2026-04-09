@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional
 
 import structlog
-from sqlalchemy import select, delete, update
+from sqlalchemy import select, delete, update, text as sqlalchemy_text
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 
 from app.db.engine import get_session_factory
@@ -643,6 +643,143 @@ class ProjectRepository:
                 }
                 for r in q.scalars().all()
             ]
+
+
+class GoTasksRepository:
+    """直接写 Go 后端的 tasks / milestones 表（共享同一 MySQL）"""
+
+    async def _get_project_internal_id(self, project_uuid: str) -> Optional[int]:
+        """通过 projects.uuid 查 projects.id（Go 的 bigint 主键）"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(Project.id).where(Project.uuid == project_uuid)
+            )
+            row = q.scalar_one_or_none()
+            return row
+
+    async def save_ears_to_tasks(self, project_uuid: str, tasks: list[dict]) -> int:
+        """EARS 任务直接写入 Go 的 tasks 表"""
+        import uuid as uuid_mod
+
+        project_id = await self._get_project_internal_id(project_uuid)
+        if not project_id:
+            logger.warning("go_tasks_skip_no_project", project_uuid=project_uuid)
+            return 0
+
+        async with get_session_factory()() as session:
+            async with session.begin():
+                count = 0
+                for idx, task in enumerate(tasks):
+                    task_uuid = str(uuid_mod.uuid4())
+                    task_code = task.get("task_id", f"T-{idx+1}")
+                    ears_type = task.get("ears_type", "story")
+                    ears_statement = task.get("ears_statement", "")
+                    feature_item_id = task.get("feature_item_id", "")
+                    module = task.get("module", "")
+                    role_tag = task.get("role_tag", "fullstack")
+                    priority = task.get("priority", 2)
+                    estimated_hours = task.get("estimated_hours")
+
+                    # EARS statement 拆分为 trigger + behavior
+                    ears_trigger = None
+                    ears_behavior = ears_statement
+                    if "，系统应当" in ears_statement:
+                        parts = ears_statement.split("，系统应当", 1)
+                        ears_trigger = parts[0]
+                        ears_behavior = "系统应当" + parts[1]
+                    elif "系统应当" in ears_statement:
+                        ears_behavior = ears_statement
+
+                    title = task.get("title", ears_behavior[:200] if ears_behavior else f"任务 {idx+1}")
+
+                    acceptance = task.get("acceptance_criteria")
+                    if isinstance(acceptance, list):
+                        acceptance = json.dumps(acceptance, ensure_ascii=False)
+                    elif acceptance is None:
+                        acceptance = None
+
+                    deps = task.get("dependencies")
+                    if isinstance(deps, list):
+                        deps = json.dumps(deps, ensure_ascii=False)
+                    elif deps is None:
+                        deps = None
+
+                    await session.execute(
+                        sqlalchemy_text(
+                            """INSERT INTO tasks
+                            (uuid, project_id, task_code, title, ears_type,
+                             ears_trigger, ears_behavior, ears_full_text, module,
+                             role_tag, priority, estimated_hours,
+                             acceptance_criteria, dependencies,
+                             status, sort_order, is_ai_generated, ai_confidence, created_at, updated_at)
+                            VALUES
+                            (:uuid, :project_id, :task_code, :title, :ears_type,
+                             :ears_trigger, :ears_behavior, :ears_full_text, :module,
+                             :role_tag, :priority, :estimated_hours,
+                             :acceptance_criteria, :dependencies,
+                             1, :sort_order, 1, 0.85, NOW(), NOW())
+                            """
+                        ),
+                        {
+                            "uuid": task_uuid,
+                            "project_id": project_id,
+                            "task_code": task_code,
+                            "title": title[:200],
+                            "ears_type": ears_type,
+                            "ears_trigger": ears_trigger,
+                            "ears_behavior": ears_behavior,
+                            "ears_full_text": ears_statement,
+                            "module": module[:100] if module else None,
+                            "role_tag": role_tag[:50] if role_tag else "fullstack",
+                            "priority": priority if isinstance(priority, int) else 2,
+                            "estimated_hours": estimated_hours,
+                            "acceptance_criteria": acceptance,
+                            "dependencies": deps,
+                            "sort_order": idx,
+                        },
+                    )
+                    count += 1
+                return count
+
+    async def save_milestones_to_go(self, project_uuid: str, milestones: list[dict]) -> int:
+        """AI 规划的里程碑直接写入 Go 的 milestones 表"""
+        import uuid as uuid_mod
+
+        project_id = await self._get_project_internal_id(project_uuid)
+        if not project_id:
+            logger.warning("go_milestones_skip_no_project", project_uuid=project_uuid)
+            return 0
+
+        async with get_session_factory()() as session:
+            async with session.begin():
+                count = 0
+                for idx, ms in enumerate(milestones):
+                    ms_uuid = str(uuid_mod.uuid4())
+                    title = ms.get("title", f"里程碑 {idx+1}")
+                    description = ms.get("description", "")
+                    payment_ratio = ms.get("payment_ratio")
+
+                    await session.execute(
+                        sqlalchemy_text(
+                            """INSERT INTO milestones
+                            (uuid, project_id, title, description, sort_order,
+                             payment_ratio, status, created_at, updated_at)
+                            VALUES
+                            (:uuid, :project_id, :title, :description, :sort_order,
+                             :payment_ratio, 1, NOW(), NOW())
+                            """
+                        ),
+                        {
+                            "uuid": ms_uuid,
+                            "project_id": project_id,
+                            "title": title[:200],
+                            "description": description,
+                            "sort_order": idx,
+                            "payment_ratio": payment_ratio,
+                        },
+                    )
+                    count += 1
+                return count
 
 
 class RatingRepository:
