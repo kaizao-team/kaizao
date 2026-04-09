@@ -23,13 +23,12 @@ logger = structlog.get_logger()
 
 # 默认维度覆盖度（全零）
 DEFAULT_DIMENSION_COVERAGE = {
-    "product_scope": 0,
+    "product_positioning": 0,
     "target_users": 0,
-    "core_features": 0,
+    "core_modules": 0,
+    "business_flow": 0,
     "tech_preference": 0,
-    "business_goal": 0,
-    "mvp_scope": 0,
-    "constraints": 0,
+    "delivery_expectation": 0,
 }
 
 

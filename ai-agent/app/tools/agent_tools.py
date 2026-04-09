@@ -17,7 +17,7 @@ ASK_CLARIFICATION_TOOL = {
             },
             "completeness_score": {
                 "type": "integer",
-                "description": "当前需求完整度评分 0-100，计算公式: sum(dimension_i × weight_i)，所有维度 ≥ 50% 且总分 ≥ 70 才触发 PRD",
+                "description": "当前需求完整度评分 0-100，计算公式: 产品定位×0.15 + 用户画像×0.15 + 核心功能模块×0.15 + 业务流程×0.25 + 技术偏好×0.10 + 预期排期×0.20。所有维度 ≥ 60 且总分 ≥ 75 才触发 PRD",
                 "minimum": 0,
                 "maximum": 100,
             },
@@ -38,13 +38,12 @@ ASK_CLARIFICATION_TOOL = {
                         "category": {
                             "type": "string",
                             "enum": [
-                                "product_scope",
+                                "product_positioning",
                                 "target_users",
-                                "core_features",
+                                "core_modules",
+                                "business_flow",
                                 "tech_preference",
-                                "business_goal",
-                                "mvp_scope",
-                                "constraints",
+                                "delivery_expectation",
                             ],
                             "description": "问题所属需求维度",
                         },
@@ -109,23 +108,29 @@ ASK_CLARIFICATION_TOOL = {
                 "type": "object",
                 "description": "各需求维度的覆盖度（0-100），用于展示进度",
                 "properties": {
-                    "product_scope": {
+                    "product_positioning": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "产品定位与边界（权重 20%）",
+                        "description": "产品定位（权重 15%）",
                     },
                     "target_users": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "用户画像（权重 15%）",
+                        "description": "用户画像与痛点（权重 15%）",
                     },
-                    "core_features": {
+                    "core_modules": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "核心功能列表（权重 20%）",
+                        "description": "核心功能模块（权重 15%）",
+                    },
+                    "business_flow": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "业务流程（权重 25%，最核心维度）",
                     },
                     "tech_preference": {
                         "type": "integer",
@@ -133,23 +138,11 @@ ASK_CLARIFICATION_TOOL = {
                         "maximum": 100,
                         "description": "技术偏好（权重 10%）",
                     },
-                    "business_goal": {
+                    "delivery_expectation": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "商业目标（权重 10%）",
-                    },
-                    "mvp_scope": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 100,
-                        "description": "MVP 范围与优先级（权重 15%）",
-                    },
-                    "constraints": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 100,
-                        "description": "约束条件（权重 10%）",
+                        "description": "预期排期（权重 20%）",
                     },
                 },
             },
