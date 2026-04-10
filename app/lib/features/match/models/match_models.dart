@@ -24,7 +24,9 @@ class BidItem {
   final int durationDays;
   final String proposal;
   final String bidType;
+  final String? teamId;
   final String? teamName;
+  final String? teamAvatarUrl;
   final List<TeamMember> teamMembers;
   final bool isAiRecommended;
   final List<String> skills;
@@ -43,7 +45,9 @@ class BidItem {
     required this.durationDays,
     required this.proposal,
     required this.bidType,
+    this.teamId,
     this.teamName,
+    this.teamAvatarUrl,
     this.teamMembers = const [],
     required this.isAiRecommended,
     this.skills = const [],
@@ -67,7 +71,9 @@ class BidItem {
         durationDays: durationDays,
         proposal: proposal,
         bidType: bidType,
+        teamId: teamId,
         teamName: teamName,
+        teamAvatarUrl: teamAvatarUrl,
         teamMembers: teamMembers,
         isAiRecommended: isAiRecommended,
         skills: skills,
@@ -88,7 +94,9 @@ class BidItem {
       durationDays: (json['duration_days'] as num?)?.toInt() ?? 0,
       proposal: json['proposal']?.toString() ?? '',
       bidType: json['bid_type']?.toString() ?? 'personal',
+      teamId: json['team_id']?.toString(),
       teamName: json['team_name']?.toString(),
+      teamAvatarUrl: json['team_avatar_url']?.toString(),
       teamMembers: (json['team_members'] as List?)
               ?.whereType<Map<String, dynamic>>()
               .map((m) => TeamMember.fromJson(m))
@@ -107,13 +115,26 @@ class BidItem {
 class TeamMember {
   final String name;
   final String role;
+  final String? userId;
+  final String? avatarUrl;
 
-  const TeamMember({required this.name, required this.role});
+  const TeamMember({
+    required this.name,
+    required this.role,
+    this.userId,
+    this.avatarUrl,
+  });
 
   factory TeamMember.fromJson(Map<String, dynamic> json) {
     return TeamMember(
-      name: json['name']?.toString() ?? '',
-      role: json['role']?.toString() ?? '',
+      name: json['nickname']?.toString() ??
+          json['name']?.toString() ??
+          '',
+      role: json['role_in_team']?.toString() ??
+          json['role']?.toString() ??
+          '',
+      userId: json['user_id']?.toString(),
+      avatarUrl: json['avatar_url']?.toString(),
     );
   }
 }
