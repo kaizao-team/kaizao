@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../home/providers/home_provider.dart';
+import '../../onboarding/providers/onboarding_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 
 String _formatMaskedPhone(String? phone) {
@@ -214,6 +216,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     if (confirmed != true) return;
                     if (!context.mounted) return;
                     await ref.read(authStateProvider.notifier).logout();
+                    ref.invalidate(profileProvider('me'));
+                    ref.invalidate(homeStateProvider);
+                    ref.invalidate(onboardingProvider);
                   },
                 ),
                 const SizedBox(height: 14),
