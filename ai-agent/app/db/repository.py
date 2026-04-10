@@ -638,26 +638,19 @@ class GoTasksRepository:
                     description = ms.get("description", "")
                     payment_ratio = ms.get("payment_ratio")
                     estimated_days = ms.get("estimated_days") or 0
-                    feature_item_ids = ms.get("feature_item_ids")
-                    task_ids = ms.get("task_ids")
-                    phases = ms.get("phases")
 
-                    # 计算截止日期
+                    # 计算截止日期：从今天起按 estimated_days 累加
                     due_date = cursor_date + timedelta(days=int(estimated_days)) if estimated_days else None
                     if estimated_days:
                         cursor_date = due_date
 
-                    # JSON 序列化（task_ids 合并到 feature_item_ids 存储，前端统一展示）
-                    feature_ids_json = json.dumps(feature_item_ids, ensure_ascii=False) if feature_item_ids else None
-                    phases_json = json.dumps(phases, ensure_ascii=False) if phases else None
-
                     await session.execute(
                         sqlalchemy_text(
                             """INSERT INTO milestones
-                            (uuid, project_id, title, description, feature_item_ids, phases,
+                            (uuid, project_id, title, description,
                              estimated_days, due_date, sort_order, payment_ratio, status, created_at, updated_at)
                             VALUES
-                            (:uuid, :project_id, :title, :description, :feature_item_ids, :phases,
+                            (:uuid, :project_id, :title, :description,
                              :estimated_days, :due_date, :sort_order, :payment_ratio, 1, NOW(), NOW())
                             """
                         ),
@@ -666,8 +659,6 @@ class GoTasksRepository:
                             "project_id": project_id,
                             "title": title[:200],
                             "description": description,
-                            "feature_item_ids": feature_ids_json,
-                            "phases": phases_json,
                             "estimated_days": estimated_days,
                             "due_date": due_date,
                             "sort_order": idx,

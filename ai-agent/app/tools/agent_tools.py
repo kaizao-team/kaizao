@@ -261,38 +261,16 @@ DECOMPOSE_TO_EARS_TOOL = {
             },
             "milestones": {
                 "type": "array",
-                "description": "里程碑计划，每个里程碑覆盖一组 EARS 子任务",
+                "description": "里程碑计划，按项目交付阶段划分：内部对齐→设计→开发→测试→验收交付，共 5 个里程碑。每个里程碑是一个交付阶段，根据项目预期时间合理分配天数。",
                 "items": {
                     "type": "object",
                     "properties": {
-                        "title": {"type": "string", "description": "里程碑名称，通俗易懂，如'用户注册登录 + 基础框架'"},
-                        "description": {"type": "string", "description": "里程碑目标描述，面向项目方"},
-                        "task_ids": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "包含的 EARS 子任务 ID 列表，如 ['T-001', 'T-002']（必须与 ears_tasks 中的 task_id 对应）",
-                        },
-                        "feature_item_ids": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "关联的需求条目 ID 列表（由 task_ids 推导，如 ['F-1.1', 'F-1.2']）",
-                        },
-                        "phases": {
-                            "type": "array",
-                            "description": "内部阶段拆分，团队执行节奏",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {"type": "string", "description": "阶段名：内部对齐/开发/测试/验收交付"},
-                                    "days": {"type": "number", "description": "该阶段预计天数"},
-                                },
-                                "required": ["name", "days"],
-                            },
-                        },
-                        "estimated_days": {"type": "number", "description": "该里程碑预估总天数（= phases 各阶段天数之和）"},
-                        "payment_ratio": {"type": "number", "description": "支付比例，如 0.4 表示 40%，所有里程碑 payment_ratio 总和必须等于 1"},
+                        "title": {"type": "string", "description": "阶段名称：内部对齐 / 设计 / 开发 / 测试 / 验收交付"},
+                        "description": {"type": "string", "description": "该阶段的目标和交付物描述，面向项目方"},
+                        "estimated_days": {"type": "number", "description": "该阶段预估天数"},
+                        "payment_ratio": {"type": "number", "description": "支付比例，如 0.2 表示 20%，所有里程碑 payment_ratio 总和必须等于 1"},
                     },
-                    "required": ["title", "description", "task_ids", "feature_item_ids", "phases", "estimated_days", "payment_ratio"],
+                    "required": ["title", "description", "estimated_days", "payment_ratio"],
                 },
             },
             "markdown_preview": {

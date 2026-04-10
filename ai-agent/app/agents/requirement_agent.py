@@ -421,12 +421,13 @@ class RequirementAgent(ToolUseBaseAgent):
         base = (
             "需求双方已确认合作，请使用 decompose_to_ears 工具完成以下任务：\n"
             "1. 将 PRD 拆解为 EARS 最小任务单元（ears_tasks），每个任务有唯一 task_id（如 T-001）\n"
-            "2. 规划里程碑（milestones），每个里程碑通过 task_ids 关联一组 EARS 子任务（不是需求条目），包含内部阶段：内部对齐→开发→测试→验收交付\n"
-            "3. 里程碑的 feature_item_ids 由 task_ids 对应的需求条目推导得出\n"
-            "4. 所有里程碑的 payment_ratio 总和必须等于 1\n"
+            "2. 规划里程碑（milestones），按项目交付阶段划分为 5 个里程碑：内部对齐→设计→开发→测试→验收交付\n"
+            "   - 每个里程碑是一个交付阶段，不要按需求条目或子任务分组\n"
+            "   - 根据项目复杂度合理分配各阶段天数\n"
+            "3. 所有里程碑的 payment_ratio 总和必须等于 1\n"
         )
         if agreed_days:
-            base += f"5. 项目预期交付时间为 {agreed_days} 天，所有里程碑天数总和不得超过此值\n"
+            base += f"4. 项目预期交付时间为 {agreed_days} 天，所有里程碑天数总和不得超过此值\n"
         return base
 
     async def decompose_ears_stream(
