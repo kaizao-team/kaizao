@@ -91,6 +91,10 @@ class RequirementAgent(ToolUseBaseAgent):
                 self._persist_prd_items(self._project_id, prd)
                 # 持久化项目级概览信息 → 写入 ai_project_overview
                 self._persist_project_overview(self._project_id, prd, complexity)
+                # 写入预期交付天数到 projects.agreed_days
+                delivery_days = tool_input.get("estimated_delivery_days")
+                if delivery_days:
+                    self._persist_agreed_days(self._project_id, delivery_days)
                 # 保存 PRD markdown 到 MinIO / 文件系统
                 md_preview = tool_input.get("markdown_preview", "")
                 if md_preview:
@@ -153,6 +157,26 @@ class RequirementAgent(ToolUseBaseAgent):
                 await repo.save_prd_items(project_id, items)
             except Exception as e:
                 logger.warning("persist_prd_items_failed", error=str(e))
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_do())
+        except RuntimeError:
+            pass
+
+    @staticmethod
+    def _persist_agreed_days(project_id: str, days: int) -> None:
+        """将预期交付天数写入 projects.agreed_days"""
+        import asyncio
+
+        async def _do():
+            try:
+                from app.db.repository import ProjectRepository
+                repo = ProjectRepository()
+                await repo.update_project_agreed_days(project_id, days)
+                logger.info("agreed_days_saved", project_id=project_id, days=days)
+            except Exception as e:
+                logger.warning("persist_agreed_days_failed", error=str(e))
 
         try:
             loop = asyncio.get_running_loop()
@@ -331,10 +355,23 @@ class RequirementAgent(ToolUseBaseAgent):
             }, ensure_ascii=False),
         }
 
+    @staticmethod
+    def _build_decompose_instruction(agreed_days: int | None = None) -> str:
+        base = (
+            "需求双方已确认合作，请使用 decompose_to_ears 工具完成以下任务：\n"
+            "1. 将 PRD 拆解为 EARS 最小任务单元（ears_tasks）\n"
+            "2. 规划里程碑（milestones），每个里程碑覆盖一组相关需求条目，包含内部阶段：内部对齐→开发→测试→验收交付\n"
+            "3. 所有里程碑的 payment_ratio 总和必须等于 1\n"
+        )
+        if agreed_days:
+            base += f"4. 项目预期交付时间为 {agreed_days} 天，所有里程碑天数总和不得超过此值\n"
+        return base
+
     async def decompose_ears_stream(
         self,
         project_id: str,
         messages: list[dict],
+        agreed_days: int | None = None,
     ):
         """流式 EARS 拆解（确认合作后调用），yield SSE 事件"""
         self._project_id = project_id
@@ -343,7 +380,7 @@ class RequirementAgent(ToolUseBaseAgent):
 
         messages.append({
             "role": "user",
-            "content": "需求双方已确认合作，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
+            "content": self._build_decompose_instruction(agreed_days),
         })
 
         async for event in self.run_stream(messages=messages, max_tokens=16384):
@@ -362,6 +399,7 @@ class RequirementAgent(ToolUseBaseAgent):
         self,
         project_id: str,
         messages: list[dict],
+        agreed_days: int | None = None,
     ) -> tuple[list[dict], dict[str, Any], str, int]:
         """EARS 拆解（确认合作后调用）"""
         self._project_id = project_id
@@ -370,7 +408,7 @@ class RequirementAgent(ToolUseBaseAgent):
 
         messages.append({
             "role": "user",
-            "content": "需求双方已确认合作，请使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元，并使用 save_document 保存完整的 requirement.md 文档。",
+            "content": self._build_decompose_instruction(agreed_days),
         })
 
         updated_messages, last_tool = await self.run(

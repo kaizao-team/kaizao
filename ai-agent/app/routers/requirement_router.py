@@ -204,6 +204,14 @@ async def decompose_ears(project_id: str, request: Request):
 
         session_id = state.session_id or f"req-{project_id}"
 
+        # 读取预期交付天数
+        agreed_days = None
+        try:
+            from app.db.repository import ProjectRepository as _PR
+            agreed_days = await _PR().get_project_agreed_days(project_id)
+        except Exception as e:
+            logger.warning("decompose_read_agreed_days_skip", error=str(e))
+
         # 读取 PRD 文档和结构化需求条目，构建拆解上下文
         prd_context_parts = []
 
@@ -249,6 +257,7 @@ async def decompose_ears(project_id: str, request: Request):
                 updated_msgs, tool_result, sub_stage, score = await v2_requirement_agent.decompose_ears(
                     project_id=project_id,
                     messages=history,
+                    agreed_days=agreed_days,
                 )
                 await v2_session.save_history(session_id, updated_msgs)
                 bg_state = await v2_orchestrator.get_project(project_id)
@@ -397,12 +406,21 @@ async def decompose_ears_stream(project_id: str, request: Request):
                 yield {"event": "error", "data": f"项目 {project_id} 不存在"}
                 return
 
+            # 读取预期交付天数
+            agreed_days = None
+            try:
+                from app.db.repository import ProjectRepository as _PR
+                agreed_days = await _PR().get_project_agreed_days(project_id)
+            except Exception:
+                pass
+
             session_id = state.session_id or f"req-{project_id}"
             history = await v2_session.get_history(session_id)
 
             async for event in v2_requirement_agent.decompose_ears_stream(
                 project_id=project_id,
                 messages=history,
+                agreed_days=agreed_days,
             ):
                 yield event
 

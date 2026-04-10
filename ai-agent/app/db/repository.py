@@ -146,6 +146,25 @@ class ProjectRepository:
                     delete(AIProjectStage).where(AIProjectStage.project_id == project_id)
                 )
 
+    async def update_project_agreed_days(self, project_uuid: str, days: int) -> None:
+        """更新 projects.agreed_days（预期交付天数）"""
+        async with get_session_factory()() as session:
+            async with session.begin():
+                await session.execute(
+                    sqlalchemy_text("UPDATE projects SET agreed_days = :days, updated_at = NOW() WHERE uuid = :uuid"),
+                    {"days": days, "uuid": project_uuid},
+                )
+
+    async def get_project_agreed_days(self, project_uuid: str) -> int | None:
+        """读取 projects.agreed_days"""
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                sqlalchemy_text("SELECT agreed_days FROM projects WHERE uuid = :uuid"),
+                {"uuid": project_uuid},
+            )
+            row = q.first()
+            return row[0] if row and row[0] is not None else None
+
     # ---- 文档记录 ----
 
     async def save_document_record(
@@ -592,7 +611,7 @@ class GoTasksRepository:
                 return count
 
     async def save_milestones_to_go(self, project_uuid: str, milestones: list[dict]) -> int:
-        """AI 规划的里程碑直接写入 Go 的 milestones 表"""
+        """AI 规划的里程碑直接写入 Go 的 milestones 表（含扩展字段）"""
         import uuid as uuid_mod
 
         project_id = await self._get_project_internal_id(project_uuid)
@@ -602,7 +621,7 @@ class GoTasksRepository:
 
         async with get_session_factory()() as session:
             async with session.begin():
-                # 清除旧里程碑（status=1 待开始，即 AI 生成未手动修改的）
+                # 清除旧里程碑
                 await session.execute(
                     sqlalchemy_text("DELETE FROM milestones WHERE project_id = :pid"),
                     {"pid": project_id},
@@ -613,15 +632,22 @@ class GoTasksRepository:
                     title = ms.get("title", f"里程碑 {idx+1}")
                     description = ms.get("description", "")
                     payment_ratio = ms.get("payment_ratio")
+                    estimated_days = ms.get("estimated_days")
+                    feature_item_ids = ms.get("feature_item_ids")
+                    phases = ms.get("phases")
+
+                    # JSON 序列化
+                    feature_ids_json = json.dumps(feature_item_ids, ensure_ascii=False) if feature_item_ids else None
+                    phases_json = json.dumps(phases, ensure_ascii=False) if phases else None
 
                     await session.execute(
                         sqlalchemy_text(
                             """INSERT INTO milestones
-                            (uuid, project_id, title, description, sort_order,
-                             payment_ratio, status, created_at, updated_at)
+                            (uuid, project_id, title, description, feature_item_ids, phases,
+                             estimated_days, sort_order, payment_ratio, status, created_at, updated_at)
                             VALUES
-                            (:uuid, :project_id, :title, :description, :sort_order,
-                             :payment_ratio, 1, NOW(), NOW())
+                            (:uuid, :project_id, :title, :description, :feature_item_ids, :phases,
+                             :estimated_days, :sort_order, :payment_ratio, 1, NOW(), NOW())
                             """
                         ),
                         {
@@ -629,6 +655,9 @@ class GoTasksRepository:
                             "project_id": project_id,
                             "title": title[:200],
                             "description": description,
+                            "feature_item_ids": feature_ids_json,
+                            "phases": phases_json,
+                            "estimated_days": estimated_days,
                             "sort_order": idx,
                             "payment_ratio": payment_ratio,
                         },

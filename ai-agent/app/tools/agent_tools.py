@@ -209,12 +209,18 @@ GENERATE_PRD_TOOL = {
                 },
                 "required": ["title", "summary", "target_users", "feature_modules", "tech_requirements", "non_functional_requirements"],
             },
+            "estimated_delivery_days": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 90,
+                "description": "基于用户沟通确认的预期交付天数。如果用户明确说了时间就用用户的，否则根据复杂度推算：S=7, M=14, L=21, XL=30",
+            },
             "markdown_preview": {
                 "type": "string",
                 "description": "完整的 Markdown 格式 PRD 文档预览",
             },
         },
-        "required": ["agent_message", "completeness_score", "complexity", "prd", "markdown_preview"],
+        "required": ["agent_message", "completeness_score", "complexity", "prd", "estimated_delivery_days", "markdown_preview"],
     },
 }
 
@@ -253,12 +259,43 @@ DECOMPOSE_TO_EARS_TOOL = {
                     "required": ["task_id", "feature_item_id", "ears_type", "ears_statement", "module", "role_tag", "priority", "acceptance_criteria"],
                 },
             },
+            "milestones": {
+                "type": "array",
+                "description": "里程碑计划，需求层粒度，每个里程碑覆盖一组需求条目",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string", "description": "里程碑名称，通俗易懂，如'用户注册登录 + 基础框架'"},
+                        "description": {"type": "string", "description": "里程碑目标描述，面向项目方"},
+                        "feature_item_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "包含的需求条目 ID 列表，如 ['F-1.1', 'F-1.2']",
+                        },
+                        "phases": {
+                            "type": "array",
+                            "description": "内部阶段拆分，团队执行节奏",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string", "description": "阶段名：内部对齐/开发/测试/验收交付"},
+                                    "days": {"type": "number", "description": "该阶段预计天数"},
+                                },
+                                "required": ["name", "days"],
+                            },
+                        },
+                        "estimated_days": {"type": "number", "description": "该里程碑预估总天数（= phases 各阶段天数之和）"},
+                        "payment_ratio": {"type": "number", "description": "支付比例，如 0.4 表示 40%，所有里程碑 payment_ratio 总和必须等于 1"},
+                    },
+                    "required": ["title", "description", "feature_item_ids", "phases", "estimated_days", "payment_ratio"],
+                },
+            },
             "markdown_preview": {
                 "type": "string",
-                "description": "包含 PRD + EARS 的完整 requirement.md 内容",
+                "description": "包含 PRD + EARS + 里程碑的完整 requirement.md 内容",
             },
         },
-        "required": ["agent_message", "ears_tasks", "markdown_preview"],
+        "required": ["agent_message", "ears_tasks", "milestones", "markdown_preview"],
     },
 }
 
