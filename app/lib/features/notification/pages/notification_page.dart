@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/widgets/vcc_editorial_app_bar.dart';
 import '../../../shared/widgets/vcc_filter_chip_bar.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../models/notification_models.dart';
@@ -130,33 +131,70 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
     final showGroupHeaders = _filter == _NotificationFilter.all ||
         _filter == _NotificationFilter.unread;
 
+    final filterOptions = _NotificationFilter.values
+        .map(
+          (item) => VccFilterChipOption<_NotificationFilter>(
+            value: item,
+            label: item.label,
+          ),
+        )
+        .toList(growable: false);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: AppColors.black,
-          onRefresh: () => ref.read(notificationProvider.notifier).refresh(),
-          child: CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
+      body: RefreshIndicator(
+        color: AppColors.black,
+        onRefresh: () => ref.read(notificationProvider.notifier).refresh(),
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: [
+            VccEditorialAppBar(
+              title: '通知',
+              subtitle: state.unreadCount > 0
+                  ? '${state.unreadCount} 条未读'
+                  : null,
+              trailing: state.unreadCount > 0
+                  ? TextButton(
+                      onPressed: () => ref
+                          .read(notificationProvider.notifier)
+                          .markAllAsRead(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.black,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        '全部已读',
+                        style: AppTextStyles.body2.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                  child: _NotificationHero(
-                    unreadCount: state.unreadCount,
-                    filter: _filter,
-                    onFilterChanged: (next) => setState(() => _filter = next),
-                    onMarkAllRead: state.unreadCount > 0
-                        ? () => ref
-                            .read(notificationProvider.notifier)
-                            .markAllAsRead()
-                        : null,
-                  ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                ),
+                child: VccFilterChipBar<_NotificationFilter>(
+                  options: filterOptions,
+                  selectedValue: _filter,
+                  onSelected: (next) => setState(() => _filter = next),
+                  padding: EdgeInsets.zero,
                 ),
               ),
+            ),
               if (state.isLoading && state.notifications.isEmpty)
                 const SliverFillRemaining(
                   hasScrollBody: false,
@@ -222,102 +260,6 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _NotificationHero extends StatelessWidget {
-  final int unreadCount;
-  final _NotificationFilter filter;
-  final ValueChanged<_NotificationFilter> onFilterChanged;
-  final VoidCallback? onMarkAllRead;
-
-  const _NotificationHero({
-    required this.unreadCount,
-    required this.filter,
-    required this.onFilterChanged,
-    required this.onMarkAllRead,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final filterOptions = _NotificationFilter.values
-        .map(
-          (item) => VccFilterChipOption<_NotificationFilter>(
-            value: item,
-            label: item.label,
-          ),
-        )
-        .toList(growable: false);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Text(
-                '通知',
-                style: AppTextStyles.h1.copyWith(
-                  fontSize: 32,
-                  letterSpacing: -0.8,
-                  height: 1,
-                ),
-              ),
-            ),
-            if (unreadCount > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.black,
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  child: Text(
-                    '$unreadCount 条未读',
-                    style: AppTextStyles.caption.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.white,
-                    ),
-                  ),
-                ),
-              ),
-            if (onMarkAllRead != null) ...[
-              const SizedBox(width: 10),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 1),
-                child: TextButton(
-                  onPressed: onMarkAllRead,
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.black,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    '全部已读',
-                    style: AppTextStyles.body2.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 20),
-        VccFilterChipBar<_NotificationFilter>(
-          options: filterOptions,
-          selectedValue: filter,
-          onSelected: onFilterChanged,
-          padding: EdgeInsets.zero,
-        ),
-      ],
     );
   }
 }
@@ -325,6 +267,7 @@ class _NotificationHero extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   final String label;
   final int? count;
+
 
   const _SectionHeader({
     required this.label,
