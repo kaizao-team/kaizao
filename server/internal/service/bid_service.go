@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -306,7 +305,6 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		TargetUUID:       &acceptTargetUUID,
 	}
 
-	var createdPayOrd *model.Order
 	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
 		txRepos := repository.NewRepositories(tx)
 		bid.Status = 2
@@ -397,25 +395,20 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 			return err
 		}
 
-		payOrd, errOrd := s.orderSvc.createPendingProjectOrderWithRepos(txRepos, project.ID, project.OwnerID, providerID, bid.Price)
-		if errOrd != nil {
-			code, _ := strconv.Atoi(errOrd.Error())
-			if code != errcode.ErrOrderAlreadyExists {
-				s.log.Error("AcceptBid: create order", zap.Error(errOrd))
-				return errOrd
-			}
-			payOrd = nil
-		}
-		createdPayOrd = payOrd
+		// 支付通道尚未上线，暂不自动创建订单和发送付款通知
+		// payOrd, errOrd := s.orderSvc.createPendingProjectOrderWithRepos(txRepos, project.ID, project.OwnerID, providerID, bid.Price)
+		// if errOrd != nil {
+		// 	code, _ := strconv.Atoi(errOrd.Error())
+		// 	if code != errcode.ErrOrderAlreadyExists {
+		// 		s.log.Error("AcceptBid: create order", zap.Error(errOrd))
+		// 		return errOrd
+		// 	}
+		// 	payOrd = nil
+		// }
+		// createdPayOrd = payOrd
 		return nil
 	}); err != nil {
 		return nil, err
-	}
-
-	if createdPayOrd != nil {
-		if err := s.orderSvc.NotifyPayerPendingOrder(project.OwnerID, createdPayOrd, projectTitle); err != nil {
-			s.log.Error("AcceptBid: payment notify", zap.Error(err))
-		}
 	}
 
 	return bid, nil
