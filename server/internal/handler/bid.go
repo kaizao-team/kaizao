@@ -69,12 +69,6 @@ func (h *BidHandler) ListBids(c *gin.Context) {
 		response.ErrorNotFound(c, errcode.ErrProjectNotFound, "项目不存在")
 		return
 	}
-	// 查项目关联的 bid_id，用于标识 QuickMatch 推荐的 bid
-	project, _ := h.projectService.PeekByUUID(projectID)
-	var matchedBidID int64
-	if project != nil && project.BidID != nil {
-		matchedBidID = *project.BidID
-	}
 	list := make([]gin.H, 0, len(bids))
 	for _, b := range bids {
 		item := gin.H{
@@ -107,7 +101,7 @@ func (h *BidHandler) ListBids(c *gin.Context) {
 			item["rating"] = b.Bidder.AvgRating
 			item["completion_rate"] = b.Bidder.CompletionRate
 		}
-		item["is_ai_recommended"] = matchedBidID > 0 && b.ID == matchedBidID
+		item["is_ai_recommended"] = b.IsAIRecommended
 		list = append(list, item)
 	}
 	response.Success(c, list)

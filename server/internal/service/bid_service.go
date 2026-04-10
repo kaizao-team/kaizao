@@ -600,13 +600,14 @@ func (s *BidService) QuickMatch(ownerUUID, projectUUID, providerUUID string, pro
 		prop := buildQuickMatchProposal(matchScore, reason)
 		tid := providerTeamID
 		bid = &model.Bid{
-			ProjectID:     project.ID,
-			BidderID:      &provider.ID,
-			TeamID:        &tid,
-			Price:         pickQuickMatchPrice(project),
-			EstimatedDays: 14,
-			Proposal:      &prop,
-			Status:        1,
+			ProjectID:       project.ID,
+			BidderID:        &provider.ID,
+			TeamID:          &tid,
+			Price:           pickQuickMatchPrice(project),
+			EstimatedDays:   14,
+			Proposal:        &prop,
+			Status:          1,
+			IsAIRecommended: true,
 		}
 		if err := s.repos.Bid.Create(bid); err != nil {
 			return nil, err
