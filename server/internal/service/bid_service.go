@@ -89,6 +89,50 @@ func (s *BidService) RecommendationTeamForUserID(userID int64, maxMembers int) (
 	return team, out, nil
 }
 
+// SimpleMatchResult 简化匹配结果
+type SimpleMatchResult struct {
+	User       *model.User
+	Team       *model.Team
+	Members    []map[string]interface{}
+	MatchScore float64
+	Reason     string
+}
+
+// SimpleMatchProviders 按预算+级别简化匹配团队方
+func (s *BidService) SimpleMatchProviders(budgetMax float64, limit int) ([]SimpleMatchResult, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	users, err := s.repos.User.ListProvidersByBudgetAndLevel(budgetMax, limit)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]SimpleMatchResult, 0, len(users))
+	for _, u := range users {
+		team, memberMaps, err := s.RecommendationTeamForUserID(u.ID, recommendationTeamMembersMax)
+		if err != nil {
+			s.log.Warn("simple_match_team_resolve_failed", zap.Int64("user_id", u.ID), zap.Error(err))
+			continue
+		}
+		if team == nil {
+			continue
+		}
+		// match_score: level * 10 (max 50) + avg_rating * 10 (max 50) = 0~100
+		score := float64(u.Level)*10 + u.AvgRating*10
+		if score > 100 {
+			score = 100
+		}
+		results = append(results, SimpleMatchResult{
+			User:       u,
+			Team:       team,
+			Members:    memberMaps,
+			MatchScore: score,
+			Reason:     "团队级别高、评价好，预算匹配",
+		})
+	}
+	return results, nil
+}
+
 func (s *BidService) ListByProject(projectUUID string) ([]*model.Bid, error) {
 	project, err := s.repos.Project.FindByUUID(projectUUID)
 	if err != nil {
