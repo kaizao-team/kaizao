@@ -102,7 +102,8 @@ class BidItem {
               .map((m) => TeamMember.fromJson(m))
               .toList() ??
           [],
-      isAiRecommended: json['is_ai_recommended'] as bool? ?? false,
+      isAiRecommended: json['is_ai_recommended'] as bool? ??
+          (json['proposal']?.toString().startsWith('【AI快速匹配】') ?? false),
       skills:
           (json['skills'] as List?)?.map((e) => e.toString()).toList() ?? [],
       createdAt: json['created_at']?.toString() ?? '',

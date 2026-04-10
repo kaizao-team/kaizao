@@ -207,11 +207,18 @@ class BidCard extends StatelessWidget {
               ],
               if (!isOwner && bid.isPending) ...[
                 const SizedBox(width: 8),
-                _ActionButton(
-                  label: '选 TA',
-                  isPrimary: true,
-                  onTap: onAccept,
-                ),
+                if (bid.isAiRecommended)
+                  _ActionButton(
+                    label: '等待团队确认',
+                    isPrimary: false,
+                    onTap: null,
+                  )
+                else
+                  _ActionButton(
+                    label: '选 TA',
+                    isPrimary: true,
+                    onTap: onAccept,
+                  ),
               ],
             ],
           ),

@@ -76,6 +76,7 @@ func (h *BidHandler) ListBids(c *gin.Context) {
 			"bid_amount":    b.Price,
 			"duration_days": b.EstimatedDays,
 			"proposal":      b.Proposal,
+			"status":        b.Status,
 			"skills":        []string{},
 			"created_at":    b.CreatedAt,
 		}

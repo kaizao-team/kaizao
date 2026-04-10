@@ -11,7 +11,7 @@ class MarketBudgetSlider extends StatefulWidget {
   const MarketBudgetSlider({
     super.key,
     this.min = 0,
-    this.max = 500000,
+    this.max = 200000,
     this.currentMin,
     this.currentMax,
     required this.onChanged,
@@ -99,7 +99,7 @@ class _MarketBudgetSliderState extends State<MarketBudgetSlider> {
             values: _values,
             min: widget.min,
             max: widget.max,
-            divisions: 50,
+            divisions: 200,
             labels: RangeLabels(
               '¥${_values.start.toStringAsFixed(0)}',
               '¥${_values.end.toStringAsFixed(0)}',
