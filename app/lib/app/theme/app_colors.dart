@@ -70,6 +70,11 @@ class AppColors {
   static const Color info = Color(0xFF3B82F6);
   static const Color infoBg = Color(0xFFEFF6FF);
 
+  // Semantic foreground — for icons/text on semantic backgrounds
+  static const Color warningForeground = Color(0xFFB45309);
+  static const Color infoForeground = Color(0xFF1D4ED8);
+  static const Color badgeRed = Color(0xFFFF5A5F);
+
   // ============================================================
   // 语义色 — 深色模式
   // ============================================================
@@ -229,6 +234,7 @@ class AppSpacing {
   static const double base = 16;
   static const double lg = 20;
   static const double xl = 24;
+  static const double section = 28; // default section gap (page rhythm)
   static const double xxl = 32;
   static const double xxxl = 48;
 }
@@ -243,6 +249,7 @@ class AppRadius {
   static const double lg = 16;
   static const double xl = 20;
   static const double xxl = 24;
+  static const double xxxl = 30; // Market featured card only
   static const double full = 999;
 }
 

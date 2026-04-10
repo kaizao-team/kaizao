@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/home_models.dart';
 import 'home_section_header.dart';
 
@@ -111,13 +112,13 @@ class _FeaturedCategoryTile extends StatelessWidget {
     return Material(
       color: AppColors.black,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         side: BorderSide(color: AppColors.black.withValues(alpha: 0.04)),
       ),
       shadowColor: AppColors.black.withValues(alpha: 0.08),
       elevation: 1,
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
@@ -133,7 +134,7 @@ class _FeaturedCategoryTile extends StatelessWidget {
                     height: 36,
                     decoration: BoxDecoration(
                       color: AppColors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     alignment: Alignment.center,
                     child: const Icon(
@@ -149,10 +150,8 @@ class _FeaturedCategoryTile extends StatelessWidget {
                 category.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 28,
+                style: AppTextStyles.h1.copyWith(
                   height: 1.05,
-                  fontWeight: FontWeight.w700,
                   color: AppColors.white,
                 ),
               ),
@@ -161,9 +160,9 @@ class _FeaturedCategoryTile extends StatelessWidget {
                 category.count > 0 ? '${category.count} 个项目正在浏览' : '直接进入项目广场',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: AppTextStyles.body2.copyWith(
                   fontSize: 13,
-                  color: Color.fromRGBO(255, 255, 255, 0.72),
+                  color: const Color.fromRGBO(255, 255, 255, 0.72),
                 ),
               ),
             ],
@@ -185,13 +184,13 @@ class _CategoryFocusTile extends StatelessWidget {
     return Material(
       color: AppColors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         side: const BorderSide(color: _categoryTileBorderColor),
       ),
       shadowColor: AppColors.black.withValues(alpha: 0.04),
       elevation: 1,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: onTap,
         child: SizedBox(
           height: 146,
@@ -206,11 +205,10 @@ class _CategoryFocusTile extends StatelessWidget {
                   category.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: AppTextStyles.h2.copyWith(
                     fontSize: 21,
                     height: 1.15,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.black,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -221,8 +219,7 @@ class _CategoryFocusTile extends StatelessWidget {
                         category.count > 0 ? '${category.count} 个项目' : '直接进入广场',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.caption.copyWith(
                           color: AppColors.gray500,
                         ),
                       ),
@@ -254,11 +251,11 @@ class _SideCategoryTile extends StatelessWidget {
     return Material(
       color: AppColors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         side: const BorderSide(color: _categoryTileBorderColor),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: onTap,
         child: SizedBox(
           height: 68,
@@ -275,8 +272,7 @@ class _SideCategoryTile extends StatelessWidget {
                         category.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: AppTextStyles.body2.copyWith(
                           height: 1.25,
                           fontWeight: FontWeight.w700,
                           color: AppColors.black,
@@ -287,7 +283,7 @@ class _SideCategoryTile extends StatelessWidget {
                         category.count > 0 ? '${category.count} 个项目' : '直接进入广场',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: AppTextStyles.overline.copyWith(
                           fontSize: 11,
                           color: AppColors.gray500,
                         ),
@@ -324,11 +320,11 @@ class _CompactCategoryLink extends StatelessWidget {
     return Material(
       color: AppColors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         side: const BorderSide(color: _categoryTileBorderColor),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         onTap: onTap,
         child: SizedBox(
           height: 68,
@@ -344,8 +340,7 @@ class _CompactCategoryLink extends StatelessWidget {
                         category.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: AppTextStyles.body2.copyWith(
                           fontWeight: FontWeight.w700,
                           color: AppColors.black,
                         ),
@@ -355,7 +350,7 @@ class _CompactCategoryLink extends StatelessWidget {
                         category.count > 0 ? '${category.count} 个项目' : '直接进入广场',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: AppTextStyles.overline.copyWith(
                           fontSize: 11,
                           color: AppColors.gray500,
                         ),
@@ -392,7 +387,7 @@ class _CategoryEyebrow extends StatelessWidget {
         color: inverted
             ? AppColors.white.withValues(alpha: 0.14)
             : AppColors.white,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
         border: Border.all(
           color: inverted
               ? AppColors.white.withValues(alpha: 0.24)
@@ -401,8 +396,7 @@ class _CategoryEyebrow extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 10,
+        style: AppTextStyles.overline.copyWith(
           fontWeight: FontWeight.w700,
           letterSpacing: 0.4,
           color: inverted ? AppColors.white : AppColors.gray600,

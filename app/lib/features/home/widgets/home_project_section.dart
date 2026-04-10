@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/models/project_model.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_button.dart';
@@ -78,11 +79,10 @@ class _ProjectCard extends StatelessWidget {
                   project.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: AppTextStyles.h3.copyWith(
                     fontSize: 17,
                     height: 1.28,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.black,
                   ),
                 ),
               ),
@@ -95,7 +95,7 @@ class _ProjectCard extends StatelessWidget {
             _statusSummary(project),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: AppTextStyles.body2.copyWith(
               fontSize: 13,
               height: 1.45,
               color: AppColors.gray600,
@@ -148,11 +148,10 @@ class _MatchedProviderRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 '团队方',
-                style: TextStyle(
+                style: AppTextStyles.overline.copyWith(
                   fontSize: 11,
-                  fontWeight: FontWeight.w500,
                   color: AppColors.gray500,
                 ),
               ),
@@ -161,7 +160,7 @@ class _MatchedProviderRow extends StatelessWidget {
                 providerName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: AppTextStyles.body2.copyWith(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppColors.black,
@@ -190,24 +189,23 @@ class _PendingProviderRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.gray50,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.gray200),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.person_search_outlined,
             size: 16,
             color: AppColors.gray500,
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               '正在匹配合适的团队方',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
+              style: AppTextStyles.caption.copyWith(
                 fontWeight: FontWeight.w500,
                 color: AppColors.gray600,
               ),
@@ -232,11 +230,11 @@ class _ProjectStatusTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: textColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         project.homeStatusName,
-        style: TextStyle(
+        style: AppTextStyles.overline.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w700,
           color: textColor,
@@ -258,7 +256,7 @@ class _ProjectMetaChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.gray50,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: AppColors.gray200),
       ),
       child: Row(
@@ -268,8 +266,7 @@ class _ProjectMetaChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
+            style: AppTextStyles.caption.copyWith(
               fontWeight: FontWeight.w600,
               color: AppColors.gray700,
             ),
@@ -297,7 +294,7 @@ class _EmptyProjectCard extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               color: AppColors.gray50,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
             ),
             alignment: Alignment.center,
             child: const Icon(
@@ -307,19 +304,16 @@ class _EmptyProjectCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          const Text(
+          Text(
             '还没有任何项目',
-            style: TextStyle(
-              fontSize: 18,
+            style: AppTextStyles.h3.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppColors.black,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             '把你的想法告诉 AI，让我们帮你变成现实。',
-            style: TextStyle(
-              fontSize: 14,
+            style: AppTextStyles.body2.copyWith(
               height: 1.5,
               color: AppColors.gray600,
             ),
@@ -340,13 +334,13 @@ class _EmptyProjectCard extends StatelessWidget {
 Color _statusColor(ProjectModel project) {
   switch (project.homeStatusName) {
     case '招募中':
-      return const Color(0xFF3B82F6);
+      return AppColors.info;
     case '进行中':
-      return const Color(0xFF22C55E);
+      return AppColors.success;
     case '待验收':
-      return const Color(0xFFF59E0B);
+      return AppColors.warning;
     case '已完成':
-      return const Color(0xFF6B7280);
+      return AppColors.gray500;
     default:
       return AppColors.gray500;
   }

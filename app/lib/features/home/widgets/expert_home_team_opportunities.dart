@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/home_models.dart';
 import 'home_section_header.dart';
 
@@ -38,7 +39,7 @@ class ExpertHomeTeamOpportunities extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.gray100,
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(AppRadius.xxl),
             ),
             child: Column(
               children: [
@@ -77,9 +78,9 @@ class _FeaturedOpportunityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(AppRadius.xxl),
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -92,7 +93,7 @@ class _FeaturedOpportunityCard extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                   decoration: BoxDecoration(
                     color: AppColors.black,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,10 +102,11 @@ class _FeaturedOpportunityCard extends StatelessWidget {
                       const Spacer(),
                       Text(
                         opportunity.teamSizeDisplay,
-                        style: const TextStyle(
+                        style: AppTextStyles.overline.copyWith(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Color.fromRGBO(255, 255, 255, 0.72),
+                          letterSpacing: 0,
+                          color: const Color.fromRGBO(255, 255, 255, 0.72),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -129,8 +131,7 @@ class _FeaturedOpportunityCard extends StatelessWidget {
                               opportunity.projectTitle,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 22,
+                              style: AppTextStyles.h2.copyWith(
                                 height: 1.15,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.black,
@@ -148,8 +149,7 @@ class _FeaturedOpportunityCard extends StatelessWidget {
                         '当前在找 ${opportunity.neededRole}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
+                        style: AppTextStyles.body2.copyWith(
                           color: AppColors.gray600,
                         ),
                       ),
@@ -166,10 +166,9 @@ class _FeaturedOpportunityCard extends StatelessWidget {
                       ),
                       const Spacer(),
                       const SizedBox(height: 14),
-                      const Text(
+                      Text(
                         '进入组队大厅查看完整团队信息',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.caption.copyWith(
                           color: AppColors.gray500,
                         ),
                       ),
@@ -198,9 +197,9 @@ class _OpportunityRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
@@ -215,8 +214,7 @@ class _OpportunityRow extends StatelessWidget {
                       opportunity.projectTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: AppTextStyles.body1.copyWith(
                         height: 1.25,
                         fontWeight: FontWeight.w700,
                         color: AppColors.black,
@@ -227,8 +225,7 @@ class _OpportunityRow extends StatelessWidget {
                       '需要 ${opportunity.neededRole}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: AppTextStyles.body2.copyWith(
                         color: AppColors.gray600,
                       ),
                     ),
@@ -254,7 +251,7 @@ class _OpportunityRow extends StatelessWidget {
                 height: 34,
                 decoration: BoxDecoration(
                   color: AppColors.gray100,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 alignment: Alignment.center,
                 child: const Icon(
@@ -288,11 +285,11 @@ class _OpportunityEyebrow extends StatelessWidget {
         color: inverted
             ? Colors.white.withValues(alpha: 0.12)
             : AppColors.white.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: AppTextStyles.overline.copyWith(
           fontSize: 11,
           letterSpacing: 0.2,
           fontWeight: FontWeight.w700,
@@ -313,13 +310,14 @@ class _OpportunityMetaChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: AppTextStyles.overline.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0,
           color: AppColors.gray700,
         ),
       ),

@@ -326,10 +326,11 @@ class _DemandPaperNote extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 11, 12, 12),
       decoration: BoxDecoration(
         color: note.color,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         border: Border.all(
           color: Colors.black.withValues(alpha: 0.05),
         ),
+        // Decorative paper-note shadow — intentional floating effect
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.14),
@@ -370,7 +371,7 @@ class _DemandPaperNote extends StatelessWidget {
                 height: 8,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.32),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
                 ),
               ),
             ),

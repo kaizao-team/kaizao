@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 
 class HomeSectionHeader extends StatelessWidget {
   final String title;
@@ -31,20 +32,16 @@ class HomeSectionHeader extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: AppTextStyles.h3.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.black,
                   ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     subtitle!,
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: AppTextStyles.body2.copyWith(
                       height: 1.45,
-                      color: AppColors.gray500,
                     ),
                   ),
                 ],
@@ -69,8 +66,7 @@ class HomeSectionHeader extends StatelessWidget {
                 children: [
                   Text(
                     actionLabel!,
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: AppTextStyles.body2.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),

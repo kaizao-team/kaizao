@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 
 class HomeAiCard extends StatelessWidget {
   final String prompt;
@@ -20,10 +21,10 @@ class HomeAiCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          padding: const EdgeInsets.all(AppSpacing.base),
           decoration: BoxDecoration(
             color: AppColors.black,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           child: Row(
             children: [
@@ -32,7 +33,7 @@ class HomeAiCard extends StatelessWidget {
                 height: 42,
                 decoration: BoxDecoration(
                   color: const Color.fromRGBO(255, 255, 255, 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: const Icon(
                   Icons.auto_awesome_outlined,
@@ -45,9 +46,9 @@ class HomeAiCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '创建项目',
-                      style: TextStyle(
+                      style: AppTextStyles.h3.copyWith(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: AppColors.white,
@@ -58,10 +59,9 @@ class HomeAiCard extends StatelessWidget {
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: AppTextStyles.body2.copyWith(
                         height: 1.35,
-                        color: Color.fromRGBO(255, 255, 255, 0.66),
+                        color: const Color.fromRGBO(255, 255, 255, 0.66),
                       ),
                     ),
                   ],
@@ -73,7 +73,7 @@ class HomeAiCard extends StatelessWidget {
                 height: 38,
                 decoration: BoxDecoration(
                   color: const Color.fromRGBO(255, 255, 255, 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: const Icon(
                   Icons.arrow_outward_rounded,

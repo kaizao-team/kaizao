@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/home_models.dart';
 import 'home_section_header.dart';
 
@@ -61,9 +62,9 @@ class _FeaturedDemandCard extends StatelessWidget {
 
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(AppRadius.xxl),
       child: InkWell(
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         onTap: projectRoute == null ? null : () => context.push(projectRoute),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
@@ -77,8 +78,7 @@ class _FeaturedDemandCard extends StatelessWidget {
                   const Spacer(),
                   Text(
                     demand.budgetDisplay,
-                    style: const TextStyle(
-                      fontSize: 15,
+                    style: AppTextStyles.body1.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.black,
                     ),
@@ -90,8 +90,7 @@ class _FeaturedDemandCard extends StatelessWidget {
                 demand.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 22,
+                style: AppTextStyles.h2.copyWith(
                   height: 1.12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.black,
@@ -102,8 +101,7 @@ class _FeaturedDemandCard extends StatelessWidget {
                 demand.description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
+                style: AppTextStyles.body2.copyWith(
                   height: 1.5,
                   color: AppColors.gray600,
                 ),
@@ -135,9 +133,9 @@ class _DemandRow extends StatelessWidget {
 
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: projectRoute == null ? null : () => context.push(projectRoute),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
@@ -152,8 +150,7 @@ class _DemandRow extends StatelessWidget {
                       demand.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: AppTextStyles.body1.copyWith(
                         height: 1.25,
                         fontWeight: FontWeight.w700,
                         color: AppColors.black,
@@ -164,8 +161,7 @@ class _DemandRow extends StatelessWidget {
                       _supportingSubtitle(demand),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
+                      style: AppTextStyles.caption.copyWith(
                         color: AppColors.gray500,
                       ),
                     ),
@@ -180,8 +176,7 @@ class _DemandRow extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     demand.budgetDisplay,
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: AppTextStyles.body2.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.black,
                     ),
@@ -207,13 +202,14 @@ class _DemandBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.accentLight,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: AppTextStyles.overline.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w700,
+          letterSpacing: 0,
           color: AppColors.accent,
         ),
       ),
@@ -232,13 +228,14 @@ class _DemandMetaChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: AppTextStyles.overline.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0,
           color: AppColors.gray700,
         ),
       ),

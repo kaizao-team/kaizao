@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/home_models.dart';
 import 'home_section_header.dart';
 
@@ -34,7 +35,7 @@ class HomeSkillHeat extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
             decoration: BoxDecoration(
               color: AppColors.white,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(AppRadius.xxl),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,10 +47,9 @@ class HomeSkillHeat extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             '当前最高需求',
-                            style: TextStyle(
-                              fontSize: 12,
+                            style: AppTextStyles.caption.copyWith(
                               fontWeight: FontWeight.w600,
                               color: AppColors.gray500,
                             ),
@@ -57,10 +57,8 @@ class HomeSkillHeat extends StatelessWidget {
                           const SizedBox(height: 6),
                           Text(
                             headlineSkill.name,
-                            style: const TextStyle(
-                              fontSize: 22,
+                            style: AppTextStyles.h2.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: AppColors.black,
                             ),
                           ),
                         ],
@@ -74,12 +72,11 @@ class HomeSkillHeat extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.gray100,
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(AppRadius.full),
                       ),
                       child: Text(
                         '${headlineSkill.heat} 热度',
-                        style: const TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.caption.copyWith(
                           fontWeight: FontWeight.w700,
                           color: AppColors.gray700,
                         ),
@@ -129,13 +126,12 @@ class _SkillHeatRow extends StatelessWidget {
           height: 32,
           decoration: BoxDecoration(
             color: rank == 1 ? AppColors.black : AppColors.gray100,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           alignment: Alignment.center,
           child: Text(
             '$rank',
-            style: TextStyle(
-              fontSize: 12,
+            style: AppTextStyles.caption.copyWith(
               fontWeight: FontWeight.w700,
               color: rank == 1 ? AppColors.white : AppColors.gray700,
             ),
@@ -153,8 +149,7 @@ class _SkillHeatRow extends StatelessWidget {
                       skill.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: AppTextStyles.body2.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppColors.black,
                       ),
@@ -163,8 +158,7 @@ class _SkillHeatRow extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(
                     '${skill.heat}',
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: AppTextStyles.caption.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.gray500,
                     ),
@@ -173,7 +167,7 @@ class _SkillHeatRow extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ClipRRect(
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(AppRadius.full),
                 child: TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0, end: fraction),
                   duration: const Duration(milliseconds: 700),

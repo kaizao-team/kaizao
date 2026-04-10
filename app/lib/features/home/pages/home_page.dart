@@ -58,7 +58,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.onboardingBackground,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         bottom: false,
         child: homeState.isLoading
@@ -329,7 +329,7 @@ class _HomeAppBar extends ConsumerWidget {
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         decoration: const BoxDecoration(
-                          color: Color(0xFFFF5A5F),
+                          color: AppColors.badgeRed,
                           borderRadius: BorderRadius.all(Radius.circular(999)),
                         ),
                         alignment: Alignment.center,

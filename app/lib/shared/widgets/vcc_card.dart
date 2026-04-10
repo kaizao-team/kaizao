@@ -121,7 +121,6 @@ class VccProjectCard extends StatelessWidget {
     return VccCard(
       onTap: onTap,
       backgroundColor: AppColors.surfaceRaised,
-      boxShadow: AppShadows.shadow1,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
