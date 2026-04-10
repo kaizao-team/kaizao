@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/market_filter.dart';
 
 class MarketFilterBar extends StatelessWidget {
@@ -74,7 +75,7 @@ class MarketFilterBar extends StatelessWidget {
     return PopupMenuButton<String>(
       onSelected: onSortChanged,
       offset: const Offset(0, 36),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
       child: Container(
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -94,7 +95,7 @@ class MarketFilterBar extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               currentSort.name,
-              style: const TextStyle(
+              style: AppTextStyles.body2.copyWith(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: AppColors.gray600,
@@ -160,7 +161,7 @@ class _MarketCategoryTab extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: TextStyle(
+          style: AppTextStyles.body2.copyWith(
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
             color: selected ? AppColors.black : AppColors.gray500,
@@ -207,7 +208,7 @@ class _FilterButton extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               '筛选',
-              style: TextStyle(
+              style: AppTextStyles.body2.copyWith(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: active ? AppColors.accent : AppColors.gray600,

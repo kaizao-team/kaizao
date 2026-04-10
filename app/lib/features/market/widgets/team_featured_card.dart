@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../models/market_expert.dart';
 
@@ -46,8 +47,8 @@ class _TeamFeaturedCardState extends State<TeamFeaturedCard> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isHi ? const Color(0xFFF4EEFF) : AppColors.white,
-            borderRadius: BorderRadius.circular(20),
+            color: isHi ? AppColors.accentLight : AppColors.white,
+            borderRadius: BorderRadius.circular(AppRadius.xl),
             border: Border.all(
               color: isHi ? AppColors.accentMuted : AppColors.gray200,
             ),
@@ -76,11 +77,9 @@ class _TeamFeaturedCardState extends State<TeamFeaturedCard> {
                       children: [
                         Text(
                           e.displayName,
-                          style: const TextStyle(
-                            fontSize: 14,
+                          style: AppTextStyles.body2.copyWith(
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.3,
-                            color: AppColors.black,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -88,7 +87,7 @@ class _TeamFeaturedCardState extends State<TeamFeaturedCard> {
                         const SizedBox(height: 1),
                         Text(
                           '$memberCount 人 · ${_domain(e)}',
-                          style: TextStyle(
+                          style: AppTextStyles.overline.copyWith(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                             color: isHi ? AppColors.accent : AppColors.gray500,
@@ -103,8 +102,7 @@ class _TeamFeaturedCardState extends State<TeamFeaturedCard> {
               // Tagline
               Text(
                 _tagline(e),
-                style: const TextStyle(
-                  fontSize: 12,
+                style: AppTextStyles.caption.copyWith(
                   height: 1.5,
                   color: AppColors.gray600,
                 ),
@@ -131,8 +129,7 @@ class _TeamFeaturedCardState extends State<TeamFeaturedCard> {
                       ),
                       child: Text(
                         '#$s',
-                        style: TextStyle(
-                          fontSize: 10,
+                        style: AppTextStyles.overline.copyWith(
                           fontWeight: FontWeight.w500,
                           color: isHi ? AppColors.accent : AppColors.gray600,
                         ),
@@ -147,7 +144,7 @@ class _TeamFeaturedCardState extends State<TeamFeaturedCard> {
                 children: [
                   Text(
                     '$memberCount 人协作',
-                    style: const TextStyle(
+                    style: AppTextStyles.overline.copyWith(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: AppColors.black,
@@ -156,8 +153,7 @@ class _TeamFeaturedCardState extends State<TeamFeaturedCard> {
                   const Spacer(),
                   Text(
                     _vibeLabel(e),
-                    style: TextStyle(
-                      fontSize: 10,
+                    style: AppTextStyles.overline.copyWith(
                       fontWeight: FontWeight.w600,
                       color: isHi ? AppColors.accent : AppColors.gray500,
                     ),

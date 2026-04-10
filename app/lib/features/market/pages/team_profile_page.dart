@@ -140,7 +140,7 @@ class _TeamHero extends StatelessWidget {
             width: 136,
             height: 104,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(AppRadius.xxl),
               color: Colors.white.withValues(alpha: 0.05),
             ),
           ),
@@ -153,7 +153,7 @@ class _TeamHero extends StatelessWidget {
           width: 52,
           height: 52,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
             border: Border.all(
               color: Colors.white.withValues(alpha: 0.08),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../models/market_expert.dart';
 
@@ -49,20 +50,18 @@ class _TeamPresenceHeroState extends State<TeamPresenceHero> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                const Text(
+                Text(
                   '今天在场',
-                  style: TextStyle(
+                  style: AppTextStyles.overline.copyWith(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.2,
-                    color: AppColors.gray400,
                   ),
                 ),
                 const Spacer(),
                 Text(
                   '${experts.length} 支团队 · $skillCount 种技能',
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: AppTextStyles.caption.copyWith(
                     fontWeight: FontWeight.w500,
                     color: AppColors.gray500,
                   ),
@@ -204,19 +203,18 @@ class _StatusLine extends StatelessWidget {
                   // Team name
                   Text(
                     expert!.displayName,
-                    style: const TextStyle(
+                    style: AppTextStyles.body2.copyWith(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.black,
                       letterSpacing: -0.2,
                     ),
                   ),
                   // Separator
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
                       '·',
-                      style: TextStyle(
+                      style: AppTextStyles.body2.copyWith(
                         fontSize: 13,
                         color: AppColors.gray300,
                       ),
@@ -226,8 +224,7 @@ class _StatusLine extends StatelessWidget {
                   Expanded(
                     child: Text(
                       expert!.skills.map((s) => '#$s').join('  '),
-                      style: const TextStyle(
-                        fontSize: 12,
+                      style: AppTextStyles.caption.copyWith(
                         fontWeight: FontWeight.w500,
                         color: AppColors.gray500,
                       ),
@@ -238,10 +235,8 @@ class _StatusLine extends StatelessWidget {
                   // Member count
                   Text(
                     '${expert!.memberCount < 1 ? 1 : expert!.memberCount}人',
-                    style: const TextStyle(
+                    style: AppTextStyles.overline.copyWith(
                       fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.gray400,
                     ),
                   ),
                 ],

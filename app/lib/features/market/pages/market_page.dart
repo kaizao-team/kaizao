@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_loading.dart';
 import '../../../shared/widgets/vcc_top_switch.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -92,7 +93,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
     final hasActiveFilter = state.budgetMin != null || state.budgetMax != null;
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -136,13 +137,11 @@ class _MarketPageState extends ConsumerState<MarketPage>
       children: [
         Row(
           children: [
-            const Text(
+            Text(
               '广场',
-              style: TextStyle(
-                fontSize: 22,
+              style: AppTextStyles.h2.copyWith(
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.6,
-                color: AppColors.black,
               ),
             ),
             const SizedBox(width: 16),
@@ -445,7 +444,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
             height: 64,
             decoration: BoxDecoration(
               color: AppColors.gray100,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
             child: const Icon(
               Icons.inbox_outlined,
@@ -453,11 +452,10 @@ class _MarketPageState extends ConsumerState<MarketPage>
               color: AppColors.gray400,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.base),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
+            style: AppTextStyles.body1.copyWith(
               fontWeight: FontWeight.w500,
               color: AppColors.gray500,
             ),
@@ -465,7 +463,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 13, color: AppColors.gray400),
+            style: AppTextStyles.body2.copyWith(color: AppColors.gray400),
           ),
         ],
       ),
@@ -483,32 +481,31 @@ class _MarketPageState extends ConsumerState<MarketPage>
             color: AppColors.gray400,
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             '加载失败',
-            style: TextStyle(
-              fontSize: 16,
+            style: AppTextStyles.body1.copyWith(
               fontWeight: FontWeight.w500,
               color: AppColors.gray600,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             message,
-            style: const TextStyle(fontSize: 13, color: AppColors.gray400),
+            style: AppTextStyles.body2.copyWith(color: AppColors.gray400),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.lg),
           GestureDetector(
             onTap: onRetry,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               decoration: BoxDecoration(
                 color: AppColors.black,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: const Text(
+              child: Text(
                 '重试',
-                style: TextStyle(fontSize: 14, color: AppColors.white),
+                style: AppTextStyles.body2.copyWith(color: AppColors.white),
               ),
             ),
           ),
@@ -535,12 +532,12 @@ class _MarketPageState extends ConsumerState<MarketPage>
     }
 
     if (!state.hasMore) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 20),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Center(
           child: Text(
             '已加载全部需求',
-            style: TextStyle(fontSize: 13, color: AppColors.gray400),
+            style: AppTextStyles.body2.copyWith(color: AppColors.gray400),
           ),
         ),
       );
@@ -611,7 +608,7 @@ class _MarketSectionHeader extends StatelessWidget {
       children: [
         Text(
           eyebrow,
-          style: const TextStyle(
+          style: AppTextStyles.overline.copyWith(
             fontSize: 11,
             fontWeight: FontWeight.w600,
             letterSpacing: 1.2,
@@ -621,11 +618,9 @@ class _MarketSectionHeader extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 22,
+          style: AppTextStyles.h2.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: -0.6,
-            color: AppColors.black,
           ),
         ),
       ],
@@ -704,7 +699,7 @@ class _MarketFeatureSkeletonCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
       decoration: BoxDecoration(
         color: AppColors.gray50,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(AppRadius.xxxl),
         border: Border.all(color: AppColors.gray200),
       ),
       child: LayoutBuilder(
@@ -818,7 +813,7 @@ class _MarketShelfSkeletonCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.gray50,
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         border: Border.all(color: AppColors.gray200),
       ),
       child: LayoutBuilder(
@@ -919,7 +914,7 @@ class _MarketEditorialSkeletonCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.gray50,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         border: Border.all(color: AppColors.gray200),
       ),
       child: LayoutBuilder(

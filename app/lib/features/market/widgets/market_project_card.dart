@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/market_filter.dart';
 
 enum MarketProjectCardVariant {
@@ -98,11 +99,11 @@ class _MarketProjectCardState extends State<MarketProjectCard> {
   double get _radius {
     switch (widget.variant) {
       case MarketProjectCardVariant.feature:
-        return 30;
+        return AppRadius.xxxl;
       case MarketProjectCardVariant.shelf:
-        return 26;
+        return AppRadius.xxl;
       case MarketProjectCardVariant.editorial:
-        return 24;
+        return AppRadius.xxl;
     }
   }
 }
@@ -155,12 +156,10 @@ class _FeatureLayout extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 280),
               child: Text(
                 project.title,
-                style: const TextStyle(
+                style: AppTextStyles.h1.copyWith(
                   fontSize: 31,
                   height: 1.08,
-                  fontWeight: FontWeight.w700,
                   letterSpacing: -1.2,
-                  color: AppColors.black,
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
@@ -171,7 +170,7 @@ class _FeatureLayout extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 300),
               child: Text(
                 project.description,
-                style: const TextStyle(
+                style: AppTextStyles.body1.copyWith(
                   fontSize: 15,
                   height: 1.6,
                   color: AppColors.gray600,
@@ -190,7 +189,7 @@ class _FeatureLayout extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 aiTip!,
-                style: TextStyle(
+                style: AppTextStyles.body2.copyWith(
                   fontSize: 13,
                   height: 1.5,
                   color: tone.accent,
@@ -254,12 +253,10 @@ class _ShelfLayout extends StatelessWidget {
         const SizedBox(height: 18),
         Text(
           project.title,
-          style: const TextStyle(
-            fontSize: 22,
+          style: AppTextStyles.h2.copyWith(
             height: 1.15,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.8,
-            color: AppColors.black,
           ),
           maxLines: 3,
           overflow: TextOverflow.ellipsis,
@@ -268,8 +265,7 @@ class _ShelfLayout extends StatelessWidget {
         Expanded(
           child: Text(
             project.description,
-            style: const TextStyle(
-              fontSize: 14,
+            style: AppTextStyles.body2.copyWith(
               height: 1.55,
               color: AppColors.gray600,
             ),
@@ -289,18 +285,15 @@ class _ShelfLayout extends StatelessWidget {
             Expanded(
               child: Text(
                 project.budgetDisplay,
-                style: const TextStyle(
-                  fontSize: 18,
+                style: AppTextStyles.h3.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.black,
                 ),
               ),
             ),
             if (isExpert && project.matchScore != null)
               Text(
                 '匹配 ${project.matchScore}%',
-                style: TextStyle(
-                  fontSize: 12,
+                style: AppTextStyles.caption.copyWith(
                   fontWeight: FontWeight.w600,
                   color: tone.accent,
                 ),
@@ -352,12 +345,11 @@ class _EditorialLayout extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 project.title,
-                style: const TextStyle(
+                style: AppTextStyles.h2.copyWith(
                   fontSize: 23,
                   height: 1.16,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.8,
-                  color: AppColors.black,
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
@@ -365,8 +357,7 @@ class _EditorialLayout extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 project.description,
-                style: const TextStyle(
-                  fontSize: 14,
+                style: AppTextStyles.body2.copyWith(
                   height: 1.6,
                   color: AppColors.gray600,
                 ),
@@ -383,8 +374,7 @@ class _EditorialLayout extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   aiTip!,
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: AppTextStyles.caption.copyWith(
                     height: 1.5,
                     color: tone.accent,
                     fontWeight: FontWeight.w600,
@@ -437,8 +427,7 @@ class _ProjectOverline extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 emphasisLabel ?? project.categoryName,
-                style: TextStyle(
-                  fontSize: 12,
+                style: AppTextStyles.caption.copyWith(
                   fontWeight: FontWeight.w600,
                   color: tone.accent,
                 ),
@@ -449,10 +438,8 @@ class _ProjectOverline extends StatelessWidget {
         const Spacer(),
         Text(
           _formatTimeAgo(project.createdAt),
-          style: const TextStyle(
-            fontSize: 12,
+          style: AppTextStyles.caption.copyWith(
             fontWeight: FontWeight.w500,
-            color: AppColors.gray400,
           ),
         ),
       ],
@@ -478,7 +465,7 @@ class _ProjectTagRow extends StatelessWidget {
     if (items.isEmpty) {
       return Text(
         project.ownerName?.isNotEmpty == true ? project.ownerName! : '等待更多项目细节',
-        style: const TextStyle(
+        style: AppTextStyles.body2.copyWith(
           fontSize: 13,
           color: AppColors.gray500,
         ),
@@ -499,8 +486,7 @@ class _ProjectTagRow extends StatelessWidget {
               ),
               child: Text(
                 tag,
-                style: const TextStyle(
-                  fontSize: 12,
+                style: AppTextStyles.caption.copyWith(
                   fontWeight: FontWeight.w500,
                   color: AppColors.gray700,
                 ),
@@ -530,7 +516,7 @@ class _MetaRail extends StatelessWidget {
         children: [
           Text(
             '预算',
-            style: TextStyle(
+            style: AppTextStyles.overline.copyWith(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: tone.accent,
@@ -539,12 +525,11 @@ class _MetaRail extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             project.budgetDisplay,
-            style: const TextStyle(
+            style: AppTextStyles.body1.copyWith(
               fontSize: 17,
               height: 1.15,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.4,
-              color: AppColors.black,
             ),
           ),
           const SizedBox(height: 18),
@@ -586,8 +571,7 @@ class _PrimaryMetric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
+          style: AppTextStyles.caption.copyWith(
             fontWeight: FontWeight.w600,
             color: AppColors.gray500,
           ),
@@ -595,11 +579,9 @@ class _PrimaryMetric extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 22,
+          style: AppTextStyles.h2.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: -0.6,
-            color: AppColors.black,
           ),
         ),
       ],
@@ -630,8 +612,7 @@ class _InlineMetric extends StatelessWidget {
         Flexible(
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
+            style: AppTextStyles.caption.copyWith(
               fontWeight: FontWeight.w500,
               color: AppColors.gray500,
             ),
