@@ -1,0 +1,131 @@
+name: Build App (Android)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/build-android.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/build-android.yml"
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: "构建模式"
+        required: true
+        default: "release"
+        type: choice
+        options:
+          - release
+          - debug
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.41.5"
+  JAVA_VERSION: "17"
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+        working-directory: app
+
+      - name: Get dependencies
+        run: flutter pub get
+        working-directory: app
+
+      - name: Analyze code
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        working-directory: app
+
+      - name: Decode keystore
+        if: github.event_name != 'pull_request'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/android/upload-keystore.jks
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=../upload-keystore.jks\n' \
+            "$ANDROID_KEYSTORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" \
+            > app/android/key.properties
+
+      - name: Build APK (Release)
+        if: github.event.inputs.build_mode != 'debug'
+        run: flutter build apk --release --split-per-abi
+        working-directory: app
+
+      - name: Build APK (Debug)
+        if: github.event.inputs.build_mode == 'debug'
+        run: flutter build apk --debug
+        working-directory: app
+
+      - name: Build App Bundle (Release)
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        run: flutter build appbundle --release
+        working-directory: app
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ github.sha }}
+          path: |
+            app/build/app/outputs/flutter-apk/*.apk
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload AAB artifact
+        if: github.event_name != 'pull_request' && github.event.inputs.build_mode != 'debug'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab-${{ github.sha }}
+          path: |
+            app/build/app/outputs/bundle/release/*.aab
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## Android Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Flutter | ${{ env.FLUTTER_VERSION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Java | ${{ env.JAVA_VERSION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mode | ${{ github.event.inputs.build_mode || 'release' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ref | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          if [ -d "app/build/app/outputs/flutter-apk" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### APK Files" >> $GITHUB_STEP_SUMMARY
+            ls -lh app/build/app/outputs/flutter-apk/*.apk 2>/dev/null | awk '{print "- `" $NF "` — " $5}' >> $GITHUB_STEP_SUMMARY || echo "- No APK found" >> $GITHUB_STEP_SUMMARY
+          fi

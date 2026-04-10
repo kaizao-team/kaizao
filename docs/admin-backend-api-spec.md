@@ -576,11 +576,24 @@
 
 ---
 
-## 8. 邀请码管理（原有接口）
+## 8. 邀请码管理
 
-### 8.1 POST `/admin/invite-codes` — 创建邀请码
+### 8.1 POST `/admin/invite-codes` — 批量创建邀请码
+
+**Body**: `{ "count": 10, "note": "备注", "expires_at": "2027-12-31T23:59:59Z" }`
+
+- `count`：创建数量，默认 10，最大 200。创建新码不禁用旧码。
+- **响应**: `{ "codes": ["KZ-ABCD1234", ...], "count": 10 }`
+
 ### 8.2 GET `/admin/invite-codes` — 邀请码列表
-### 8.3 GET `/admin/teams/:uuid/current-invite-code` — 当前有效码
+
+- **Query**: `page`, `page_size`
+
+### 8.3 PUT `/admin/teams/:uuid/approval` — 审核团队
+
+**Body**: `{ "status": "approved" | "rejected", "reason": "可选" }`
+
+**响应**: `{ "code": 0, "message": "已更新" }`
 
 > 详见 `api/specs/16-admin.md`
 
@@ -627,7 +640,7 @@ GET    /api/v1/admin/finance/summary               财务汇总
 GET    /api/v1/admin/withdrawals                   提现记录
 GET    /api/v1/admin/reviews                       评价列表
 PUT    /api/v1/admin/reviews/:uuid/status          隐藏/恢复评价
-POST   /api/v1/admin/invite-codes                  创建邀请码
+POST   /api/v1/admin/invite-codes                  批量创建邀请码
 GET    /api/v1/admin/invite-codes                  邀请码列表
-GET    /api/v1/admin/teams/:uuid/current-invite-code  当前有效码
+PUT    /api/v1/admin/teams/:uuid/approval          审核团队
 ```

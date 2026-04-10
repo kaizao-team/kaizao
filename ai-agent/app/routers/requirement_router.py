@@ -183,13 +183,17 @@ async def confirm_prd(project_id: str, req: ConfirmRequest, request: Request):
 @router.post("/{project_id}/decompose", response_model=APIResponse)
 async def decompose_ears(project_id: str, request: Request):
     """
-    触发 EARS 拆解 — 确认合作后调用。
+    触发 EARS 拆解 — PRD 确认后调用。
 
-    业务流程：确认PRD → 发布项目 → 撮合匹配 → 确认合作 → **调用此接口** → EARS 拆解 → 生成 requirement.md
-    后台异步执行，前端通过 GET /pipeline/{project_id}/status 轮询 sub_stage 变为 tasks_ready。
+    内部逻辑：
+    1. 从 MinIO 读取 requirement.md（完整 PRD 文档）
+    2. 从 ai_prd_items 读取结构化需求条目
+    3. 构建上下文喂给 AI 做 EARS 拆解
+    4. 拆解结果直接写入 Go 的 tasks 表 + milestones 表
+    5. 后台异步执行，前端通过 GET /pipeline/{project_id}/status 轮询 sub_stage
     """
     import asyncio
-    from app.main import v2_orchestrator, v2_session, v2_requirement_agent
+    from app.main import v2_orchestrator, v2_session, v2_requirement_agent, v2_doc_writer
 
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
 
@@ -200,6 +204,39 @@ async def decompose_ears(project_id: str, request: Request):
 
         session_id = state.session_id or f"req-{project_id}"
 
+        # 读取预期交付天数
+        agreed_days = None
+        try:
+            from app.db.repository import ProjectRepository as _PR
+            agreed_days = await _PR().get_project_agreed_days(project_id)
+        except Exception as e:
+            logger.warning("decompose_read_agreed_days_skip", error=str(e))
+
+        # 读取 PRD 文档和结构化需求条目，构建拆解上下文
+        prd_context_parts = []
+
+        # 1. 从 MinIO 读取 requirement.md
+        try:
+            prd_md = v2_doc_writer.read_document(project_id, "requirement.md")
+            if prd_md:
+                prd_context_parts.append(f"## 完整 PRD 文档\n\n{prd_md}")
+        except Exception as e:
+            logger.warning("decompose_read_prd_md_skip", project_id=project_id, error=str(e))
+
+        # 2. 从 ai_prd_items 读取结构化条目
+        try:
+            from app.db.repository import ProjectRepository
+            repo = ProjectRepository()
+            prd_items = await repo.get_prd_items(project_id)
+            if prd_items:
+                items_text = "\n".join(
+                    f"- [{it.get('item_id', '')}] {it.get('title', '')}：{it.get('description', '')}（优先级 {it.get('priority', 'P1')}）"
+                    for it in prd_items
+                )
+                prd_context_parts.append(f"## 结构化需求条目\n\n{items_text}")
+        except Exception as e:
+            logger.warning("decompose_read_prd_items_skip", project_id=project_id, error=str(e))
+
         # 标记 EARS 拆解进行中
         state.set_stage_status("requirement", "running", sub_stage="ears_decomposing")
         await v2_orchestrator.save_project(state)
@@ -208,9 +245,19 @@ async def decompose_ears(project_id: str, request: Request):
         async def _background_ears_decompose():
             try:
                 history = await v2_session.get_history(session_id)
+
+                # 注入 PRD 上下文到历史消息
+                if prd_context_parts:
+                    prd_context_msg = {
+                        "role": "user",
+                        "content": "以下是已确认的 PRD 文档和需求条目，请基于此进行 EARS 拆解：\n\n" + "\n\n".join(prd_context_parts),
+                    }
+                    history = history + [prd_context_msg]
+
                 updated_msgs, tool_result, sub_stage, score = await v2_requirement_agent.decompose_ears(
                     project_id=project_id,
                     messages=history,
+                    agreed_days=agreed_days,
                 )
                 await v2_session.save_history(session_id, updated_msgs)
                 bg_state = await v2_orchestrator.get_project(project_id)
@@ -219,10 +266,7 @@ async def decompose_ears(project_id: str, request: Request):
                         bg_state.set_stage_status("requirement", "confirmed", sub_stage=sub_stage,
                                                    document_path=f"outputs/{project_id}/v1/requirement.md")
                         await v2_orchestrator.save_project(bg_state)
-                        # EARS 完成后并行自动触发 design + PM
-                        logger.info("ears_ready_auto_trigger", project_id=project_id)
-                        asyncio.create_task(_auto_generate_design(project_id))
-                        asyncio.create_task(_auto_generate_pm(project_id))
+                        logger.info("ears_decompose_done", project_id=project_id)
                     else:
                         bg_state.set_stage_status("requirement", "running", sub_stage=sub_stage)
                         await v2_orchestrator.save_project(bg_state)
@@ -249,90 +293,6 @@ async def decompose_ears(project_id: str, request: Request):
     except Exception as e:
         logger.error("ears_decompose_error", error=str(e), request_id=request_id)
         return APIResponse(code=50001, message=f"EARS 拆解启动失败: {e}", request_id=request_id)
-
-
-async def _auto_generate_design(project_id: str) -> None:
-    """EARS 完成后自动生成 design.md"""
-    from app.main import v2_orchestrator, v2_design_agent, v2_doc_writer
-
-    try:
-        state = await v2_orchestrator.get_project(project_id)
-        if not state:
-            return
-
-        # 读取 requirement.md
-        req_content = v2_doc_writer.read_document(project_id, "requirement.md")
-        if not req_content:
-            logger.warning("auto_design_skip_no_requirement", project_id=project_id)
-            return
-
-        state.set_stage_status("design", "running")
-        await v2_orchestrator.save_project(state)
-
-        await v2_design_agent.generate(
-            project_id=project_id,
-            requirement_content=req_content,
-        )
-
-        # 检查文档是否生成
-        doc_content = v2_doc_writer.read_document(project_id, "design.md")
-        state = await v2_orchestrator.get_project(project_id)
-        if state and doc_content:
-            state.set_stage_status("design", "confirmed",
-                                   document_path=f"outputs/{project_id}/v1/design.md")
-            await v2_orchestrator.save_project(state)
-            logger.info("auto_design_complete", project_id=project_id)
-        else:
-            logger.warning("auto_design_no_output", project_id=project_id)
-    except Exception as e:
-        logger.error("auto_design_failed", project_id=project_id, error=str(e))
-        err_state = await v2_orchestrator.get_project(project_id)
-        if err_state:
-            err_state.set_stage_status("design", "error", error_message=str(e))
-            await v2_orchestrator.save_project(err_state)
-
-
-async def _auto_generate_pm(project_id: str) -> None:
-    """EARS 完成后自动生成 project-plan.md（首次不含商定价格，on-matched 时重新生成）"""
-    from app.main import v2_orchestrator, v2_pm_agent, v2_doc_writer
-
-    try:
-        state = await v2_orchestrator.get_project(project_id)
-        if not state:
-            return
-
-        req_content = v2_doc_writer.read_document(project_id, "requirement.md")
-        if not req_content:
-            logger.warning("auto_pm_skip_no_requirement", project_id=project_id)
-            return
-
-        design_content = v2_doc_writer.read_document(project_id, "design.md") or ""
-
-        state.set_stage_status("pm", "running")
-        await v2_orchestrator.save_project(state)
-
-        await v2_pm_agent.generate(
-            project_id=project_id,
-            requirement_content=req_content,
-            design_content=design_content,
-            task_content="",
-        )
-
-        doc_content = v2_doc_writer.read_document(project_id, "project-plan.md")
-        state = await v2_orchestrator.get_project(project_id)
-        if state and doc_content:
-            state.set_stage_status("pm", "confirmed",
-                                   document_path=f"outputs/{project_id}/v1/project-plan.md")
-            await v2_orchestrator.save_project(state)
-            logger.info("auto_pm_complete", project_id=project_id)
-        else:
-            logger.warning("auto_pm_no_output", project_id=project_id)
-    except Exception as e:
-        logger.error("auto_pm_failed", project_id=project_id, error=str(e))
-        err_state = await v2_orchestrator.get_project(project_id)
-        if err_state:
-            err_state.set_stage_status("pm", "error", error_message=str(e))
-            await v2_orchestrator.save_project(err_state)
 
 
 @router.get("/{project_id}/document", response_model=APIResponse)
@@ -446,12 +406,21 @@ async def decompose_ears_stream(project_id: str, request: Request):
                 yield {"event": "error", "data": f"项目 {project_id} 不存在"}
                 return
 
+            # 读取预期交付天数
+            agreed_days = None
+            try:
+                from app.db.repository import ProjectRepository as _PR
+                agreed_days = await _PR().get_project_agreed_days(project_id)
+            except Exception:
+                pass
+
             session_id = state.session_id or f"req-{project_id}"
             history = await v2_session.get_history(session_id)
 
             async for event in v2_requirement_agent.decompose_ears_stream(
                 project_id=project_id,
                 messages=history,
+                agreed_days=agreed_days,
             ):
                 yield event
 
@@ -466,10 +435,7 @@ async def decompose_ears_stream(project_id: str, request: Request):
                     state.set_stage_status("requirement", "confirmed", sub_stage=sub_stage,
                                            document_path=f"outputs/{project_id}/v1/requirement.md")
                     await v2_orchestrator.save_project(state)
-                    # EARS 完成后并行自动触发 design + PM
-                    logger.info("ears_stream_ready_auto_trigger", project_id=project_id)
-                    asyncio.create_task(_auto_generate_design(project_id))
-                    asyncio.create_task(_auto_generate_pm(project_id))
+                    logger.info("ears_stream_decompose_done", project_id=project_id)
                 else:
                     state.set_stage_status("requirement", "running", sub_stage=sub_stage)
                     await v2_orchestrator.save_project(state)

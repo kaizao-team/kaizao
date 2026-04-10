@@ -45,6 +45,35 @@
         </div>
       </div>
 
+      <div class="ai-model-card">
+        <div class="ai-model-card__header">
+          <div>
+            <div class="ai-model-card__title">AI 模型</div>
+            <div class="ai-model-card__sub">当前激活的 LLM 模型，切换后立即生效</div>
+          </div>
+          <el-tag v-if="modelConfig.active_provider" type="info" size="small">
+            {{ activeProviderName }}
+          </el-tag>
+        </div>
+        <div class="ai-model-card__body">
+          <el-select
+            v-model="modelConfig.active_provider"
+            placeholder="选择模型"
+            :loading="modelSwitching"
+            style="width: 280px"
+            @change="handleModelChange"
+          >
+            <el-option
+              v-for="p in modelConfig.providers"
+              :key="p.id"
+              :label="`${p.name}${p.available ? '' : ' (不可用)'}`"
+              :value="p.id"
+              :disabled="!p.available"
+            />
+          </el-select>
+        </div>
+      </div>
+
       <div class="charts-row">
         <div class="charts-left">
           <div class="chart-panel">
@@ -125,7 +154,10 @@ import { LineChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import type { EChartsCoreOption } from 'echarts/core'
 import { ArrowRight, CircleCheck, FolderOpened, Warning } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { getDashboard } from '@/api/dashboard'
+import { getAIModelConfig, updateAIModelConfig } from '@/api/ai-models'
+import type { AIProvider } from '@/api/ai-models'
 import { formatMoney } from '@/utils/format'
 
 use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent])
@@ -216,6 +248,42 @@ function normalizeDashboard(raw: unknown): DashboardData {
 const router = useRouter()
 const loading = ref(false)
 const data = shallowRef<DashboardData>({ ...EMPTY })
+
+// ── AI 模型配置 ──
+const modelConfig = ref<{ active_provider: string; providers: AIProvider[] }>({
+  active_provider: '',
+  providers: [],
+})
+const modelSwitching = ref(false)
+
+const activeProviderName = computed(() => {
+  const p = modelConfig.value.providers.find((x) => x.id === modelConfig.value.active_provider)
+  return p ? p.name : modelConfig.value.active_provider
+})
+
+async function fetchModelConfig() {
+  try {
+    const res = await getAIModelConfig() as any
+    if (res?.data) {
+      modelConfig.value = res.data
+    }
+  } catch {
+    // 静默失败，不影响 dashboard
+  }
+}
+
+async function handleModelChange(provider: string) {
+  modelSwitching.value = true
+  try {
+    await updateAIModelConfig(provider)
+    ElMessage.success(`已切换到 ${activeProviderName.value}`)
+  } catch {
+    // 切换失败时重新拉取
+    await fetchModelConfig()
+  } finally {
+    modelSwitching.value = false
+  }
+}
 
 const chartTextStyle = {
   color: '#666',
@@ -355,6 +423,7 @@ async function fetchDashboard() {
 
 onMounted(() => {
   fetchDashboard()
+  fetchModelConfig()
 })
 </script>
 
@@ -408,6 +477,38 @@ onMounted(() => {
 
 .stat-value--money {
   font-size: 22px;
+}
+
+.ai-model-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.ai-model-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.ai-model-card__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1c1c;
+}
+
+.ai-model-card__sub {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.ai-model-card__body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .charts-row {

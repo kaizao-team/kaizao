@@ -49,6 +49,7 @@ func (s *HomeService) GetDemanderHome(userUUID string) (map[string]interface{}, 
 	for _, t := range teams {
 		item := map[string]interface{}{
 			"id":           t.UUID,
+			"team_name":    t.Name,
 			"rating":       t.AvgRating,
 			"hourly_rate":  t.HourlyRate,
 			"budget_min":   t.BudgetMin,
@@ -61,8 +62,18 @@ func (s *HomeService) GetDemanderHome(userUUID string) (map[string]interface{}, 
 			item["leader_uuid"] = t.Leader.UUID
 			item["nickname"] = t.Leader.Nickname
 			item["avatar_url"] = t.Leader.AvatarURL
-			item["completed_orders"] = t.Leader.CompletedOrders
-			item["skill"] = expertPrimarySkillName(skillsByUser[t.Leader.ID], nil)
+			item["completed_projects"] = t.Leader.CompletedOrders
+			item["tagline"] = t.Leader.Bio
+
+			skills := skillsByUser[t.Leader.ID]
+			skillNames := make([]string, 0, len(skills))
+			for _, sk := range skills {
+				if sk.Skill.Name != "" {
+					skillNames = append(skillNames, sk.Skill.Name)
+				}
+			}
+			item["skills"] = skillNames
+			item["skill"] = expertPrimarySkillName(skills, nil)
 		}
 		recExperts = append(recExperts, item)
 	}

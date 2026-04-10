@@ -57,8 +57,41 @@
 
         <el-tab-pane label="PRD 文档" name="prd">
           <div v-loading="loadingPrd" class="prd-panel">
+            <div class="prd-toolbar">
+              <el-upload
+                :show-file-list="false"
+                :http-request="handlePrdUpload"
+                :disabled="prdUploading"
+              >
+                <el-button type="primary" size="small" :loading="prdUploading">覆盖 PRD</el-button>
+              </el-upload>
+              <el-button type="primary" size="small" @click="downloadPrdText">下载 PRD</el-button>
+            </div>
             <pre v-if="prdText" class="prd-text">{{ prdText }}</pre>
-            <el-empty v-else description="暂无 PRD 内容" :image-size="80" />
+            <el-empty v-else-if="!loadingPrd" description="暂无 PRD 内容" :image-size="80" />
+          </div>
+          <div v-if="aiDocs.length" class="ai-docs-section">
+            <h3 class="sub-title">AI 生成文档</h3>
+            <el-table :data="aiDocs" stripe size="small">
+              <el-table-column prop="filename" label="文件名" min-width="200" />
+              <el-table-column prop="stage" label="阶段" width="120" />
+              <el-table-column label="版本" width="80" align="center">
+                <template #default="{ row }">v{{ row.version }}</template>
+              </el-table-column>
+              <el-table-column label="大小" width="100">
+                <template #default="{ row }">{{ formatFileSize(row.size_bytes) }}</template>
+              </el-table-column>
+              <el-table-column label="生成时间" width="170">
+                <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" align="center">
+                <template #default="{ row }">
+                  <el-button type="primary" link :loading="row._downloading" @click="downloadAIDoc(row)">
+                    下载
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
           </div>
         </el-tab-pane>
 
@@ -255,11 +288,13 @@ import {
   getProjectDetail,
   getProjectFiles,
   uploadProjectFile,
+  uploadProjectPrdDocument,
   getProjectBids,
   getProjectMilestones,
   getProjectTasks,
   getProjectReviews,
   getProjectPRD,
+  getAIDocuments,
   reviewProject,
 } from '@/api/projects'
 import type { Project, ProjectFile } from '@/types/project'
@@ -279,8 +314,10 @@ const closeDialogVisible = ref(false)
 const closeReason = ref('')
 
 const prdText = ref('')
+const aiDocs = ref<Record<string, any>[]>([])
 const loadingPrd = ref(false)
 const tabPrdLoaded = ref(false)
+const prdUploading = ref(false)
 
 const files = ref<ProjectFile[]>([])
 const loadingFiles = ref(false)
@@ -327,6 +364,19 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+
+async function loadProject() {
+  loadingProject.value = true
+  try {
+    const res: { data?: ProjectDetail } = await getProjectDetail(uuid)
+    project.value = res.data ?? null
+  } catch {
+    project.value = null
+  } finally {
+    loadingProject.value = false
+  }
+}
+
 function normalizePrdPayload(payload: unknown): string {
   if (payload == null) return ''
   if (typeof payload === 'string') return payload
@@ -345,29 +395,94 @@ function normalizePrdPayload(payload: unknown): string {
   }
 }
 
-async function loadProject() {
-  loadingProject.value = true
+async function loadPrd() {
+  if (tabPrdLoaded.value) return
+  await refreshPrdAndDocs()
+  tabPrdLoaded.value = true
+}
+
+function normalizeAIDocPayload(payload: unknown): Record<string, any>[] {
+  if (Array.isArray(payload)) return payload as Record<string, any>[]
+  if (payload && typeof payload === 'object') {
+    const obj = payload as Record<string, unknown>
+    if (Array.isArray(obj.documents)) return obj.documents as Record<string, any>[]
+    if (Array.isArray(obj.list)) return obj.list as Record<string, any>[]
+  }
+  return []
+}
+
+async function refreshPrdAndDocs() {
+  loadingPrd.value = true
   try {
-    const res: { data?: ProjectDetail } = await getProjectDetail(uuid)
-    project.value = res.data ?? null
-  } catch {
-    project.value = null
+    const [prdRes, docsRes] = await Promise.allSettled([
+      getProjectPRD(uuid),
+      getAIDocuments(uuid),
+    ])
+    if (prdRes.status === 'fulfilled') {
+      prdText.value = normalizePrdPayload((prdRes.value as any)?.data)
+    }
+    if (docsRes.status === 'fulfilled') {
+      const docs = normalizeAIDocPayload((docsRes.value as any)?.data)
+      aiDocs.value = docs.map((d: any) => ({ ...d, _downloading: false }))
+    }
   } finally {
-    loadingProject.value = false
+    loadingPrd.value = false
   }
 }
 
-async function loadPrd() {
-  if (tabPrdLoaded.value) return
-  loadingPrd.value = true
+function downloadPrdText() {
+  if (!prdText.value) return
+  const title = project.value?.title || '项目'
+  const blob = new Blob([prdText.value], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${title}-PRD.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function downloadAIDoc(row: Record<string, any>) {
+  row._downloading = true
   try {
-    const res: { data?: unknown } = await getProjectPRD(uuid)
-    prdText.value = normalizePrdPayload(res.data)
+    const token = localStorage.getItem('admin_token')
+    const baseURL = import.meta.env.VITE_API_BASE_URL || ''
+    const url = `${baseURL}/admin/projects/${uuid}/ai-documents/${row.id}/download`
+    const resp = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!resp.ok) {
+      ElMessage.error('下载失败')
+      return
+    }
+    const blob = await resp.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = row.filename || 'document.md'
+    a.click()
+    URL.revokeObjectURL(blobUrl)
+  } catch {
+    ElMessage.error('下载失败')
+  } finally {
+    row._downloading = false
+  }
+}
+
+async function handlePrdUpload(options: UploadRequestOptions) {
+  prdUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', options.file)
+    await uploadProjectPrdDocument(uuid, formData)
+    ElMessage.success('涓婁紶鎴愬姛')
+    options.onSuccess?.({})
+    await refreshPrdAndDocs()
     tabPrdLoaded.value = true
   } catch {
-    prdText.value = ''
+    options.onError?.(new Error('upload failed') as any)
   } finally {
-    loadingPrd.value = false
+    prdUploading.value = false
   }
 }
 
@@ -617,6 +732,20 @@ onMounted(() => {
 
 .prd-panel {
   min-height: 200px;
+}
+
+.prd-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.ai-docs-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .prd-text {

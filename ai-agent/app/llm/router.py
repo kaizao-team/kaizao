@@ -13,13 +13,17 @@ from app.llm.claude_client import ClaudeClient
 logger = structlog.get_logger()
 
 
+REDIS_KEY = "llm:active_provider"
+DEFAULT_PROVIDER = "openai_gpt"
+
+
 class LLMRouter:
     """
     LLM 模型路由器
     - 按 model_tier 选择合适的模型
     - create_message() 返回 Message 对象（支持 tool use）
     - generate() 返回字符串（兼容旧接口）
-    - 降级链：GPT-5.4 → 智谱 GLM → 通义千问
+    - 优先使用 Redis 中指定的 active_provider，失败后走降级链
     """
 
     def __init__(self):
@@ -52,6 +56,30 @@ class LLMRouter:
             dashscope_available=self._dashscope_available,
         )
 
+    async def _get_active_provider(self) -> Optional[str]:
+        """从 Redis 读取手动指定的激活模型，无值返回 None（走默认降级链）"""
+        try:
+            from app.main import v2_session
+            if v2_session and v2_session._redis:
+                val = await v2_session._redis.get(REDIS_KEY)
+                if val:
+                    return val
+        except Exception as e:
+            logger.warning("读取 active_provider 失败，走默认降级", error=str(e))
+        return None
+
+    def _get_provider_client(self, provider: str):
+        """按 provider id 返回 (client, name) 或 None"""
+        if provider == "openai_gpt" and self._openai_gpt_client and self._openai_gpt_client.available:
+            return self._openai_gpt_client, "GPT-5.4"
+        if provider == "zhipu" and self._zhipu_client and self._zhipu_client.available:
+            return self._zhipu_client, "智谱 GLM"
+        if provider == "claude" and self.claude_client.available:
+            return self.claude_client, "Claude"
+        if provider == "dashscope" and self._dashscope_available:
+            return "dashscope", "通义千问"
+        return None
+
     def _resolve_model(self, model_tier: str) -> str:
         if model_tier == "high":
             return settings.claude_sonnet_model
@@ -69,8 +97,51 @@ class LLMRouter:
         """
         返回 Message 对象（支持 tool use）
 
-        降级链：GPT-5.4 → 智谱 GLM → 通义千问
+        优先使用 Redis active_provider 指定的模型，失败后走降级链。
         """
+        # 尝试手动指定的模型
+        active = await self._get_active_provider()
+        if active and active != DEFAULT_PROVIDER:
+            result = self._get_provider_client(active)
+            if result:
+                client, name = result
+                if active == "dashscope":
+                    # dashscope 走下方统一的降级3路径，但跳过前面的降级
+                    fallback_model = (
+                        settings.qwen_max_model if model_tier == "high" else settings.qwen_turbo_model
+                    )
+                    fallback_system = system or ""
+                    if tools:
+                        import json
+                        fallback_system += "\n\n[可用工具定义（请在回复中模拟 tool_use 格式）]:\n"
+                        for t in tools:
+                            fallback_system += f"- {t.get('name', 'unknown')}: {json.dumps(t, ensure_ascii=False)}\n"
+                    try:
+                        text = await self._call_dashscope(
+                            messages=messages, model=fallback_model,
+                            max_tokens=max_tokens, temperature=temperature,
+                            system_override=fallback_system if fallback_system else None,
+                        )
+                        return self._text_to_fake_message(text)
+                    except Exception as e:
+                        logger.warning(f"{name} (指定模型) 调用失败，走降级链", error=str(e))
+                else:
+                    try:
+                        if active == "claude":
+                            model = self._resolve_model(model_tier)
+                            return await client.create_message(
+                                messages=messages, model=model,
+                                max_tokens=max_tokens, temperature=temperature,
+                                system=system, tools=tools,
+                            )
+                        else:
+                            return await client.create_message(
+                                messages=messages, max_tokens=max_tokens,
+                                temperature=temperature, system=system, tools=tools,
+                            )
+                    except Exception as e:
+                        logger.warning(f"{name} (指定模型) 调用失败，走降级链", error=str(e))
+
         # 主力：GPT-5.4
         if self._openai_gpt_client and self._openai_gpt_client.available:
             try:
@@ -148,6 +219,42 @@ class LLMRouter:
         response_format: Optional[str] = None,
     ) -> str:
         """兼容旧版：返回纯文本字符串"""
+        # 尝试手动指定的模型
+        active = await self._get_active_provider()
+        if active and active != DEFAULT_PROVIDER:
+            result = self._get_provider_client(active)
+            if result:
+                client, name = result
+                if active == "dashscope":
+                    fallback_model = (
+                        settings.qwen_max_model if model_tier == "high" else settings.qwen_turbo_model
+                    )
+                    try:
+                        return await self._call_dashscope(
+                            messages=messages, model=fallback_model,
+                            max_tokens=max_tokens, temperature=temperature,
+                        )
+                    except Exception as e:
+                        logger.warning(f"{name} (指定模型) 调用失败，走降级链", error=str(e))
+                elif active == "claude":
+                    model = self._resolve_model(model_tier)
+                    try:
+                        return await client.generate(
+                            messages=messages, model=model,
+                            max_tokens=max_tokens, temperature=temperature,
+                        )
+                    except Exception as e:
+                        logger.warning(f"{name} (指定模型) 调用失败，走降级链", error=str(e))
+                else:
+                    try:
+                        resp = await client.create_message(
+                            messages=messages, max_tokens=max_tokens,
+                            temperature=temperature,
+                        )
+                        return "".join(b.text for b in resp.content if hasattr(b, "text"))
+                    except Exception as e:
+                        logger.warning(f"{name} (指定模型) 调用失败，走降级链", error=str(e))
+
         # 主力：GPT-5.4
         if self._openai_gpt_client and self._openai_gpt_client.available:
             try:

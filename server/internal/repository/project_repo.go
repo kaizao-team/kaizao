@@ -737,7 +737,7 @@ func (r *teamRepository) ListActiveTeams(offset, limit int) ([]*model.Team, int6
 	var teams []*model.Team
 	var total int64
 	query := r.db.Model(&model.Team{}).
-		Where("teams.status = 1 AND teams.available_status = 1").
+		Where("teams.status = 1 AND teams.available_status = 1 AND teams.approval_status = ?", model.TeamApprovalApproved).
 		Where(`EXISTS (
 			SELECT 1 FROM users u
 			WHERE u.id = teams.leader_id

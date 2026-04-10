@@ -11,7 +11,7 @@ class MarketBudgetSlider extends StatefulWidget {
   const MarketBudgetSlider({
     super.key,
     this.min = 0,
-    this.max = 50000,
+    this.max = 500000,
     this.currentMin,
     this.currentMax,
     required this.onChanged,

@@ -40,6 +40,7 @@ services:
       - ./migrations/011_teams_ai_fields.up.sql:/docker-entrypoint-initdb.d/011_teams_ai_fields.sql:ro
       - ./migrations/012_teams_biz_fields.up.sql:/docker-entrypoint-initdb.d/012_teams_biz_fields.sql:ro
       - ./migrations/013_teams_budget_range.up.sql:/docker-entrypoint-initdb.d/013_teams_budget_range.sql:ro
+      - ./migrations/014_teams_approval_status.up.sql:/docker-entrypoint-initdb.d/014_teams_approval_status.sql:ro
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci

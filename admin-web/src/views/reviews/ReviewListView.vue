@@ -66,7 +66,19 @@
             {{ truncateUuid(row.uuid) }}
           </template>
         </el-table-column>
-        <el-table-column prop="project_title" label="关联项目" min-width="160" show-overflow-tooltip />
+        <el-table-column label="关联项目" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">
+            <router-link
+              v-if="row.project_id"
+              :to="{ name: 'ProjectDetail', params: { uuid: row.project_id } }"
+              class="project-link"
+              @click.stop
+            >
+              {{ row.project_title || `项目#${row.project_id}` }}
+            </router-link>
+            <span v-else class="text-muted">—</span>
+          </template>
+        </el-table-column>
         <el-table-column label="评价人" min-width="160">
           <template #default="{ row }">
             <div class="reviewer-cell">
@@ -359,6 +371,17 @@ onMounted(() => {
 .text-muted {
   color: #bbb;
   font-size: 13px;
+}
+
+.project-link {
+  color: #1a1c1c;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+
+.project-link:hover {
+  opacity: 0.6;
 }
 
 .drawer-section {

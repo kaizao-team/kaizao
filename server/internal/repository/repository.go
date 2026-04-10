@@ -5,13 +5,12 @@ import (
 	"gorm.io/gorm"
 )
 
-// InviteCodeRepository 团队邀请码
+// InviteCodeRepository 邀请码
 type InviteCodeRepository interface {
 	Create(ic *model.InviteCode) error
-	DisableActiveUnusedForTeam(teamID int64) error
+	BatchCreate(codes []*model.InviteCode) error
 	List(offset, limit int, teamID *int64) ([]*model.InviteCode, int64, error)
-	FindActiveByTeamID(teamID int64) (*model.InviteCode, error)
-	ConsumeTeamInviteAndRotate(plain string) (consumed *model.InviteCode, newRow *model.InviteCode, err error)
+	ConsumeWithTx(tx *gorm.DB, plain string) (*model.InviteCode, error)
 }
 
 // TeamStaticAssetRepository 团队静态文件元数据

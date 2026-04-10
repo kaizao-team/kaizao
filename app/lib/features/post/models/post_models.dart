@@ -179,19 +179,17 @@ class ProjectOverviewData {
     }
 
     final rawTargetUsers = json['target_users'];
-    final targetUsers = switch (rawTargetUsers) {
-      null => const <ProjectOverviewTargetUser>[],
-      final List<dynamic> list => list
-          .map(
-            (item) => ProjectOverviewTargetUser.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
-          )
-          .toList(growable: false),
-      _ => throw const FormatException(
-          'overview payload field target_users expected List',
-        ),
-    };
+    final targetUsers = <ProjectOverviewTargetUser>[];
+    if (rawTargetUsers is List) {
+      for (final item in rawTargetUsers) {
+        if (item is! Map) continue;
+        try {
+          targetUsers.add(ProjectOverviewTargetUser.fromJson(
+            Map<String, dynamic>.from(item),
+          ));
+        } catch (_) {}
+      }
+    }
 
     final rawNonFunctional = json['non_functional_requirements'];
     final nonFunctionalRequirements = switch (rawNonFunctional) {
@@ -208,19 +206,17 @@ class ProjectOverviewData {
     };
 
     final rawPrdItems = json['prd_items'];
-    final prdItems = switch (rawPrdItems) {
-      null => const <ProjectOverviewPrdItem>[],
-      final List<dynamic> list => list
-          .map(
-            (item) => ProjectOverviewPrdItem.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
-          )
-          .toList(growable: false),
-      _ => throw const FormatException(
-          'overview payload field prd_items expected List',
-        ),
-    };
+    final prdItems = <ProjectOverviewPrdItem>[];
+    if (rawPrdItems is List) {
+      for (final item in rawPrdItems) {
+        if (item is! Map) continue;
+        try {
+          prdItems.add(ProjectOverviewPrdItem.fromJson(
+            Map<String, dynamic>.from(item),
+          ));
+        } catch (_) {}
+      }
+    }
 
     final rawTechRequirements = json['tech_requirements'];
 
@@ -253,17 +249,11 @@ class ProjectOverviewTargetUser {
   });
 
   factory ProjectOverviewTargetUser.fromJson(Map<String, dynamic> json) {
-    final role = json['role']?.toString().trim();
-    final description = json['description']?.toString().trim();
-    if (role == null || role.isEmpty) {
-      throw const FormatException('target_users item missing role');
-    }
-    if (description == null || description.isEmpty) {
-      throw const FormatException('target_users item missing description');
-    }
+    final role = json['role']?.toString().trim() ?? '';
+    final description = json['description']?.toString().trim() ?? '';
     return ProjectOverviewTargetUser(
-      role: role,
-      description: description,
+      role: role.isNotEmpty ? role : '用户',
+      description: description.isNotEmpty ? description : '—',
     );
   }
 }
@@ -293,7 +283,9 @@ class ProjectOverviewTechRequirements {
     };
 
     final platform = json['platform']?.toString().trim();
-    final techStack = json['tech_stack']?.toString().trim();
+    final techStack = (json['tech_stack'] ?? json['technology_stack'])
+        ?.toString()
+        .trim();
 
     return ProjectOverviewTechRequirements(
       platform: platform == null || platform.isEmpty ? null : platform,

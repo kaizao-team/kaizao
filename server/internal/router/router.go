@@ -72,7 +72,6 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		users.GET("/me", middleware.JWTAuth(services.JWT), handlers.User.GetMe)
 		users.PUT("/me", middleware.JWTAuth(services.JWT), handlers.User.UpdateMe)
 		users.POST("/me/onboarding/application", middleware.JWTAuth(services.JWT), handlers.User.SubmitOnboardingApplication)
-		users.POST("/me/onboarding/redeem-invite", middleware.JWTAuth(services.JWT), handlers.User.RedeemOnboardingInvite)
 		// v6.0 PROF 模块
 		users.GET("/:id", middleware.OptionalJWTAuth(services.JWT), handlers.User.GetProfile)
 		users.PUT("/:id", middleware.JWTAuth(services.JWT), handlers.User.UpdateProfile)
@@ -241,9 +240,10 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	admin := v1.Group("/admin", middleware.JWTAuth(services.JWT), middleware.AdminAuth(services))
 	{
 		// 邀请码
-		admin.GET("/teams/:uuid/current-invite-code", handlers.Admin.GetTeamCurrentInviteCode)
 		admin.POST("/invite-codes", handlers.Admin.CreateInviteCode)
 		admin.GET("/invite-codes", handlers.Admin.ListInviteCodes)
+		// 团队审核
+		admin.PUT("/teams/:uuid/approval", handlers.Admin.ReviewTeamApproval)
 		// 用户管理
 		admin.PUT("/users/:uuid/onboarding", handlers.Admin.UpdateUserOnboarding)
 		admin.GET("/users", handlers.Admin.ListUsers)
@@ -270,6 +270,14 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		// 评价管理
 		admin.GET("/reviews", handlers.Admin.ListReviews)
 		admin.PUT("/reviews/:uuid/status", handlers.Admin.UpdateReviewStatus)
+		// AI 模型配置
+		admin.GET("/ai-models", handlers.Admin.GetAIModelConfig)
+		admin.PUT("/ai-models", handlers.Admin.UpdateAIModelConfig)
+		// AI 文档下载
+		admin.GET("/projects/:uuid/ai-documents", handlers.Admin.ListAIDocuments)
+		admin.GET("/projects/:uuid/ai-documents/:docId/download", handlers.Admin.DownloadAIDocument)
+		admin.PUT("/projects/:uuid/prd/document", handlers.Admin.UploadProjectPRDDocument)
+		admin.POST("/projects/:uuid/prd/reanalyze", handlers.Admin.ReanalyzePRD)
 	}
 
 	// ==================== AI服务模块 ====================

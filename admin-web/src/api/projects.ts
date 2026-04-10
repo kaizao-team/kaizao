@@ -41,3 +41,17 @@ export function getProjectReviews(id: string) {
 export function getProjectPRD(id: string) {
   return request.get(`/projects/${id}/prd`)
 }
+
+export function getAIDocuments(uuid: string) {
+  return request.get(`/admin/projects/${uuid}/ai-documents`)
+}
+
+export function getAIDocumentDownloadUrl(uuid: string, docId: number) {
+  return request.get(`/admin/projects/${uuid}/ai-documents/${docId}/download`)
+}
+
+export function uploadProjectPrdDocument(uuid: string, formData: FormData) {
+  return request.put(`/admin/projects/${uuid}/prd/document`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}

@@ -212,16 +212,21 @@ from app.routers import (
     chat_router,
     lifecycle_router,
     ears_router,
+    model_router,
+    document_router,
 )
 app.include_router(requirement_router.router)
 app.include_router(design_router.router)
 app.include_router(pm_router.router)
 app.include_router(pipeline_router.router)
 app.include_router(rating_router.router)
+app.include_router(rating_router.provider_sync_router)
 app.include_router(match_router.router)
 app.include_router(chat_router.router)
 app.include_router(lifecycle_router.router)
 app.include_router(ears_router.router)
+app.include_router(model_router.router)
+app.include_router(document_router.router)
 
 # CORS 中间件
 app.add_middleware(

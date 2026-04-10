@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/ai_agent_client.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../market/repositories/market_repository.dart';
 import '../../match/repositories/match_repository.dart';
@@ -8,12 +10,14 @@ class ProjectDetailState {
   final Map<String, dynamic>? data;
   final String? errorMessage;
   final bool hasBid;
+  final List<Map<String, dynamic>> prdItems;
 
   const ProjectDetailState({
     this.isLoading = false,
     this.data,
     this.errorMessage,
     this.hasBid = false,
+    this.prdItems = const [],
   });
 
   ProjectDetailState copyWith({
@@ -21,12 +25,14 @@ class ProjectDetailState {
     Map<String, dynamic>? data,
     String? Function()? errorMessage,
     bool? hasBid,
+    List<Map<String, dynamic>>? prdItems,
   }) {
     return ProjectDetailState(
       isLoading: isLoading ?? this.isLoading,
       data: data ?? this.data,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       hasBid: hasBid ?? this.hasBid,
+      prdItems: prdItems ?? this.prdItems,
     );
   }
 
@@ -57,8 +63,11 @@ class ProjectDetailState {
     switch (category) {
       case 'dev': return '开发';
       case 'visual': return '视觉设计';
+      case 'design': return '视觉设计';
       case 'content': return '内容';
       case 'consulting': return '咨询';
+      case 'data': return '数据';
+      case 'solution': return '解决方案';
       default: return category.isNotEmpty ? category : '未分类';
     }
   }
@@ -128,8 +137,26 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
         } catch (_) {}
       }
 
+      // Fetch prd items from AI Agent overview (best effort)
+      List<Map<String, dynamic>> prdItems = [];
+      try {
+        final aiClient = AiAgentClient();
+        final overview = await aiClient.get(ApiEndpoints.pipelineOverview(projectId));
+        final overviewData = overview['data'];
+        if (overviewData is Map && overviewData['prd_items'] is List) {
+          prdItems = (overviewData['prd_items'] as List)
+              .whereType<Map<String, dynamic>>()
+              .toList();
+        }
+      } catch (_) {}
+
       if (!mounted) return;
-      state = state.copyWith(isLoading: false, data: data, hasBid: hasBid);
+      state = state.copyWith(
+        isLoading: false,
+        data: data,
+        hasBid: hasBid,
+        prdItems: prdItems,
+      );
     } catch (e) {
       if (!mounted) return;
       state = state.copyWith(

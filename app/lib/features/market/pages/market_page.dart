@@ -320,8 +320,8 @@ class _MarketPageState extends ConsumerState<MarketPage>
             _teamHighlightScore(right).compareTo(_teamHighlightScore(left)),
       );
 
-    // Zone 2: top 4 as featured cards
-    final featured = rankedExperts.take(4).toList(growable: false);
+    // Zone 2: top 6 as featured cards
+    final featured = rankedExperts.take(6).toList(growable: false);
     // Zone 3: the rest as waterfall tiles
     final waterfall =
         rankedExperts.skip(featured.length).toList(growable: false);
@@ -571,10 +571,16 @@ class _MarketPageState extends ConsumerState<MarketPage>
   }
 
   double _teamHighlightScore(MarketExpertItem expert) {
-    return (expert.rating * 24) +
-        (expert.completedProjects * 3.5) +
-        (expert.memberCount * 4) +
-        (expert.vibePower * 0.6);
+    return (_vibeLevelScore(expert.vibeLevel) * 100) +
+        (expert.skills.length * 8) +
+        (expert.rating * 4);
+  }
+
+  int _vibeLevelScore(String? level) {
+    if (level == null || level.isEmpty) return 0;
+    final match = RegExp(r'T(\d+)').firstMatch(level);
+    if (match == null) return 0;
+    return int.tryParse(match.group(1)!) ?? 0;
   }
 
   void _showFilterSheet(BuildContext context, MarketState state) {

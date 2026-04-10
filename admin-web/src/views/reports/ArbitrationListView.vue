@@ -16,8 +16,7 @@
         @change="handleSearch"
       >
         <el-option label="待处理" :value="1" />
-        <el-option label="处理中" :value="2" />
-        <el-option label="已裁决" :value="3" />
+        <el-option label="已裁决" :value="2" />
       </el-select>
       <el-button type="primary" @click="handleSearch">查询</el-button>
       <el-button @click="resetFilters">重置</el-button>
@@ -55,7 +54,7 @@
         <el-table-column label="操作" width="100" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
-              v-if="row.status === 1 || row.status === 2"
+              v-if="row.status === 1"
               link
               type="primary"
               size="small"

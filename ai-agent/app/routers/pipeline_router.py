@@ -163,14 +163,39 @@ async def get_prd_items(project_id: str, request: Request):
     summary="查询里程碑列表",
 )
 async def get_milestones(project_id: str, request: Request):
-    """查询项目里程碑列表，供前端项目管理页展示"""
-    from app.db.repository import ProjectRepository
+    """查询项目里程碑列表（从 Go milestones 表读取）"""
+    from app.db.engine import get_session_factory
+    from app.db.models import Project
+    from sqlalchemy import select, text as sqlalchemy_text
 
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:16])
 
     try:
-        repo = ProjectRepository()
-        milestones = await repo.get_milestones(project_id)
+        async with get_session_factory()() as session:
+            q = await session.execute(
+                select(Project.id).where(Project.uuid == project_id)
+            )
+            pid = q.scalar_one_or_none()
+            if not pid:
+                return APIResponse(code=40401, message="项目不存在", request_id=request_id)
+
+            result = await session.execute(
+                sqlalchemy_text(
+                    "SELECT uuid, title, description, sort_order, payment_ratio, "
+                    "status, due_date, delivered_at, accepted_at, created_at "
+                    "FROM milestones WHERE project_id = :pid ORDER BY sort_order"
+                ),
+                {"pid": pid},
+            )
+            rows = result.mappings().all()
+            milestones = []
+            for r in rows:
+                ms = dict(r)
+                for dt_field in ("due_date", "delivered_at", "accepted_at", "created_at"):
+                    if ms.get(dt_field):
+                        ms[dt_field] = ms[dt_field].isoformat() if hasattr(ms[dt_field], 'isoformat') else str(ms[dt_field])
+                milestones.append(ms)
+
         return APIResponse(code=0, data={"milestones": milestones}, request_id=request_id)
     except Exception as e:
         logger.error("get_milestones_error", error=str(e), request_id=request_id)

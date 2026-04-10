@@ -226,6 +226,16 @@ class PostNotifier extends StateNotifier<PostState> {
     final draftProjectId = await _ensureRealProjectId(
       step: state.currentStep == 0 ? 1 : state.currentStep,
     );
+
+    await _repository.updateProjectDraft(
+      draftProjectId,
+      title: state.overviewData?.title,
+      description: state.overviewData?.summary,
+      category: state.category,
+      budgetMin: state.budgetMin,
+      budgetMax: state.budgetMax,
+    );
+
     late final Map<String, dynamic> published;
     try {
       published = await _repository.publishDraftProject(draftProjectId);

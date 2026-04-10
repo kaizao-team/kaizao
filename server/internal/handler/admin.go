@@ -3,11 +3,15 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vibebuild/server/internal/config"
 	"github.com/vibebuild/server/internal/dto"
 	"github.com/vibebuild/server/internal/model"
 	"github.com/vibebuild/server/internal/pkg/errcode"
@@ -19,24 +23,32 @@ import (
 
 // AdminHandler 管理端（邀请码、入驻审核 + 全部 admin API）
 type AdminHandler struct {
-	authService  *service.AuthService
-	userService  *service.UserService
-	adminService *service.AdminService
-	log          *zap.Logger
+	authService    *service.AuthService
+	userService    *service.UserService
+	adminService   *service.AdminService
+	aiAgentBaseURL string
+	log            *zap.Logger
 }
 
-func NewAdminHandler(auth *service.AuthService, user *service.UserService, admin *service.AdminService, log *zap.Logger) *AdminHandler {
-	return &AdminHandler{authService: auth, userService: user, adminService: admin, log: log}
+func NewAdminHandler(auth *service.AuthService, user *service.UserService, admin *service.AdminService, aiCfg config.AIAgentConfig, log *zap.Logger) *AdminHandler {
+	return &AdminHandler{
+		authService:    auth,
+		userService:    user,
+		adminService:   admin,
+		aiAgentBaseURL: strings.TrimRight(strings.TrimSpace(aiCfg.BaseURL), "/"),
+		log:            log,
+	}
 }
 
-// ──────────── 邀请码（原有） ────────────
+// ──────────── 邀请码 ────────────
 
-type createInviteCodeReq struct {
-	TeamUUID  string  `json:"team_uuid" binding:"required"`
+type batchCreateInviteCodeReq struct {
+	Count     int     `json:"count"`
 	Note      string  `json:"note"`
 	ExpiresAt *string `json:"expires_at"`
 }
 
+// CreateInviteCode POST /admin/invite-codes — 批量创建全局邀请码
 func (h *AdminHandler) CreateInviteCode(c *gin.Context) {
 	adminUUID := c.GetString("user_uuid")
 	admin, err := h.userService.GetByUUID(adminUUID)
@@ -44,10 +56,13 @@ func (h *AdminHandler) CreateInviteCode(c *gin.Context) {
 		response.ErrorInternal(c, "管理员信息异常")
 		return
 	}
-	var req createInviteCodeReq
+	var req batchCreateInviteCodeReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
 		return
+	}
+	if req.Count <= 0 {
+		req.Count = 10
 	}
 	var exp *time.Time
 	if req.ExpiresAt != nil && *req.ExpiresAt != "" {
@@ -58,34 +73,21 @@ func (h *AdminHandler) CreateInviteCode(c *gin.Context) {
 		}
 		exp = &t
 	}
-	plain, rec, err := h.authService.CreateInviteCode(req.TeamUUID, admin.ID, req.Note, exp)
+	plains, err := h.authService.BatchCreateInviteCodes(req.Count, admin.ID, req.Note, exp)
 	if err != nil {
-		code, _ := strconv.Atoi(err.Error())
-		if code == errcode.ErrTeamNotFound {
-			response.ErrorNotFound(c, errcode.ErrTeamNotFound, errcode.GetMessage(errcode.ErrTeamNotFound))
-			return
-		}
 		response.ErrorInternal(c, "创建邀请码失败")
 		return
 	}
 	response.Success(c, gin.H{
-		"code_plain": plain,
-		"uuid":       rec.UUID,
-		"team_id":    rec.TeamID,
-		"max_uses":   rec.MaxUses,
-		"expires_at": rec.ExpiresAt,
-		"note":       rec.Note,
+		"codes": plains,
+		"count": len(plains),
 	})
 }
 
 func (h *AdminHandler) ListInviteCodes(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	var teamUUID *string
-	if q := c.Query("team_uuid"); q != "" {
-		teamUUID = &q
-	}
-	list, total, err := h.authService.ListInviteCodes(page, pageSize, teamUUID)
+	list, total, err := h.authService.ListInviteCodes(page, pageSize, nil)
 	if err != nil {
 		response.ErrorInternal(c, "查询失败")
 		return
@@ -114,31 +116,32 @@ func (h *AdminHandler) ListInviteCodes(c *gin.Context) {
 	response.SuccessWithMeta(c, out, response.BuildMeta(page, pageSize, total))
 }
 
-func (h *AdminHandler) GetTeamCurrentInviteCode(c *gin.Context) {
+// ReviewTeamApproval PUT /admin/teams/:uuid/approval — 管理端审核团队
+func (h *AdminHandler) ReviewTeamApproval(c *gin.Context) {
 	teamUUID := c.Param("uuid")
-	ic, err := h.authService.GetTeamCurrentInvite(teamUUID)
-	if err != nil {
-		code, _ := strconv.Atoi(err.Error())
-		if code == errcode.ErrTeamNotFound {
+	var req struct {
+		Status string  `json:"status" binding:"required,oneof=approved rejected"`
+		Reason *string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	var st int16
+	if req.Status == "approved" {
+		st = model.TeamApprovalApproved
+	} else {
+		st = model.TeamApprovalRejected
+	}
+	if err := h.adminService.UpdateTeamApproval(teamUUID, st); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			response.ErrorNotFound(c, errcode.ErrTeamNotFound, errcode.GetMessage(errcode.ErrTeamNotFound))
 			return
 		}
-		response.ErrorInternal(c, "查询失败")
+		response.ErrorInternal(c, "审核操作失败")
 		return
 	}
-	if ic == nil {
-		response.Success(c, gin.H{"has_active": false})
-		return
-	}
-	response.Success(c, gin.H{
-		"has_active": true,
-		"uuid":       ic.UUID,
-		"team_id":    ic.TeamID,
-		"code_plain": ic.CodePlain,
-		"code_hint":  ic.CodeHint,
-		"expires_at": ic.ExpiresAt,
-		"note":       ic.Note,
-	})
+	response.SuccessMsg(c, "已更新", nil)
 }
 
 type updateOnboardingReq struct {
@@ -712,7 +715,117 @@ func (h *AdminHandler) UpdateReviewStatus(c *gin.Context) {
 	response.SuccessMsg(c, "已更新", nil)
 }
 
+// ──────────── AI 模型配置（代理转发到 ai-agent） ────────────
+
+// GetAIModelConfig GET /admin/ai-models → ai-agent GET /api/v2/models/config
+func (h *AdminHandler) GetAIModelConfig(c *gin.Context) {
+	h.proxyAIAgent(c, http.MethodGet, "/api/v2/models/config", nil)
+}
+
+// UpdateAIModelConfig PUT /admin/ai-models → ai-agent PUT /api/v2/models/config
+func (h *AdminHandler) UpdateAIModelConfig(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "读取请求体失败")
+		return
+	}
+	h.proxyAIAgent(c, http.MethodPut, "/api/v2/models/config", body)
+}
+
+// ──────────── AI 文档下载（代理转发到 ai-agent） ────────────
+
+// ListAIDocuments GET /admin/projects/:uuid/ai-documents
+func (h *AdminHandler) ListAIDocuments(c *gin.Context) {
+	uuid := c.Param("uuid")
+	h.proxyAIAgent(c, http.MethodGet, "/api/v2/documents/"+uuid, nil)
+}
+
+// DownloadAIDocument GET /admin/projects/:uuid/ai-documents/:docId/download
+func (h *AdminHandler) DownloadAIDocument(c *gin.Context) {
+	uuid := c.Param("uuid")
+	docID := c.Param("docId")
+	h.proxyAIAgent(c, http.MethodGet, "/api/v2/documents/"+uuid+"/download/"+docID, nil)
+}
+
+// ReanalyzePRD POST /admin/projects/:uuid/prd/reanalyze
+func (h *AdminHandler) ReanalyzePRD(c *gin.Context) {
+	uuid := c.Param("uuid")
+	h.proxyAIAgent(c, http.MethodPost, "/api/v2/documents/"+uuid+"/reanalyze", nil)
+}
+
+// UploadProjectPRDDocument PUT /admin/projects/:uuid/prd/document
+func (h *AdminHandler) UploadProjectPRDDocument(c *gin.Context) {
+	uuid := c.Param("uuid")
+	h.proxyAIAgentMultipart(c, http.MethodPut, "/api/v2/documents/"+uuid+"/prd/document")
+}
+
+func (h *AdminHandler) proxyAIAgent(c *gin.Context, method, path string, body []byte) {
+	if h.aiAgentBaseURL == "" {
+		response.ErrorInternal(c, "ai-agent 未配置")
+		return
+	}
+	url := h.aiAgentBaseURL + path
+	var reqBody io.Reader
+	if body != nil {
+		reqBody = strings.NewReader(string(body))
+	}
+	req, err := http.NewRequestWithContext(c.Request.Context(), method, url, reqBody)
+	if err != nil {
+		response.ErrorInternal(c, fmt.Sprintf("构建请求失败: %v", err))
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if rid := c.GetString("request_id"); rid != "" {
+		req.Header.Set("X-Request-ID", rid)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		h.log.Warn("proxy_ai_agent_error", zap.Error(err))
+		response.ErrorInternal(c, "ai-agent 服务不可用")
+		return
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+
+	// 透传 ai-agent 的 JSON 响应
+	c.Data(resp.StatusCode, "application/json; charset=utf-8", raw)
+}
+
 // ──────────── helpers ────────────
+
+func (h *AdminHandler) proxyAIAgentMultipart(c *gin.Context, method, path string) {
+	if h.aiAgentBaseURL == "" {
+		response.ErrorInternal(c, "ai-agent not configured")
+		return
+	}
+	url := h.aiAgentBaseURL + path
+	req, err := http.NewRequestWithContext(c.Request.Context(), method, url, c.Request.Body)
+	if err != nil {
+		response.ErrorInternal(c, fmt.Sprintf("build request failed: %v", err))
+		return
+	}
+	if ct := strings.TrimSpace(c.GetHeader("Content-Type")); ct != "" {
+		req.Header.Set("Content-Type", ct)
+	}
+	if rid := c.GetString("request_id"); rid != "" {
+		req.Header.Set("X-Request-ID", rid)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		h.log.Warn("proxy_ai_agent_multipart_error", zap.Error(err))
+		response.ErrorInternal(c, "ai-agent service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	contentType := strings.TrimSpace(resp.Header.Get("Content-Type"))
+	if contentType == "" {
+		contentType = "application/json; charset=utf-8"
+	}
+	c.Data(resp.StatusCode, contentType, raw)
+}
 
 func maskPhone(phone string) string {
 	if len(phone) < 7 {

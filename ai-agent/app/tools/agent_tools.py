@@ -17,7 +17,7 @@ ASK_CLARIFICATION_TOOL = {
             },
             "completeness_score": {
                 "type": "integer",
-                "description": "当前需求完整度评分 0-100，计算公式: sum(dimension_i × weight_i)，所有维度 ≥ 50% 且总分 ≥ 70 才触发 PRD",
+                "description": "当前需求完整度评分 0-100，计算公式: 产品定位×0.15 + 用户画像×0.15 + 核心功能模块×0.15 + 业务流程×0.25 + 技术偏好×0.10 + 预期排期×0.20。所有维度 ≥ 60 且总分 ≥ 75 才触发 PRD",
                 "minimum": 0,
                 "maximum": 100,
             },
@@ -38,13 +38,12 @@ ASK_CLARIFICATION_TOOL = {
                         "category": {
                             "type": "string",
                             "enum": [
-                                "product_scope",
+                                "product_positioning",
                                 "target_users",
-                                "core_features",
+                                "core_modules",
+                                "business_flow",
                                 "tech_preference",
-                                "business_goal",
-                                "mvp_scope",
-                                "constraints",
+                                "delivery_expectation",
                             ],
                             "description": "问题所属需求维度",
                         },
@@ -109,23 +108,29 @@ ASK_CLARIFICATION_TOOL = {
                 "type": "object",
                 "description": "各需求维度的覆盖度（0-100），用于展示进度",
                 "properties": {
-                    "product_scope": {
+                    "product_positioning": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "产品定位与边界（权重 20%）",
+                        "description": "产品定位（权重 15%）",
                     },
                     "target_users": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "用户画像（权重 15%）",
+                        "description": "用户画像与痛点（权重 15%）",
                     },
-                    "core_features": {
+                    "core_modules": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "核心功能列表（权重 20%）",
+                        "description": "核心功能模块（权重 15%）",
+                    },
+                    "business_flow": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "业务流程（权重 25%，最核心维度）",
                     },
                     "tech_preference": {
                         "type": "integer",
@@ -133,23 +138,11 @@ ASK_CLARIFICATION_TOOL = {
                         "maximum": 100,
                         "description": "技术偏好（权重 10%）",
                     },
-                    "business_goal": {
+                    "delivery_expectation": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "商业目标（权重 10%）",
-                    },
-                    "mvp_scope": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 100,
-                        "description": "MVP 范围与优先级（权重 15%）",
-                    },
-                    "constraints": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 100,
-                        "description": "约束条件（权重 10%）",
+                        "description": "预期排期（权重 20%）",
                     },
                 },
             },
@@ -216,12 +209,18 @@ GENERATE_PRD_TOOL = {
                 },
                 "required": ["title", "summary", "target_users", "feature_modules", "tech_requirements", "non_functional_requirements"],
             },
+            "estimated_delivery_days": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 90,
+                "description": "基于用户沟通确认的预期交付天数。如果用户明确说了时间就用用户的，否则根据复杂度推算：S=7, M=14, L=21, XL=30",
+            },
             "markdown_preview": {
                 "type": "string",
                 "description": "完整的 Markdown 格式 PRD 文档预览",
             },
         },
-        "required": ["agent_message", "completeness_score", "complexity", "prd", "markdown_preview"],
+        "required": ["agent_message", "completeness_score", "complexity", "prd", "estimated_delivery_days", "markdown_preview"],
     },
 }
 
@@ -260,12 +259,43 @@ DECOMPOSE_TO_EARS_TOOL = {
                     "required": ["task_id", "feature_item_id", "ears_type", "ears_statement", "module", "role_tag", "priority", "acceptance_criteria"],
                 },
             },
+            "milestones": {
+                "type": "array",
+                "description": "里程碑计划，需求层粒度，每个里程碑覆盖一组需求条目",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string", "description": "里程碑名称，通俗易懂，如'用户注册登录 + 基础框架'"},
+                        "description": {"type": "string", "description": "里程碑目标描述，面向项目方"},
+                        "feature_item_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "包含的需求条目 ID 列表，如 ['F-1.1', 'F-1.2']",
+                        },
+                        "phases": {
+                            "type": "array",
+                            "description": "内部阶段拆分，团队执行节奏",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string", "description": "阶段名：内部对齐/开发/测试/验收交付"},
+                                    "days": {"type": "number", "description": "该阶段预计天数"},
+                                },
+                                "required": ["name", "days"],
+                            },
+                        },
+                        "estimated_days": {"type": "number", "description": "该里程碑预估总天数（= phases 各阶段天数之和）"},
+                        "payment_ratio": {"type": "number", "description": "支付比例，如 0.4 表示 40%，所有里程碑 payment_ratio 总和必须等于 1"},
+                    },
+                    "required": ["title", "description", "feature_item_ids", "phases", "estimated_days", "payment_ratio"],
+                },
+            },
             "markdown_preview": {
                 "type": "string",
-                "description": "包含 PRD + EARS 的完整 requirement.md 内容",
+                "description": "包含 PRD + EARS + 里程碑的完整 requirement.md 内容",
             },
         },
-        "required": ["agent_message", "ears_tasks", "markdown_preview"],
+        "required": ["agent_message", "ears_tasks", "milestones", "markdown_preview"],
     },
 }
 

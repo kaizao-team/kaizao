@@ -130,3 +130,31 @@ func (c *Client) MatchRecommend(ctx context.Context, reqID string, body MatchRec
 	}
 	return &data, nil
 }
+
+// SyncProviderProfile POST /api/v2/providers/sync — 同步团队档案到 AI Agent
+func (c *Client) SyncProviderProfile(ctx context.Context, data map[string]interface{}) error {
+	if c == nil {
+		return nil // silently skip if AI agent not configured
+	}
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	url := c.baseURL + "/api/v2/providers/sync"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		if c.log != nil {
+			c.log.Warn("ai_agent_sync_provider_http", zap.Error(err))
+		}
+		return err
+	}
+	defer resp.Body.Close()
+	io.ReadAll(resp.Body) // drain
+	return nil
+}

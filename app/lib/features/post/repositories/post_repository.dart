@@ -143,6 +143,28 @@ class PostRepository {
     );
   }
 
+  Future<Map<String, dynamic>> updateProjectDraft(
+    String projectId, {
+    String? title,
+    String? description,
+    String? category,
+    double? budgetMin,
+    double? budgetMax,
+  }) async {
+    final response = await _client.put<Map<String, dynamic>>(
+      ApiEndpoints.projectDetail(projectId),
+      data: {
+        if (title != null) 'title': title,
+        if (description != null) 'description': description,
+        if (category != null) 'category': category,
+        if (budgetMin != null) 'budget_min': budgetMin,
+        if (budgetMax != null) 'budget_max': budgetMax,
+      },
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+    return response.data ?? const {};
+  }
+
   /// Publish the draft project so Go-side matching can proceed.
   Future<Map<String, dynamic>> publishDraftProject(String projectId) async {
     final response = await _client.post<Map<String, dynamic>>(

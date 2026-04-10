@@ -223,7 +223,7 @@ func (s *AdminService) GetDashboard() (*DashboardData, error) {
 	db.Model(&model.User{}).Where("created_at >= ?", today).Count(&d.UserToday)
 	db.Model(&model.Project{}).Count(&d.ProjectCount)
 	db.Model(&model.Project{}).Where("created_at >= ?", weekStart).Count(&d.ProjectWeek)
-	db.Model(&model.Team{}).Where("status = 1").Count(&d.ActiveTeamCount)
+	db.Model(&model.Team{}).Where("status = 1 AND approval_status = ?", model.TeamApprovalApproved).Count(&d.ActiveTeamCount)
 
 	db.Model(&model.Order{}).Where("status IN (2,3,4)").Select("COALESCE(SUM(amount),0)").Scan(&d.OrderTotalAmount)
 	db.Model(&model.Order{}).Where("status IN (2,3,4) AND created_at >= ?", monthStart).Select("COALESCE(SUM(amount),0)").Scan(&d.OrderMonthAmount)
@@ -529,6 +529,17 @@ func (s *AdminService) ListReviews(opts AdminReviewListOpts) ([]model.Review, in
 
 func (s *AdminService) UpdateReviewStatus(uuid string, status int) error {
 	return s.db().Model(&model.Review{}).Where("uuid = ?", uuid).Update("status", status).Error
+}
+
+// UpdateTeamApproval 管理端审核团队
+func (s *AdminService) UpdateTeamApproval(teamUUID string, approvalStatus int16) error {
+	team, err := s.repos.Team.FindByUUID(teamUUID)
+	if err != nil {
+		return err
+	}
+	return s.repos.Team.UpdateFields(team.ID, map[string]interface{}{
+		"approval_status": approvalStatus,
+	})
 }
 
 // DBStatusToFront 导出给 handler 层使用

@@ -1,13 +1,15 @@
 """12. v7: 组队 + 12a. POST /teams 创建团队 + 12b. 团队详情字段验证 + 13. v7: 评价"""
 
+import time
+
 from . import state
-from .helpers import req, test, cf
+from .helpers import req, test, cf, gen_phone, get_sms_code
 
 
 def run():
     print("\n--- 12. v7: 组队模块 ---")
 
-    # ==================== 12a. POST /api/v1/teams 创建团队（任意角色均可，自动提升 role） ====================
+    # ==================== 12a. POST /api/v1/teams 创建团队 ====================
     print("\n--- 12a. POST /teams 创建团队 ---")
 
     # 非法预算区间 (20005)
@@ -20,7 +22,7 @@ def run():
         expect_http=400,
     )
 
-    # 正常创建（任意角色）。同一次跑测中 2.2h 可能已建主团队 → 11021 亦为预期，勿用 test(..., expect_code=0)
+    # 正常创建（无邀请码 → approval_status=1 待审核）。同一次跑测中可能已建主团队 → 11021 亦为预期
     st_ct, r_ct = req(
         "POST",
         "/api/v1/teams",
@@ -30,19 +32,19 @@ def run():
             "available_status": 1,
             "budget_min": 5000.0,
             "budget_max": 20000.0,
-            "description": "集成测试自动创建",
+            "description": "集成测试自动创建（无邀请码，待审核）",
         },
     )
     code_ct = r_ct.get("code", -1)
     ok_12a2 = code_ct in (0, 11021)
     icon = "PASS" if ok_12a2 else "FAIL"
-    print(f"  [{icon}] 12a.2 POST /teams (create) -> HTTP {st_ct}, code={code_ct}")
+    print(f"  [{icon}] 12a.2 POST /teams (no invite_code, pending) -> HTTP {st_ct}, code={code_ct}")
     if not ok_12a2:
         print(
             f"         Expected code=0 or 11021, got code={code_ct}, HTTP={st_ct}, "
             f"msg={r_ct.get('message', '')}"
         )
-    state.RESULTS.append(("12a.2 POST /teams (create)", ok_12a2, st_ct, code_ct))
+    state.RESULTS.append(("12a.2 POST /teams (no invite_code)", ok_12a2, st_ct, code_ct))
     if code_ct == 0 and isinstance(r_ct.get("data"), dict):
         created_uuid = r_ct["data"].get("uuid")
         created_name = r_ct["data"].get("name")
@@ -50,7 +52,7 @@ def run():
         if not state.EXPERT_TEAM_UUID:
             state.EXPERT_TEAM_UUID = created_uuid
     elif code_ct == 11021:
-        print("         已有主团队，跳过创建（11021）（常与 2.2h 同跑测已建队）")
+        print("         已有主团队，跳过创建（11021）")
 
     # 重复创建应返回 11021
     test(
@@ -61,6 +63,76 @@ def run():
         expect_code=11021,
         expect_http=400,
     )
+
+    # ==================== 12a.4 带邀请码创建团队（新用户，approval_status=2 直接通过） ====================
+    print("\n--- 12a.4 带邀请码创建团队 ---")
+    if state.ADMIN_SETUP_OK and state.INVITE_CODE_PLAIN:
+        inv_phone = gen_phone()
+        test(
+            "12a.4a POST /auth/sms-code (new user for invite team)",
+            "POST",
+            "/api/v1/auth/sms-code",
+            {"phone": inv_phone, "purpose": 2},
+            need_auth=False,
+        )
+        time.sleep(0.3)
+        inv_sms = get_sms_code(inv_phone) or "952786"
+        ok_login, r_login = test(
+            "12a.4b POST /auth/login (new user)",
+            "POST",
+            "/api/v1/auth/login",
+            {"phone": inv_phone, "code": inv_sms},
+            need_auth=False,
+        )
+        inv_tok = (r_login.get("data") or {}).get("access_token") if ok_login else None
+        if inv_tok:
+            ok_inv_team, r_inv_team = test(
+                "12a.4c POST /teams (with invite_code -> approved)",
+                "POST",
+                "/api/v1/teams",
+                {
+                    "name": "邀请码团队",
+                    "invite_code": state.INVITE_CODE_PLAIN,
+                    "description": "用邀请码创建，应直接审核通过",
+                },
+                auth_token=inv_tok,
+            )
+            if ok_inv_team and isinstance(r_inv_team.get("data"), dict):
+                inv_team_uuid = r_inv_team["data"].get("uuid")
+                print(f"         invite team uuid={inv_team_uuid!r}")
+            # 使用已核销的邀请码再次创建应失败 (10013 或 10014)
+            inv_phone2 = gen_phone()
+            test("12a.4d sms-code for 2nd user", "POST", "/api/v1/auth/sms-code",
+                 {"phone": inv_phone2, "purpose": 2}, need_auth=False)
+            time.sleep(0.3)
+            inv_sms2 = get_sms_code(inv_phone2) or "952786"
+            ok_l2, r_l2 = test("12a.4e login 2nd user", "POST", "/api/v1/auth/login",
+                               {"phone": inv_phone2, "code": inv_sms2}, need_auth=False)
+            inv_tok2 = (r_l2.get("data") or {}).get("access_token") if ok_l2 else None
+            if inv_tok2:
+                test(
+                    "12a.4f POST /teams (reuse consumed invite_code -> 10013/10014)",
+                    "POST",
+                    "/api/v1/teams",
+                    {"name": "二次使用", "invite_code": state.INVITE_CODE_PLAIN},
+                    auth_token=inv_tok2,
+                    expect_code=10014,
+                    expect_http=400,
+                )
+        else:
+            print("  [SKIP] 12a.4c–f 无 token，跳过邀请码建团队用例")
+
+        # 管理端审核团队（如果之前无码创建的团队存在）
+        if state.EXPERT_TEAM_UUID and state.TOKEN:
+            print("\n--- 12a.5 管理端审核团队 ---")
+            test(
+                "12a.5a PUT /admin/teams/:uuid/approval (approve)",
+                "PUT",
+                f"/api/v1/admin/teams/{state.EXPERT_TEAM_UUID}/approval",
+                {"status": "approved"},
+            )
+    else:
+        print("  [SKIP] 12a.4 需 1.5 管理端邀请码创建成功")
 
     ok, r = test("12.1 GET /teams (list)", "GET", "/api/v1/teams", need_auth=False)
     if ok and r.get("data"):

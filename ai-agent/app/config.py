@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # 智谱 GLM API 配置（降级备选，支持 tool use）
     zhipu_api_key: str = Field(default="", description="智谱 API Key")
-    zhipu_model: str = "GLM-4-FlashX"
+    zhipu_model: str = "GLM-5.1"
 
     # 通义千问 API 配置（备选 LLM / 国内合规）
     dashscope_api_key: str = Field(default="", description="阿里云 DashScope API Key")
