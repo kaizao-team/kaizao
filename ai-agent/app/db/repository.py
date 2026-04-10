@@ -513,6 +513,11 @@ class GoTasksRepository:
 
         async with get_session_factory()() as session:
             async with session.begin():
+                # 清除旧的 AI 生成任务（is_ai_generated=1）
+                await session.execute(
+                    sqlalchemy_text("DELETE FROM tasks WHERE project_id = :pid AND is_ai_generated = 1"),
+                    {"pid": project_id},
+                )
                 count = 0
                 for idx, task in enumerate(tasks):
                     task_uuid = str(uuid_mod.uuid4())
@@ -597,6 +602,11 @@ class GoTasksRepository:
 
         async with get_session_factory()() as session:
             async with session.begin():
+                # 清除旧里程碑（status=1 待开始，即 AI 生成未手动修改的）
+                await session.execute(
+                    sqlalchemy_text("DELETE FROM milestones WHERE project_id = :pid"),
+                    {"pid": project_id},
+                )
                 count = 0
                 for idx, ms in enumerate(milestones):
                     ms_uuid = str(uuid_mod.uuid4())
