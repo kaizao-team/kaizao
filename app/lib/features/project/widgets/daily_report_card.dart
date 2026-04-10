@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/project_models.dart';
 
 class DailyReportCard extends StatelessWidget {
@@ -46,14 +47,13 @@ class DailyReportCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('AI 日报',
-                            style: TextStyle(
-                                fontSize: 14,
+                        Text('AI 日报',
+                            style: AppTextStyles.body2.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.black)),
                         Text(report.date,
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.gray500)),
+                            style: AppTextStyles.caption.copyWith(
+                                color: AppColors.gray500)),
                       ],
                     ),
                   ),
@@ -74,12 +74,11 @@ class DailyReportCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Divider(height: 1, color: AppColors.gray200),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     report.summary,
-                    style: const TextStyle(
-                        fontSize: 14, height: 1.6, color: AppColors.gray700),
+                    style: AppTextStyles.body2.copyWith(
+                        height: 1.6, color: AppColors.gray700),
                   ),
                   if (report.completedTasks.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -123,8 +122,8 @@ class DailyReportCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             '明日计划：${report.tomorrowPlan}',
-                            style: const TextStyle(
-                                fontSize: 13, color: AppColors.gray600),
+                            style: AppTextStyles.body2.copyWith(
+                                color: AppColors.gray600),
                           ),
                         ),
                       ],
@@ -167,8 +166,7 @@ class _Section extends StatelessWidget {
             Icon(icon, size: 14, color: iconColor),
             const SizedBox(width: 6),
             Text(title,
-                style: const TextStyle(
-                    fontSize: 13,
+                style: AppTextStyles.body2.copyWith(
                     fontWeight: FontWeight.w500,
                     color: AppColors.gray700)),
           ],
@@ -177,8 +175,8 @@ class _Section extends StatelessWidget {
         ...items.map((item) => Padding(
               padding: const EdgeInsets.only(left: 20, top: 2),
               child: Text('· $item',
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.gray500)),
+                  style: AppTextStyles.caption.copyWith(
+                      color: AppColors.gray500)),
             )),
       ],
     );

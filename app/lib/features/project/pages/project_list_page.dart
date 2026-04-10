@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../app/routes.dart';
 import '../../../shared/widgets/vcc_card.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
@@ -18,11 +19,11 @@ class ProjectListPage extends ConsumerWidget {
     final isDemander = authState.userRole != 2;
 
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text(
           '我的项目',
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          style: AppTextStyles.h3,
         ),
         actions: [
           if (isDemander)
@@ -69,9 +70,12 @@ class ProjectListPage extends ConsumerWidget {
                       onRefresh: () =>
                           ref.read(projectListProvider.notifier).refresh(),
                       child: ListView.separated(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.base,
+                        ),
                         itemCount: listState.projects.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
                         itemBuilder: (context, index) {
                           final proj = listState.projects[index];
                           return VccCard(
@@ -91,8 +95,7 @@ class ProjectListPage extends ConsumerWidget {
                                     Expanded(
                                       child: Text(
                                         proj.title,
-                                        style: const TextStyle(
-                                          fontSize: 16,
+                                        style: AppTextStyles.body1.copyWith(
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.black,
                                         ),
@@ -103,11 +106,11 @@ class ProjectListPage extends ConsumerWidget {
                                           horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
                                         color: _statusBgColor(proj.status),
-                                        borderRadius: BorderRadius.circular(6),
+                                        borderRadius: BorderRadius.circular(AppRadius.sm),
                                       ),
                                       child: Text(
                                         proj.statusName,
-                                        style: TextStyle(
+                                        style: AppTextStyles.overline.copyWith(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w500,
                                           color: _statusColor(proj.status),
@@ -116,20 +119,21 @@ class ProjectListPage extends ConsumerWidget {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: AppSpacing.sm),
                                 Text(
                                   proj.budgetDisplay,
-                                  style: const TextStyle(
-                                      fontSize: 14, color: AppColors.gray600),
+                                  style: AppTextStyles.body2.copyWith(
+                                    color: AppColors.gray600,
+                                  ),
                                 ),
                                 if (proj.progress > 0) ...[
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: AppSpacing.sm),
                                   Row(
                                     children: [
                                       Expanded(
                                         child: ClipRRect(
                                           borderRadius:
-                                              BorderRadius.circular(3),
+                                              BorderRadius.circular(AppRadius.xs),
                                           child: LinearProgressIndicator(
                                             value: proj.progress / 100,
                                             backgroundColor: AppColors.gray200,
@@ -143,8 +147,7 @@ class ProjectListPage extends ConsumerWidget {
                                       const SizedBox(width: 8),
                                       Text(
                                         '${proj.progress}%',
-                                        style: const TextStyle(
-                                          fontSize: 12,
+                                        style: AppTextStyles.caption.copyWith(
                                           fontWeight: FontWeight.w500,
                                           color: AppColors.gray600,
                                         ),
