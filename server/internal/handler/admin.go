@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -781,7 +782,10 @@ func (h *AdminHandler) proxyAIAgent(c *gin.Context, method, path string, body []
 	if body != nil {
 		reqBody = strings.NewReader(string(body))
 	}
-	req, err := http.NewRequestWithContext(c.Request.Context(), method, url, reqBody)
+	// AI Agent 请求可能耗时较长（PRD 分析、EARS 拆解等），使用独立 120s 超时
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
 	if err != nil {
 		response.ErrorInternal(c, fmt.Sprintf("构建请求失败: %v", err))
 		return
