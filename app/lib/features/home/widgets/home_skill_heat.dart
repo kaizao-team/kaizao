@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/skills/app_skill_registry.dart';
 import '../models/home_models.dart';
 import 'home_section_header.dart';
 
@@ -118,6 +120,8 @@ class _SkillHeatRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final fraction = skill.heat / maxHeat;
 
+    final definition = AppSkillRegistry.resolve(skill.name);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -129,13 +133,21 @@ class _SkillHeatRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           alignment: Alignment.center,
-          child: Text(
-            '$rank',
-            style: AppTextStyles.caption.copyWith(
-              fontWeight: FontWeight.w700,
-              color: rank == 1 ? AppColors.white : AppColors.gray700,
-            ),
-          ),
+          child: definition.hasAssetIcon
+              ? SvgPicture.asset(
+                  definition.assetPath!,
+                  width: 18,
+                  height: 18,
+                  colorFilter: ColorFilter.mode(
+                    rank == 1 ? AppColors.white : AppColors.gray700,
+                    BlendMode.srcIn,
+                  ),
+                )
+              : Icon(
+                  definition.fallbackIcon,
+                  size: 18,
+                  color: rank == 1 ? AppColors.white : AppColors.gray700,
+                ),
         ),
         const SizedBox(width: 12),
         Expanded(

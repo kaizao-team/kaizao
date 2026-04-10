@@ -62,16 +62,16 @@ class _SplitRevenueBoard extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              flex: 8,
+              flex: 3,
               child: _RevenueHeroPanel(
                 revenue: revenue,
                 heroAmount: heroAmount,
                 onViewDetail: onViewDetail,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
-              flex: 5,
+              flex: 2,
               child: Column(
                 children: [
                   Expanded(
@@ -404,14 +404,17 @@ class _RevenueAmount extends StatelessWidget {
       tween: Tween(begin: 0, end: amount),
       duration: const Duration(milliseconds: 800),
       curve: Curves.easeOut,
-      builder: (context, value, _) => Text(
-        _formatCurrency(value),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: AppTextStyles.h1.copyWith(
-          fontSize: large ? 31 : 28,
-          color: AppColors.white,
-          height: 1.02,
+      builder: (context, value, _) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          _formatCurrency(value),
+          maxLines: 1,
+          style: AppTextStyles.h1.copyWith(
+            fontSize: large ? 31 : 28,
+            color: AppColors.white,
+            height: 1.02,
+          ),
         ),
       ),
     );
