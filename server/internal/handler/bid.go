@@ -240,6 +240,12 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 		if r.Team.AvatarURL != nil {
 			row["team_avatar_url"] = *r.Team.AvatarURL
 		}
+		if r.Team.BudgetMin != nil {
+			row["budget_min"] = *r.Team.BudgetMin
+		}
+		if r.Team.BudgetMax != nil {
+			row["budget_max"] = *r.Team.BudgetMax
+		}
 		row["nickname"] = r.User.Nickname
 		row["avatar_url"] = r.User.AvatarURL
 		row["rating"] = r.User.AvgRating
@@ -306,7 +312,7 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 	}
 
 	resp := gin.H{
-		"status":                  "accepted",
+		"status":                  "pending_team_confirmation",
 		"bid_id":                  bid.UUID,
 		"provider_id":             chosen.User.UUID,
 		"team_id":                 chosen.Team.UUID,
@@ -317,6 +323,26 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 		"agreed_price":            bid.Price,
 		"estimated_duration_days": bid.EstimatedDays,
 	}
-	response.SuccessMsg(c, "快速匹配完成，已选定团队", resp)
+	response.SuccessMsg(c, "已发送匹配请求，等待团队确认", resp)
+}
+
+// ConfirmBid POST /api/v1/bids/:bidId/confirm — 团队方确认接受推荐
+func (h *BidHandler) ConfirmBid(c *gin.Context) {
+	bidID := c.Param("bidId")
+	userUUID := c.GetString("user_uuid")
+	bid, err := h.bidService.ConfirmBid(bidID, userUUID)
+	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrBidNotFound, err.Error())
+		return
+	}
+	_ = bid
+	response.SuccessMsg(c, "已确认接受", gin.H{
+		"status": "accepted",
+	})
 }
 

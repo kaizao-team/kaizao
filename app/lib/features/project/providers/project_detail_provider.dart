@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/ai_agent_client.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../market/repositories/market_repository.dart';
@@ -11,6 +12,7 @@ class ProjectDetailState {
   final String? errorMessage;
   final bool hasBid;
   final List<Map<String, dynamic>> prdItems;
+  final List<Map<String, dynamic>> earsTasks;
 
   const ProjectDetailState({
     this.isLoading = false,
@@ -18,6 +20,7 @@ class ProjectDetailState {
     this.errorMessage,
     this.hasBid = false,
     this.prdItems = const [],
+    this.earsTasks = const [],
   });
 
   ProjectDetailState copyWith({
@@ -26,6 +29,7 @@ class ProjectDetailState {
     String? Function()? errorMessage,
     bool? hasBid,
     List<Map<String, dynamic>>? prdItems,
+    List<Map<String, dynamic>>? earsTasks,
   }) {
     return ProjectDetailState(
       isLoading: isLoading ?? this.isLoading,
@@ -33,6 +37,7 @@ class ProjectDetailState {
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       hasBid: hasBid ?? this.hasBid,
       prdItems: prdItems ?? this.prdItems,
+      earsTasks: earsTasks ?? this.earsTasks,
     );
   }
 
@@ -58,6 +63,8 @@ class ProjectDetailState {
   List<Map<String, dynamic>> get milestones =>
       (data?['milestones'] as List?)?.whereType<Map<String, dynamic>>().toList() ??
       [];
+
+  bool get hasEarsTasks => earsTasks.isNotEmpty;
 
   String get categoryName {
     switch (category) {
@@ -150,12 +157,28 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
         }
       } catch (_) {}
 
+      // Fetch EARS tasks (best effort)
+      List<Map<String, dynamic>> earsTasks = [];
+      try {
+        final apiClient = ApiClient();
+        final tasksResp = await apiClient.get<List>(
+          ApiEndpoints.projectTasks(projectId),
+          fromJson: (data) => data is List ? data : [],
+        );
+        if (tasksResp.data != null) {
+          earsTasks = tasksResp.data!
+              .whereType<Map<String, dynamic>>()
+              .toList();
+        }
+      } catch (_) {}
+
       if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         data: data,
         hasBid: hasBid,
         prdItems: prdItems,
+        earsTasks: earsTasks,
       );
     } catch (e) {
       if (!mounted) return;

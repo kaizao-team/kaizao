@@ -65,22 +65,32 @@ class KanbanTask {
 class Milestone {
   final String id;
   final String title;
+  final String? description;
   final String status;
   final int progress;
   final String dueDate;
   final double amount;
   final int taskCount;
   final int completedTaskCount;
+  final List<String> featureItemIds;
+  final List<Map<String, dynamic>> phases;
+  final double? estimatedDays;
+  final double? paymentRatio;
 
   const Milestone({
     required this.id,
     required this.title,
+    this.description,
     required this.status,
     required this.progress,
     required this.dueDate,
     required this.amount,
     required this.taskCount,
     required this.completedTaskCount,
+    this.featureItemIds = const [],
+    this.phases = const [],
+    this.estimatedDays,
+    this.paymentRatio,
   });
 
   bool get isCompleted => status == 'completed';
@@ -89,14 +99,25 @@ class Milestone {
 
   factory Milestone.fromJson(Map<String, dynamic> json) {
     return Milestone(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      status: json['status'] as String,
-      progress: json['progress'] as int,
-      dueDate: json['due_date'] as String,
-      amount: (json['amount'] as num).toDouble(),
-      taskCount: json['task_count'] as int,
-      completedTaskCount: json['completed_task_count'] as int,
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String?,
+      status: json['status'] as String? ?? 'pending',
+      progress: json['progress'] as int? ?? 0,
+      dueDate: json['due_date'] as String? ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0,
+      taskCount: json['task_count'] as int? ?? 0,
+      completedTaskCount: json['completed_task_count'] as int? ?? 0,
+      featureItemIds: (json['feature_item_ids'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      phases: (json['phases'] as List?)
+              ?.whereType<Map<String, dynamic>>()
+              .toList() ??
+          [],
+      estimatedDays: (json['estimated_days'] as num?)?.toDouble(),
+      paymentRatio: (json['payment_ratio'] as num?)?.toDouble(),
     );
   }
 }

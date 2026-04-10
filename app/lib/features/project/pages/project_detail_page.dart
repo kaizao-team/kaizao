@@ -139,6 +139,7 @@ class _BottomActions extends ConsumerWidget {
   String _rightButtonText(bool isDemander) {
     if (isDemander) {
       if (state.status <= 2) return '查看投标';
+      if (state.status == 3) return '等待确认';
       return '查看进度';
     } else {
       if (state.status >= 5) return '进入看板';
@@ -148,6 +149,7 @@ class _BottomActions extends ConsumerWidget {
   }
 
   bool _rightButtonEnabled(bool isDemander) {
+    if (isDemander && state.status == 3) return false;
     if (!isDemander && state.status < 5 && state.hasBid) return false;
     return true;
   }
@@ -266,6 +268,20 @@ class _DetailContentState extends State<_DetailContent>
                     ),
                   ),
                   child: _buildPrdItemCards(s.prdItems),
+                ),
+              ],
+              if (s.earsTasks.isNotEmpty) ...[
+                const SizedBox(height: _kProjectSectionGap),
+                VccPageSection(
+                  label: 'EARS 任务',
+                  trailing: Text(
+                    '${s.earsTasks.length} 条',
+                    style: AppTextStyles.caption.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gray400,
+                    ),
+                  ),
+                  child: _buildEarsTaskCards(s.earsTasks),
                 ),
               ],
               if (s.milestones.isNotEmpty) ...[
@@ -576,6 +592,137 @@ class _DetailContentState extends State<_DetailContent>
     );
   }
 
+  Widget _buildEarsTaskCards(List<Map<String, dynamic>> tasks) {
+    return Column(
+      children: tasks.asMap().entries.map((entry) {
+        final index = entry.key;
+        final task = entry.value;
+        final title = task['title']?.toString() ?? '';
+        final earsType = task['description']?.toString() ?? '';
+        final priority = task['priority']?.toString().toUpperCase() ?? '';
+        final effortHours = task['effort_hours'];
+        final status = task['status']?.toString() ?? 'todo';
+
+        return Padding(
+          padding: EdgeInsets.only(top: index == 0 ? 0 : 10),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.outlineVariant,
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (priority.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _priorityColor(priority).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          priority,
+                          style: AppTextStyles.caption.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: _priorityColor(priority),
+                          ),
+                        ),
+                      ),
+                    if (priority.isNotEmpty) const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _earsStatusColor(status).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _earsStatusLabel(status),
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _earsStatusColor(status),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (effortHours != null)
+                      Text(
+                        '${effortHours}h',
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 11,
+                          color: AppColors.gray400,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: AppTextStyles.body1.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                if (earsType.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    earsType,
+                    style: AppTextStyles.body2.copyWith(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Color _earsStatusColor(String status) {
+    switch (status) {
+      case 'in_progress':
+        return AppColors.accent;
+      case 'completed':
+        return AppColors.success;
+      default:
+        return AppColors.gray400;
+    }
+  }
+
+  String _earsStatusLabel(String status) {
+    switch (status) {
+      case 'in_progress':
+        return '进行中';
+      case 'completed':
+        return '已完成';
+      default:
+        return '待开始';
+    }
+  }
+
   Color _priorityColor(String priority) {
     switch (priority) {
       case 'P0':
@@ -610,8 +757,19 @@ class _DetailContentState extends State<_DetailContent>
     bool isLast = false,
   }) {
     final title = milestone['title']?.toString() ?? '';
+    final description = milestone['description']?.toString() ?? '';
     final status = milestone['status']?.toString() ?? 'pending';
     final progress = milestone['progress'] as int? ?? 0;
+    final estimatedDays = (milestone['estimated_days'] as num?)?.toDouble();
+    final paymentRatio = (milestone['payment_ratio'] as num?)?.toDouble();
+    final phases = (milestone['phases'] as List?)
+            ?.whereType<Map<String, dynamic>>()
+            .toList() ??
+        [];
+    final featureItemIds = (milestone['feature_item_ids'] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
 
     final isCompleted = status == 'completed';
     final isActive = status == 'in_progress';
@@ -669,15 +827,93 @@ class _DetailContentState extends State<_DetailContent>
                     decoration: isCompleted ? TextDecoration.lineThrough : null,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _milestoneMetaText(status, progress),
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.gray400,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: AppTextStyles.body2.copyWith(
+                      fontSize: 12,
+                      height: 1.5,
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                ],
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    _milestoneMetaTag(
+                      _milestoneMetaText(status, progress),
+                    ),
+                    if (estimatedDays != null)
+                      _milestoneMetaTag(
+                        '${estimatedDays.toStringAsFixed(estimatedDays == estimatedDays.roundToDouble() ? 0 : 1)} 天',
+                      ),
+                    if (paymentRatio != null && paymentRatio > 0)
+                      _milestoneMetaTag(
+                        '${(paymentRatio * 100).toStringAsFixed(0)}%',
+                      ),
+                  ],
                 ),
+                if (phases.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: phases.map((phase) {
+                      final phaseName = phase['name']?.toString() ?? '';
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceAlt,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          phaseName,
+                          style: AppTextStyles.caption.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.gray500,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+                if (featureItemIds.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: featureItemIds.map((id) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: AppColors.outlineVariant,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          id,
+                          style: AppTextStyles.caption.copyWith(
+                            fontSize: 10,
+                            color: AppColors.gray400,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -698,6 +934,25 @@ class _DetailContentState extends State<_DetailContent>
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _milestoneMetaTag(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: AppTextStyles.caption.copyWith(
+          fontSize: 11,
+          color: AppColors.gray400,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        ),
       ),
     );
   }

@@ -169,6 +169,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	bids := v1.Group("/bids")
 	{
 		bids.POST("/:bidId/accept", middleware.JWTAuth(services.JWT), handlers.Bid.AcceptBid)
+		bids.POST("/:bidId/confirm", middleware.JWTAuth(services.JWT), handlers.Bid.ConfirmBid)
 		bids.PUT("/:bidId/withdraw", middleware.JWTAuth(services.JWT), handlers.Bid.WithdrawBid)
 	}
 

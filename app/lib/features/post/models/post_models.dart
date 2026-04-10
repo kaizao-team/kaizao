@@ -346,6 +346,8 @@ class RecommendedTeam {
   final List<String> skills;
   final String level;
   final String? reason;
+  final double? budgetMin;
+  final double? budgetMax;
 
   const RecommendedTeam({
     required this.teamId,
@@ -355,6 +357,8 @@ class RecommendedTeam {
     required this.skills,
     required this.level,
     this.reason,
+    this.budgetMin,
+    this.budgetMax,
   });
 
   factory RecommendedTeam.fromJson(Map<String, dynamic> json) {
@@ -436,11 +440,14 @@ class RecommendedTeam {
       json['bid_type'] == 'team' ? '团队' : null,
       '推荐服务方',
     ]);
-    final avatar = firstNonEmpty([json['avatar_url'], json['avatar']]);
+    final avatar = firstNonEmpty([json['team_avatar_url'], json['avatar_url'], json['avatar']]);
     final reason = firstNonEmpty([
       json['recommendation_reason'],
       json['reason'],
     ]);
+
+    final budgetMin = (json['budget_min'] as num?)?.toDouble();
+    final budgetMax = (json['budget_max'] as num?)?.toDouble();
 
     return RecommendedTeam(
       teamId: resolvedId,
@@ -450,6 +457,8 @@ class RecommendedTeam {
       skills: skills,
       level: resolvedLevel,
       reason: reason.isEmpty ? null : reason,
+      budgetMin: budgetMin,
+      budgetMax: budgetMax,
     );
   }
 }

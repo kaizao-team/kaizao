@@ -421,6 +421,40 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 	return bid, nil
 }
 
+// ConfirmBid 团队方确认接受推荐：校验 bid 归属后复用 Accept 逻辑
+func (s *BidService) ConfirmBid(bidUUID, providerUUID string) (*model.Bid, error) {
+	bid, err := s.repos.Bid.FindByUUID(bidUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+	if bid.Status != 1 {
+		return nil, fmt.Errorf("%d", errcode.ErrBidClosed)
+	}
+	if bid.BidderID == nil {
+		return nil, fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+
+	provider, err := s.repos.User.FindByUUID(providerUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	if *bid.BidderID != provider.ID {
+		return nil, fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+
+	project, err := s.repos.Project.FindByID(bid.ProjectID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+
+	ownerUser, err := s.repos.User.FindByID(project.OwnerID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+
+	return s.Accept(bid.UUID, ownerUser.UUID)
+}
+
 // Withdraw 撤回投标（仅 pending 状态可撤回，且仅投标者本人可操作）
 func (s *BidService) Withdraw(bidUUID, userUUID string) error {
 	bid, err := s.repos.Bid.FindByUUID(bidUUID)
@@ -545,8 +579,25 @@ func (s *BidService) QuickMatch(ownerUUID, projectUUID, providerUUID string, pro
 		}
 	}
 
-	if _, err := s.Accept(bid.UUID, ownerUUID); err != nil {
-		return nil, err
+	// 发通知给团队方，等待团队确认
+	targetType := "project"
+	tid := project.ID
+	sourceRole := "demander"
+	targetUUID := project.UUID
+	content := fmt.Sprintf("您被推荐为「%s」的服务方，请确认是否接受", project.Title)
+	n := &model.Notification{
+		UserID:           provider.ID,
+		SourceRole:       &sourceRole,
+		Title:            "收到团队推荐",
+		Content:          content,
+		NotificationType: model.NotificationTypeNewBid,
+		TargetType:       &targetType,
+		TargetID:         &tid,
+		TargetUUID:       &targetUUID,
 	}
-	return s.repos.Bid.FindByUUID(bid.UUID)
+	if err := s.repos.Notification.Create(n); err != nil {
+		s.log.Error("QuickMatch: notify provider", zap.Error(err))
+	}
+
+	return bid, nil
 }

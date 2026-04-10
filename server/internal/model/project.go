@@ -78,6 +78,9 @@ type Milestone struct {
 	DeliveryNote    *string    `gorm:"type:text" json:"delivery_note,omitempty"`
 	PreviewURL      *string    `gorm:"type:varchar(512)" json:"preview_url,omitempty"`
 	RejectionReason *string    `gorm:"type:text" json:"rejection_reason,omitempty"`
+	FeatureItemIDs  JSON       `gorm:"type:json" json:"feature_item_ids,omitempty"`
+	Phases          JSON       `gorm:"type:json" json:"phases,omitempty"`
+	EstimatedDays   *float64   `gorm:"type:decimal(5,1)" json:"estimated_days,omitempty"`
 	DeliveredAt     *time.Time `json:"delivered_at,omitempty"`
 	AcceptedAt      *time.Time `json:"accepted_at,omitempty"`
 	CreatedAt       time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
