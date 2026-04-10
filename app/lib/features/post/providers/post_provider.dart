@@ -376,6 +376,7 @@ class PostNotifier extends StateNotifier<PostState> {
       final stream = _repository.startRequirementStream(
         pid,
         initialMessage,
+        category: state.category,
         cancelToken: _sseCancelToken,
       );
 
@@ -600,6 +601,7 @@ class PostNotifier extends StateNotifier<PostState> {
           ? _repository.startRequirementStream(
               state.projectId!,
               content,
+              category: state.category,
               cancelToken: _sseCancelToken,
             )
           : _repository.sendRequirementMessageStream(

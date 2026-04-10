@@ -80,6 +80,7 @@ class StartRequest(BaseModel):
     message: str
     title: Optional[str] = ""
     project_id: str  # Go 后端 projects.uuid，必填
+    category: Optional[str] = None  # 品类: data/dev/visual/solution
 
 
 class MessageRequest(BaseModel):
@@ -112,7 +113,15 @@ async def start_requirement(req: StartRequest, request: Request):
         state.set_stage_status("requirement", "running", sub_stage="clarifying")
         await v2_orchestrator.save_project(state)
 
-        messages = [{"role": "user", "content": req.message}]
+        # 将品类信息注入首条消息
+        user_content = req.message
+        if req.category:
+            from app.prompts.requirement_prompts import CATEGORY_CONTEXT
+            category_hint = CATEGORY_CONTEXT.get(req.category, "")
+            if category_hint:
+                user_content = f"[项目品类：{category_hint}]\n\n{req.message}"
+
+        messages = [{"role": "user", "content": user_content}]
         updated_msgs, tool_result, sub_stage, score = await v2_requirement_agent.chat(
             project_id=project_id,
             messages=messages,
@@ -386,7 +395,15 @@ async def start_requirement_stream(req: StartRequest, request: Request):
             state.set_stage_status("requirement", "running", sub_stage="clarifying")
             await v2_orchestrator.save_project(state)
 
-            messages = [{"role": "user", "content": req.message}]
+            # 将品类信息注入首条消息，让 AI 理解项目方向
+            user_content = req.message
+            if req.category:
+                from app.prompts.requirement_prompts import CATEGORY_CONTEXT
+                category_hint = CATEGORY_CONTEXT.get(req.category, "")
+                if category_hint:
+                    user_content = f"[项目品类：{category_hint}]\n\n{req.message}"
+
+            messages = [{"role": "user", "content": user_content}]
 
             async for event in v2_requirement_agent.chat_stream(
                 project_id=project_id,

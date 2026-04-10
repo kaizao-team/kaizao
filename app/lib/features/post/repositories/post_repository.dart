@@ -75,6 +75,7 @@ class PostRepository {
     String projectId,
     String message, {
     String? title,
+    String? category,
     CancelToken? cancelToken,
   }) {
     return _aiAgent.postSseStream(
@@ -83,6 +84,7 @@ class PostRepository {
         'project_id': projectId,
         'message': message,
         if (title != null) 'title': title,
+        if (category != null) 'category': category,
       },
       cancelToken: cancelToken,
     );
