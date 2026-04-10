@@ -22,7 +22,7 @@ String _normalizePostCategoryKey(String? value) {
   switch (normalized) {
     case 'visual':
     case 'design':
-      return 'design';
+      return 'visual';
     case 'app':
     case 'web':
     case 'miniprogram':
