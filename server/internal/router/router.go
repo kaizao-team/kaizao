@@ -284,6 +284,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		admin.POST("/projects/:uuid/prd/reanalyze", handlers.Admin.ReanalyzePRD)
 		admin.POST("/projects/:uuid/ears/decompose", handlers.Admin.DecomposePRD)
 		admin.GET("/projects/:uuid/ears/tasks", handlers.Admin.GetEarsTasks)
+		admin.GET("/projects/:uuid/tasks", handlers.Task.AdminListTasks)
+		admin.GET("/projects/:uuid/milestones", handlers.Task.AdminListMilestones)
 	}
 
 	// ==================== AI服务模块 ====================

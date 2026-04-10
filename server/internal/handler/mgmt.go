@@ -109,6 +109,16 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 		response.ErrorForbidden(c, errcode.ErrProjectParticipantOnly, errcode.GetMessage(errcode.ErrProjectParticipantOnly))
 		return
 	}
+	h.listTasksInternal(c, projectID)
+}
+
+// AdminListTasks 管理后台查看任务（跳过 participant 校验）
+func (h *TaskHandler) AdminListTasks(c *gin.Context) {
+	projectID := c.Param("uuid")
+	h.listTasksInternal(c, projectID)
+}
+
+func (h *TaskHandler) listTasksInternal(c *gin.Context, projectID string) {
 	tasks, err := h.taskService.ListByProject(projectID)
 	if err != nil {
 		response.ErrorNotFound(c, errcode.ErrProjectNotFound, "项目不存在")
@@ -222,6 +232,16 @@ func (h *TaskHandler) ListMilestones(c *gin.Context) {
 		response.ErrorForbidden(c, errcode.ErrProjectParticipantOnly, errcode.GetMessage(errcode.ErrProjectParticipantOnly))
 		return
 	}
+	h.listMilestonesInternal(c, projectID)
+}
+
+// AdminListMilestones 管理后台查看里程碑（跳过 participant 校验）
+func (h *TaskHandler) AdminListMilestones(c *gin.Context) {
+	projectID := c.Param("uuid")
+	h.listMilestonesInternal(c, projectID)
+}
+
+func (h *TaskHandler) listMilestonesInternal(c *gin.Context, projectID string) {
 	milestones, err := h.milestoneService.ListByProject(projectID)
 	if err != nil {
 		response.ErrorNotFound(c, errcode.ErrProjectNotFound, "项目不存在")
@@ -258,8 +278,8 @@ func (h *TaskHandler) ListMilestones(c *gin.Context) {
 			"amount":               m.PaymentAmount,
 			"payment_ratio":        m.PaymentRatio,
 			"estimated_days":       m.EstimatedDays,
-			"feature_item_ids":     m.FeatureItemIDs,
-			"phases":               m.Phases,
+			"feature_item_ids":     decodeModelJSON(m.FeatureItemIDs),
+			"phases":               decodeModelJSON(m.Phases),
 			"task_count":           0,
 			"completed_task_count": 0,
 		})
