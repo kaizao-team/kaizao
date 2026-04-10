@@ -352,6 +352,12 @@ class ToolUseBaseAgent(ABC):
                     yield {"event": "text", "data": agent_msg}
                 break
 
+            # generate_prd 执行后：PRD 已生成，不再让 LLM 继续输出（否则会把 JSON 发到前端）
+            prd_blocks = [b for b in tool_use_blocks if b.name == "generate_prd"]
+            if prd_blocks:
+                yield {"event": "text", "data": "需求文档已生成，请确认后进入下一步。"}
+                break
+
         duration_ms = round((time.time() - start_time) * 1000, 2)
         self.logger.info("agentic_loop_stream_end", request_id=request_id, duration_ms=duration_ms)
 
