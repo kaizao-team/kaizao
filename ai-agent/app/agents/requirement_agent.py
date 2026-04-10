@@ -36,9 +36,10 @@ class RequirementAgent(ToolUseBaseAgent):
     """
     需求分析 Agent
 
-    阶段机：clarifying → prd_draft → prd_confirmed → (发布/撮合/确认合作) → ears_decomposing → tasks_ready
-    - 一句话需求 → 多轮对话澄清 → 生成 PRD → 确认 PRD（需求阶段暂停）
-    - 确认合作后 → EARS 拆解 → 生成 requirement.md
+    阶段机：
+    - 对话阶段（chat）: clarifying → prd_draft（只用 ask_clarification + generate_prd）
+    - 确认阶段（confirm）: prd_draft → prd_confirmed（轻量标记）
+    - 拆解阶段（decompose）: prd_confirmed → ears_decomposing → tasks_ready（独立接口，用 decompose_to_ears + save_document）
     """
 
     agent_name = "requirement"
@@ -54,12 +55,10 @@ class RequirementAgent(ToolUseBaseAgent):
         self._dimension_coverage: dict = dict(DEFAULT_DIMENSION_COVERAGE)
 
     def _get_tools(self) -> list[dict]:
-        return [
-            ASK_CLARIFICATION_TOOL,
-            GENERATE_PRD_TOOL,
-            DECOMPOSE_TO_EARS_TOOL,
-            SAVE_DOCUMENT_TOOL,
-        ]
+        """对话阶段只暴露澄清+PRD生成，EARS 拆解由独立接口触发"""
+        if self._sub_stage == "ears_decomposing":
+            return [DECOMPOSE_TO_EARS_TOOL, SAVE_DOCUMENT_TOOL]
+        return [ASK_CLARIFICATION_TOOL, GENERATE_PRD_TOOL]
 
     def _get_system_prompt(self, **context) -> str:
         additional = context.get("additional_context", "")
