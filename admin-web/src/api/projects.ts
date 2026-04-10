@@ -55,3 +55,15 @@ export function uploadProjectPrdDocument(uuid: string, formData: FormData) {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
+
+export function reanalyzePRD(uuid: string) {
+  return request.post(`/admin/projects/${uuid}/prd/reanalyze`)
+}
+
+export function decomposePRD(uuid: string) {
+  return request.post(`/admin/projects/${uuid}/ears/decompose`)
+}
+
+export function getEarsTasks(uuid: string) {
+  return request.get(`/admin/projects/${uuid}/ears/tasks`)
+}

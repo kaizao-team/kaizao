@@ -753,6 +753,18 @@ func (h *AdminHandler) ReanalyzePRD(c *gin.Context) {
 	h.proxyAIAgent(c, http.MethodPost, "/api/v2/documents/"+uuid+"/reanalyze", nil)
 }
 
+// DecomposePRD POST /admin/projects/:uuid/ears/decompose → ai-agent POST /api/v2/requirement/{uuid}/decompose
+func (h *AdminHandler) DecomposePRD(c *gin.Context) {
+	uuid := c.Param("uuid")
+	h.proxyAIAgent(c, http.MethodPost, "/api/v2/requirement/"+uuid+"/decompose", nil)
+}
+
+// GetEarsTasks GET /admin/projects/:uuid/ears/tasks → ai-agent GET /api/v2/ears/{uuid}/tasks
+func (h *AdminHandler) GetEarsTasks(c *gin.Context) {
+	uuid := c.Param("uuid")
+	h.proxyAIAgent(c, http.MethodGet, "/api/v2/ears/"+uuid+"/tasks", nil)
+}
+
 // UploadProjectPRDDocument PUT /admin/projects/:uuid/prd/document
 func (h *AdminHandler) UploadProjectPRDDocument(c *gin.Context) {
 	uuid := c.Param("uuid")

@@ -278,6 +278,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		admin.GET("/projects/:uuid/ai-documents/:docId/download", handlers.Admin.DownloadAIDocument)
 		admin.PUT("/projects/:uuid/prd/document", handlers.Admin.UploadProjectPRDDocument)
 		admin.POST("/projects/:uuid/prd/reanalyze", handlers.Admin.ReanalyzePRD)
+		admin.POST("/projects/:uuid/ears/decompose", handlers.Admin.DecomposePRD)
+		admin.GET("/projects/:uuid/ears/tasks", handlers.Admin.GetEarsTasks)
 	}
 
 	// ==================== AI服务模块 ====================
