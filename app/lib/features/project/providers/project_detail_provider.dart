@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/ai_agent_client.dart';
 import '../../../core/network/api_client.dart';
@@ -204,7 +205,8 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
         prdItems: prdItems,
         earsTasks: earsTasks,
       );
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[ProjectDetail] loadDetail error: $e\n$st');
       if (!mounted) return;
       state = state.copyWith(
         isLoading: false,

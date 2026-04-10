@@ -53,10 +53,16 @@ class ProjectDetailPage extends ConsumerWidget {
                 ),
               )
             : state.data == null
-                ? const Center(
-                    child: Text(
-                      '加载失败',
-                      style: TextStyle(color: AppColors.gray500),
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        state.errorMessage != null
+                            ? '加载失败: ${state.errorMessage}'
+                            : '加载失败',
+                        style: const TextStyle(color: AppColors.gray500),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   )
                 : _DetailContent(state: state, projectId: id),

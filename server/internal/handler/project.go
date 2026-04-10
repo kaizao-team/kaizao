@@ -363,8 +363,8 @@ func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string, i
 					"amount":           m.PaymentAmount,
 					"payment_ratio":    m.PaymentRatio,
 					"estimated_days":   m.EstimatedDays,
-					"feature_item_ids": m.FeatureItemIDs,
-					"phases":           m.Phases,
+					"feature_item_ids": decodeModelJSON(m.FeatureItemIDs),
+					"phases":           decodeModelJSON(m.Phases),
 				}
 				milestoneList = append(milestoneList, entry)
 			}
@@ -393,6 +393,19 @@ func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string, i
 	}
 
 	return detail
+}
+
+// decodeModelJSON 将 model.JSON ([]byte) 解码为原生 Go 值（[]interface{} 或 map），
+// 避免 Gin JSON 序列化时将 []byte 编码为 base64 字符串。
+func decodeModelJSON(raw model.JSON) interface{} {
+	if len(raw) == 0 {
+		return []interface{}{}
+	}
+	var v interface{}
+	if err := json.Unmarshal(raw, &v); err != nil {
+		return []interface{}{}
+	}
+	return v
 }
 
 func extractPRDSummary(p *model.Project) string {
