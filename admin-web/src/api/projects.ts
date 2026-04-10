@@ -27,11 +27,11 @@ export function getProjectBids(id: string) {
 }
 
 export function getProjectMilestones(id: string) {
-  return request.get(`/projects/${id}/milestones`)
+  return request.get(`/admin/projects/${id}/milestones`)
 }
 
 export function getProjectTasks(id: string) {
-  return request.get(`/projects/${id}/tasks`)
+  return request.get(`/admin/projects/${id}/tasks`)
 }
 
 export function getProjectReviews(id: string) {
