@@ -96,7 +96,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       )
                     else
                       ..._buildExpertSlices(context, ref, homeState),
-                    const SliverToBoxAdapter(child: SizedBox(height: 108)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 64)),
                   ],
                 ),
               ),

@@ -200,7 +200,7 @@ class _ProfileHero extends ConsumerWidget {
       ),
     ];
 
-    if (hasSkillParticles) {
+    if (hasSkillParticles && !profile.isDemander) {
       heroLayers.add(
         Positioned(
           left: 0,

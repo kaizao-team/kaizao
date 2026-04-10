@@ -56,11 +56,7 @@ class _SplitRevenueBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.xxxl),
-      ),
+      padding: const EdgeInsets.all(0),
       child: SizedBox(
         height: 164,
         child: Row(
@@ -115,11 +111,7 @@ class _CompactRevenueBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.xxxl),
-      ),
+      padding: const EdgeInsets.all(0),
       child: Column(
         children: [
           SizedBox(
