@@ -215,7 +215,6 @@ class ToolUseBaseAgent(ABC):
             for block in tool_use_blocks:
                 tool_name = block.name
                 tool_input = block.input
-                last_tool_input = {"tool_name": tool_name, **tool_input}
 
                 self.logger.info("tool_call", tool=tool_name, request_id=request_id)
 
@@ -224,6 +223,9 @@ class ToolUseBaseAgent(ABC):
                 except Exception as e:
                     result_str = f"Error: {str(e)}"
                     self.logger.error("tool_error", tool=tool_name, error=str(e))
+
+                # 在 _execute_tool 之后拷贝，确保子类的后处理清洗已生效
+                last_tool_input = {"tool_name": tool_name, **tool_input}
 
                 tool_results.append({
                     "type": "tool_result",
@@ -320,7 +322,6 @@ class ToolUseBaseAgent(ABC):
             for block in tool_use_blocks:
                 tool_name = block.name
                 tool_input = block.input
-                last_tool_input = {"tool_name": tool_name, **tool_input}
 
                 display = self.TOOL_DISPLAY_NAMES.get(tool_name, f"正在执行 {tool_name}...")
                 yield {"event": "tool_call", "data": display}
@@ -329,6 +330,9 @@ class ToolUseBaseAgent(ABC):
                     result_str = await self._execute_tool(tool_name, tool_input)
                 except Exception as e:
                     result_str = f"Error: {str(e)}"
+
+                # 在 _execute_tool 之后拷贝，确保子类的后处理清洗已生效
+                last_tool_input = {"tool_name": tool_name, **tool_input}
 
                 yield {"event": "tool_result", "data": result_str[:200]}
 
