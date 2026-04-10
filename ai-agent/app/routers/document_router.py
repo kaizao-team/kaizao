@@ -227,3 +227,176 @@ async def download_document(project_id: str, doc_id: int):
     except Exception as e:
         logger.error("download_document_error", error=str(e))
         return APIResponse(code=500, message="download failed", data=None)
+
+
+# ─── PRD 重新分析提取结构化数据 ───
+
+REANALYZE_SYSTEM_PROMPT = """你是 VibeBuild 平台的需求分析专家。
+你的任务是：从给定的 PRD markdown 文档中，提取出结构化的需求数据。
+
+你必须调用 extract_prd_structure 工具，输出以下结构化信息：
+1. prd 对象：title, summary, target_users, feature_modules（含需求条目 item_id/title/description/priority/acceptance_summary）, tech_requirements, non_functional_requirements
+2. complexity：项目复杂度等级 S/M/L/XL
+
+严格基于文档内容提取，不要添加文档中不存在的功能。
+feature_modules 中的 feature_items 编号必须使用 F-X.Y 格式（如 F-1.1, F-1.2, F-2.1）。
+"""
+
+EXTRACT_PRD_STRUCTURE_TOOL = {
+    "name": "extract_prd_structure",
+    "description": "从 PRD 文档中提取结构化需求数据",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "complexity": {
+                "type": "string",
+                "enum": ["S", "M", "L", "XL"],
+            },
+            "prd": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "summary": {"type": "string"},
+                    "target_users": {"type": "array", "items": {"type": "object"}},
+                    "feature_modules": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "module_name": {"type": "string"},
+                                "description": {"type": "string"},
+                                "feature_items": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "item_id": {"type": "string"},
+                                            "title": {"type": "string"},
+                                            "description": {"type": "string"},
+                                            "priority": {"type": "string", "enum": ["P0", "P1", "P2"]},
+                                            "acceptance_summary": {"type": "string"},
+                                        },
+                                        "required": ["item_id", "title", "description", "priority", "acceptance_summary"],
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    "tech_requirements": {"type": "object"},
+                    "non_functional_requirements": {"type": "object"},
+                },
+                "required": ["title", "summary", "target_users", "feature_modules", "tech_requirements", "non_functional_requirements"],
+            },
+        },
+        "required": ["complexity", "prd"],
+    },
+}
+
+
+@router.post("/{project_id}/reanalyze")
+async def reanalyze_prd(project_id: str):
+    """读取最新 PRD 文档，让 LLM 重新提取结构化数据覆盖 ai_prd_items + ai_project_overview"""
+    try:
+        # 1. 读取 PRD 文档内容
+        content = None
+        from app.main import v2_minio_store, v2_doc_writer
+        if v2_minio_store:
+            try:
+                from app.db.repository import ProjectRepository
+                repo = ProjectRepository()
+                docs = await repo.get_documents(project_id)
+                prd_doc = next((d for d in docs if d["filename"] == PRD_FILENAME), None)
+                if prd_doc:
+                    content = v2_minio_store.get_object(prd_doc["file_path"]).decode("utf-8")
+            except Exception as e:
+                logger.warning("reanalyze_minio_read_failed", error=str(e))
+
+        if content is None and v2_doc_writer:
+            content = v2_doc_writer.read_document(project_id, PRD_FILENAME)
+
+        if not content:
+            return APIResponse(code=404, message="未找到 PRD 文档，请先上传", data=None)
+
+        # 2. 调用 LLM 提取结构化数据
+        from app.main import llm_router
+        if not llm_router:
+            return APIResponse(code=500, message="LLM 不可用", data=None)
+
+        messages = [
+            {"role": "user", "content": f"请从以下 PRD 文档中提取结构化需求数据：\n\n{content}"},
+        ]
+
+        response = await llm_router.create_message(
+            messages=messages,
+            model_tier="high",
+            max_tokens=8192,
+            temperature=0.1,
+            system=REANALYZE_SYSTEM_PROMPT,
+            tools=[EXTRACT_PRD_STRUCTURE_TOOL],
+        )
+
+        # 3. 解析 tool_use 结果
+        tool_input = None
+        for block in response.content:
+            if hasattr(block, "type") and block.type == "tool_use" and block.name == "extract_prd_structure":
+                tool_input = block.input
+                break
+
+        if not tool_input:
+            return APIResponse(code=500, message="LLM 未返回结构化数据", data=None)
+
+        prd = tool_input.get("prd", {})
+        complexity = tool_input.get("complexity")
+
+        # 4. 清除旧数据 + 写入新数据
+        from app.db.repository import ProjectRepository
+        repo = ProjectRepository()
+
+        # 清除旧 prd_items
+        await repo.delete_prd_items(project_id)
+
+        # 写入新 prd_items
+        items = []
+        for module in prd.get("feature_modules", []):
+            module_name = module.get("module_name", "")
+            for fi in module.get("feature_items", []):
+                items.append({
+                    "item_id": fi.get("item_id", ""),
+                    "module_name": module_name,
+                    "title": fi.get("title", ""),
+                    "description": fi.get("description", ""),
+                    "priority": fi.get("priority", "P1"),
+                    "acceptance_summary": fi.get("acceptance_summary", ""),
+                })
+        if items:
+            await repo.save_prd_items(project_id, items)
+
+        # 写入/覆盖 project_overview
+        overview = {
+            "title": prd.get("title", ""),
+            "summary": prd.get("summary", ""),
+            "target_users": prd.get("target_users", []),
+            "complexity": complexity,
+            "tech_requirements": prd.get("tech_requirements", {}),
+            "non_functional_requirements": prd.get("non_functional_requirements", {}),
+            "module_count": len(prd.get("feature_modules", [])),
+            "item_count": len(items),
+        }
+        await repo.save_project_overview(project_id, overview)
+
+        logger.info("reanalyze_prd_complete", project_id=project_id, items=len(items), complexity=complexity)
+
+        return APIResponse(
+            code=0,
+            message="success",
+            data={
+                "project_id": project_id,
+                "complexity": complexity,
+                "module_count": overview["module_count"],
+                "item_count": len(items),
+            },
+        )
+
+    except Exception as e:
+        logger.error("reanalyze_prd_error", project_id=project_id, error=str(e))
+        return APIResponse(code=500, message=f"重新分析失败: {e}", data=None)

@@ -479,6 +479,16 @@ class ProjectRepository:
                 for r in q.scalars().all()
             ]
 
+    async def delete_prd_items(self, project_id: str) -> int:
+        """删除项目所有 PRD 需求条目（重新分析前清除）"""
+        async with get_session_factory()() as session:
+            async with session.begin():
+                result = await session.execute(
+                    sqlalchemy_text("DELETE FROM ai_prd_items WHERE project_id = :pid"),
+                    {"pid": project_id},
+                )
+                return result.rowcount
+
 
 class GoTasksRepository:
     """直接写 Go 后端的 tasks / milestones 表（共享同一 MySQL）"""

@@ -747,6 +747,12 @@ func (h *AdminHandler) DownloadAIDocument(c *gin.Context) {
 	h.proxyAIAgent(c, http.MethodGet, "/api/v2/documents/"+uuid+"/download/"+docID, nil)
 }
 
+// ReanalyzePRD POST /admin/projects/:uuid/prd/reanalyze
+func (h *AdminHandler) ReanalyzePRD(c *gin.Context) {
+	uuid := c.Param("uuid")
+	h.proxyAIAgent(c, http.MethodPost, "/api/v2/documents/"+uuid+"/reanalyze", nil)
+}
+
 // UploadProjectPRDDocument PUT /admin/projects/:uuid/prd/document
 func (h *AdminHandler) UploadProjectPRDDocument(c *gin.Context) {
 	uuid := c.Param("uuid")
