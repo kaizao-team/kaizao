@@ -70,6 +70,31 @@ class ExpertOnboardingRepository {
     );
     return response.data ?? const {};
   }
+
+  Future<Map<String, dynamic>> createTeam({
+    String? name,
+    double? hourlyRate,
+    int? availableStatus,
+    double? budgetMin,
+    double? budgetMax,
+    String? description,
+    required String inviteCode,
+  }) async {
+    final response = await _client.post<Map<String, dynamic>>(
+      ApiEndpoints.teams,
+      data: {
+        if (name != null) 'name': name,
+        if (hourlyRate != null) 'hourly_rate': hourlyRate,
+        if (availableStatus != null) 'available_status': availableStatus,
+        if (budgetMin != null) 'budget_min': budgetMin,
+        if (budgetMax != null) 'budget_max': budgetMax,
+        if (description != null) 'description': description,
+        'invite_code': inviteCode,
+      },
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+    return response.data ?? const {};
+  }
 }
 
 final expertOnboardingRepositoryProvider =

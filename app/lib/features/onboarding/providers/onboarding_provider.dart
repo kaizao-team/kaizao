@@ -307,6 +307,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     required double rateMin,
     required double rateMax,
     String? contactPhone,
+    required String inviteCode,
   }) async {
     final phone =
         (contactPhone != null && contactPhone.isNotEmpty) ? contactPhone : null;
@@ -319,6 +320,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       'availability': availability,
       'rate_min': rateMin,
       'rate_max': rateMax,
+      'invite_code': inviteCode,
       if (phone != null) 'contact_phone': phone,
     };
 
@@ -334,6 +336,14 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       );
       await _expertRepository.updateSkills(
         _buildExpertSkills(skills: skills, tools: tools),
+      );
+      await _expertRepository.createTeam(
+        name: '$nickname的团队',
+        hourlyRate: rateMin,
+        availableStatus: _mapAvailabilityStatus(availability),
+        budgetMin: rateMin,
+        budgetMax: rateMax,
+        inviteCode: inviteCode,
       );
       await saveDraft(payload);
       if (!mounted) return false;
