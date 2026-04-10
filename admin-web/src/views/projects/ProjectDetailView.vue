@@ -69,12 +69,13 @@
               <el-button
                 size="small"
                 :loading="prdReanalyzing"
-                :disabled="!prdText || prdUploading"
+                :disabled="!prdText || prdUploading || !project || project.status < 3"
+                :title="project && project.status < 3 ? '仅已撮合(status≥3)的项目可触发拆解' : ''"
                 @click="handleReanalyze"
               >
                 EARS 拆解
               </el-button>
-              <el-button size="small" @click="downloadEarsDoc">
+              <el-button size="small" :disabled="!project || project.status < 3" @click="downloadEarsDoc">
                 下载 EARS 文档
               </el-button>
             </div>
