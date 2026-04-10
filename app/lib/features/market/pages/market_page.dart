@@ -1,3 +1,5 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -31,6 +33,7 @@ class _MarketPageState extends ConsumerState<MarketPage>
     with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   late TabController _tabController;
+  double _headerProgress = 0;
 
   StateNotifierProvider<MarketNotifier, MarketState> get _marketProvider =>
       marketStateProvider(widget.initialCategory);
@@ -80,6 +83,17 @@ class _MarketPageState extends ConsumerState<MarketPage>
     }
   }
 
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification) {
+      final pixels = notification.metrics.pixels;
+      final newProgress = (pixels / 50).clamp(0.0, 1.0);
+      if ((newProgress - _headerProgress).abs() > 0.01) {
+        setState(() => _headerProgress = newProgress);
+      }
+    }
+    return false;
+  }
+
   int _tabIndexFor(String? value) {
     return value == 'experts' ? 1 : 0;
   }
@@ -92,90 +106,146 @@ class _MarketPageState extends ConsumerState<MarketPage>
     final isExpert = authState.userRole == 2;
     final hasActiveFilter = state.budgetMin != null || state.budgetMax != null;
 
+    final isProjectTab = _tabController.index == 0;
+    final p = _headerProgress;
+    final titleSize = lerpDouble(30, 18, p)!;
+    final titleWeight =
+        FontWeight.lerp(FontWeight.w700, FontWeight.w600, p) ?? FontWeight.w600;
+    final headerPadTop = lerpDouble(12, 6, p)!;
+    final expandedOpacity = (1 - (p / 0.5).clamp(0.0, 1.0));
+    final collapsedOpacity = ((p - 0.4) / 0.6).clamp(0.0, 1.0);
+    final activeTabLabel = isProjectTab ? '项目' : '团队';
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
-              child: _buildHeader(
-                state: state,
-                expertState: expertState,
-                hasActiveFilter: hasActiveFilter,
-                userRole: authState.userRole,
+              padding: EdgeInsets.fromLTRB(20, headerPadTop, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        '广场',
+                        style: TextStyle(
+                          fontSize: titleSize,
+                          fontWeight: titleWeight,
+                          letterSpacing: -0.8,
+                          height: 1,
+                          color: AppColors.black,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Expanded: full tab switch
+                      Expanded(
+                        child: Stack(
+                          alignment: Alignment.centerRight,
+                          children: [
+                            Opacity(
+                              opacity: expandedOpacity,
+                              child: IgnorePointer(
+                                ignoring: expandedOpacity < 0.1,
+                                child: VccTopSwitch(
+                                  labels: const ['项目', '团队'],
+                                  selectedIndex: _tabController.index,
+                                  onChanged: (index) =>
+                                      _tabController.animateTo(index),
+                                ),
+                              ),
+                            ),
+                            // Collapsed: capsule with active tab name
+                            Opacity(
+                              opacity: collapsedOpacity,
+                              child: IgnorePointer(
+                                ignoring: collapsedOpacity < 0.1,
+                                child: GestureDetector(
+                                  onTap: () => _tabController.animateTo(
+                                    isProjectTab ? 1 : 0,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 7,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.black,
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.full,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      activeTabLabel,
+                                      style: AppTextStyles.caption.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Filter bar + expanded content collapses together
+                  ClipRect(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      heightFactor: (1 - p).clamp(0.0, 1.0),
+                      child: Opacity(
+                        opacity: expandedOpacity,
+                        child: Column(
+                          children: [
+                            if (isProjectTab)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: MarketFilterBar(
+                                  selectedCategory: state.selectedCategory,
+                                  sortBy: state.sortBy,
+                                  hasActiveFilter: hasActiveFilter,
+                                  userRole: authState.userRole,
+                                  onCategoryChanged: (cat) => ref
+                                      .read(_marketProvider.notifier)
+                                      .setCategory(cat),
+                                  onSortChanged: (sort) => ref
+                                      .read(_marketProvider.notifier)
+                                      .setSort(sort),
+                                  onFilterTap: () =>
+                                      _showFilterSheet(context, state),
+                                ),
+                              ),
+                            const SizedBox(height: 6),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildProjectList(
-                    state: state,
-                    isExpert: isExpert,
-                  ),
-                  _buildExpertList(expertState),
-                ],
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _onScrollNotification,
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildProjectList(
+                      state: state,
+                      isExpert: isExpert,
+                    ),
+                    _buildExpertList(expertState),
+                  ],
+                ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildHeader({
-    required MarketState state,
-    required ExpertListState expertState,
-    required bool hasActiveFilter,
-    required int userRole,
-  }) {
-    final isProjectTab = _tabController.index == 0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              '广场',
-              style: AppTextStyles.h2.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.6,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: VccTopSwitch(
-                labels: const ['项目', '团队'],
-                selectedIndex: _tabController.index,
-                onChanged: (index) => _tabController.animateTo(index),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        AnimatedSwitcher(
-          duration: AppDurations.normal,
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeOutCubic,
-          child: isProjectTab
-              ? MarketFilterBar(
-                  selectedCategory: state.selectedCategory,
-                  sortBy: state.sortBy,
-                  hasActiveFilter: hasActiveFilter,
-                  userRole: userRole,
-                  onCategoryChanged: (cat) =>
-                      ref.read(_marketProvider.notifier).setCategory(cat),
-                  onSortChanged: (sort) =>
-                      ref.read(_marketProvider.notifier).setSort(sort),
-                  onFilterTap: () => _showFilterSheet(context, state),
-                )
-              : const SizedBox.shrink(
-                  key: ValueKey('team-header-empty'),
-                ),
-        ),
-      ],
     );
   }
 
