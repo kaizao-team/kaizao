@@ -613,6 +613,7 @@ class GoTasksRepository:
     async def save_milestones_to_go(self, project_uuid: str, milestones: list[dict]) -> int:
         """AI 规划的里程碑直接写入 Go 的 milestones 表（含扩展字段）"""
         import uuid as uuid_mod
+        from datetime import datetime, timedelta
 
         project_id = await self._get_project_internal_id(project_uuid)
         if not project_id:
@@ -626,17 +627,27 @@ class GoTasksRepository:
                     sqlalchemy_text("DELETE FROM milestones WHERE project_id = :pid"),
                     {"pid": project_id},
                 )
+
+                # 计算每个里程碑的 due_date：从今天起按 estimated_days 累加
+                cursor_date = datetime.now().date()
+
                 count = 0
                 for idx, ms in enumerate(milestones):
                     ms_uuid = str(uuid_mod.uuid4())
                     title = ms.get("title", f"里程碑 {idx+1}")
                     description = ms.get("description", "")
                     payment_ratio = ms.get("payment_ratio")
-                    estimated_days = ms.get("estimated_days")
+                    estimated_days = ms.get("estimated_days") or 0
                     feature_item_ids = ms.get("feature_item_ids")
+                    task_ids = ms.get("task_ids")
                     phases = ms.get("phases")
 
-                    # JSON 序列化
+                    # 计算截止日期
+                    due_date = cursor_date + timedelta(days=int(estimated_days)) if estimated_days else None
+                    if estimated_days:
+                        cursor_date = due_date
+
+                    # JSON 序列化（task_ids 合并到 feature_item_ids 存储，前端统一展示）
                     feature_ids_json = json.dumps(feature_item_ids, ensure_ascii=False) if feature_item_ids else None
                     phases_json = json.dumps(phases, ensure_ascii=False) if phases else None
 
@@ -644,10 +655,10 @@ class GoTasksRepository:
                         sqlalchemy_text(
                             """INSERT INTO milestones
                             (uuid, project_id, title, description, feature_item_ids, phases,
-                             estimated_days, sort_order, payment_ratio, status, created_at, updated_at)
+                             estimated_days, due_date, sort_order, payment_ratio, status, created_at, updated_at)
                             VALUES
                             (:uuid, :project_id, :title, :description, :feature_item_ids, :phases,
-                             :estimated_days, :sort_order, :payment_ratio, 1, NOW(), NOW())
+                             :estimated_days, :due_date, :sort_order, :payment_ratio, 1, NOW(), NOW())
                             """
                         ),
                         {
@@ -658,6 +669,7 @@ class GoTasksRepository:
                             "feature_item_ids": feature_ids_json,
                             "phases": phases_json,
                             "estimated_days": estimated_days,
+                            "due_date": due_date,
                             "sort_order": idx,
                             "payment_ratio": payment_ratio,
                         },
