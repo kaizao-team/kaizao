@@ -1,9 +1,12 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/models/project_model.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
 import '../../../shared/widgets/vcc_toast.dart';
@@ -59,15 +62,22 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: SafeArea(
-        bottom: false,
-        child: homeState.isLoading
+      body: homeState.isLoading
             ? CustomScrollView(
                 controller: _scrollController,
                 physics: homePhysics,
                 slivers: [
-                  SliverToBoxAdapter(
-                    child: _HomeAppBar(onLogoTap: _scrollToTop),
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _HomeHeaderDelegate(
+                      topPadding: MediaQuery.paddingOf(context).top,
+                      onLogoTap: _scrollToTop,
+                      onNotificationTap: () =>
+                          context.push(RoutePaths.notifications),
+                      unreadCount: ref.watch(
+                        notificationProvider.select((s) => s.unreadCount),
+                      ),
+                    ),
                   ),
                   const SliverToBoxAdapter(child: HomeSkeleton()),
                 ],
@@ -84,8 +94,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                   controller: _scrollController,
                   physics: homePhysics,
                   slivers: [
-                    SliverToBoxAdapter(
-                      child: _HomeAppBar(onLogoTap: _scrollToTop),
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _HomeHeaderDelegate(
+                        topPadding: MediaQuery.paddingOf(context).top,
+                        onLogoTap: _scrollToTop,
+                        onNotificationTap: () =>
+                            context.push(RoutePaths.notifications),
+                        unreadCount: ref.watch(
+                          notificationProvider.select((s) => s.unreadCount),
+                        ),
+                      ),
                     ),
                     if (isDemander)
                       ..._buildDemanderSlices(
@@ -100,7 +119,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ],
                 ),
               ),
-      ),
     );
   }
 
@@ -255,101 +273,163 @@ int _homeProjectRank(ProjectModel project) {
   }
 }
 
-class _HomeAppBar extends ConsumerWidget {
-  final VoidCallback? onLogoTap;
+class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
+  static const double _toolbarHeight = 48;
+  static const double _expandedHeight = 80;
 
-  const _HomeAppBar({this.onLogoTap});
+  final double topPadding;
+  final VoidCallback? onLogoTap;
+  final VoidCallback? onNotificationTap;
+  final int unreadCount;
+
+  const _HomeHeaderDelegate({
+    required this.topPadding,
+    this.onLogoTap,
+    this.onNotificationTap,
+    required this.unreadCount,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCount = ref.watch(
-      notificationProvider.select((s) => s.unreadCount),
-    );
+  double get minExtent => topPadding + _toolbarHeight;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
-      child: Row(
+  @override
+  double get maxExtent => topPadding + _expandedHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final range = maxExtent - minExtent;
+    final p = range <= 0 ? 1.0 : (shrinkOffset / range).clamp(0.0, 1.0);
+
+    final titleSize = lerpDouble(26, 18, p)!;
+    final titleWeight =
+        FontWeight.lerp(FontWeight.w700, FontWeight.w600, p) ?? FontWeight.w600;
+    final titleOpacity = 1.0; // always visible, just shrinks
+    final logoSize = lerpDouble(28, 24, p)!;
+    final headerTop = lerpDouble(topPadding + 14, topPadding + 12, p)!;
+
+    final dividerOpacity =
+        Curves.easeOut.transform(((p - 0.82) / 0.18).clamp(0.0, 1.0));
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: dividerOpacity > 0
+            ? Border(
+                bottom: BorderSide(
+                  color: AppColors.gray200.withValues(alpha: dividerOpacity),
+                  width: 0.5,
+                ),
+              )
+            : null,
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        clipBehavior: Clip.none,
         children: [
-          GestureDetector(
-            onTap: onLogoTap,
-            behavior: HitTestBehavior.opaque,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  'assets/branding/app_launch_static_transparent_cropped.png',
-                  width: 30,
-                  height: 30,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                  isAntiAlias: true,
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'KAIZO',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.black,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => context.push(RoutePaths.notifications),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.gray50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.gray200),
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
+          // Logo + brand text
+          Positioned(
+            top: headerTop,
+            left: 20,
+            child: GestureDetector(
+              onTap: onLogoTap,
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Center(
-                    child: Icon(
-                      Icons.notifications_none_rounded,
-                      size: 18,
-                      color: AppColors.gray700,
+                  Image.asset(
+                    'assets/branding/app_launch_static_transparent_cropped.png',
+                    width: logoSize,
+                    height: logoSize,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                    isAntiAlias: true,
+                  ),
+                  const SizedBox(width: 10),
+                  Opacity(
+                    opacity: titleOpacity,
+                    child: Text(
+                      'KAIZO',
+                      style: TextStyle(
+                        fontSize: titleSize,
+                        fontWeight: titleWeight,
+                        color: AppColors.black,
+                        letterSpacing: -0.4,
+                      ),
                     ),
                   ),
-                  if (unreadCount > 0)
-                    Positioned(
-                      right: -4,
-                      top: -4,
-                      child: Container(
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: const BoxDecoration(
-                          color: AppColors.badgeRed,
-                          borderRadius: BorderRadius.all(Radius.circular(999)),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          unreadCount > 9 ? '9+' : '$unreadCount',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            height: 1.1,
+                ],
+              ),
+            ),
+          ),
+          // Notification bell
+          Positioned(
+            top: headerTop,
+            right: 20,
+            child: GestureDetector(
+              onTap: onNotificationTap,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.gray50,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppColors.gray200),
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Center(
+                      child: Icon(
+                        Icons.notifications_none_rounded,
+                        size: 18,
+                        color: AppColors.gray700,
+                      ),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: -4,
+                        top: -4,
+                        child: Container(
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.badgeRed,
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.full),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            unreadCount > 9 ? '9+' : '$unreadCount',
+                            style: AppTextStyles.overline.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              height: 1.1,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  @override
+  bool shouldRebuild(covariant _HomeHeaderDelegate oldDelegate) {
+    return topPadding != oldDelegate.topPadding ||
+        unreadCount != oldDelegate.unreadCount ||
+        onLogoTap != oldDelegate.onLogoTap ||
+        onNotificationTap != oldDelegate.onNotificationTap;
   }
 }
