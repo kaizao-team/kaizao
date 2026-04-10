@@ -14,11 +14,12 @@ import (
 type TaskHandler struct {
 	taskService      *service.TaskService
 	milestoneService *service.MilestoneService
+	projectService   *service.ProjectService
 	log              *zap.Logger
 }
 
-func NewTaskHandler(taskService *service.TaskService, milestoneService *service.MilestoneService, log *zap.Logger) *TaskHandler {
-	return &TaskHandler{taskService: taskService, milestoneService: milestoneService, log: log}
+func NewTaskHandler(taskService *service.TaskService, milestoneService *service.MilestoneService, projectService *service.ProjectService, log *zap.Logger) *TaskHandler {
+	return &TaskHandler{taskService: taskService, milestoneService: milestoneService, projectService: projectService, log: log}
 }
 
 // respondMilestoneCreateError 按业务码区分 HTTP 状态，避免鉴权/资源不存在与参数错误混为 400。
@@ -103,6 +104,11 @@ func respondTaskCreateError(c *gin.Context, err error) {
 
 func (h *TaskHandler) ListTasks(c *gin.Context) {
 	projectID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	if !h.projectService.IsParticipant(projectID, userUUID) {
+		response.ErrorForbidden(c, errcode.ErrProjectParticipantOnly, errcode.GetMessage(errcode.ErrProjectParticipantOnly))
+		return
+	}
 	tasks, err := h.taskService.ListByProject(projectID)
 	if err != nil {
 		response.ErrorNotFound(c, errcode.ErrProjectNotFound, "项目不存在")
@@ -211,6 +217,11 @@ func (h *TaskHandler) UpdateTaskStatus(c *gin.Context) {
 
 func (h *TaskHandler) ListMilestones(c *gin.Context) {
 	projectID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	if !h.projectService.IsParticipant(projectID, userUUID) {
+		response.ErrorForbidden(c, errcode.ErrProjectParticipantOnly, errcode.GetMessage(errcode.ErrProjectParticipantOnly))
+		return
+	}
 	milestones, err := h.milestoneService.ListByProject(projectID)
 	if err != nil {
 		response.ErrorNotFound(c, errcode.ErrProjectNotFound, "项目不存在")
@@ -240,10 +251,15 @@ func (h *TaskHandler) ListMilestones(c *gin.Context) {
 		list = append(list, gin.H{
 			"id":                   m.UUID,
 			"title":                m.Title,
+			"description":          m.Description,
 			"status":               status,
 			"progress":             progress,
 			"due_date":             m.DueDate,
 			"amount":               m.PaymentAmount,
+			"payment_ratio":        m.PaymentRatio,
+			"estimated_days":       m.EstimatedDays,
+			"feature_item_ids":     m.FeatureItemIDs,
+			"phases":               m.Phases,
 			"task_count":           0,
 			"completed_task_count": 0,
 		})

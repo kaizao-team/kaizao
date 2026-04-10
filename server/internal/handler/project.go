@@ -141,7 +141,8 @@ func (h *ProjectHandler) Get(c *gin.Context) {
 		}
 	}
 
-	response.Success(c, h.buildProjectDetail(p, userUUID))
+	isParticipant := h.projectService.IsParticipant(p.UUID, userUUID)
+	response.Success(c, h.buildProjectDetail(p, userUUID, isParticipant))
 }
 
 // Update 更新项目
@@ -287,41 +288,51 @@ type projectDetail struct {
 	MyBidStatus *string     `json:"my_bid_status,omitempty"`
 }
 
-func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string) projectDetail {
-	prdSummary := extractPRDSummary(p)
-
-	statusMap := map[int16]string{
-		1: "pending",
-		2: "in_progress",
-		3: "completed",
-		4: "revision_requested",
-		5: "delivered",
-	}
+func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string, isParticipant bool) projectDetail {
+	prdSummary := ""
 	var milestoneList []interface{}
-	if ms, err := h.milestoneService.ListByProject(p.UUID); err == nil && len(ms) > 0 {
-		milestoneList = make([]interface{}, 0, len(ms))
-		for _, m := range ms {
-			st := statusMap[m.Status]
-			if st == "" {
-				st = "pending"
+
+	if isParticipant {
+		prdSummary = extractPRDSummary(p)
+
+		statusMap := map[int16]string{
+			1: "pending",
+			2: "in_progress",
+			3: "completed",
+			4: "revision_requested",
+			5: "delivered",
+		}
+		if ms, err := h.milestoneService.ListByProject(p.UUID); err == nil && len(ms) > 0 {
+			milestoneList = make([]interface{}, 0, len(ms))
+			for _, m := range ms {
+				st := statusMap[m.Status]
+				if st == "" {
+					st = "pending"
+				}
+				progress := 0
+				switch m.Status {
+				case 3:
+					progress = 100
+				case 5:
+					progress = 90
+				case 2:
+					progress = 50
+				}
+				entry := map[string]interface{}{
+					"id":               m.UUID,
+					"title":            m.Title,
+					"description":      m.Description,
+					"status":           st,
+					"progress":         progress,
+					"due_date":         m.DueDate,
+					"amount":           m.PaymentAmount,
+					"payment_ratio":    m.PaymentRatio,
+					"estimated_days":   m.EstimatedDays,
+					"feature_item_ids": m.FeatureItemIDs,
+					"phases":           m.Phases,
+				}
+				milestoneList = append(milestoneList, entry)
 			}
-			progress := 0
-			switch m.Status {
-			case 3:
-				progress = 100
-			case 5:
-				progress = 90
-			case 2:
-				progress = 50
-			}
-			milestoneList = append(milestoneList, map[string]interface{}{
-				"id":       m.UUID,
-				"title":    m.Title,
-				"status":   st,
-				"progress": progress,
-				"due_date": m.DueDate,
-				"amount":   m.PaymentAmount,
-			})
 		}
 	}
 	if milestoneList == nil {

@@ -58,7 +58,7 @@ func NewHandlers(services *service.Services, cfg *config.Config, log *zap.Logger
 		Home:         NewHomeHandler(services.Home, log),
 		PRD:          NewPRDHandler(services.Project, cfg.AIAgent, log),
 		Bid:          NewBidHandler(services.Bid, services.Project, aiClient, log),
-		Task:         NewTaskHandler(services.Task, services.Milestone, log),
+		Task:         NewTaskHandler(services.Task, services.Milestone, services.Project, log),
 		Conversation: NewConversationHandler(services.Conversation, log),
 		Order:        NewOrderHandler(services.Order, services.Wallet, log),
 		Wallet:       NewWalletHandler(services.Wallet, log),

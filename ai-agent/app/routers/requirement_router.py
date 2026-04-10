@@ -19,6 +19,62 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v2/requirement", tags=["v2-requirement"])
 
 
+async def _trigger_pm_generation(project_id: str) -> None:
+    """EARS 拆解完成后异步触发 PM 文档生成（project-plan.md）"""
+    try:
+        from app.main import v2_orchestrator, v2_pm_agent, v2_doc_writer
+
+        if not v2_pm_agent or not v2_orchestrator:
+            logger.warning("pm_trigger_skip_no_agent", project_id=project_id)
+            return
+
+        # 加载前序文档
+        context = v2_orchestrator.load_stage_context(project_id, "pm")
+        requirement_content = context.get("requirement.md", "")
+        if not requirement_content:
+            logger.warning("pm_trigger_skip_no_requirement", project_id=project_id)
+            return
+
+        # 读取 agreed_price / agreed_days
+        agreed_price = None
+        agreed_days = None
+        try:
+            from app.db.repository import ProjectRepository
+            repo = ProjectRepository()
+            agreed_days = await repo.get_project_agreed_days(project_id)
+        except Exception:
+            pass
+
+        design_content = context.get("design.md", "")
+
+        # 读取 ears-tasks.md 作为 task_content
+        task_content = ""
+        try:
+            task_content = v2_doc_writer.read_document(project_id, "ears-tasks.md") or ""
+        except Exception:
+            pass
+
+        await v2_pm_agent.generate(
+            project_id=project_id,
+            requirement_content=requirement_content,
+            design_content=design_content,
+            task_content=task_content,
+            agreed_price=agreed_price,
+            agreed_days=agreed_days,
+        )
+
+        # 标记 pm 阶段为 confirmed
+        state = await v2_orchestrator.get_project(project_id)
+        if state:
+            doc_path = f"outputs/{project_id}/v1/project-plan.md"
+            state.set_stage_status("pm", "confirmed", document_path=doc_path)
+            await v2_orchestrator.save_project(state)
+
+        logger.info("pm_trigger_done", project_id=project_id)
+    except Exception as e:
+        logger.error("pm_trigger_failed", project_id=project_id, error=str(e))
+
+
 class StartRequest(BaseModel):
     """初始化 AI 流水线 + 首轮需求对话"""
     message: str
@@ -267,6 +323,8 @@ async def decompose_ears(project_id: str, request: Request):
                                                    document_path=f"outputs/{project_id}/v1/requirement.md")
                         await v2_orchestrator.save_project(bg_state)
                         logger.info("ears_decompose_done", project_id=project_id)
+                        # 异步触发 PM 文档生成
+                        asyncio.create_task(_trigger_pm_generation(project_id))
                     else:
                         bg_state.set_stage_status("requirement", "running", sub_stage=sub_stage)
                         await v2_orchestrator.save_project(bg_state)
@@ -436,6 +494,8 @@ async def decompose_ears_stream(project_id: str, request: Request):
                                            document_path=f"outputs/{project_id}/v1/requirement.md")
                     await v2_orchestrator.save_project(state)
                     logger.info("ears_stream_decompose_done", project_id=project_id)
+                    # 异步触发 PM 文档生成
+                    asyncio.create_task(_trigger_pm_generation(project_id))
                 else:
                     state.set_stage_status("requirement", "running", sub_stage=sub_stage)
                     await v2_orchestrator.save_project(state)

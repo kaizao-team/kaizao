@@ -296,6 +296,23 @@ func (s *ProjectService) Close(uuid string, reason string) error {
 	return s.repos.Project.UpdateFields(p.ID, fields)
 }
 
+// IsParticipant 判断用户是否为项目参与者（需求方、服务方或团队成员）。
+// userUUID 为空时直接返回 false。
+func (s *ProjectService) IsParticipant(projectUUID, userUUID string) bool {
+	if userUUID == "" {
+		return false
+	}
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return false
+	}
+	project, err := s.repos.Project.FindByUUID(projectUUID)
+	if err != nil {
+		return false
+	}
+	return CanAccessProjectWorkspace(project, user.ID, s.repos)
+}
+
 // UserBidStatus returns the bid status string for the given user on a project.
 // Returns "" if the user has not bid, or one of "pending", "accepted", "rejected", "withdrawn".
 func (s *ProjectService) UserBidStatus(projectID int64, userUUID string) string {
