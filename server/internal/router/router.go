@@ -120,6 +120,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		projects.POST("/generate-prd", middleware.JWTAuth(services.JWT), handlers.PRD.GeneratePRD)
 		projects.POST("/draft", middleware.JWTAuth(services.JWT), handlers.PRD.SaveDraft)
 		projects.POST("/:id/publish", middleware.JWTAuth(services.JWT), handlers.Project.Publish)
+		projects.POST("/:id/confirm-alignment", middleware.JWTAuth(services.JWT), handlers.Project.ConfirmAlignment)
+		projects.POST("/:id/start", middleware.JWTAuth(services.JWT), handlers.Project.Start)
 		projects.GET("/:id", middleware.OptionalJWTAuth(services.JWT), handlers.Project.Get)
 		projects.PUT("/:id", middleware.JWTAuth(services.JWT), handlers.Project.Update)
 		projects.PUT("/:id/close", middleware.JWTAuth(services.JWT), handlers.Project.Close)
@@ -169,6 +171,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	bids := v1.Group("/bids")
 	{
 		bids.POST("/:bidId/accept", middleware.JWTAuth(services.JWT), handlers.Bid.AcceptBid)
+		bids.POST("/:bidId/confirm", middleware.JWTAuth(services.JWT), handlers.Bid.ConfirmBid)
+		bids.POST("/:bidId/reject", middleware.JWTAuth(services.JWT), handlers.Bid.RejectBid)
 		bids.PUT("/:bidId/withdraw", middleware.JWTAuth(services.JWT), handlers.Bid.WithdrawBid)
 	}
 
@@ -278,6 +282,10 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		admin.GET("/projects/:uuid/ai-documents/:docId/download", handlers.Admin.DownloadAIDocument)
 		admin.PUT("/projects/:uuid/prd/document", handlers.Admin.UploadProjectPRDDocument)
 		admin.POST("/projects/:uuid/prd/reanalyze", handlers.Admin.ReanalyzePRD)
+		admin.POST("/projects/:uuid/ears/decompose", handlers.Admin.DecomposePRD)
+		admin.GET("/projects/:uuid/ears/tasks", handlers.Admin.GetEarsTasks)
+		admin.GET("/projects/:uuid/tasks", handlers.Task.AdminListTasks)
+		admin.GET("/projects/:uuid/milestones", handlers.Task.AdminListMilestones)
 	}
 
 	// ==================== AI服务模块 ====================

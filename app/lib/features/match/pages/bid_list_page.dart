@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
@@ -98,7 +99,7 @@ class BidListPage extends ConsumerWidget {
                                               homeStateProvider.notifier)
                                           .refresh();
                                       if (context.mounted) {
-                                        context.go('/');
+                                        context.go(RoutePaths.home);
                                       }
                                     }
                                   }

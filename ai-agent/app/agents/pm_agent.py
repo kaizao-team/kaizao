@@ -70,11 +70,6 @@ class PMAgent(ToolUseBaseAgent):
                     parts.append("\n\n```json\n" + json.dumps(tool_input["project_plan"], ensure_ascii=False, indent=2) + "\n```")
                 md_content = "\n".join(parts)
             if self._project_id:
-                # 解析 milestones → 写入 ai_milestones
-                plan = tool_input.get("project_plan", {})
-                milestones = plan.get("milestones", [])
-                if milestones:
-                    self._persist_milestones(self._project_id, milestones)
                 path = self.doc_writer.save_document(self._project_id, "project-plan.md", md_content)
                 return f"项目管理方案已保存至 {path}"
             return "项目管理方案已生成。"
@@ -88,28 +83,6 @@ class PMAgent(ToolUseBaseAgent):
             return "保存失败：缺少 project_id"
 
         return f"未知工具: {tool_name}"
-
-    @staticmethod
-    def _persist_milestones(project_id: str, milestones: list[dict]) -> None:
-        """解析 milestones，异步写入 ai_milestones"""
-        import asyncio
-
-        if not milestones:
-            return
-
-        async def _do():
-            try:
-                from app.db.repository import ProjectRepository
-                repo = ProjectRepository()
-                await repo.save_milestones(project_id, milestones)
-            except Exception as e:
-                logger.warning("persist_milestones_failed", error=str(e))
-
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(_do())
-        except RuntimeError:
-            pass
 
     async def generate_stream(self, project_id: str, requirement_content: str, design_content: str, task_content: str = "", feedback: str = ""):
         """流式生成项目管理方案，yield SSE 事件"""

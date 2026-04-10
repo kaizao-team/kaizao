@@ -55,9 +55,18 @@ class BidCard extends StatelessWidget {
           Row(
             children: [
               VccAvatar(
+                imageUrl: bid.isTeamBid
+                    ? bid.teamAvatarUrl
+                    : bid.avatar,
                 size: VccAvatarSize.medium,
-                fallbackText: bid.userName.isNotEmpty
-                    ? bid.userName.substring(0, 1)
+                fallbackText: (bid.isTeamBid
+                            ? bid.teamName ?? bid.userName
+                            : bid.userName)
+                        .isNotEmpty
+                    ? (bid.isTeamBid
+                            ? bid.teamName ?? bid.userName
+                            : bid.userName)
+                        .substring(0, 1)
                     : 'U',
               ),
               const SizedBox(width: 12),
@@ -69,7 +78,9 @@ class BidCard extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            bid.userName,
+                            bid.isTeamBid
+                                ? (bid.teamName ?? bid.userName)
+                                : bid.userName,
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -196,11 +207,18 @@ class BidCard extends StatelessWidget {
               ],
               if (!isOwner && bid.isPending) ...[
                 const SizedBox(width: 8),
-                _ActionButton(
-                  label: '选 TA',
-                  isPrimary: true,
-                  onTap: onAccept,
-                ),
+                if (bid.isAiRecommended)
+                  _ActionButton(
+                    label: '等待团队确认',
+                    isPrimary: false,
+                    onTap: null,
+                  )
+                else
+                  _ActionButton(
+                    label: '选 TA',
+                    isPrimary: true,
+                    onTap: onAccept,
+                  ),
               ],
             ],
           ),

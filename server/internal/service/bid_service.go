@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -87,6 +86,50 @@ func (s *BidService) RecommendationTeamForUserID(userID int64, maxMembers int) (
 		out = append(out, row)
 	}
 	return team, out, nil
+}
+
+// SimpleMatchResult 简化匹配结果
+type SimpleMatchResult struct {
+	User       *model.User
+	Team       *model.Team
+	Members    []map[string]interface{}
+	MatchScore float64
+	Reason     string
+}
+
+// SimpleMatchProviders 按预算+级别简化匹配团队方
+func (s *BidService) SimpleMatchProviders(budgetMax float64, limit int) ([]SimpleMatchResult, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	users, err := s.repos.User.ListProvidersByBudgetAndLevel(budgetMax, limit)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]SimpleMatchResult, 0, len(users))
+	for _, u := range users {
+		team, memberMaps, err := s.RecommendationTeamForUserID(u.ID, recommendationTeamMembersMax)
+		if err != nil {
+			s.log.Warn("simple_match_team_resolve_failed", zap.Int64("user_id", u.ID), zap.Error(err))
+			continue
+		}
+		if team == nil {
+			continue
+		}
+		// match_score: level * 10 (max 50) + avg_rating * 10 (max 50) = 0~100
+		score := float64(u.Level)*10 + u.AvgRating*10
+		if score > 100 {
+			score = 100
+		}
+		results = append(results, SimpleMatchResult{
+			User:       u,
+			Team:       team,
+			Members:    memberMaps,
+			MatchScore: score,
+			Reason:     "团队级别高、评价好，预算匹配",
+		})
+	}
+	return results, nil
 }
 
 func (s *BidService) ListByProject(projectUUID string) ([]*model.Bid, error) {
@@ -219,23 +262,16 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 	}
 
 	providerID := *bid.BidderID
-	providerUser, err := s.repos.User.FindByID(providerID)
-	if err != nil {
-		s.log.Error("AcceptBid: load provider", zap.Error(err))
-		return nil, err
-	}
 
 	now := time.Now()
 	projectTitle := project.Title
-	demanderPhone := displayPhoneForNotify(ownerUser)
-	expertPhone := displayPhoneForNotify(providerUser)
 	targetType := "project"
 	tid := project.ID
 	acceptSourceRole := "demander"
 	acceptTargetUUID := project.UUID
 	contentDemander := fmt.Sprintf(
-		"已有团队/专家撮合成功，我们将尽快接洽。项目「%s」。对方联系电话：%s",
-		projectTitle, expertPhone,
+		"项目「%s」已撮合成功，平台将介入对齐需求细节，请留意后续进展。",
+		projectTitle,
 	)
 	nDemander := &model.Notification{
 		UserID:           project.OwnerID,
@@ -248,8 +284,8 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		TargetUUID:       &acceptTargetUUID,
 	}
 	contentExpert := fmt.Sprintf(
-		"您已被选定为「%s」的服务方，请尽快联系需求方沟通详情。需求方联系电话：%s",
-		projectTitle, demanderPhone,
+		"您已被选定为项目「%s」的服务方，平台将介入对齐需求细节，请留意后续进展。",
+		projectTitle,
 	)
 	nExpert := &model.Notification{
 		UserID:           providerID,
@@ -262,7 +298,6 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		TargetUUID:       &acceptTargetUUID,
 	}
 
-	var createdPayOrd *model.Order
 	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
 		txRepos := repository.NewRepositories(tx)
 		bid.Status = 2
@@ -270,7 +305,7 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		if err := txRepos.Bid.Update(bid); err != nil {
 			return err
 		}
-		// status=3 已撮合/履约中（与 Close 中「不可关闭」一致）；status=4 仅用于用户主动关闭需求
+		// status=3 已撮合（等待平台对齐需求）；status=8 用户主动关闭需求
 		projectUpdates := map[string]interface{}{
 			"provider_id":  providerID,
 			"bid_id":       bid.ID,
@@ -353,28 +388,118 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 			return err
 		}
 
-		payOrd, errOrd := s.orderSvc.createPendingProjectOrderWithRepos(txRepos, project.ID, project.OwnerID, providerID, bid.Price)
-		if errOrd != nil {
-			code, _ := strconv.Atoi(errOrd.Error())
-			if code != errcode.ErrOrderAlreadyExists {
-				s.log.Error("AcceptBid: create order", zap.Error(errOrd))
-				return errOrd
-			}
-			payOrd = nil
-		}
-		createdPayOrd = payOrd
+		// 支付通道尚未上线，暂不自动创建订单和发送付款通知
+		// payOrd, errOrd := s.orderSvc.createPendingProjectOrderWithRepos(txRepos, project.ID, project.OwnerID, providerID, bid.Price)
+		// if errOrd != nil {
+		// 	code, _ := strconv.Atoi(errOrd.Error())
+		// 	if code != errcode.ErrOrderAlreadyExists {
+		// 		s.log.Error("AcceptBid: create order", zap.Error(errOrd))
+		// 		return errOrd
+		// 	}
+		// 	payOrd = nil
+		// }
+		// createdPayOrd = payOrd
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	if createdPayOrd != nil {
-		if err := s.orderSvc.NotifyPayerPendingOrder(project.OwnerID, createdPayOrd, projectTitle); err != nil {
-			s.log.Error("AcceptBid: payment notify", zap.Error(err))
-		}
+	return bid, nil
+}
+
+// ConfirmBid 团队方确认接受推荐：校验 bid 归属后复用 Accept 逻辑
+func (s *BidService) ConfirmBid(bidUUID, providerUUID string) (*model.Bid, error) {
+	bid, err := s.repos.Bid.FindByUUID(bidUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+	if bid.Status != 1 {
+		return nil, fmt.Errorf("%d", errcode.ErrBidClosed)
+	}
+	if bid.BidderID == nil {
+		return nil, fmt.Errorf("%d", errcode.ErrBidNotFound)
 	}
 
-	return bid, nil
+	provider, err := s.repos.User.FindByUUID(providerUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	if *bid.BidderID != provider.ID {
+		return nil, fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+
+	project, err := s.repos.Project.FindByID(bid.ProjectID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+
+	ownerUser, err := s.repos.User.FindByID(project.OwnerID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+
+	return s.Accept(bid.UUID, ownerUser.UUID)
+}
+
+// RejectBid 团队方拒绝推荐：校验 bid 归属后置为 rejected，项目回 status=2
+func (s *BidService) RejectBid(bidUUID, providerUUID string) error {
+	bid, err := s.repos.Bid.FindByUUID(bidUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+	if bid.Status != 1 {
+		return fmt.Errorf("%d", errcode.ErrBidClosed)
+	}
+	if bid.BidderID == nil {
+		return fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+
+	provider, err := s.repos.User.FindByUUID(providerUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	if *bid.BidderID != provider.ID {
+		return fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+
+	project, err := s.repos.Project.FindByID(bid.ProjectID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+
+	targetType := "project"
+	tid := project.ID
+	sourceRole := "provider"
+	targetUUID := project.UUID
+	content := fmt.Sprintf("团队方「%s」拒绝了推荐，项目已恢复等待匹配", provider.Nickname)
+	n := &model.Notification{
+		UserID:           project.OwnerID,
+		SourceRole:       &sourceRole,
+		Title:            "推荐被拒绝",
+		Content:          content,
+		NotificationType: model.NotificationTypeNewBid,
+		TargetType:       &targetType,
+		TargetID:         &tid,
+		TargetUUID:       &targetUUID,
+	}
+
+	return s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		txRepos := repository.NewRepositories(tx)
+		if err := txRepos.Bid.UpdateFields(bid.ID, map[string]interface{}{"status": 3}); err != nil {
+			return err
+		}
+		// 清除项目上的 provider/bid/team 引用，回到 status=2
+		if err := txRepos.Project.UpdateFields(project.ID, map[string]interface{}{
+			"status":      int16(2),
+			"provider_id": nil,
+			"bid_id":      nil,
+			"team_id":     nil,
+			"matched_at":  nil,
+		}); err != nil {
+			return err
+		}
+		return txRepos.Notification.Create(n)
+	})
 }
 
 // Withdraw 撤回投标（仅 pending 状态可撤回，且仅投标者本人可操作）
@@ -475,13 +600,14 @@ func (s *BidService) QuickMatch(ownerUUID, projectUUID, providerUUID string, pro
 		prop := buildQuickMatchProposal(matchScore, reason)
 		tid := providerTeamID
 		bid = &model.Bid{
-			ProjectID:     project.ID,
-			BidderID:      &provider.ID,
-			TeamID:        &tid,
-			Price:         pickQuickMatchPrice(project),
-			EstimatedDays: 14,
-			Proposal:      &prop,
-			Status:        1,
+			ProjectID:       project.ID,
+			BidderID:        &provider.ID,
+			TeamID:          &tid,
+			Price:           pickQuickMatchPrice(project),
+			EstimatedDays:   14,
+			Proposal:        &prop,
+			Status:          1,
+			IsAIRecommended: true,
 		}
 		if err := s.repos.Bid.Create(bid); err != nil {
 			return nil, err
@@ -501,8 +627,25 @@ func (s *BidService) QuickMatch(ownerUUID, projectUUID, providerUUID string, pro
 		}
 	}
 
-	if _, err := s.Accept(bid.UUID, ownerUUID); err != nil {
-		return nil, err
+	// 发通知给团队方，等待团队确认
+	targetType := "project"
+	tid := project.ID
+	sourceRole := "demander"
+	targetUUID := project.UUID
+	content := fmt.Sprintf("您被推荐为「%s」的服务方，请确认是否接受", project.Title)
+	n := &model.Notification{
+		UserID:           provider.ID,
+		SourceRole:       &sourceRole,
+		Title:            "收到团队推荐",
+		Content:          content,
+		NotificationType: model.NotificationTypeNewBid,
+		TargetType:       &targetType,
+		TargetID:         &tid,
+		TargetUUID:       &targetUUID,
 	}
-	return s.repos.Bid.FindByUUID(bid.UUID)
+	if err := s.repos.Notification.Create(n); err != nil {
+		s.log.Error("QuickMatch: notify provider", zap.Error(err))
+	}
+
+	return bid, nil
 }

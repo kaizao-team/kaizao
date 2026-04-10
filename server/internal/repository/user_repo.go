@@ -200,6 +200,22 @@ func (r *userRepository) UpdatePortfolioFields(id int64, fields map[string]inter
 	return r.db.Model(&model.Portfolio{}).Where("id = ?", id).Updates(fields).Error
 }
 
+func (r *userRepository) ListProvidersByBudgetAndLevel(budgetMax float64, limit int) ([]*model.User, error) {
+	var users []*model.User
+	q := r.db.Table("users u").
+		Select("u.*").
+		Joins("JOIN team_members tm ON tm.user_id = u.id AND tm.status = 1").
+		Joins("JOIN teams t ON t.id = tm.team_id AND t.status = 1").
+		Where("u.role = 2 AND u.status = 1 AND u.onboarding_status = 2").
+		Where("u.hourly_rate IS NULL OR u.hourly_rate <= ?", budgetMax).
+		Order("u.level DESC, u.avg_rating DESC").
+		Limit(limit)
+	if err := q.Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 func (r *userRepository) CountPortfoliosByUserAndUUIDs(userID int64, uuids []string) (int64, error) {
 	if len(uuids) == 0 {
 		return 0, nil

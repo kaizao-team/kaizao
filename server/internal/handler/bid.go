@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"context"
-	"encoding/json"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -78,6 +76,7 @@ func (h *BidHandler) ListBids(c *gin.Context) {
 			"bid_amount":    b.Price,
 			"duration_days": b.EstimatedDays,
 			"proposal":      b.Proposal,
+			"status":        b.Status,
 			"skills":        []string{},
 			"created_at":    b.CreatedAt,
 		}
@@ -102,6 +101,7 @@ func (h *BidHandler) ListBids(c *gin.Context) {
 			item["rating"] = b.Bidder.AvgRating
 			item["completion_rate"] = b.Bidder.CompletionRate
 		}
+		item["is_ai_recommended"] = b.IsAIRecommended
 		list = append(list, item)
 	}
 	response.Success(c, list)
@@ -183,12 +183,8 @@ func (h *BidHandler) AISuggestion(c *gin.Context) {
 	})
 }
 
-// Recommendations GET /api/v1/projects/:id/recommendations — 转发 AI-Agent POST /api/v2/match/recommend
+// Recommendations GET /api/v1/projects/:id/recommendations — 简化匹配：按预算+团队级别降序
 func (h *BidHandler) Recommendations(c *gin.Context) {
-	if h.aiAgent == nil {
-		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "AI 匹配服务未配置（请设置 ai_agent.base_url 或环境变量 VB_AI_AGENT_BASE_URL）")
-		return
-	}
 	projectUUID := c.Param("id")
 	ownerUUID := c.GetString("user_uuid")
 	project, err := h.projectService.GetPeekIfOwner(projectUUID, ownerUUID)
@@ -207,9 +203,6 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 		PageSize int `form:"page_size"`
 	}
 	_ = c.ShouldBindQuery(&q)
-	if q.Page < 1 {
-		q.Page = 1
-	}
 	if q.PageSize < 1 {
 		q.PageSize = 10
 	}
@@ -217,68 +210,49 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 		q.PageSize = 20
 	}
 
-	filters := map[string]interface{}{}
-	if skills := parseBidTechReqs(project.TechRequirements); len(skills) > 0 {
-		filters["skills"] = skills
+	budgetMax := 0.0
+	if project.BudgetMax != nil {
+		budgetMax = *project.BudgetMax
+	}
+	if budgetMax <= 0 {
+		budgetMax = 1e8 // 无上限时不过滤
 	}
 
-	reqID := c.GetString("request_id")
-	data, err := h.aiAgent.MatchRecommend(context.Background(), reqID, aiagent.MatchRecommendRequest{
-		DemandID:  project.UUID,
-		MatchType: "recommend_providers",
-		UserID:    ownerUUID,
-		Filters:   filters,
-		Pagination: map[string]int{
-			"page":       q.Page,
-			"page_size":  q.PageSize,
-		},
-	})
+	results, err := h.bidService.SimpleMatchProviders(budgetMax, q.PageSize)
 	if err != nil {
-		h.log.Warn("match_recommend_failed", zap.Error(err))
-		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "AI 推荐服务调用失败: "+err.Error())
+		h.log.Warn("simple_match_failed", zap.Error(err))
+		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "匹配服务调用失败: "+err.Error())
 		return
 	}
 
-	items := make([]gin.H, 0, len(data.Recommendations))
-	for _, rec := range data.Recommendations {
-		if rec.ProviderID == "" {
-			continue
-		}
-		u, err := h.bidService.FindUserByUUID(rec.ProviderID)
-		if err != nil || u == nil {
-			continue
-		}
-		team, memberMaps, err := h.bidService.RecommendationTeamForUserID(u.ID, listBidTeamMembersMax)
-		if err != nil {
-			h.log.Warn("recommendation_team_resolve_failed", zap.Error(err), zap.String("provider_id", rec.ProviderID))
-			continue
-		}
-		if team == nil {
-			h.log.Warn("recommendation_skip_no_team", zap.String("provider_id", rec.ProviderID))
-			continue
-		}
+	items := make([]gin.H, 0, len(results))
+	for i, r := range results {
 		row := gin.H{
-			"provider_id":               rec.ProviderID,
-			"user_id":                   rec.ProviderID,
-			"rank":                      rec.Rank,
-			"match_score":               rec.MatchScore,
-			"recommendation_reason":     rec.RecommendationReason,
-			"highlight_skills":          rec.HighlightSkills,
-			"similar_project_reference": rec.SimilarProjectReference,
-			"dimension_scores":          rec.DimensionScores,
-			"bid_type":                  "team",
-			"team_id":                   team.UUID,
-			"team_name":                 team.Name,
-			"team_members":              teamMemberMapsToSlice(memberMaps),
+			"provider_id":           r.User.UUID,
+			"user_id":               r.User.UUID,
+			"rank":                  i + 1,
+			"match_score":           r.MatchScore,
+			"recommendation_reason": r.Reason,
+			"highlight_skills":      []string{},
+			"bid_type":              "team",
+			"team_id":               r.Team.UUID,
+			"team_name":             r.Team.Name,
+			"team_members":          teamMemberMapsToSlice(r.Members),
 		}
-		if team.AvatarURL != nil {
-			row["team_avatar_url"] = *team.AvatarURL
+		if r.Team.AvatarURL != nil {
+			row["team_avatar_url"] = *r.Team.AvatarURL
 		}
-		row["nickname"] = u.Nickname
-		row["avatar_url"] = u.AvatarURL
-		row["rating"] = u.AvgRating
-		row["completion_rate"] = u.CompletionRate
-		if ps := h.bidService.PrimarySkillName(u.ID); ps != "" {
+		if r.Team.BudgetMin != nil {
+			row["budget_min"] = *r.Team.BudgetMin
+		}
+		if r.Team.BudgetMax != nil {
+			row["budget_max"] = *r.Team.BudgetMax
+		}
+		row["nickname"] = r.User.Nickname
+		row["avatar_url"] = r.User.AvatarURL
+		row["rating"] = r.User.AvgRating
+		row["completion_rate"] = r.User.CompletionRate
+		if ps := h.bidService.PrimarySkillName(r.User.ID); ps != "" {
 			row["primary_skill"] = ps
 			row["skill"] = ps
 		}
@@ -286,22 +260,15 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{
-		"demand_id":           data.DemandID,
-		"match_type":          data.MatchType,
-		"experts":             items,
-		"recommendations":     items,
-		"overall_suggestion":  data.OverallSuggestion,
-		"no_match_reason":     data.NoMatchReason,
-		"meta":                data.Meta,
+		"demand_id":       project.UUID,
+		"match_type":      "simple_match",
+		"experts":         items,
+		"recommendations": items,
 	})
 }
 
-// QuickMatch POST /api/v1/projects/:id/quick-match — AI 推荐最优造物者并执行选标撮合流程
+// QuickMatch POST /api/v1/projects/:id/quick-match — 简化匹配：取最高级别团队方并执行选标撮合
 func (h *BidHandler) QuickMatch(c *gin.Context) {
-	if h.aiAgent == nil {
-		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "AI 匹配服务未配置（请设置 ai_agent.base_url 或环境变量 VB_AI_AGENT_BASE_URL）")
-		return
-	}
 	projectUUID := c.Param("id")
 	ownerUUID := c.GetString("user_uuid")
 	project, err := h.projectService.GetPeekIfOwner(projectUUID, ownerUUID)
@@ -315,64 +282,27 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 		return
 	}
 
-	filters := map[string]interface{}{}
-	if skills := parseBidTechReqs(project.TechRequirements); len(skills) > 0 {
-		filters["skills"] = skills
+	budgetMax := 0.0
+	if project.BudgetMax != nil {
+		budgetMax = *project.BudgetMax
 	}
-	reqID := c.GetString("request_id")
-	data, err := h.aiAgent.MatchRecommend(context.Background(), reqID, aiagent.MatchRecommendRequest{
-		DemandID:  project.UUID,
-		MatchType: "recommend_providers",
-		UserID:    ownerUUID,
-		Filters:   filters,
-		Pagination: map[string]int{
-			"page":      1,
-			"page_size": 10,
-		},
-	})
+	if budgetMax <= 0 {
+		budgetMax = 1e8
+	}
+
+	results, err := h.bidService.SimpleMatchProviders(budgetMax, 10)
 	if err != nil {
-		h.log.Warn("quick_match_recommend_failed", zap.Error(err))
-		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "AI 推荐服务调用失败: "+err.Error())
+		h.log.Warn("quick_match_simple_failed", zap.Error(err))
+		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "匹配服务调用失败: "+err.Error())
 		return
 	}
-	if len(data.Recommendations) == 0 {
-		msg := "暂无可匹配专家"
-		if data.NoMatchReason != nil && *data.NoMatchReason != "" {
-			msg = *data.NoMatchReason
-		}
-		response.ErrorBadRequest(c, errcode.ErrQuickMatchNoCandidate, msg)
+	if len(results) == 0 {
+		response.ErrorBadRequest(c, errcode.ErrQuickMatchNoCandidate, "暂无可匹配团队")
 		return
 	}
 
-	var chosen *aiagent.RecommendationItem
-	var chosenTeam *model.Team
-	for i := range data.Recommendations {
-		rec := &data.Recommendations[i]
-		if rec.ProviderID == "" {
-			continue
-		}
-		u, err := h.bidService.FindUserByUUID(rec.ProviderID)
-		if err != nil || u == nil {
-			continue
-		}
-		team, _, err := h.bidService.RecommendationTeamForUserID(u.ID, 0)
-		if err != nil {
-			h.log.Warn("quick_match_team_resolve_failed", zap.Error(err), zap.String("provider_id", rec.ProviderID))
-			continue
-		}
-		if team == nil {
-			continue
-		}
-		chosen = rec
-		chosenTeam = team
-		break
-	}
-	if chosen == nil || chosenTeam == nil {
-		response.ErrorBadRequest(c, errcode.ErrQuickMatchNoCandidate, "推荐结果中的团队方未绑定有效团队或用户不存在，请使用「智能推荐」列表手动联系或稍后再试")
-		return
-	}
-
-	bid, err := h.bidService.QuickMatch(ownerUUID, projectUUID, chosen.ProviderID, chosenTeam.ID, chosen.MatchScore, chosen.RecommendationReason)
+	chosen := results[0]
+	bid, err := h.bidService.QuickMatch(ownerUUID, projectUUID, chosen.User.UUID, chosen.Team.ID, chosen.MatchScore, chosen.Reason)
 	if err != nil {
 		code, _ := strconv.Atoi(err.Error())
 		if code > 0 {
@@ -384,28 +314,55 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 	}
 
 	resp := gin.H{
-		"status":                  "accepted",
+		"status":                  "pending_team_confirmation",
 		"bid_id":                  bid.UUID,
-		"provider_id":             chosen.ProviderID,
-		"team_id":                 chosenTeam.UUID,
-		"team_name":               chosenTeam.Name,
+		"provider_id":             chosen.User.UUID,
+		"team_id":                 chosen.Team.UUID,
+		"team_name":               chosen.Team.Name,
 		"match_score":             chosen.MatchScore,
-		"recommendation_reason":   chosen.RecommendationReason,
-		"highlight_skills":        chosen.HighlightSkills,
-		"dimension_scores":        chosen.DimensionScores,
+		"recommendation_reason":   chosen.Reason,
+		"highlight_skills":        []string{},
 		"agreed_price":            bid.Price,
 		"estimated_duration_days": bid.EstimatedDays,
 	}
-	response.SuccessMsg(c, "快速匹配完成，已选定团队", resp)
+	response.SuccessMsg(c, "已发送匹配请求，等待团队确认", resp)
 }
 
-func parseBidTechReqs(raw model.JSON) []string {
-	var result []string
-	if len(raw) > 0 {
-		json.Unmarshal([]byte(raw), &result)
+// RejectBid POST /api/v1/bids/:bidId/reject — 团队方拒绝推荐
+func (h *BidHandler) RejectBid(c *gin.Context) {
+	bidID := c.Param("bidId")
+	userUUID := c.GetString("user_uuid")
+	if err := h.bidService.RejectBid(bidID, userUUID); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrBidNotFound, err.Error())
+		return
 	}
-	if result == nil {
-		return []string{}
-	}
-	return result
+	response.SuccessMsg(c, "已拒绝推荐", gin.H{
+		"status": "rejected",
+	})
 }
+
+// ConfirmBid POST /api/v1/bids/:bidId/confirm — 团队方确认接受推荐
+func (h *BidHandler) ConfirmBid(c *gin.Context) {
+	bidID := c.Param("bidId")
+	userUUID := c.GetString("user_uuid")
+	bid, err := h.bidService.ConfirmBid(bidID, userUUID)
+	if err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrBidNotFound, err.Error())
+		return
+	}
+	_ = bid
+	response.SuccessMsg(c, "已确认接受", gin.H{
+		"status": "accepted",
+	})
+}
+

@@ -128,30 +128,96 @@ class _MilestoneItem extends StatelessWidget {
                           ),
                       ],
                     ),
+                    if (milestone.description != null &&
+                        milestone.description!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        milestone.description!,
+                        style: AppTextStyles.caption.copyWith(
+                          height: 1.5,
+                          color: AppColors.gray500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (milestone.phases.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: milestone.phases.map((phase) {
+                          final name = phase['name']?.toString() ?? '';
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.gray100,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: Text(
+                              name,
+                              style: AppTextStyles.overline.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.gray500,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today_outlined,
-                            size: 12, color: AppColors.gray400),
-                        const SizedBox(width: 4),
-                        Text(
-                          milestone.dueDate,
-                          style: AppTextStyles.caption.copyWith(
-                              color: AppColors.gray500),
-                        ),
-                        const SizedBox(width: 16),
-                        Text(
-                          '¥${milestone.amount.toStringAsFixed(0)}',
-                          style: AppTextStyles.caption.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.gray600,
+                        if (milestone.dueDate.isNotEmpty) ...[
+                          const Icon(Icons.calendar_today_outlined,
+                              size: 12, color: AppColors.gray400),
+                          const SizedBox(width: 4),
+                          Text(
+                            milestone.dueDate,
+                            style: AppTextStyles.caption.copyWith(
+                                color: AppColors.gray500),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                        ],
+                        if (milestone.estimatedDays != null) ...[
+                          const Icon(Icons.schedule_outlined,
+                              size: 12, color: AppColors.gray400),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${milestone.estimatedDays!.toStringAsFixed(milestone.estimatedDays == milestone.estimatedDays!.roundToDouble() ? 0 : 1)} 天',
+                            style: AppTextStyles.caption.copyWith(
+                                color: AppColors.gray500),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        if (milestone.paymentRatio != null &&
+                            milestone.paymentRatio! > 0)
+                          Text(
+                            '${(milestone.paymentRatio! * 100).toStringAsFixed(0)}%',
+                            style: AppTextStyles.caption.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.gray600,
+                            ),
+                          ),
+                        if (milestone.amount > 0) ...[
+                          const SizedBox(width: 12),
+                          Text(
+                            '¥${milestone.amount.toStringAsFixed(0)}',
+                            style: AppTextStyles.caption.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.gray600,
+                            ),
+                          ),
+                        ],
                         const Spacer(),
-                        Text(
-                          '${milestone.completedTaskCount}/${milestone.taskCount} 任务',
-                          style: AppTextStyles.caption,
-                        ),
+                        if (milestone.taskCount > 0)
+                          Text(
+                            '${milestone.completedTaskCount}/${milestone.taskCount} 任务',
+                            style: AppTextStyles.caption,
+                          ),
                       ],
                     ),
                   ],

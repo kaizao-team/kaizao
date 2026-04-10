@@ -5,7 +5,7 @@ import router from '@/router'
 
 const service: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 15000,
+  timeout: 120000,
 })
 
 let isRedirecting = false

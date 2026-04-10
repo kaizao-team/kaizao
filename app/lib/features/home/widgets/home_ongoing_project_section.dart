@@ -89,7 +89,7 @@ class _EmptyOngoingProjectCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '当项目进入已匹配、进行中或验收中，这里会显示当前进度。',
+                      '当项目进入已撮合、进行中或验收中，这里会显示当前进度。',
                       style: AppTextStyles.body2.copyWith(
                         height: 1.45,
                         color: AppColors.gray600,

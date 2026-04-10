@@ -8,7 +8,7 @@ class MatchRepository {
   Future<List<BidItem>> fetchBids(String projectId) async {
     final response = await _client.get<List<dynamic>>(
       ApiEndpoints.projectBids(projectId),
-      fromJson: (data) => data as List<dynamic>,
+      fromJson: (data) => data is List ? data : <dynamic>[],
     );
     return (response.data ?? [])
         .whereType<Map<String, dynamic>>()
@@ -50,5 +50,13 @@ class MatchRepository {
 
   Future<void> withdrawBid(String bidId) async {
     await _client.put(ApiEndpoints.bidWithdraw(bidId));
+  }
+
+  Future<void> confirmBid(String bidId) async {
+    await _client.post(ApiEndpoints.bidConfirm(bidId));
+  }
+
+  Future<void> rejectBid(String bidId) async {
+    await _client.post(ApiEndpoints.bidReject(bidId));
   }
 }

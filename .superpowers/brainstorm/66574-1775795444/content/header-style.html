@@ -1,0 +1,115 @@
+<h2>Header 收敛风格选择</h2>
+<p class="subtitle">页面向上滚动时，大标题如何收缩为紧凑导航栏？选择最符合开造风格的方案。</p>
+
+<div class="cards">
+  <!-- Option A: iOS Large Title -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; overflow: hidden;">
+      <div style="background: #F9F9F9; padding: 20px; font-family: -apple-system, sans-serif;">
+        <!-- Expanded state -->
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <span style="font-size: 11px; color: #999; letter-spacing: 0.5px; text-transform: uppercase;">EXPANDED</span>
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: #E8E8E8;"></div>
+          </div>
+          <div style="font-size: 34px; font-weight: 700; color: #1A1C1C; letter-spacing: -0.5px;">首页</div>
+        </div>
+        <!-- Arrow -->
+        <div style="text-align: center; color: #C6C6C6; font-size: 20px; margin: 8px 0;">↓ scroll ↓</div>
+        <!-- Collapsed state -->
+        <div style="background: #FFFFFF; border-radius: 0; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid rgba(198,198,198,0.3);">
+          <span style="font-size: 17px; font-weight: 600; color: #1A1C1C;">首页</span>
+          <div style="width: 28px; height: 28px; border-radius: 999px; background: #E8E8E8;"></div>
+        </div>
+        <span style="font-size: 11px; color: #999; letter-spacing: 0.5px; text-transform: uppercase; display: block; margin-top: 8px;">COLLAPSED</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. iOS Large Title</h3>
+      <p>Apple 原生风格：展开时大标题左对齐，滚动后缩入顶部导航栏居中。标准 iOS 体验，用户最熟悉。</p>
+    </div>
+  </div>
+
+  <!-- Option B: Editorial Fade -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; overflow: hidden;">
+      <div style="background: #F9F9F9; padding: 20px; font-family: -apple-system, sans-serif;">
+        <!-- Expanded state -->
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <span style="font-size: 11px; color: #999; letter-spacing: 0.5px; text-transform: uppercase;">EXPANDED</span>
+            <div style="display: flex; gap: 8px;">
+              <div style="width: 32px; height: 32px; border-radius: 999px; background: #E8E8E8;"></div>
+            </div>
+          </div>
+          <div style="font-size: 28px; font-weight: 700; color: #1A1C1C; letter-spacing: -0.5px;">首页</div>
+          <div style="font-size: 13px; color: #999; margin-top: 4px;">3 个进行中项目</div>
+        </div>
+        <!-- Arrow -->
+        <div style="text-align: center; color: #C6C6C6; font-size: 20px; margin: 8px 0;">↓ scroll ↓</div>
+        <!-- Collapsed state -->
+        <div style="padding: 8px 20px; display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 13px; font-weight: 600; color: #1A1C1C; letter-spacing: 0.3px; text-transform: uppercase;">首页</span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div style="background: #F3F3F3; border-radius: 8px; padding: 4px 10px; font-size: 11px; color: #555;">3 进行中</div>
+            <div style="width: 28px; height: 28px; border-radius: 999px; background: #E8E8E8;"></div>
+          </div>
+        </div>
+        <span style="font-size: 11px; color: #999; letter-spacing: 0.5px; text-transform: uppercase; display: block; margin-top: 8px;">COLLAPSED</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Editorial Compact</h3>
+      <p>更贴合 Architectural Minimalism：展开时是编辑式大标题+副信息，收缩后变为小号 overline 标题 + 信息摘要 pill。安静、克制、信息密度高。</p>
+    </div>
+  </div>
+
+  <!-- Option C: Hero Dissolve -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; overflow: hidden;">
+      <div style="background: #F9F9F9; padding: 20px; font-family: -apple-system, sans-serif;">
+        <!-- Expanded state -->
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 11px; color: #999; letter-spacing: 0.5px; text-transform: uppercase;">EXPANDED</span>
+          </div>
+          <div style="background: linear-gradient(135deg, #111111, #3C3B3B); border-radius: 16px; padding: 24px; color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <div style="font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px;">欢迎回来</div>
+                <div style="font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">Dylan</div>
+              </div>
+              <div style="width: 40px; height: 40px; border-radius: 999px; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);"></div>
+            </div>
+            <div style="display: flex; gap: 16px; margin-top: 16px;">
+              <div><span style="font-size: 20px; font-weight: 700;">3</span><span style="font-size: 11px; color: rgba(255,255,255,0.5); margin-left: 4px;">进行中</span></div>
+              <div><span style="font-size: 20px; font-weight: 700;">¥12.4k</span><span style="font-size: 11px; color: rgba(255,255,255,0.5); margin-left: 4px;">本月</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Arrow -->
+        <div style="text-align: center; color: #C6C6C6; font-size: 20px; margin: 8px 0;">↓ scroll ↓</div>
+        <!-- Collapsed state -->
+        <div style="background: #FFFFFF; border-radius: 0; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid rgba(198,198,198,0.3);">
+          <span style="font-size: 17px; font-weight: 600; color: #1A1C1C;">Dylan</span>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <span style="font-size: 13px; color: #555;">3 进行中</span>
+            <div style="width: 28px; height: 28px; border-radius: 999px; background: #E8E8E8;"></div>
+          </div>
+        </div>
+        <span style="font-size: 11px; color: #999; letter-spacing: 0.5px; text-transform: uppercase; display: block; margin-top: 8px;">COLLAPSED</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Hero Dissolve</h3>
+      <p>首页专属：展开时显示 hero 卡片（深色 tonal shift），包含用户名+关键指标。滚动后 hero 消融为紧凑导航栏，指标收入右侧。适合首页，其他页面用 A 或 B。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 32px; padding: 16px; background: rgba(0,0,0,0.03); border-radius: 12px;">
+  <p class="label">说明</p>
+  <p style="font-size: 14px; color: #555; line-height: 1.6;">
+    三种方案不互斥——可以为首页选一种（如 C），其他列表页选另一种（如 A）。关键是确定<strong>主节奏</strong>。所有方案都使用 SliverAppBar + SliverPersistentHeader 实现，你们现有的 VccFlowScaffold 已经有类似的收缩逻辑可以复用。
+  </p>
+</div>

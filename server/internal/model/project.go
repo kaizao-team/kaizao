@@ -6,6 +6,40 @@ import (
 	"gorm.io/gorm"
 )
 
+// ── 项目状态 (Project.Status) ──────────────────────────────────
+//
+//	1  草稿          — 未发布，仅项目方可见
+//	2  已发布        — 等待投标 / 匹配团队
+//	3  已撮合        — 团队确认后进入，等待平台对齐需求
+//	4  需求对齐中    — 项目方确认需求已对齐，等待启动
+//	5  进行中        — 项目正式开工
+//	6  验收中        — 里程碑验收阶段
+//	7  已完成        — 全部里程碑验收通过
+//	8  已关闭        — 用户主动关闭（草稿 / 已发布 / 已完成均可关闭）
+//	9  争议中        — 仲裁流程中
+//
+// 状态流转:
+//   1 → 2（发布）
+//   2 → 3（团队方确认 bid）
+//   2 → 8（项目方主动关闭）
+//   3 → 4（项目方确认需求对齐）
+//   4 → 5（项目方启动项目）
+//   5 → 6 → 7（里程碑验收）
+//   3-6 不可关闭
+//
+// 团队方拒绝 bid 时：3 → 2（回退，可重新匹配）
+const (
+	ProjectStatusDraft          int16 = 1
+	ProjectStatusPublished      int16 = 2
+	ProjectStatusMatched        int16 = 3
+	ProjectStatusAligning       int16 = 4
+	ProjectStatusInProgress     int16 = 5
+	ProjectStatusAccepting      int16 = 6
+	ProjectStatusCompleted      int16 = 7
+	ProjectStatusClosed         int16 = 8
+	ProjectStatusDisputed       int16 = 9
+)
+
 // Project 项目/需求模型
 type Project struct {
 	ID                 int64      `gorm:"primaryKey;autoIncrement" json:"id"`
@@ -78,6 +112,9 @@ type Milestone struct {
 	DeliveryNote    *string    `gorm:"type:text" json:"delivery_note,omitempty"`
 	PreviewURL      *string    `gorm:"type:varchar(512)" json:"preview_url,omitempty"`
 	RejectionReason *string    `gorm:"type:text" json:"rejection_reason,omitempty"`
+	FeatureItemIDs  JSON       `gorm:"type:json" json:"feature_item_ids,omitempty"`
+	Phases          JSON       `gorm:"type:json" json:"phases,omitempty"`
+	EstimatedDays   *float64   `gorm:"type:decimal(5,1)" json:"estimated_days,omitempty"`
 	DeliveredAt     *time.Time `json:"delivered_at,omitempty"`
 	AcceptedAt      *time.Time `json:"accepted_at,omitempty"`
 	CreatedAt       time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`

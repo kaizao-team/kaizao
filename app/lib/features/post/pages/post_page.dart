@@ -1480,7 +1480,7 @@ class _BudgetStage extends StatelessWidget {
           border: Border.all(color: AppColors.gray200),
           child: MarketBudgetSlider(
             min: 0,
-            max: 500000,
+            max: 200000,
             currentMin: budgetMin,
             currentMax: budgetMax,
             onChanged: onChanged,
@@ -1669,6 +1669,26 @@ class _MatchTeamStage extends StatelessWidget {
                   ),
                 ],
               ),
+              if (team!.budgetMin != null || team!.budgetMax != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.account_balance_wallet_outlined,
+                      size: 14,
+                      color: AppColors.gray500,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _formatTeamBudget(team!.budgetMin, team!.budgetMax),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.gray600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (team!.skills.isNotEmpty) ...[
                 const SizedBox(height: 14),
                 Wrap(
@@ -1756,18 +1776,47 @@ class _MatchTeamFooter extends StatelessWidget {
               isLoading: isSubmitting,
             ),
             const SizedBox(height: 10),
-            GestureDetector(
-              onTap: isSubmitting ? null : onReMatch,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  '换一个团队',
-                  style: AppTextStyles.body2.copyWith(
-                    color: AppColors.gray500,
-                    fontWeight: FontWeight.w500,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: isSubmitting ? null : onReMatch,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 12,
+                    ),
+                    child: Text(
+                      '换一个团队',
+                      style: AppTextStyles.body2.copyWith(
+                        color: AppColors.gray500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                Container(
+                  width: 1,
+                  height: 14,
+                  color: AppColors.gray300,
+                ),
+                GestureDetector(
+                  onTap: isSubmitting ? null : onSkip,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 12,
+                    ),
+                    child: Text(
+                      '直接发布项目',
+                      style: AppTextStyles.body2.copyWith(
+                        color: AppColors.gray500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ] else ...[
             VccButton(
@@ -1961,4 +2010,13 @@ class _PublishResultBadge extends StatelessWidget {
 
 String _formatBudget(double min, double max) {
   return '¥${min.toStringAsFixed(0)} - ¥${max.toStringAsFixed(0)}';
+}
+
+String _formatTeamBudget(double? min, double? max) {
+  if (min != null && max != null) {
+    return '¥${min.toStringAsFixed(0)} ~ ¥${max.toStringAsFixed(0)}';
+  }
+  if (min != null) return '¥${min.toStringAsFixed(0)} 起';
+  if (max != null) return '最高 ¥${max.toStringAsFixed(0)}';
+  return '';
 }

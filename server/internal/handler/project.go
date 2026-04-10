@@ -141,7 +141,8 @@ func (h *ProjectHandler) Get(c *gin.Context) {
 		}
 	}
 
-	response.Success(c, h.buildProjectDetail(p, userUUID))
+	isParticipant := h.projectService.IsParticipant(p.UUID, userUUID)
+	response.Success(c, h.buildProjectDetail(p, userUUID, isParticipant))
 }
 
 // Update 更新项目
@@ -212,6 +213,40 @@ func (h *ProjectHandler) Publish(c *gin.Context) {
 		"status":       project.Status,
 		"published_at": project.PublishedAt,
 	})
+}
+
+// ConfirmAlignment 确认需求对齐 (status 3→4)
+// POST /api/v1/projects/:id/confirm-alignment
+func (h *ProjectHandler) ConfirmAlignment(c *gin.Context) {
+	uuid := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	if err := h.projectService.ConfirmAlignment(uuid, userUUID); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "确认需求对齐失败")
+		return
+	}
+	response.SuccessMsg(c, "需求已对齐", gin.H{"status": 4})
+}
+
+// Start 启动项目 (status 4→5)
+// POST /api/v1/projects/:id/start
+func (h *ProjectHandler) Start(c *gin.Context) {
+	uuid := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	if err := h.projectService.StartProject(uuid, userUUID); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "启动项目失败")
+		return
+	}
+	response.SuccessMsg(c, "项目已启动", gin.H{"status": 5})
 }
 
 // Close 关闭项目
@@ -285,43 +320,54 @@ type projectDetail struct {
 	PrdSummary  string      `json:"prd_summary"`
 	Milestones  interface{} `json:"milestones"`
 	MyBidStatus *string     `json:"my_bid_status,omitempty"`
+	BidID       *string     `json:"bid_id,omitempty"`
 }
 
-func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string) projectDetail {
-	prdSummary := extractPRDSummary(p)
-
-	statusMap := map[int16]string{
-		1: "pending",
-		2: "in_progress",
-		3: "completed",
-		4: "revision_requested",
-		5: "delivered",
-	}
+func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string, isParticipant bool) projectDetail {
+	prdSummary := ""
 	var milestoneList []interface{}
-	if ms, err := h.milestoneService.ListByProject(p.UUID); err == nil && len(ms) > 0 {
-		milestoneList = make([]interface{}, 0, len(ms))
-		for _, m := range ms {
-			st := statusMap[m.Status]
-			if st == "" {
-				st = "pending"
+
+	if isParticipant {
+		prdSummary = extractPRDSummary(p)
+
+		statusMap := map[int16]string{
+			1: "pending",
+			2: "in_progress",
+			3: "completed",
+			4: "revision_requested",
+			5: "delivered",
+		}
+		if ms, err := h.milestoneService.ListByProject(p.UUID); err == nil && len(ms) > 0 {
+			milestoneList = make([]interface{}, 0, len(ms))
+			for _, m := range ms {
+				st := statusMap[m.Status]
+				if st == "" {
+					st = "pending"
+				}
+				progress := 0
+				switch m.Status {
+				case 3:
+					progress = 100
+				case 5:
+					progress = 90
+				case 2:
+					progress = 50
+				}
+				entry := map[string]interface{}{
+					"id":               m.UUID,
+					"title":            m.Title,
+					"description":      m.Description,
+					"status":           st,
+					"progress":         progress,
+					"due_date":         m.DueDate,
+					"amount":           m.PaymentAmount,
+					"payment_ratio":    m.PaymentRatio,
+					"estimated_days":   m.EstimatedDays,
+					"feature_item_ids": decodeModelJSON(m.FeatureItemIDs),
+					"phases":           decodeModelJSON(m.Phases),
+				}
+				milestoneList = append(milestoneList, entry)
 			}
-			progress := 0
-			switch m.Status {
-			case 3:
-				progress = 100
-			case 5:
-				progress = 90
-			case 2:
-				progress = 50
-			}
-			milestoneList = append(milestoneList, map[string]interface{}{
-				"id":       m.UUID,
-				"title":    m.Title,
-				"status":   st,
-				"progress": progress,
-				"due_date": m.DueDate,
-				"amount":   m.PaymentAmount,
-			})
 		}
 	}
 	if milestoneList == nil {
@@ -338,7 +384,28 @@ func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string) p
 		detail.MyBidStatus = &bs
 	}
 
+	// 填充 bid_id（项目已关联的 bid UUID）
+	if p.BidID != nil {
+		if bid, err := h.projectService.FindBidByID(*p.BidID); err == nil {
+			bidUUID := bid.UUID
+			detail.BidID = &bidUUID
+		}
+	}
+
 	return detail
+}
+
+// decodeModelJSON 将 model.JSON ([]byte) 解码为原生 Go 值（[]interface{} 或 map），
+// 避免 Gin JSON 序列化时将 []byte 编码为 base64 字符串。
+func decodeModelJSON(raw model.JSON) interface{} {
+	if len(raw) == 0 {
+		return []interface{}{}
+	}
+	var v interface{}
+	if err := json.Unmarshal(raw, &v); err != nil {
+		return []interface{}{}
+	}
+	return v
 }
 
 func extractPRDSummary(p *model.Project) string {

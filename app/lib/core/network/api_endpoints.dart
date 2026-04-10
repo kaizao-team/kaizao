@@ -82,6 +82,9 @@ class ApiEndpoints {
   static String projectAttachments(String id) =>
       '/api/v1/projects/$id/attachments';
   static String projectClose(String id) => '/api/v1/projects/$id/close';
+  static String projectConfirmAlignment(String id) =>
+      '/api/v1/projects/$id/confirm-alignment';
+  static String projectStart(String id) => '/api/v1/projects/$id/start';
   static const String projectSearch = '/api/v1/projects/search';
 
   // ============================================================
@@ -114,6 +117,7 @@ class ApiEndpoints {
   static String projectBids(String projectId) =>
       '/api/v1/projects/$projectId/bids';
   static String bidAccept(String id) => '/api/v1/bids/$id/accept';
+  static String bidConfirm(String id) => '/api/v1/bids/$id/confirm';
   static String bidReject(String id) => '/api/v1/bids/$id/reject';
   static String bidWithdraw(String id) => '/api/v1/bids/$id/withdraw';
   static String projectRecommendations(String projectId) =>

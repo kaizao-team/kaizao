@@ -1,0 +1,4 @@
+{"type":"click","text":"B\n      \n        #FFFFFF (white)\n        纯白。当前 Market 在用。更亮更干净，但卡片层级不明显。","choice":"bg-white","id":null,"timestamp":1775796881772}
+{"type":"click","text":"A\n      \n        #F9F9F9 (surface)\n        最温暖的灰白，当前 Profile 和 Notification 在用。推荐统一为此值。","choice":"bg-surface","id":null,"timestamp":1775796884442}
+{"type":"click","text":"A\n      \n        三级体系（推荐）\n        大卡: 24（首页/Profile 主卡片） · 标准: 20（列表卡片、通知行） · 小元素: 12（tag、badge、输入框）","choice":"radius-tier","id":null,"timestamp":1775796901066}
+{"type":"click","text":"A\n      \n        三级节奏（推荐）\n        大段落: 32（主要区域分隔） · 中段落: 20（子区域） · 小段落: 12（组内元素）· 列表项间距: 12","choice":"gap-3tier","id":null,"timestamp":1775796904376}

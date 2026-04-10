@@ -4,6 +4,7 @@
 """
 
 import json
+import re
 from typing import Any, Optional
 
 import structlog
@@ -71,8 +72,66 @@ class RequirementAgent(ToolUseBaseAgent):
         )
         return REQUIREMENT_SYSTEM_PROMPT + "\n\n" + ctx
 
+    # ------------------------------------------------------------------
+    # LLM 输出后处理：修复标点、语法问题（提示词管不住就代码兜底）
+    # ------------------------------------------------------------------
+
+    _RE_QMARK = re.compile(r'[？?]')
+    _RE_QMARK_COMMA = re.compile(r'[？?][，,]')
+    _RE_TRAILING_PUNCT = re.compile(r'[，,、\s]+$')
+
+    @classmethod
+    def _sanitize_agent_message(cls, msg: str) -> str:
+        """清洗 agent_message：禁止问号和问句词，确保陈述句句号结尾。"""
+        if not msg:
+            return msg
+        # 1. 移除所有问号
+        msg = cls._RE_QMARK.sub('', msg)
+        # 2. 清理问号移除后的碎片（如 "是了" ← "是？了"）
+        msg = msg.replace('是了，', '已了解，').replace('是了。', '已了解。')
+        # 3. 清理尾部悬挂标点
+        msg = cls._RE_TRAILING_PUNCT.sub('', msg)
+        # 4. 确保句号结尾
+        msg = msg.strip()
+        if msg and not msg.endswith(('。', '！', '.')):
+            msg += '。'
+        return msg
+
+    @classmethod
+    def _sanitize_question_text(cls, text: str) -> str:
+        """清洗 question 文本：修复 ？，组合，确保最多一个问号。"""
+        if not text:
+            return text
+        # 1. 修复 ？，→ 截断（？，后面的内容通常是错误混入的过渡话术）
+        m = cls._RE_QMARK_COMMA.search(text)
+        if m:
+            text = text[:m.start() + 1]  # 保留到问号，去掉逗号及后续
+        # 2. 如果有多个问号，只保留最后一个
+        positions = [m.start() for m in cls._RE_QMARK.finditer(text)]
+        if len(positions) > 1:
+            # 从后往前删除多余的问号
+            chars = list(text)
+            for pos in reversed(positions[:-1]):
+                chars.pop(pos)
+            text = ''.join(chars)
+        return text.strip()
+
+    @classmethod
+    def _sanitize_ask_clarification(cls, tool_input: dict) -> dict:
+        """对 ask_clarification 的 LLM 输出做后处理清洗。"""
+        # 清洗 agent_message
+        tool_input["agent_message"] = cls._sanitize_agent_message(
+            tool_input.get("agent_message", ""),
+        )
+        # 清洗 questions
+        for q in tool_input.get("questions", []):
+            q["question"] = cls._sanitize_question_text(q.get("question", ""))
+        return tool_input
+
     async def _execute_tool(self, tool_name: str, tool_input: dict) -> str:
         if tool_name == "ask_clarification":
+            # 代码层兜底：清洗 LLM 输出的标点和语法问题
+            tool_input = self._sanitize_ask_clarification(tool_input)
             self._completeness_score = tool_input.get("completeness_score", self._completeness_score)
             self._sub_stage = "clarifying"
             # 存储维度覆盖度
@@ -113,10 +172,12 @@ class RequirementAgent(ToolUseBaseAgent):
                 self._persist_ears_to_go_tasks(self._project_id, tasks)
                 if milestones:
                     self._persist_milestones_to_go(self._project_id, milestones)
-            # 自动保存文档
+            # 自动保存 EARS 文档（独立文件，不覆盖 PRD）
             md_content = tool_input.get("markdown_preview", "")
             if md_content and self._project_id:
-                path = self.doc_writer.save_document(self._project_id, "requirement.md", md_content)
+                path = self.doc_writer.save_document(
+                    self._project_id, "ears-tasks.md", md_content, stage="ears",
+                )
                 return f"EARS 拆解完成，文档已保存至 {path}"
             return "EARS 拆解完成。"
 
@@ -359,8 +420,10 @@ class RequirementAgent(ToolUseBaseAgent):
     def _build_decompose_instruction(agreed_days: int | None = None) -> str:
         base = (
             "需求双方已确认合作，请使用 decompose_to_ears 工具完成以下任务：\n"
-            "1. 将 PRD 拆解为 EARS 最小任务单元（ears_tasks）\n"
-            "2. 规划里程碑（milestones），每个里程碑覆盖一组相关需求条目，包含内部阶段：内部对齐→开发→测试→验收交付\n"
+            "1. 将 PRD 拆解为 EARS 最小任务单元（ears_tasks），每个任务有唯一 task_id（如 T-001）\n"
+            "2. 规划里程碑（milestones），按项目交付阶段划分为 5 个里程碑：内部对齐→设计→开发→测试→验收交付\n"
+            "   - 每个里程碑是一个交付阶段，不要按需求条目或子任务分组\n"
+            "   - 根据项目复杂度合理分配各阶段天数\n"
             "3. 所有里程碑的 payment_ratio 总和必须等于 1\n"
         )
         if agreed_days:

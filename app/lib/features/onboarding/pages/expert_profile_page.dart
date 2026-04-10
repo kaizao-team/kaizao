@@ -26,6 +26,7 @@ class ExpertProfilePage extends ConsumerStatefulWidget {
 class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
   final _nicknameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _inviteCodeController = TextEditingController();
   final Set<String> _selectedSkills = {};
   final Set<String> _selectedTools = {};
   String? _avatarUrl;
@@ -51,6 +52,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
     final draft = ref.read(onboardingProvider).draft;
     _nicknameController.text = draft['nickname'] as String? ?? '';
     _phoneController.text = draft['contact_phone'] as String? ?? '';
+    _inviteCodeController.text = draft['invite_code'] as String? ?? '';
     _avatarUrl = draft['avatar_url'] as String?;
     if (draft['skills'] is List) {
       _selectedSkills.addAll((draft['skills'] as List).cast<String>());
@@ -68,13 +70,16 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
   void dispose() {
     _nicknameController.dispose();
     _phoneController.dispose();
+    _inviteCodeController.dispose();
     super.dispose();
   }
 
   bool get _isValid {
     final nickname = _nicknameController.text.trim();
+    final inviteCode = _inviteCodeController.text.trim();
     return nickname.length >= 2 &&
         nickname.length <= 16 &&
+        inviteCode.isNotEmpty &&
         _selectedSkills.isNotEmpty &&
         _selectedTools.isNotEmpty;
   }
@@ -100,6 +105,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
       rateMin: _rateMin,
       rateMax: _rateMax,
       contactPhone: _phoneController.text.trim(),
+      inviteCode: _inviteCodeController.text.trim(),
     );
     if (!mounted) return;
 
@@ -214,6 +220,56 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
               onChanged: (_) => setState(() {}),
               style: AppTextStyles.h2.copyWith(fontSize: 26),
               decoration: _nicknameDecoration(),
+            ),
+          ),
+          const SizedBox(height: 28),
+          const OnboardingSectionHeader(
+            title: '邀请码',
+            description: '输入管理端发放的邀请码，团队将直接通过审核。',
+          ),
+          const SizedBox(height: 8),
+          OnboardingDeckCard(
+            child: TextField(
+              controller: _inviteCodeController,
+              maxLength: 20,
+              onChanged: (_) => setState(() {}),
+              style: AppTextStyles.h2.copyWith(fontSize: 22),
+              decoration: InputDecoration(
+                hintText: '请输入邀请码（必填）',
+                hintStyle:
+                    AppTextStyles.inputHint.copyWith(color: AppColors.gray300),
+                counterText: '',
+                enabledBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppColors.onboardingHairline,
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppColors.onboardingPrimary,
+                    width: 1.5,
+                  ),
+                ),
+                border: const UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppColors.onboardingHairline,
+                    width: 1,
+                  ),
+                ),
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.only(right: 8),
+                  child: Icon(
+                    Icons.vpn_key_outlined,
+                    size: 20,
+                    color: AppColors.gray400,
+                  ),
+                ),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 28,
+                  minHeight: 0,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 28),

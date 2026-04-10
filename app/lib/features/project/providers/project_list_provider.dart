@@ -41,8 +41,8 @@ class ProjectListNotifier extends StateNotifier<ProjectListState> {
       case 5: return 0; // 进行中
       case 6: return 1; // 验收中
       case 9: return 2; // 争议中
-      case 4: return 3; // 已匹配
-      case 3: return 4; // 匹配中
+      case 4: return 3; // 需求对齐中
+      case 3: return 4; // 已撮合
       case 2: return 5; // 已发布
       case 1: return 6; // 草稿
       case 7: return 7; // 已完成

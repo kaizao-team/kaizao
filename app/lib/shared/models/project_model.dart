@@ -95,6 +95,9 @@ class ProjectModel {
     );
   }
 
+  /// 项目状态 (与 server model.Project 对齐)
+  /// 1=草稿 2=已发布 3=已撮合 4=需求对齐中 5=进行中
+  /// 6=验收中 7=已完成 8=已关闭 9=争议中
   String get statusName {
     switch (status) {
       case 1:
@@ -102,9 +105,9 @@ class ProjectModel {
       case 2:
         return '已发布';
       case 3:
-        return '匹配中';
+        return '已撮合';
       case 4:
-        return '已匹配';
+        return '需求对齐中';
       case 5:
         return '进行中';
       case 6:
@@ -124,9 +127,11 @@ class ProjectModel {
     switch (status) {
       case 1:
       case 2:
-      case 3:
         return '招募中';
+      case 3:
+        return '已撮合';
       case 4:
+        return '需求对齐中';
       case 5:
         return '进行中';
       case 6:
@@ -140,11 +145,16 @@ class ProjectModel {
 
   String get statusTagType {
     switch (status) {
+      case 3:
+      case 4:
+        return 'pending';
       case 5:
         return 'in_progress';
       case 6:
         return 'pending';
       case 7:
+        return 'completed';
+      case 8:
         return 'completed';
       case 9:
         return 'at_risk';
@@ -173,7 +183,7 @@ class ProjectModel {
         (providerName?.isNotEmpty ?? false);
 
     if (hasProviderIdentity) return true;
-    return status >= 4 && status <= 7;
+    return status >= 3 && status <= 7;
   }
 }
 

@@ -113,6 +113,8 @@ type UserRepository interface {
 	CreatePortfolio(p *model.Portfolio) error
 	FindPortfolioByUUID(uuid string) (*model.Portfolio, error)
 	UpdatePortfolioFields(id int64, fields map[string]interface{}) error
+	// ListProvidersByBudgetAndLevel 按预算上限+团队级别降序查询活跃团队方用户
+	ListProvidersByBudgetAndLevel(budgetMax float64, limit int) ([]*model.User, error)
 }
 
 // ProjectFilter 项目列表筛选条件

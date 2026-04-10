@@ -1,0 +1,158 @@
+<h2>页面转场动画方案</h2>
+<p class="subtitle">不同场景的页面切换应该有什么"感觉"？选择整体动效基调。</p>
+
+<div class="section">
+  <p class="label">当前状态</p>
+  <p style="font-size: 14px; color: #555; line-height: 1.6;">
+    底部 Tab 切换 = 无动画（瞬切）｜详情页 = iOS 右滑入｜Onboarding = 自定义淡入+滑入
+  </p>
+</div>
+
+<div class="cards">
+  <!-- Option A: Minimal iOS -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; overflow: hidden;">
+      <div style="background: #F9F9F9; padding: 24px; font-family: -apple-system, sans-serif;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Tab switch -->
+          <div style="background: white; border-radius: 12px; padding: 16px;">
+            <div style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Tab 切换</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="background: #F3F3F3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #555;">首页</div>
+              <span style="color: #C6C6C6;">→</span>
+              <div style="background: #1A1C1C; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: white;">广场</div>
+              <span style="font-size: 12px; color: #999; margin-left: 8px;">crossfade 200ms</span>
+            </div>
+          </div>
+          <!-- Push -->
+          <div style="background: white; border-radius: 12px; padding: 16px;">
+            <div style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">进入详情</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="background: #F3F3F3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #555;">列表</div>
+              <span style="color: #C6C6C6;">→→→</span>
+              <div style="background: #F3F3F3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #555;">详情</div>
+              <span style="font-size: 12px; color: #999; margin-left: 8px;">Cupertino slide 350ms</span>
+            </div>
+          </div>
+          <!-- Modal -->
+          <div style="background: white; border-radius: 12px; padding: 16px;">
+            <div style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">弹出层</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="background: #F3F3F3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #555;">页面</div>
+              <span style="color: #C6C6C6;">↑↑↑</span>
+              <div style="background: #F3F3F3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #555;">Sheet</div>
+              <span style="font-size: 12px; color: #999; margin-left: 8px;">slide up 300ms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Quiet Standard</h3>
+      <p>克制路线：Tab 切换用 crossfade（不是瞬切），详情页保持 Cupertino slide，模态用 slide up。所有动画都很轻，不抢注意力。最符合 Architectural Minimalism。</p>
+    </div>
+  </div>
+
+  <!-- Option B: Shared Element -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; overflow: hidden;">
+      <div style="background: #F9F9F9; padding: 24px; font-family: -apple-system, sans-serif;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Tab switch -->
+          <div style="background: white; border-radius: 12px; padding: 16px;">
+            <div style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Tab 切换</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="background: #F3F3F3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #555;">首页</div>
+              <span style="color: #C6C6C6;">⟷</span>
+              <div style="background: #1A1C1C; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: white;">广场</div>
+              <span style="font-size: 12px; color: #999; margin-left: 8px;">lateral slide + fade 250ms</span>
+            </div>
+          </div>
+          <!-- Hero transition -->
+          <div style="background: white; border-radius: 12px; padding: 16px;">
+            <div style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">卡片 → 详情</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="background: #E8E8E8; border-radius: 12px; padding: 12px; font-size: 12px; color: #555; width: 60px; text-align: center;">
+                <div style="width: 36px; height: 36px; border-radius: 999px; background: #C6C6C6; margin: 0 auto 4px;"></div>
+                卡片
+              </div>
+              <span style="color: #7C3AED; font-size: 16px;">✦ hero ✦</span>
+              <div style="background: #E8E8E8; border-radius: 12px; padding: 12px; font-size: 12px; color: #555; flex: 1; text-align: center;">
+                <div style="width: 48px; height: 48px; border-radius: 999px; background: #C6C6C6; margin: 0 auto 4px;"></div>
+                详情页 — 头像从卡片位置飞入
+              </div>
+            </div>
+          </div>
+          <!-- Modal -->
+          <div style="background: white; border-radius: 12px; padding: 16px;">
+            <div style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">弹出层</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="background: #F3F3F3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #555;">页面</div>
+              <span style="color: #C6C6C6;">↑</span>
+              <div style="background: #F3F3F3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #555;">Sheet</div>
+              <span style="font-size: 12px; color: #999; margin-left: 8px;">iOS sheet (drag to dismiss)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Connected Motion</h3>
+      <p>精致路线：Tab 用左右滑动+淡入，详情页有 <strong>Hero 动画</strong>（卡片头像/图片飞入详情页），模态用 iOS sheet 可下拉关闭。元素之间有连接感，像 Apple Music。</p>
+    </div>
+  </div>
+
+  <!-- Option C: Layered Depth -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; overflow: hidden;">
+      <div style="background: #F9F9F9; padding: 24px; font-family: -apple-system, sans-serif;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Tab switch -->
+          <div style="background: white; border-radius: 12px; padding: 16px;">
+            <div style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Tab 切换</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="background: #F3F3F3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #555;">首页</div>
+              <span style="color: #C6C6C6;">⟷</span>
+              <div style="background: #1A1C1C; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: white;">广场</div>
+              <span style="font-size: 12px; color: #999; margin-left: 8px;">lateral slide + fade</span>
+            </div>
+          </div>
+          <!-- Depth push -->
+          <div style="background: white; border-radius: 12px; padding: 16px;">
+            <div style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">进入详情</div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="background: #E8E8E8; border-radius: 12px; padding: 10px; font-size: 12px; color: #555; transform: scale(0.9); opacity: 0.6; width: 60px; text-align: center;">
+                列表<br><span style="font-size: 10px; color: #999;">scale 0.92</span>
+              </div>
+              <span style="color: #C6C6C6; font-size: 14px;">depth →</span>
+              <div style="background: white; border-radius: 12px; padding: 10px; font-size: 12px; color: #555; border: 1px solid #E8E8E8; flex: 1; text-align: center;">
+                详情<br><span style="font-size: 10px; color: #999;">slide up from bottom</span>
+              </div>
+            </div>
+          </div>
+          <!-- Hero + Depth -->
+          <div style="background: white; border-radius: 12px; padding: 16px;">
+            <div style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">卡片 → 详情（含 Hero）</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 12px; color: #555;">depth push + hero avatar</span>
+              <span style="font-size: 12px; color: #7C3AED;">✦</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Layered Depth + Hero</h3>
+      <p>最精致路线：B 的所有 Hero 动画，加上<strong>深度推进</strong>——进入详情时，列表页缩小（scale 0.92）+ 变暗推到后面，详情页从底部或右侧浮上来。类似 iOS 16+ 的层叠感。实现复杂度最高。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 32px; padding: 16px; background: rgba(0,0,0,0.03); border-radius: 12px;">
+  <p class="label">实现复杂度对比</p>
+  <div style="font-size: 14px; color: #555; line-height: 1.8;">
+    <strong>A. Quiet Standard</strong> — 低，改 routes.dart 的 pageBuilder 即可<br>
+    <strong>B. Connected Motion</strong> — 中，需要给关键元素加 Hero tag + 自定义 PageRouteBuilder<br>
+    <strong>C. Layered Depth</strong> — 高，需要 custom Navigator observer + 全局 transition wrapper
+  </div>
+</div>

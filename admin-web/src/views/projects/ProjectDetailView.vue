@@ -66,6 +66,18 @@
                 <el-button type="primary" size="small" :loading="prdUploading">覆盖 PRD</el-button>
               </el-upload>
               <el-button type="primary" size="small" @click="downloadPrdText">下载 PRD</el-button>
+              <el-button
+                size="small"
+                :loading="prdReanalyzing"
+                :disabled="!prdText || prdUploading || !project || project.status < 3"
+                :title="project && project.status < 3 ? '仅已撮合(status≥3)的项目可触发拆解' : ''"
+                @click="handleReanalyze"
+              >
+                EARS 拆解
+              </el-button>
+              <el-button size="small" :disabled="!project || project.status < 3" @click="downloadEarsDoc">
+                下载 EARS 文档
+              </el-button>
             </div>
             <pre v-if="prdText" class="prd-text">{{ prdText }}</pre>
             <el-empty v-else-if="!loadingPrd" description="暂无 PRD 内容" :image-size="80" />
@@ -92,6 +104,27 @@
                 </template>
               </el-table-column>
             </el-table>
+          </div>
+          <div class="ears-tasks-section">
+            <div class="ears-tasks-header">
+              <h3 class="sub-title">EARS 任务</h3>
+              <el-button size="small" text :loading="loadingEarsTasks" @click="fetchEarsTasks">
+                刷新
+              </el-button>
+            </div>
+            <el-table v-if="earsTasks.length" v-loading="loadingEarsTasks" :data="earsTasks" stripe size="small">
+              <el-table-column prop="task_code" label="编号" width="100" />
+              <el-table-column prop="title" label="任务名称" min-width="200" show-overflow-tooltip />
+              <el-table-column prop="ears_type" label="EARS 类型" width="120" />
+              <el-table-column prop="priority" label="优先级" width="80" align="center" />
+              <el-table-column label="预估工时" width="100" align="right">
+                <template #default="{ row }">
+                  {{ row.estimated_hours != null ? `${row.estimated_hours}h` : '-' }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="status" label="状态" width="100" />
+            </el-table>
+            <el-empty v-else-if="!loadingEarsTasks" description="暂无 EARS 任务，请先执行拆解" :image-size="64" />
           </div>
         </el-tab-pane>
 
@@ -289,6 +322,9 @@ import {
   getProjectFiles,
   uploadProjectFile,
   uploadProjectPrdDocument,
+  reanalyzePRD,
+  decomposePRD,
+  getEarsTasks,
   getProjectBids,
   getProjectMilestones,
   getProjectTasks,
@@ -318,6 +354,9 @@ const aiDocs = ref<Record<string, any>[]>([])
 const loadingPrd = ref(false)
 const tabPrdLoaded = ref(false)
 const prdUploading = ref(false)
+const prdReanalyzing = ref(false)
+const earsTasks = ref<Record<string, any>[]>([])
+const loadingEarsTasks = ref(false)
 
 const files = ref<ProjectFile[]>([])
 const loadingFiles = ref(false)
@@ -397,7 +436,7 @@ function normalizePrdPayload(payload: unknown): string {
 
 async function loadPrd() {
   if (tabPrdLoaded.value) return
-  await refreshPrdAndDocs()
+  await Promise.all([refreshPrdAndDocs(), fetchEarsTasks()])
   tabPrdLoaded.value = true
 }
 
@@ -469,20 +508,75 @@ async function downloadAIDoc(row: Record<string, any>) {
   }
 }
 
+async function runReanalyzeAndDecompose() {
+  prdReanalyzing.value = true
+  try {
+    ElMessage.info('正在提取 PRD 结构化数据...')
+    await reanalyzePRD(uuid)
+    ElMessage.info('正在进行 EARS 拆解...')
+    await decomposePRD(uuid)
+    ElMessage.success('EARS 拆解已启动')
+    await refreshPrdAndDocs()
+    await fetchEarsTasks()
+  } catch {
+    ElMessage.warning('EARS 拆解失败，可稍后手动重试')
+  } finally {
+    prdReanalyzing.value = false
+  }
+}
+
 async function handlePrdUpload(options: UploadRequestOptions) {
   prdUploading.value = true
   try {
     const formData = new FormData()
     formData.append('file', options.file)
     await uploadProjectPrdDocument(uuid, formData)
-    ElMessage.success('涓婁紶鎴愬姛')
+    ElMessage.success('PRD 上传成功，正在分析...')
     options.onSuccess?.({})
     await refreshPrdAndDocs()
     tabPrdLoaded.value = true
+    await runReanalyzeAndDecompose()
   } catch {
+    ElMessage.error('PRD 上传失败')
     options.onError?.(new Error('upload failed') as any)
   } finally {
     prdUploading.value = false
+  }
+}
+
+async function handleReanalyze() {
+  await runReanalyzeAndDecompose()
+}
+
+function normalizeEarsTasksPayload(payload: unknown): Record<string, any>[] {
+  if (Array.isArray(payload)) return payload as Record<string, any>[]
+  if (payload && typeof payload === 'object') {
+    const obj = payload as Record<string, unknown>
+    if (Array.isArray(obj.tasks)) return obj.tasks as Record<string, any>[]
+    if (Array.isArray(obj.data)) return obj.data as Record<string, any>[]
+    if (Array.isArray(obj.list)) return obj.list as Record<string, any>[]
+  }
+  return []
+}
+
+async function fetchEarsTasks() {
+  loadingEarsTasks.value = true
+  try {
+    const res = await getEarsTasks(uuid)
+    earsTasks.value = normalizeEarsTasksPayload((res as any)?.data)
+  } catch {
+    earsTasks.value = []
+  } finally {
+    loadingEarsTasks.value = false
+  }
+}
+
+function downloadEarsDoc() {
+  const doc = aiDocs.value.find((d) => d.filename === 'ears-tasks.md')
+  if (doc) {
+    downloadAIDoc(doc)
+  } else {
+    ElMessage.warning('未找到 EARS 文档，请先执行 EARS 拆解')
   }
 }
 
@@ -746,6 +840,19 @@ onMounted(() => {
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid #f0f0f0;
+}
+
+.ears-tasks-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.ears-tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
 }
 
 .prd-text {

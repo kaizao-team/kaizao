@@ -99,9 +99,9 @@ class MatchMock {
           'team_name': '创新工作室',
           'status': 2,
           'team_members': [
-            {'name': '王前端', 'role': '前端开发'},
-            {'name': '赵后端', 'role': '后端开发'},
-            {'name': '陈测试', 'role': '测试'},
+            {'user_id': 'user_301', 'nickname': '王前端', 'avatar_url': null, 'role_in_team': '前端开发'},
+            {'user_id': 'user_302', 'nickname': '赵后端', 'avatar_url': null, 'role_in_team': '后端开发'},
+            {'user_id': 'user_303', 'nickname': '陈测试', 'avatar_url': null, 'role_in_team': '测试'},
           ],
           'is_ai_recommended': false,
           'skills': ['Flutter', 'Go', 'PostgreSQL'],

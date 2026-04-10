@@ -53,10 +53,16 @@ class ProjectDetailPage extends ConsumerWidget {
                 ),
               )
             : state.data == null
-                ? const Center(
-                    child: Text(
-                      '加载失败',
-                      style: TextStyle(color: AppColors.gray500),
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        state.errorMessage != null
+                            ? '加载失败: ${state.errorMessage}'
+                            : '加载失败',
+                        style: const TextStyle(color: AppColors.gray500),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   )
                 : _DetailContent(state: state, projectId: id),
@@ -84,95 +90,174 @@ class _BottomActions extends ConsumerWidget {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const VccButton(
-                      text: '沟通',
-                      type: VccButtonType.secondary,
-                      onPressed: null,
-                    ),
-                    Positioned(
-                      right: -4,
-                      top: -8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.gray500,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          '即将开放',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: VccButton(
-                  text: _rightButtonText(isDemander),
-                  onPressed: _rightButtonEnabled(isDemander)
-                      ? () => _rightButtonAction(context, ref, isDemander)
-                      : null,
-                ),
-              ),
-            ],
-          ),
+          child: isDemander
+              ? _buildDemanderActions(context, ref)
+              : _buildProviderActions(context, ref),
         ),
       ),
     );
   }
 
-  String _rightButtonText(bool isDemander) {
-    if (isDemander) {
-      if (state.status <= 2) return '查看投标';
-      return '查看进度';
-    } else {
-      if (state.status >= 5) return '进入看板';
-      if (state.hasBid) return '已投标';
-      return '投标';
+  /// 项目方底部按钮
+  Widget _buildDemanderActions(BuildContext context, WidgetRef ref) {
+    if (state.status <= 2) {
+      return Row(
+        children: [
+          Expanded(
+            child: _buildChatButton(),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: VccButton(
+              text: '查看投标',
+              onPressed: () => context.push('/projects/$projectId/bids'),
+            ),
+          ),
+        ],
+      );
     }
+    if (state.status == 3) {
+      return VccButton(
+        text: state.isConfirmingAlignment ? '确认中…' : '确认需求对齐',
+        onPressed: state.isConfirmingAlignment
+            ? null
+            : () async {
+                final ok = await ref
+                    .read(projectDetailProvider(projectId).notifier)
+                    .confirmAlignment();
+                if (context.mounted && ok) {
+                  VccToast.show(context, message: '需求已对齐');
+                }
+              },
+      );
+    }
+    if (state.status == 4) {
+      return VccButton(
+        text: state.isStartingProject ? '启动中…' : '启动项目',
+        onPressed: state.isStartingProject
+            ? null
+            : () async {
+                final ok = await ref
+                    .read(projectDetailProvider(projectId).notifier)
+                    .startProject();
+                if (context.mounted && ok) {
+                  VccToast.show(context, message: '项目已启动');
+                }
+              },
+      );
+    }
+    // status >= 5
+    return VccButton(
+      text: '查看进度',
+      onPressed: () => context.push('/projects/$projectId/manage'),
+    );
   }
 
-  bool _rightButtonEnabled(bool isDemander) {
-    if (!isDemander && state.status < 5 && state.hasBid) return false;
-    return true;
+  /// 团队方底部按钮
+  Widget _buildProviderActions(BuildContext context, WidgetRef ref) {
+    // status=2 且有 bid（被推荐待确认）
+    if (state.status == 2 && state.hasBid && state.bidId != null) {
+      return Row(
+        children: [
+          Expanded(
+            child: VccButton(
+              text: state.isRejectingBid ? '拒绝中…' : '拒绝',
+              type: VccButtonType.secondary,
+              onPressed: state.isRejectingBid || state.isConfirmingBid
+                  ? null
+                  : () async {
+                      final ok = await ref
+                          .read(projectDetailProvider(projectId).notifier)
+                          .rejectBid();
+                      if (context.mounted && ok) {
+                        VccToast.show(context, message: '已拒绝推荐');
+                      }
+                    },
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: VccButton(
+              text: state.isConfirmingBid ? '确认中…' : '确认接受',
+              onPressed: state.isConfirmingBid || state.isRejectingBid
+                  ? null
+                  : () async {
+                      final ok = await ref
+                          .read(projectDetailProvider(projectId).notifier)
+                          .confirmBid();
+                      if (context.mounted && ok) {
+                        VccToast.show(context, message: '已确认接受');
+                      }
+                    },
+            ),
+          ),
+        ],
+      );
+    }
+    // status=2 无 bid
+    if (state.status == 2) {
+      return Row(
+        children: [
+          Expanded(child: _buildChatButton()),
+          const SizedBox(width: 12),
+          Expanded(
+            child: VccButton(
+              text: '投标',
+              onPressed: () async {
+                await context.push('/projects/$projectId/bid');
+                if (context.mounted) {
+                  ref.invalidate(projectDetailProvider(projectId));
+                }
+              },
+            ),
+          ),
+        ],
+      );
+    }
+    // status 3-4 等待
+    if (state.status == 3 || state.status == 4) {
+      return const VccButton(
+        text: '等待项目启动',
+        onPressed: null,
+      );
+    }
+    // status >= 5
+    return VccButton(
+      text: '进入看板',
+      onPressed: () => context.push('/projects/$projectId/manage'),
+    );
   }
 
-  Future<void> _rightButtonAction(
-    BuildContext context,
-    WidgetRef ref,
-    bool isDemander,
-  ) async {
-    if (isDemander) {
-      if (state.status <= 2) {
-        context.push('/projects/$projectId/bids');
-      } else {
-        context.push('/projects/$projectId/manage');
-      }
-    } else {
-      if (state.status >= 5) {
-        context.push('/projects/$projectId/manage');
-      } else {
-        await context.push('/projects/$projectId/bid');
-        if (context.mounted) {
-          ref.invalidate(projectDetailProvider(projectId));
-        }
-      }
-    }
+  Widget _buildChatButton() {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const VccButton(
+          text: '沟通',
+          type: VccButtonType.secondary,
+          onPressed: null,
+        ),
+        Positioned(
+          right: -4,
+          top: -8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.gray500,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              '即将开放',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: AppColors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -234,10 +319,22 @@ class _DetailContentState extends State<_DetailContent>
       ),
       slivers: [
         _ProjectHeroSliver(state: s, projectId: projectId),
+        if (s.status == 3 || s.status == 4)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              _kProjectPageHorizontalPadding,
+              18,
+              _kProjectPageHorizontalPadding,
+              0,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: _MatchStatusBanner(status: s.status),
+            ),
+          ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
+          padding: EdgeInsets.fromLTRB(
             _kProjectPageHorizontalPadding,
-            18,
+            (s.status == 3 || s.status == 4) ? 12 : 18,
             _kProjectPageHorizontalPadding,
             48,
           ),
@@ -254,18 +351,28 @@ class _DetailContentState extends State<_DetailContent>
                   child: _buildPrdSection(s),
                 ),
               ],
-              if (s.prdItems.isNotEmpty) ...[
+              if (s.prdItems.isNotEmpty || s.earsTasks.isNotEmpty) ...[
                 const SizedBox(height: _kProjectSectionGap),
                 VccPageSection(
                   label: '需求条目',
                   trailing: Text(
-                    '${s.prdItems.length} 条',
+                    '${s.prdItems.length + s.earsTasks.length} 条',
                     style: AppTextStyles.caption.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.gray400,
                     ),
                   ),
-                  child: _buildPrdItemCards(s.prdItems),
+                  child: Column(
+                    children: [
+                      if (s.prdItems.isNotEmpty)
+                        _buildPrdItemCards(s.prdItems),
+                      if (s.earsTasks.isNotEmpty) ...[
+                        if (s.prdItems.isNotEmpty)
+                          const SizedBox(height: 10),
+                        _buildEarsTaskCards(s.earsTasks),
+                      ],
+                    ],
+                  ),
                 ),
               ],
               if (s.milestones.isNotEmpty) ...[
@@ -576,6 +683,137 @@ class _DetailContentState extends State<_DetailContent>
     );
   }
 
+  Widget _buildEarsTaskCards(List<Map<String, dynamic>> tasks) {
+    return Column(
+      children: tasks.asMap().entries.map((entry) {
+        final index = entry.key;
+        final task = entry.value;
+        final title = task['title']?.toString() ?? '';
+        final earsType = task['description']?.toString() ?? '';
+        final priority = task['priority']?.toString().toUpperCase() ?? '';
+        final effortHours = task['effort_hours'];
+        final status = task['status']?.toString() ?? 'todo';
+
+        return Padding(
+          padding: EdgeInsets.only(top: index == 0 ? 0 : 10),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.outlineVariant,
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (priority.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _priorityColor(priority).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          priority,
+                          style: AppTextStyles.caption.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: _priorityColor(priority),
+                          ),
+                        ),
+                      ),
+                    if (priority.isNotEmpty) const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _earsStatusColor(status).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _earsStatusLabel(status),
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _earsStatusColor(status),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (effortHours != null)
+                      Text(
+                        '${effortHours}h',
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 11,
+                          color: AppColors.gray400,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: AppTextStyles.body1.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                if (earsType.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    earsType,
+                    style: AppTextStyles.body2.copyWith(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Color _earsStatusColor(String status) {
+    switch (status) {
+      case 'in_progress':
+        return AppColors.accent;
+      case 'completed':
+        return AppColors.success;
+      default:
+        return AppColors.gray400;
+    }
+  }
+
+  String _earsStatusLabel(String status) {
+    switch (status) {
+      case 'in_progress':
+        return '进行中';
+      case 'completed':
+        return '已完成';
+      default:
+        return '待开始';
+    }
+  }
+
   Color _priorityColor(String priority) {
     switch (priority) {
       case 'P0':
@@ -610,8 +848,19 @@ class _DetailContentState extends State<_DetailContent>
     bool isLast = false,
   }) {
     final title = milestone['title']?.toString() ?? '';
+    final description = milestone['description']?.toString() ?? '';
     final status = milestone['status']?.toString() ?? 'pending';
     final progress = milestone['progress'] as int? ?? 0;
+    final estimatedDays = (milestone['estimated_days'] as num?)?.toDouble();
+    final paymentRatio = (milestone['payment_ratio'] as num?)?.toDouble();
+    final phases = (milestone['phases'] as List?)
+            ?.whereType<Map<String, dynamic>>()
+            .toList() ??
+        [];
+    final featureItemIds = (milestone['feature_item_ids'] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
 
     final isCompleted = status == 'completed';
     final isActive = status == 'in_progress';
@@ -669,15 +918,93 @@ class _DetailContentState extends State<_DetailContent>
                     decoration: isCompleted ? TextDecoration.lineThrough : null,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _milestoneMetaText(status, progress),
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.gray400,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: AppTextStyles.body2.copyWith(
+                      fontSize: 12,
+                      height: 1.5,
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                ],
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    _milestoneMetaTag(
+                      _milestoneMetaText(status, progress),
+                    ),
+                    if (estimatedDays != null)
+                      _milestoneMetaTag(
+                        '${estimatedDays.toStringAsFixed(estimatedDays == estimatedDays.roundToDouble() ? 0 : 1)} 天',
+                      ),
+                    if (paymentRatio != null && paymentRatio > 0)
+                      _milestoneMetaTag(
+                        '${(paymentRatio * 100).toStringAsFixed(0)}%',
+                      ),
+                  ],
                 ),
+                if (phases.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: phases.map((phase) {
+                      final phaseName = phase['name']?.toString() ?? '';
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceAlt,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          phaseName,
+                          style: AppTextStyles.caption.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.gray500,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+                if (featureItemIds.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: featureItemIds.map((id) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: AppColors.outlineVariant,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          id,
+                          style: AppTextStyles.caption.copyWith(
+                            fontSize: 10,
+                            color: AppColors.gray400,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -702,6 +1029,25 @@ class _DetailContentState extends State<_DetailContent>
     );
   }
 
+  Widget _milestoneMetaTag(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: AppTextStyles.caption.copyWith(
+          fontSize: 11,
+          color: AppColors.gray400,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
   String _milestoneMetaText(String status, int progress) {
     switch (status) {
       case 'completed':
@@ -711,6 +1057,64 @@ class _DetailContentState extends State<_DetailContent>
       default:
         return '待开始';
     }
+  }
+}
+
+class _MatchStatusBanner extends StatelessWidget {
+  final int status;
+
+  const _MatchStatusBanner({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isAligned = status == 4;
+    final title = isAligned ? '需求已对齐' : '撮合成功';
+    final subtitle = isAligned
+        ? '需求细节已确认，可以启动项目进入正式履约。'
+        : '已为你匹配到团队，平台正在介入对齐需求细节。\n确认需求对齐后，可启动项目进入履约阶段。';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.black,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.handshake_outlined,
+            size: 22,
+            color: AppColors.white,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.h3.copyWith(
+                    fontSize: 16,
+                    color: AppColors.white,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.body2.copyWith(
+                    fontSize: 13,
+                    height: 1.6,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1044,11 +1448,16 @@ class _HeroMetaChip extends StatelessWidget {
 
 String _statusTagType(int status) {
   switch (status) {
+    case 3:
+    case 4:
+      return 'pending';
     case 5:
       return 'in_progress';
     case 6:
       return 'pending';
     case 7:
+      return 'completed';
+    case 8:
       return 'completed';
     case 9:
       return 'at_risk';

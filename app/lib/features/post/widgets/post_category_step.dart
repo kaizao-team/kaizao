@@ -28,7 +28,7 @@ class PostCategoryStep extends StatelessWidget {
       deliverable: '常见交付：APP、Web、后台、接口服务',
     ),
     _CategoryOption(
-      key: 'design',
+      key: 'visual',
       label: '视觉设计',
       description: '适合品牌视觉、界面设计、交互表达与体验优化类项目。',
       deliverable: '常见交付：品牌稿、页面稿、设计规范',
@@ -44,7 +44,7 @@ class PostCategoryStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final normalizedSelected = switch (selected) {
-      'visual' => 'design',
+      'design' => 'visual',
       _ => selected,
     };
 

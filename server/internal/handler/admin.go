@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -753,6 +754,18 @@ func (h *AdminHandler) ReanalyzePRD(c *gin.Context) {
 	h.proxyAIAgent(c, http.MethodPost, "/api/v2/documents/"+uuid+"/reanalyze", nil)
 }
 
+// DecomposePRD POST /admin/projects/:uuid/ears/decompose → ai-agent POST /api/v2/requirement/{uuid}/decompose
+func (h *AdminHandler) DecomposePRD(c *gin.Context) {
+	uuid := c.Param("uuid")
+	h.proxyAIAgent(c, http.MethodPost, "/api/v2/requirement/"+uuid+"/decompose", nil)
+}
+
+// GetEarsTasks GET /admin/projects/:uuid/ears/tasks → ai-agent GET /api/v2/ears/{uuid}/tasks
+func (h *AdminHandler) GetEarsTasks(c *gin.Context) {
+	uuid := c.Param("uuid")
+	h.proxyAIAgent(c, http.MethodGet, "/api/v2/ears/"+uuid+"/tasks", nil)
+}
+
 // UploadProjectPRDDocument PUT /admin/projects/:uuid/prd/document
 func (h *AdminHandler) UploadProjectPRDDocument(c *gin.Context) {
 	uuid := c.Param("uuid")
@@ -769,7 +782,10 @@ func (h *AdminHandler) proxyAIAgent(c *gin.Context, method, path string, body []
 	if body != nil {
 		reqBody = strings.NewReader(string(body))
 	}
-	req, err := http.NewRequestWithContext(c.Request.Context(), method, url, reqBody)
+	// AI Agent 请求可能耗时较长（PRD 分析、EARS 拆解等），使用独立 120s 超时
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
 	if err != nil {
 		response.ErrorInternal(c, fmt.Sprintf("构建请求失败: %v", err))
 		return
