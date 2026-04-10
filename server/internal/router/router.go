@@ -120,6 +120,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		projects.POST("/generate-prd", middleware.JWTAuth(services.JWT), handlers.PRD.GeneratePRD)
 		projects.POST("/draft", middleware.JWTAuth(services.JWT), handlers.PRD.SaveDraft)
 		projects.POST("/:id/publish", middleware.JWTAuth(services.JWT), handlers.Project.Publish)
+		projects.POST("/:id/confirm-alignment", middleware.JWTAuth(services.JWT), handlers.Project.ConfirmAlignment)
+		projects.POST("/:id/start", middleware.JWTAuth(services.JWT), handlers.Project.Start)
 		projects.GET("/:id", middleware.OptionalJWTAuth(services.JWT), handlers.Project.Get)
 		projects.PUT("/:id", middleware.JWTAuth(services.JWT), handlers.Project.Update)
 		projects.PUT("/:id/close", middleware.JWTAuth(services.JWT), handlers.Project.Close)
@@ -170,6 +172,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	{
 		bids.POST("/:bidId/accept", middleware.JWTAuth(services.JWT), handlers.Bid.AcceptBid)
 		bids.POST("/:bidId/confirm", middleware.JWTAuth(services.JWT), handlers.Bid.ConfirmBid)
+		bids.POST("/:bidId/reject", middleware.JWTAuth(services.JWT), handlers.Bid.RejectBid)
 		bids.PUT("/:bidId/withdraw", middleware.JWTAuth(services.JWT), handlers.Bid.WithdrawBid)
 	}
 

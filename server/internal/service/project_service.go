@@ -219,7 +219,7 @@ func errPublishDraftForStatus(status int16) error {
 	switch status {
 	case 1:
 		return nil
-	case 4:
+	case 8:
 		return fmt.Errorf("%d", errcode.ErrProjectAlreadyClosed)
 	default:
 		return fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
@@ -277,19 +277,94 @@ func (s *ProjectService) PublishDraft(projectUUID, ownerUserUUID string) (*model
 	return s.repos.Project.FindByUUID(projectUUID)
 }
 
+// ConfirmAlignment 项目方确认需求已对齐：status 3→4
+func (s *ProjectService) ConfirmAlignment(projectUUID, ownerUUID string) error {
+	p, err := s.GetPeekIfOwner(projectUUID, ownerUUID)
+	if err != nil {
+		return err
+	}
+	if p.Status != 3 {
+		return fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
+	}
+
+	if err := s.repos.Project.UpdateFields(p.ID, map[string]interface{}{
+		"status": int16(4),
+	}); err != nil {
+		return err
+	}
+
+	// 通知团队方
+	if p.ProviderID != nil {
+		targetType := "project"
+		sourceRole := "demander"
+		targetUUID := p.UUID
+		n := &model.Notification{
+			UserID:           *p.ProviderID,
+			SourceRole:       &sourceRole,
+			Title:            "需求已对齐",
+			Content:          fmt.Sprintf("项目「%s」需求已对齐，等待启动", p.Title),
+			NotificationType: model.NotificationTypeMatchSuccess,
+			TargetType:       &targetType,
+			TargetID:         &p.ID,
+			TargetUUID:       &targetUUID,
+		}
+		_ = s.repos.Notification.Create(n)
+	}
+	return nil
+}
+
+// StartProject 项目方启动项目：status 4→5
+func (s *ProjectService) StartProject(projectUUID, ownerUUID string) error {
+	p, err := s.GetPeekIfOwner(projectUUID, ownerUUID)
+	if err != nil {
+		return err
+	}
+	if p.Status != 4 {
+		return fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
+	}
+
+	now := time.Now()
+	if err := s.repos.Project.UpdateFields(p.ID, map[string]interface{}{
+		"status":     int16(5),
+		"start_date": &now,
+	}); err != nil {
+		return err
+	}
+
+	// 通知团队方
+	if p.ProviderID != nil {
+		targetType := "project"
+		sourceRole := "demander"
+		targetUUID := p.UUID
+		n := &model.Notification{
+			UserID:           *p.ProviderID,
+			SourceRole:       &sourceRole,
+			Title:            "项目已启动",
+			Content:          fmt.Sprintf("项目「%s」已启动，请开始履约", p.Title),
+			NotificationType: model.NotificationTypeMatchSuccess,
+			TargetType:       &targetType,
+			TargetID:         &p.ID,
+			TargetUUID:       &targetUUID,
+		}
+		_ = s.repos.Notification.Create(n)
+	}
+	return nil
+}
+
 // Close 关闭需求（已发布/草稿均可关闭；已撮合进行中不可关闭）
 func (s *ProjectService) Close(uuid string, reason string) error {
 	p, err := s.repos.Project.FindByUUID(uuid)
 	if err != nil {
 		return err
 	}
-	if p.Status == 4 {
+	if p.Status == 8 {
 		return fmt.Errorf("%d", errcode.ErrProjectAlreadyClosed)
 	}
-	if p.Status == 3 {
+	// 已撮合(3)、需求对齐中(4)、进行中(5)、验收中(6) 不可关闭
+	if p.Status >= 3 && p.Status <= 6 {
 		return fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
 	}
-	fields := map[string]interface{}{"status": int16(4)}
+	fields := map[string]interface{}{"status": int16(8)}
 	if t := strings.TrimSpace(reason); t != "" {
 		fields["close_reason"] = t
 	}
@@ -311,6 +386,11 @@ func (s *ProjectService) IsParticipant(projectUUID, userUUID string) bool {
 		return false
 	}
 	return CanAccessProjectWorkspace(project, user.ID, s.repos)
+}
+
+// FindBidByID 根据 bid ID 查找 bid（供 handler 填充 bid_id UUID）
+func (s *ProjectService) FindBidByID(bidID int64) (*model.Bid, error) {
+	return s.repos.Bid.FindByID(bidID)
 }
 
 // UserBidStatus returns the bid status string for the given user on a project.

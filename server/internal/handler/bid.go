@@ -326,6 +326,24 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 	response.SuccessMsg(c, "已发送匹配请求，等待团队确认", resp)
 }
 
+// RejectBid POST /api/v1/bids/:bidId/reject — 团队方拒绝推荐
+func (h *BidHandler) RejectBid(c *gin.Context) {
+	bidID := c.Param("bidId")
+	userUUID := c.GetString("user_uuid")
+	if err := h.bidService.RejectBid(bidID, userUUID); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrBidNotFound, err.Error())
+		return
+	}
+	response.SuccessMsg(c, "已拒绝推荐", gin.H{
+		"status": "rejected",
+	})
+}
+
 // ConfirmBid POST /api/v1/bids/:bidId/confirm — 团队方确认接受推荐
 func (h *BidHandler) ConfirmBid(c *gin.Context) {
 	bidID := c.Param("bidId")

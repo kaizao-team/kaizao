@@ -215,6 +215,40 @@ func (h *ProjectHandler) Publish(c *gin.Context) {
 	})
 }
 
+// ConfirmAlignment 确认需求对齐 (status 3→4)
+// POST /api/v1/projects/:id/confirm-alignment
+func (h *ProjectHandler) ConfirmAlignment(c *gin.Context) {
+	uuid := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	if err := h.projectService.ConfirmAlignment(uuid, userUUID); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "确认需求对齐失败")
+		return
+	}
+	response.SuccessMsg(c, "需求已对齐", gin.H{"status": 4})
+}
+
+// Start 启动项目 (status 4→5)
+// POST /api/v1/projects/:id/start
+func (h *ProjectHandler) Start(c *gin.Context) {
+	uuid := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	if err := h.projectService.StartProject(uuid, userUUID); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "启动项目失败")
+		return
+	}
+	response.SuccessMsg(c, "项目已启动", gin.H{"status": 5})
+}
+
 // Close 关闭项目
 func (h *ProjectHandler) Close(c *gin.Context) {
 	uuid := c.Param("id")
@@ -286,6 +320,7 @@ type projectDetail struct {
 	PrdSummary  string      `json:"prd_summary"`
 	Milestones  interface{} `json:"milestones"`
 	MyBidStatus *string     `json:"my_bid_status,omitempty"`
+	BidID       *string     `json:"bid_id,omitempty"`
 }
 
 func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string, isParticipant bool) projectDetail {
@@ -347,6 +382,14 @@ func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string, i
 
 	if bs := h.projectService.UserBidStatus(p.ID, userUUID); bs != "" {
 		detail.MyBidStatus = &bs
+	}
+
+	// 填充 bid_id（项目已关联的 bid UUID）
+	if p.BidID != nil {
+		if bid, err := h.projectService.FindBidByID(*p.BidID); err == nil {
+			bidUUID := bid.UUID
+			detail.BidID = &bidUUID
+		}
 	}
 
 	return detail

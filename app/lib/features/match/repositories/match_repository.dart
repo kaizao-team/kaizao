@@ -51,4 +51,12 @@ class MatchRepository {
   Future<void> withdrawBid(String bidId) async {
     await _client.put(ApiEndpoints.bidWithdraw(bidId));
   }
+
+  Future<void> confirmBid(String bidId) async {
+    await _client.post(ApiEndpoints.bidConfirm(bidId));
+  }
+
+  Future<void> rejectBid(String bidId) async {
+    await _client.post(ApiEndpoints.bidReject(bidId));
+  }
 }

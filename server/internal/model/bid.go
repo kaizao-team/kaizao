@@ -6,6 +6,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// ── 投标状态 (Bid.Status) ──────────────────────────────────────
+//
+//	1  pending    — 待处理（团队方尚未确认）
+//	2  accepted   — 已接受（撮合成功）
+//	3  rejected   — 已拒绝（团队方拒绝推荐）
+//	4  withdrawn  — 已撤回（投标者主动撤回）
+const (
+	BidStatusPending   int16 = 1
+	BidStatusAccepted  int16 = 2
+	BidStatusRejected  int16 = 3
+	BidStatusWithdrawn int16 = 4
+)
+
 // Bid 投标模型
 type Bid struct {
 	ID            int64      `gorm:"primaryKey;autoIncrement" json:"id"`

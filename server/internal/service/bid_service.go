@@ -314,7 +314,7 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		if err := txRepos.Bid.Update(bid); err != nil {
 			return err
 		}
-		// status=3 已撮合/履约中（与 Close 中「不可关闭」一致）；status=4 仅用于用户主动关闭需求
+		// status=3 已撮合（等待平台对齐需求）；status=8 用户主动关闭需求
 		projectUpdates := map[string]interface{}{
 			"provider_id":  providerID,
 			"bid_id":       bid.ID,
@@ -453,6 +453,67 @@ func (s *BidService) ConfirmBid(bidUUID, providerUUID string) (*model.Bid, error
 	}
 
 	return s.Accept(bid.UUID, ownerUser.UUID)
+}
+
+// RejectBid 团队方拒绝推荐：校验 bid 归属后置为 rejected，项目回 status=2
+func (s *BidService) RejectBid(bidUUID, providerUUID string) error {
+	bid, err := s.repos.Bid.FindByUUID(bidUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+	if bid.Status != 1 {
+		return fmt.Errorf("%d", errcode.ErrBidClosed)
+	}
+	if bid.BidderID == nil {
+		return fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+
+	provider, err := s.repos.User.FindByUUID(providerUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	if *bid.BidderID != provider.ID {
+		return fmt.Errorf("%d", errcode.ErrBidNotFound)
+	}
+
+	project, err := s.repos.Project.FindByID(bid.ProjectID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+
+	targetType := "project"
+	tid := project.ID
+	sourceRole := "provider"
+	targetUUID := project.UUID
+	content := fmt.Sprintf("团队方「%s」拒绝了推荐，项目已恢复等待匹配", provider.Nickname)
+	n := &model.Notification{
+		UserID:           project.OwnerID,
+		SourceRole:       &sourceRole,
+		Title:            "推荐被拒绝",
+		Content:          content,
+		NotificationType: model.NotificationTypeNewBid,
+		TargetType:       &targetType,
+		TargetID:         &tid,
+		TargetUUID:       &targetUUID,
+	}
+
+	return s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		txRepos := repository.NewRepositories(tx)
+		if err := txRepos.Bid.UpdateFields(bid.ID, map[string]interface{}{"status": 3}); err != nil {
+			return err
+		}
+		// 清除项目上的 provider/bid/team 引用，回到 status=2
+		if err := txRepos.Project.UpdateFields(project.ID, map[string]interface{}{
+			"status":      int16(2),
+			"provider_id": nil,
+			"bid_id":      nil,
+			"team_id":     nil,
+			"matched_at":  nil,
+		}); err != nil {
+			return err
+		}
+		return txRepos.Notification.Create(n)
+	})
 }
 
 // Withdraw 撤回投标（仅 pending 状态可撤回，且仅投标者本人可操作）

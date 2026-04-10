@@ -45,6 +45,14 @@ class ProjectRepository {
         .toList();
   }
 
+  Future<void> confirmAlignment(String projectId) async {
+    await _client.post(ApiEndpoints.projectConfirmAlignment(projectId));
+  }
+
+  Future<void> startProject(String projectId) async {
+    await _client.post(ApiEndpoints.projectStart(projectId));
+  }
+
   Future<List<DailyReport>> fetchDailyReports(String projectId) async {
     final response =
         await _client.get(ApiEndpoints.projectDailyReports(projectId));
