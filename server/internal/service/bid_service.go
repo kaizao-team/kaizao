@@ -262,23 +262,16 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 	}
 
 	providerID := *bid.BidderID
-	providerUser, err := s.repos.User.FindByID(providerID)
-	if err != nil {
-		s.log.Error("AcceptBid: load provider", zap.Error(err))
-		return nil, err
-	}
 
 	now := time.Now()
 	projectTitle := project.Title
-	demanderPhone := displayPhoneForNotify(ownerUser)
-	expertPhone := displayPhoneForNotify(providerUser)
 	targetType := "project"
 	tid := project.ID
 	acceptSourceRole := "demander"
 	acceptTargetUUID := project.UUID
 	contentDemander := fmt.Sprintf(
-		"已有团队/专家撮合成功，我们将尽快接洽。项目「%s」。对方联系电话：%s",
-		projectTitle, expertPhone,
+		"项目「%s」已撮合成功，平台将介入对齐需求细节，请留意后续进展。",
+		projectTitle,
 	)
 	nDemander := &model.Notification{
 		UserID:           project.OwnerID,
@@ -291,8 +284,8 @@ func (s *BidService) Accept(bidUUID, ownerUUID string) (*model.Bid, error) {
 		TargetUUID:       &acceptTargetUUID,
 	}
 	contentExpert := fmt.Sprintf(
-		"您已被选定为「%s」的服务方，请尽快联系需求方沟通详情。需求方联系电话：%s",
-		projectTitle, demanderPhone,
+		"您已被选定为项目「%s」的服务方，平台将介入对齐需求细节，请留意后续进展。",
+		projectTitle,
 	)
 	nExpert := &model.Notification{
 		UserID:           providerID,
