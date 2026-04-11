@@ -54,7 +54,7 @@ class KanbanTask {
       priority: json['priority'] as String,
       assignee: json['assignee'] as String?,
       milestoneId: json['milestone_id'] as String?,
-      effortHours: json['effort_hours'] as int,
+      effortHours: (json['effort_hours'] as num?)?.toInt() ?? 0,
       isAtRisk: json['is_at_risk'] as bool,
       createdAt: json['created_at'] as String,
       completedAt: json['completed_at'] as String?,

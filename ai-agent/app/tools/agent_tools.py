@@ -227,7 +227,7 @@ GENERATE_PRD_TOOL = {
 
 DECOMPOSE_TO_EARS_TOOL = {
     "name": "decompose_to_ears",
-    "description": "将确认的 PRD 拆解为 EARS 任务单元。每个 EARS 卡片必须归属于一个需求条目（feature_item_id）。",
+    "description": "将确认的 PRD 拆解为 EARS 任务单元。每个 EARS 卡片必须归属于一个需求条目（feature_item_id）。所有文本字段（ears_statement 等）必须使用中文。",
     "input_schema": {
         "type": "object",
         "properties": {
