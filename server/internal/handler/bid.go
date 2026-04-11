@@ -218,7 +218,7 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 		budgetMax = 1e8 // 无上限时不过滤
 	}
 
-	results, err := h.bidService.SimpleMatchProviders(budgetMax, q.PageSize)
+	results, err := h.bidService.SimpleMatchProviders(project, budgetMax, q.PageSize)
 	if err != nil {
 		h.log.Warn("simple_match_failed", zap.Error(err))
 		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "匹配服务调用失败: "+err.Error())
@@ -290,7 +290,7 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 		budgetMax = 1e8
 	}
 
-	results, err := h.bidService.SimpleMatchProviders(budgetMax, 10)
+	results, err := h.bidService.SimpleMatchProviders(project, budgetMax, 10)
 	if err != nil {
 		h.log.Warn("quick_match_simple_failed", zap.Error(err))
 		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "匹配服务调用失败: "+err.Error())

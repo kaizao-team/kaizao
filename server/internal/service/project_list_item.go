@@ -33,6 +33,8 @@ type ProjectListItem struct {
 	ProviderName      *string    `json:"provider_name,omitempty"`
 	ProviderAvatarURL *string    `json:"provider_avatar_url,omitempty"`
 	MatchScore        *int       `json:"match_score,omitempty"`
+	OwnerAligned      bool       `json:"owner_aligned"`
+	ProviderAligned   bool       `json:"provider_aligned"`
 }
 
 func parseProjectTechRequirements(raw model.JSON) []string {
@@ -89,5 +91,7 @@ func NewProjectListItem(p *model.Project) ProjectListItem {
 		ProviderID:        providerID,
 		ProviderName:      providerName,
 		ProviderAvatarURL: providerAvatar,
+		OwnerAligned:      p.OwnerAligned,
+		ProviderAligned:   p.ProviderAligned,
 	}
 }

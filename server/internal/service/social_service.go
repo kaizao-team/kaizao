@@ -191,7 +191,7 @@ func (s *TeamService) GetDetail(teamUUID string) (*model.Team, error) {
 // CreateTeam 创建团队，当前用户为队长。
 // role 非 2/3 时自动提升为专家（role=2）；已有主团队则拒绝。
 // 唯一性检查在事务内执行，避免并发重复创建。
-func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *float64, availableStatus *int, budgetMin, budgetMax *float64, description *string, inviteCode *string) (*model.Team, error) {
+func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *float64, availableStatus *int, budgetMin, budgetMax *float64, description *string, inviteCode *string, serviceDirections []string) (*model.Team, error) {
 	u, err := s.repos.User.FindByUUID(userUUID)
 	if err != nil {
 		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
@@ -236,6 +236,10 @@ func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *floa
 	}
 	if description != nil {
 		t.Description = description
+	}
+	if len(serviceDirections) > 0 {
+		raw, _ := json.Marshal(serviceDirections)
+		t.ServiceDirections = model.JSON(raw)
 	}
 
 	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {

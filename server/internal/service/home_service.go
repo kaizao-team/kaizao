@@ -1,6 +1,8 @@
 package service
 
 import (
+	"sort"
+
 	"github.com/vibebuild/server/internal/repository"
 	"go.uber.org/zap"
 )
@@ -94,16 +96,29 @@ func (s *HomeService) GetExpertHome(userUUID string) (map[string]interface{}, er
 	}
 	demands, _, _ := s.repos.Project.ListMarket(0, 10, repository.ProjectFilter{Sort: "latest"})
 
+	// Resolve the current user's team for direction-based matching
+	team, _ := s.repos.Team.FindPrimaryTeamForUser(u.ID)
+
 	rec := make([]ProjectListItem, 0, len(demands))
 	for _, p := range demands {
 		item := NewProjectListItem(p)
-		skills, _ := s.repos.User.ListUserSkills(u.ID)
-		if len(skills) > 0 && len(p.TechRequirements) > 0 {
-			ms := 75
+		if team != nil {
+			ms := CalcMatchScore(p, team)
 			item.MatchScore = &ms
 		}
 		rec = append(rec, item)
 	}
+	// Sort by match_score descending
+	sort.Slice(rec, func(i, j int) bool {
+		si, sj := 0, 0
+		if rec[i].MatchScore != nil {
+			si = *rec[i].MatchScore
+		}
+		if rec[j].MatchScore != nil {
+			sj = *rec[j].MatchScore
+		}
+		return si > sj
+	})
 
 	return map[string]interface{}{
 		"revenue": map[string]interface{}{

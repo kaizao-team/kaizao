@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -97,12 +98,12 @@ type SimpleMatchResult struct {
 	Reason     string
 }
 
-// SimpleMatchProviders 按预算+级别简化匹配团队方
-func (s *BidService) SimpleMatchProviders(budgetMax float64, limit int) ([]SimpleMatchResult, error) {
+// SimpleMatchProviders 按预算+级别简化匹配团队方，使用 CalcMatchScore 真实计算匹配分
+func (s *BidService) SimpleMatchProviders(project *model.Project, budgetMax float64, limit int) ([]SimpleMatchResult, error) {
 	if limit <= 0 {
 		limit = 10
 	}
-	users, err := s.repos.User.ListProvidersByBudgetAndLevel(budgetMax, limit)
+	users, err := s.repos.User.ListProvidersByBudgetAndLevel(budgetMax, limit*2) // fetch more to filter/sort
 	if err != nil {
 		return nil, err
 	}
@@ -116,20 +117,44 @@ func (s *BidService) SimpleMatchProviders(budgetMax float64, limit int) ([]Simpl
 		if team == nil {
 			continue
 		}
-		// match_score: level * 10 (max 50) + avg_rating * 10 (max 50) = 0~100
-		score := float64(u.Level)*10 + u.AvgRating*10
-		if score > 100 {
-			score = 100
-		}
+		score := float64(CalcMatchScore(project, team))
 		results = append(results, SimpleMatchResult{
 			User:       u,
 			Team:       team,
 			Members:    memberMaps,
 			MatchScore: score,
-			Reason:     "团队级别高、评价好，预算匹配",
+			Reason:     buildMatchReason(project, team, int(score)),
 		})
 	}
+	// Sort by match_score descending
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].MatchScore > results[j].MatchScore
+	})
+	if len(results) > limit {
+		results = results[:limit]
+	}
 	return results, nil
+}
+
+func buildMatchReason(project *model.Project, team *model.Team, score int) string {
+	parts := []string{}
+	directions := parseDirections(team.ServiceDirections)
+	for _, d := range directions {
+		if strings.EqualFold(d, project.Category) {
+			parts = append(parts, "方向匹配")
+			break
+		}
+	}
+	if score >= 70 {
+		parts = append(parts, "综合匹配度高")
+	}
+	if team.VibeLevel >= "vc-T3" {
+		parts = append(parts, "团队等级优秀")
+	}
+	if len(parts) == 0 {
+		return "系统推荐"
+	}
+	return strings.Join(parts, "，")
 }
 
 func (s *BidService) ListByProject(projectUUID string) ([]*model.Bid, error) {

@@ -20,8 +20,9 @@ type CreateTeamReq struct {
 	AvailableStatus *int     `json:"available_status" binding:"omitempty,oneof=1 2 3"`
 	BudgetMin       *float64 `json:"budget_min" binding:"omitempty,min=0"`
 	BudgetMax       *float64 `json:"budget_max" binding:"omitempty,min=0"`
-	Description     *string  `json:"description" binding:"omitempty"`
-	InviteCode      *string  `json:"invite_code" binding:"omitempty"`
+	Description      *string  `json:"description" binding:"omitempty"`
+	InviteCode       *string  `json:"invite_code" binding:"omitempty"`
+	ServiceDirections []string `json:"service_directions" binding:"omitempty"`
 }
 
 // UpdateSkillsReq 更新技能列表请求
