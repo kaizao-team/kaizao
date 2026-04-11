@@ -180,6 +180,7 @@ type MilestoneRepository interface {
 	FindByID(id int64) (*model.Milestone, error)
 	FindByUUID(uuid string) (*model.Milestone, error)
 	Update(milestone *model.Milestone) error
+	UpdateFields(id int64, fields map[string]interface{}) error
 	ListByProjectID(projectID int64) ([]*model.Milestone, error)
 }
 

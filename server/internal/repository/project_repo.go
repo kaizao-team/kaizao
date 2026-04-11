@@ -357,6 +357,10 @@ func (r *milestoneRepository) Update(milestone *model.Milestone) error {
 	return r.db.Save(milestone).Error
 }
 
+func (r *milestoneRepository) UpdateFields(id int64, fields map[string]interface{}) error {
+	return r.db.Model(&model.Milestone{}).Where("id = ?", id).Updates(fields).Error
+}
+
 func (r *milestoneRepository) ListByProjectID(projectID int64) ([]*model.Milestone, error) {
 	var milestones []*model.Milestone
 	err := r.db.Where("project_id = ?", projectID).Order("sort_order ASC").Find(&milestones).Error

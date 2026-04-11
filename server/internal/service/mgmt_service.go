@@ -433,10 +433,12 @@ func (s *MilestoneService) StartMilestone(msUUID, actorUserUUID string) (*model.
 		}
 	}
 
-	ms.Status = 2
-	if err := s.repos.Milestone.Update(ms); err != nil {
+	if err := s.repos.Milestone.UpdateFields(ms.ID, map[string]interface{}{
+		"status": int16(2),
+	}); err != nil {
 		return nil, err
 	}
+	ms.Status = 2
 	return ms, nil
 }
 
@@ -468,11 +470,14 @@ func (s *MilestoneService) CompleteMilestone(msUUID, actorUserUUID string) (*mod
 		return nil, fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
 	}
 	now := time.Now()
-	ms.Status = 3
-	ms.AcceptedAt = &now
-	if err := s.repos.Milestone.Update(ms); err != nil {
+	if err := s.repos.Milestone.UpdateFields(ms.ID, map[string]interface{}{
+		"status":      int16(3),
+		"accepted_at": &now,
+	}); err != nil {
 		return nil, err
 	}
+	ms.Status = 3
+	ms.AcceptedAt = &now
 	return ms, nil
 }
 
