@@ -322,23 +322,11 @@ class _BottomActions extends ConsumerWidget {
         onPressed: null,
       );
     }
+    if (state.status == 6) {
+      return const VccButton(text: '等待项目方验收', onPressed: null);
+    }
     if (state.status == 7) {
-      final hasReviewed = state.data?['has_reviewed'] == true;
-      if (hasReviewed) {
-        return const VccButton(text: '已评价', onPressed: null);
-      }
-      final revieweeId = state.data?['owner_id']?.toString() ?? '';
-      return VccButton(
-        text: '去评价',
-        onPressed: () async {
-          await context.push(
-            '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=false',
-          );
-          if (context.mounted) {
-            ref.invalidate(projectDetailProvider(projectId));
-          }
-        },
-      );
+      return const VccButton(text: '项目交付完毕', onPressed: null);
     }
     // status >= 5
     return VccButton(
