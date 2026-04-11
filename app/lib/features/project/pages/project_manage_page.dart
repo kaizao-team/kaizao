@@ -112,7 +112,21 @@ class ProjectManagePage extends ConsumerWidget {
         return MilestoneTimeline(
           key: const ValueKey('milestones'),
           milestones: state.milestones,
-          onTap: (_) {},
+          isTeamMember: isTeamMember,
+          onMilestoneAction: (milestoneId, action,
+              {String? note, String? previewUrl, String? reason}) {
+            final notifier =
+                ref.read(projectManageProvider(projectId).notifier);
+            switch (action) {
+              case 'deliver':
+                notifier.deliverMilestone(milestoneId,
+                    note: note, previewUrl: previewUrl);
+              case 'accept':
+                notifier.acceptMilestone(milestoneId);
+              case 'revision':
+                notifier.requestRevision(milestoneId, reason: reason);
+            }
+          },
         );
       case ProjectTab.files:
         return _FilesTab(
