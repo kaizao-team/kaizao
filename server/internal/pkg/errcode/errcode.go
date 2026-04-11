@@ -93,6 +93,8 @@ const (
 	ErrProjectFileKindInvalid       = 21016
 	ErrMilestoneAlreadyCompleted    = 21017
 	ErrMilestonesNotAllCompleted    = 21018
+	ErrMilestonePreviousNotDone     = 21019
+	ErrMilestoneAlreadyStarted      = 21020
 )
 
 // 匹配模块 30001-30999
@@ -248,6 +250,8 @@ var ErrorMessages = map[int]string{
 	ErrProjectFileKindInvalid:       "file_kind 须为 reference、process 或 deliverable",
 	ErrMilestoneAlreadyCompleted:    "该里程碑已完成",
 	ErrMilestonesNotAllCompleted:    "所有里程碑须全部完成后才能提交项目交付",
+	ErrMilestonePreviousNotDone:     "上一个里程碑尚未完成，无法启动",
+	ErrMilestoneAlreadyStarted:      "该里程碑已启动",
 	ErrTaskNotFound:                 "任务卡片不存在",
 	ErrTaskAssigneeInvalid:          "任务指派人须为项目需求方、已选服务方或项目团队成员",
 	ErrEarsTypeInvalid:              "EARS 类型不合法",

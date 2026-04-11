@@ -110,6 +110,32 @@ class ProjectManageNotifier extends StateNotifier<ProjectManageState> {
     }
   }
 
+  Future<void> startMilestone(String milestoneId) async {
+    state = state.copyWith(isMilestoneActing: true);
+    try {
+      await _repository.startMilestone(milestoneId);
+      if (!mounted) return;
+      await _reloadMilestones();
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+          isMilestoneActing: false, errorMessage: () => e.toString());
+    }
+  }
+
+  Future<void> completeMilestone(String milestoneId) async {
+    state = state.copyWith(isMilestoneActing: true);
+    try {
+      await _repository.completeMilestone(milestoneId);
+      if (!mounted) return;
+      await _reloadMilestones();
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+          isMilestoneActing: false, errorMessage: () => e.toString());
+    }
+  }
+
   Future<void> deliverMilestone(String milestoneId,
       {String? note, String? previewUrl}) async {
     state = state.copyWith(isMilestoneActing: true);

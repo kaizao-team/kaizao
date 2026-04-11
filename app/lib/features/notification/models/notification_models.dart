@@ -70,7 +70,7 @@ class NotificationItem {
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
       targetType: json['target_type']?.toString(),
-      targetId: json['target_id']?.toString(),
+      targetId: json['target_uuid']?.toString() ?? json['target_id']?.toString(),
     );
   }
 

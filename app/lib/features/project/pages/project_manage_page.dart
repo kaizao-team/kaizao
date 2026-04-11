@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_toast.dart';
@@ -40,13 +39,7 @@ class ProjectManagePage extends ConsumerWidget {
           displayTitle,
           style: AppTextStyles.h3,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.description_outlined),
-            onPressed: () => context.push('/projects/$projectId/prd'),
-            tooltip: '需求文档',
-          ),
-        ],
+        actions: const [],
       ),
       body: state.isLoading
           ? const Center(
@@ -97,16 +90,8 @@ class ProjectManagePage extends ConsumerWidget {
           todoTasks: state.todoTasks,
           inProgressTasks: state.inProgressTasks,
           completedTasks: state.completedTasks,
-          readOnly: !isTeamMember,
-          onMoveTask: (taskId, newStatus) {
-            ref
-                .read(projectManageProvider(projectId).notifier)
-                .moveTask(taskId, newStatus);
-            if (newStatus == 'completed') {
-              VccToast.show(context,
-                  message: '任务已完成', type: VccToastType.success);
-            }
-          },
+          readOnly: true,
+          onMoveTask: (_, __) {},
         );
       case ProjectTab.milestones:
         return MilestoneTimeline(
@@ -118,9 +103,13 @@ class ProjectManagePage extends ConsumerWidget {
             final notifier =
                 ref.read(projectManageProvider(projectId).notifier);
             switch (action) {
+              case 'start':
+                notifier.startMilestone(milestoneId);
               case 'deliver':
                 notifier.deliverMilestone(milestoneId,
                     note: note, previewUrl: previewUrl);
+              case 'complete':
+                notifier.completeMilestone(milestoneId);
               case 'accept':
                 notifier.acceptMilestone(milestoneId);
               case 'revision':

@@ -99,6 +99,7 @@ class ApiEndpoints {
   // ============================================================
   // 里程碑模块 /api/v1/milestones
   // ============================================================
+  static String milestoneStart(String id) => '/api/v1/milestones/$id/start';
   static String milestoneDeliver(String id) => '/api/v1/milestones/$id/deliver';
   static String milestoneAccept(String id) => '/api/v1/milestones/$id/accept';
   static String milestoneAcceptance(String id) =>
@@ -109,6 +110,8 @@ class ApiEndpoints {
       '/api/v1/milestones/$id/complete';
   static String projectDeliver(String id) =>
       '/api/v1/projects/$id/deliver';
+  static String projectAccept(String id) =>
+      '/api/v1/projects/$id/accept';
 
   // ============================================================
   // 评论模块 /api/v1/projects/:id/comments

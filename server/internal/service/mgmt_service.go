@@ -400,6 +400,46 @@ func (s *MilestoneService) Accept(msUUID, actorUserUUID string) (*model.Mileston
 	return ms, nil
 }
 
+// StartMilestone 团队方启动里程碑（pending→in_progress）。
+// 首个里程碑可直接启动，后续需上一个里程碑已完成（status=3）。
+func (s *MilestoneService) StartMilestone(msUUID, actorUserUUID string) (*model.Milestone, error) {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	ms, err := s.repos.Milestone.FindByUUID(msUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneNotFound)
+	}
+	p, err := s.repos.Project.FindByID(ms.ProjectID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if p.ProviderID == nil || *p.ProviderID != u.ID {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneDeliverProviderOnly)
+	}
+	if ms.Status != 1 {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneAlreadyStarted)
+	}
+
+	// 按 sort_order 排列，检查当前里程碑之前的里程碑是否都已完成
+	allMS, err := s.repos.Milestone.ListByProjectID(p.ID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	for _, prev := range allMS {
+		if prev.SortOrder < ms.SortOrder && prev.Status != 3 {
+			return nil, fmt.Errorf("%d", errcode.ErrMilestonePreviousNotDone)
+		}
+	}
+
+	ms.Status = 2
+	if err := s.repos.Milestone.Update(ms); err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
 // CompleteMilestone 团队方标记单个里程碑完成。
 func (s *MilestoneService) CompleteMilestone(msUUID, actorUserUUID string) (*model.Milestone, error) {
 	u, err := s.repos.User.FindByUUID(actorUserUUID)

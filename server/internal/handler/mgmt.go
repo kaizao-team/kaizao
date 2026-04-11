@@ -399,6 +399,20 @@ func (h *TaskHandler) AcceptMilestone(c *gin.Context) {
 	})
 }
 
+func (h *TaskHandler) StartMilestone(c *gin.Context) {
+	msID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	ms, err := h.milestoneService.StartMilestone(msID, userUUID)
+	if err != nil {
+		respondDeliverError(c, err)
+		return
+	}
+	response.SuccessMsg(c, "里程碑已启动", gin.H{
+		"milestone_id": ms.UUID,
+		"status":       "in_progress",
+	})
+}
+
 func (h *TaskHandler) CompleteMilestone(c *gin.Context) {
 	msID := c.Param("id")
 	userUUID := c.GetString("user_uuid")

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/notification_models.dart';
 
 class NotificationState {
@@ -48,9 +49,12 @@ class NotificationState {
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
   final ApiClient _client = ApiClient();
+  final String? _userId;
 
-  NotificationNotifier() : super(const NotificationState()) {
-    refresh();
+  NotificationNotifier(this._userId) : super(const NotificationState()) {
+    if (_userId != null && _userId.isNotEmpty) {
+      refresh();
+    }
   }
 
   Future<void> refresh() async {
@@ -193,5 +197,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  return NotificationNotifier();
+  // Watch auth state so the notifier is rebuilt when the user changes.
+  final authState = ref.watch(authStateProvider);
+  return NotificationNotifier(authState.userId);
 });

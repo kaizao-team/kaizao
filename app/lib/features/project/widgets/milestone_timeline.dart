@@ -33,10 +33,14 @@ class MilestoneTimeline extends StatelessWidget {
       itemBuilder: (context, index) {
         final ms = milestones[index];
         final isLast = index == milestones.length - 1;
+        final isFirst = index == 0;
+        final previousCompleted =
+            isFirst || milestones[index - 1].isCompleted;
         return _MilestoneItem(
           milestone: ms,
           isLast: isLast,
           isTeamMember: isTeamMember,
+          canStart: previousCompleted,
           onMilestoneAction: onMilestoneAction,
           onTap: onTap != null ? () => onTap!(ms) : null,
         );
@@ -64,6 +68,7 @@ class _MilestoneItem extends StatelessWidget {
   final Milestone milestone;
   final bool isLast;
   final bool isTeamMember;
+  final bool canStart;
   final void Function(
     String milestoneId,
     String action, {
@@ -77,6 +82,7 @@ class _MilestoneItem extends StatelessWidget {
     required this.milestone,
     required this.isLast,
     required this.isTeamMember,
+    this.canStart = false,
     this.onMilestoneAction,
     this.onTap,
   });
@@ -229,6 +235,7 @@ class _MilestoneItem extends StatelessWidget {
                       _ActionArea(
                         milestone: milestone,
                         isTeamMember: isTeamMember,
+                        canStart: canStart,
                         onAction: onMilestoneAction!,
                       ),
                   ],
@@ -291,6 +298,7 @@ class _StatusBadge extends StatelessWidget {
 class _ActionArea extends StatelessWidget {
   final Milestone milestone;
   final bool isTeamMember;
+  final bool canStart;
   final void Function(
     String milestoneId,
     String action, {
@@ -302,22 +310,36 @@ class _ActionArea extends StatelessWidget {
   const _ActionArea({
     required this.milestone,
     required this.isTeamMember,
+    this.canStart = false,
     required this.onAction,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Team member actions
+    // ── Team member actions ──
     if (isTeamMember) {
+      // Pending → show Start button (if previous is completed)
+      if (milestone.isPending) {
+        if (!canStart) return const SizedBox.shrink();
+        return _actionRow(
+          context,
+          child: VccButton(
+            text: '启动里程碑',
+            onPressed: () => onAction(milestone.id, 'start'),
+          ),
+        );
+      }
+      // In progress → show Complete button
       if (milestone.isInProgress) {
         return _actionRow(
           context,
           child: VccButton(
-            text: '提交交付',
-            onPressed: () => _showDeliverSheet(context),
+            text: '完成里程碑',
+            onPressed: () => _showCompleteDialog(context),
           ),
         );
       }
+      // Revision requested → show re-deliver
       if (milestone.isRevisionRequested) {
         return _actionRow(
           context,
@@ -345,19 +367,24 @@ class _ActionArea extends StatelessWidget {
           ),
         );
       }
+      // Delivered → waiting for acceptance
       if (milestone.isDelivered) {
         return _actionRow(
           context,
           child: Text(
-            '已提交，等待验收',
+            '已提交，等待项目方验收',
             style:
                 AppTextStyles.caption.copyWith(color: AppColors.info),
           ),
         );
       }
+      // Completed → done
+      if (milestone.isCompleted) {
+        return const SizedBox.shrink();
+      }
     }
 
-    // Project owner actions
+    // ── Project owner actions ──
     if (!isTeamMember) {
       if (milestone.isDelivered) {
         return _actionRow(
@@ -408,6 +435,39 @@ class _ActionArea extends StatelessWidget {
         const SizedBox(height: AppSpacing.base),
         child,
       ],
+    );
+  }
+
+  void _showCompleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceRaised,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.xxl),
+        ),
+        title: Text('完成里程碑', style: AppTextStyles.h3),
+        content: Text(
+          '确认完成「${milestone.title}」？',
+          style: AppTextStyles.body2.copyWith(color: AppColors.gray600),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('取消',
+                style: AppTextStyles.body2.copyWith(color: AppColors.gray500)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              onAction(milestone.id, 'complete');
+            },
+            child: Text('确认完成',
+                style: AppTextStyles.body2.copyWith(
+                    fontWeight: FontWeight.w600, color: AppColors.success)),
+          ),
+        ],
+      ),
     );
   }
 
