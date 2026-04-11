@@ -12,19 +12,23 @@ class AiSuggestionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLowMatch = suggestion.skillMatchScore < 60;
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: const Border(
-          left: BorderSide(color: AppColors.accent, width: 2.5),
-          top: BorderSide(color: AppColors.gray200, width: 0.5),
-          right: BorderSide(color: AppColors.gray200, width: 0.5),
-          bottom: BorderSide(color: AppColors.gray200, width: 0.5),
-        ),
+        border: Border.all(color: AppColors.gray200, width: 0.5),
       ),
-      child: Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.md - 0.5),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 2.5, color: AppColors.accent),
+              Expanded(
+                child: Container(
+                  color: AppColors.surfaceRaised,
+                  padding: const EdgeInsets.all(AppSpacing.base),
+                  child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -98,9 +102,15 @@ class AiSuggestionCard extends StatelessWidget {
               ),
             ),
           ],
+                ],
+              ),
+            ),
+          ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 }
 
