@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/project_models.dart';
 
 class MilestoneTimeline extends StatelessWidget {
@@ -89,7 +90,7 @@ class _MilestoneItem extends StatelessWidget {
                   color: milestone.isInProgress
                       ? AppColors.accentLight
                       : AppColors.white,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
                     color: milestone.isInProgress
                         ? AppColors.accentMuted
@@ -104,8 +105,7 @@ class _MilestoneItem extends StatelessWidget {
                         Expanded(
                           child: Text(
                             milestone.title,
-                            style: TextStyle(
-                              fontSize: 15,
+                            style: AppTextStyles.body1.copyWith(
                               fontWeight: milestone.isInProgress
                                   ? FontWeight.w600
                                   : FontWeight.w500,
@@ -121,8 +121,7 @@ class _MilestoneItem extends StatelessWidget {
                         if (milestone.isInProgress)
                           Text(
                             '${milestone.progress}%',
-                            style: const TextStyle(
-                              fontSize: 13,
+                            style: AppTextStyles.body2.copyWith(
                               fontWeight: FontWeight.w600,
                               color: AppColors.accent,
                             ),
@@ -134,8 +133,7 @@ class _MilestoneItem extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         milestone.description!,
-                        style: const TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.caption.copyWith(
                           height: 1.5,
                           color: AppColors.gray500,
                         ),
@@ -157,12 +155,11 @@ class _MilestoneItem extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.gray100,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
                             ),
                             child: Text(
                               name,
-                              style: const TextStyle(
-                                fontSize: 10,
+                              style: AppTextStyles.overline.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.gray500,
                               ),
@@ -180,8 +177,8 @@ class _MilestoneItem extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             milestone.dueDate,
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.gray500),
+                            style: AppTextStyles.caption.copyWith(
+                                color: AppColors.gray500),
                           ),
                           const SizedBox(width: 12),
                         ],
@@ -191,8 +188,8 @@ class _MilestoneItem extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             '${milestone.estimatedDays!.toStringAsFixed(milestone.estimatedDays == milestone.estimatedDays!.roundToDouble() ? 0 : 1)} 天',
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.gray500),
+                            style: AppTextStyles.caption.copyWith(
+                                color: AppColors.gray500),
                           ),
                           const SizedBox(width: 12),
                         ],
@@ -200,8 +197,7 @@ class _MilestoneItem extends StatelessWidget {
                             milestone.paymentRatio! > 0)
                           Text(
                             '${(milestone.paymentRatio! * 100).toStringAsFixed(0)}%',
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: AppTextStyles.caption.copyWith(
                               fontWeight: FontWeight.w500,
                               color: AppColors.gray600,
                             ),
@@ -210,8 +206,7 @@ class _MilestoneItem extends StatelessWidget {
                           const SizedBox(width: 12),
                           Text(
                             '¥${milestone.amount.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: AppTextStyles.caption.copyWith(
                               fontWeight: FontWeight.w500,
                               color: AppColors.gray600,
                             ),
@@ -221,8 +216,7 @@ class _MilestoneItem extends StatelessWidget {
                         if (milestone.taskCount > 0)
                           Text(
                             '${milestone.completedTaskCount}/${milestone.taskCount} 任务',
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.gray400),
+                            style: AppTextStyles.caption,
                           ),
                       ],
                     ),

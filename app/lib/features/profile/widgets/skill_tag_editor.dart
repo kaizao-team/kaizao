@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/skills/app_skill_registry.dart';
 import '../models/profile_models.dart';
 
@@ -83,10 +84,9 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
       children: [
         Row(
           children: [
-            const Text(
+            Text(
               '技能标签',
-              style: TextStyle(
-                fontSize: 16,
+              style: AppTextStyles.body1.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.black,
               ),
@@ -94,7 +94,7 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
             const Spacer(),
             Text(
               '${_skills.length}/${widget.maxCount}',
-              style: const TextStyle(fontSize: 12, color: AppColors.gray400),
+              style: AppTextStyles.caption,
             ),
           ],
         ),
@@ -106,14 +106,14 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
             return Chip(
               label: Text(
                 skill.name,
-                style: const TextStyle(fontSize: 13, color: AppColors.black),
+                style: AppTextStyles.body2.copyWith(color: AppColors.black),
               ),
               deleteIcon: const Icon(Icons.close, size: 16),
               onDeleted: () => _removeSkill(skill.id),
               backgroundColor: AppColors.gray100,
               side: BorderSide.none,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
             );
           }).toList(),
@@ -140,15 +140,15 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
                       vertical: 10,
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                       borderSide: const BorderSide(color: AppColors.gray200),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                       borderSide: const BorderSide(color: AppColors.gray200),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                       borderSide: const BorderSide(color: AppColors.black),
                     ),
                   ),
@@ -162,7 +162,7 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: AppColors.black,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child:
                       const Icon(Icons.add, size: 20, color: AppColors.white),
@@ -174,7 +174,7 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
             const SizedBox(height: 12),
             const Text(
               '推荐技能',
-              style: TextStyle(fontSize: 12, color: AppColors.gray400),
+              style: AppTextStyles.caption,
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -190,7 +190,7 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
                     ),
                     decoration: BoxDecoration(
                       border: Border.all(color: AppColors.gray200),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -203,8 +203,7 @@ class _SkillTagEditorState extends State<SkillTagEditor> {
                         const SizedBox(width: 4),
                         Text(
                           name,
-                          style: const TextStyle(
-                            fontSize: 12,
+                          style: AppTextStyles.caption.copyWith(
                             color: AppColors.gray600,
                           ),
                         ),

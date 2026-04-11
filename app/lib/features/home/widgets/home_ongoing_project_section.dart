@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/models/project_model.dart';
 import '../../project/widgets/progress_ring.dart';
 import 'home_section_header.dart';
@@ -47,7 +48,7 @@ class HomeOngoingProjectSection extends StatelessWidget {
                         project: previewProjects[index],
                       ),
                       if (index != previewProjects.length - 1)
-                        const SizedBox(height: 10),
+                        const SizedBox(height: AppSpacing.sm),
                     ],
                   ],
                 ),
@@ -63,36 +64,33 @@ class _EmptyOngoingProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(24),
+      color: AppColors.surfaceRaised,
+      borderRadius: BorderRadius.circular(AppRadius.xxl),
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         onTap: () => context.push(RoutePaths.publishProject),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
+          padding: const EdgeInsets.all(AppSpacing.base),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _StageBadge(label: '协作阶段'),
-                    SizedBox(height: 12),
+                    const _StageBadge(label: '协作阶段'),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
                       '已对接的项目会出现在这里',
-                      style: TextStyle(
-                        fontSize: 18,
-                        height: 1.2,
+                      style: AppTextStyles.h3.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppColors.black,
+                        height: 1.2,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
                       '当项目进入已撮合、进行中或验收中，这里会显示当前进度。',
-                      style: TextStyle(
-                        fontSize: 13,
+                      style: AppTextStyles.body2.copyWith(
                         height: 1.45,
                         color: AppColors.gray600,
                       ),
@@ -106,7 +104,7 @@ class _EmptyOngoingProjectCard extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.gray100,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 alignment: Alignment.center,
                 child: const Icon(
@@ -133,13 +131,13 @@ class _FeaturedOngoingProjectCard extends StatelessWidget {
     final route = _projectRoute(project);
 
     return Material(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(24),
+      color: AppColors.surfaceRaised,
+      borderRadius: BorderRadius.circular(AppRadius.xxl),
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         onTap: route == null ? null : () => context.push(route),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+          padding: const EdgeInsets.all(AppSpacing.base),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -171,11 +169,10 @@ class _FeaturedOngoingProjectCard extends StatelessWidget {
                 project.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: AppTextStyles.h3.copyWith(
                   fontSize: 20,
                   height: 1.18,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.black,
                 ),
               ),
               const SizedBox(height: 6),
@@ -183,8 +180,7 @@ class _FeaturedOngoingProjectCard extends StatelessWidget {
                 _stageDescription(project),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
+                style: AppTextStyles.body2.copyWith(
                   color: AppColors.gray600,
                 ),
               ),
@@ -208,7 +204,7 @@ class _FeaturedOngoingProjectCard extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               ClipRRect(
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(AppRadius.full),
                 child: LinearProgressIndicator(
                   value: project.progress / 100,
                   minHeight: 6,
@@ -235,13 +231,13 @@ class _CompactOngoingProjectRow extends StatelessWidget {
     final route = _projectRoute(project);
 
     return Material(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(18),
+      color: AppColors.surfaceRaised,
+      borderRadius: BorderRadius.circular(AppRadius.xl),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: route == null ? null : () => context.push(route),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
+          padding: const EdgeInsets.all(AppSpacing.base),
           child: Row(
             children: [
               ProgressRing(
@@ -260,8 +256,7 @@ class _CompactOngoingProjectRow extends StatelessWidget {
                       project.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
+                      style: AppTextStyles.body1.copyWith(
                         fontWeight: FontWeight.w700,
                         color: AppColors.black,
                       ),
@@ -271,8 +266,7 @@ class _CompactOngoingProjectRow extends StatelessWidget {
                       '${_stageLabel(project)} · ${project.categoryName}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
+                      style: AppTextStyles.caption.copyWith(
                         color: AppColors.gray500,
                       ),
                     ),
@@ -282,8 +276,7 @@ class _CompactOngoingProjectRow extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 _priceLabel(project),
-                style: const TextStyle(
-                  fontSize: 14,
+                style: AppTextStyles.body2.copyWith(
                   fontWeight: FontWeight.w700,
                   color: AppColors.black,
                 ),
@@ -307,11 +300,11 @@ class _StageBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.black,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: AppTextStyles.overline.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w700,
           color: AppColors.white,
@@ -332,11 +325,11 @@ class _MetaChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: AppTextStyles.overline.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w600,
           color: AppColors.gray700,
@@ -366,8 +359,7 @@ class _MetaLine extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
+            style: AppTextStyles.caption.copyWith(
               color: AppColors.gray600,
             ),
           ),

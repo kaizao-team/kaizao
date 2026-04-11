@@ -4,6 +4,7 @@ class ProjectModel {
   final String id;
   final String uuid;
   final String ownerId;
+  final String? ownerName;
   final String? providerId;
   final String? providerName;
   final String? providerAvatarUrl;
@@ -29,6 +30,7 @@ class ProjectModel {
     required this.id,
     required this.uuid,
     required this.ownerId,
+    this.ownerName,
     this.providerId,
     this.providerName,
     this.providerAvatarUrl,
@@ -56,12 +58,12 @@ class ProjectModel {
       id: json['id']?.toString() ?? '',
       uuid: json['uuid'] as String? ?? '',
       ownerId: json['owner_id']?.toString() ?? '',
+      ownerName:
+          json['owner_name'] as String? ?? json['owner_nickname'] as String?,
       providerId: json['provider_id']?.toString(),
-      providerName:
-          json['provider_name'] as String? ??
+      providerName: json['provider_name'] as String? ??
           json['provider_nickname'] as String?,
-      providerAvatarUrl:
-          json['provider_avatar_url'] as String? ??
+      providerAvatarUrl: json['provider_avatar_url'] as String? ??
           json['avatar_url'] as String?,
       teamId: json['team_id']?.toString(),
       title: json['title'] as String? ?? '',
@@ -177,8 +179,7 @@ class ProjectModel {
   }
 
   bool get hasMatchedProvider {
-    final hasProviderIdentity =
-        (providerId?.isNotEmpty ?? false) ||
+    final hasProviderIdentity = (providerId?.isNotEmpty ?? false) ||
         (providerName?.isNotEmpty ?? false);
 
     if (hasProviderIdentity) return true;

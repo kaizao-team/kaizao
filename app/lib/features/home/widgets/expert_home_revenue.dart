@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/home_models.dart';
 
 class ExpertHomeRevenue extends StatelessWidget {
@@ -55,26 +56,22 @@ class _SplitRevenueBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(30),
-      ),
+      padding: const EdgeInsets.all(0),
       child: SizedBox(
         height: 164,
         child: Row(
           children: [
             Expanded(
-              flex: 8,
+              flex: 3,
               child: _RevenueHeroPanel(
                 revenue: revenue,
                 heroAmount: heroAmount,
                 onViewDetail: onViewDetail,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
-              flex: 5,
+              flex: 2,
               child: Column(
                 children: [
                   Expanded(
@@ -114,11 +111,7 @@ class _CompactRevenueBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(30),
-      ),
+      padding: const EdgeInsets.all(0),
       child: Column(
         children: [
           SizedBox(
@@ -185,7 +178,7 @@ class _RevenueHeroPanel extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [Color(0xFF0F0F10), Color(0xFF303032)],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,12 +195,11 @@ class _RevenueHeroPanel extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          const Text(
+          Text(
             '本月收入',
-            style: TextStyle(
-              fontSize: 12,
+            style: AppTextStyles.caption.copyWith(
               fontWeight: FontWeight.w600,
-              color: Color.fromRGBO(255, 255, 255, 0.68),
+              color: const Color.fromRGBO(255, 255, 255, 0.68),
             ),
           ),
           const SizedBox(height: 8),
@@ -231,10 +223,9 @@ class _RevenueHeroPanel extends StatelessWidget {
             _summaryText(revenue),
             maxLines: compact ? 2 : 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
+            style: AppTextStyles.caption.copyWith(
               height: 1.45,
-              color: Color.fromRGBO(255, 255, 255, 0.7),
+              color: const Color.fromRGBO(255, 255, 255, 0.7),
             ),
           ),
         ],
@@ -254,13 +245,14 @@ class _HeroPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: AppTextStyles.overline.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w700,
+          letterSpacing: 0,
           color: AppColors.white,
         ),
       ),
@@ -281,20 +273,19 @@ class _HeroAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(AppRadius.full),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(AppRadius.full),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 12,
+              style: AppTextStyles.caption.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.white,
               ),
@@ -325,7 +316,7 @@ class _TrendBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -338,8 +329,7 @@ class _TrendBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             _trendText(trend),
-            style: TextStyle(
-              fontSize: 12,
+            style: AppTextStyles.caption.copyWith(
               fontWeight: FontWeight.w700,
               color: isPositive ? AppColors.successDark : AppColors.errorDark,
             ),
@@ -366,7 +356,7 @@ class _RevenueSnapshot extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
         color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -376,8 +366,7 @@ class _RevenueSnapshot extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 10,
+            style: AppTextStyles.overline.copyWith(
               fontWeight: FontWeight.w600,
               color: AppColors.gray500,
             ),
@@ -388,8 +377,7 @@ class _RevenueSnapshot extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 16,
+              style: AppTextStyles.body1.copyWith(
                 fontWeight: FontWeight.w700,
                 color: AppColors.black,
               ),
@@ -416,15 +404,17 @@ class _RevenueAmount extends StatelessWidget {
       tween: Tween(begin: 0, end: amount),
       duration: const Duration(milliseconds: 800),
       curve: Curves.easeOut,
-      builder: (context, value, _) => Text(
-        _formatCurrency(value),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: large ? 31 : 28,
-          fontWeight: FontWeight.w700,
-          color: AppColors.white,
-          height: 1.02,
+      builder: (context, value, _) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          _formatCurrency(value),
+          maxLines: 1,
+          style: AppTextStyles.h1.copyWith(
+            fontSize: large ? 31 : 28,
+            color: AppColors.white,
+            height: 1.02,
+          ),
         ),
       ),
     );

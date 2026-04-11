@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/market_filter.dart';
 import 'market_budget_slider.dart';
 
@@ -60,7 +61,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom +
@@ -85,11 +86,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
               children: [
                 Text(
                   '高级筛选',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.black,
-                  ),
+                  style: AppTextStyles.h3,
                 ),
               ],
             ),
@@ -100,10 +97,9 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '项目分类',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: AppTextStyles.body2.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.black,
                   ),
@@ -124,11 +120,11 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                         decoration: BoxDecoration(
                           color:
                               isSelected ? AppColors.black : AppColors.gray100,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(AppRadius.xl),
                         ),
                         child: Text(
                           cat.name,
-                          style: TextStyle(
+                          style: AppTextStyles.body2.copyWith(
                             fontSize: 13,
                             fontWeight:
                                 isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -174,7 +170,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                       foregroundColor: AppColors.black,
                       side: const BorderSide(color: AppColors.gray300),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
@@ -199,7 +195,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                       backgroundColor: AppColors.black,
                       foregroundColor: AppColors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/home_models.dart';
 import 'home_section_header.dart';
 
@@ -38,7 +39,7 @@ class ExpertHomeTeamOpportunities extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.gray100,
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(AppRadius.xxl),
             ),
             child: Column(
               children: [
@@ -77,107 +78,84 @@ class _FeaturedOpportunityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(AppRadius.xxl),
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  width: 82,
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.black,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _OpportunityEyebrow(label: '优先', inverted: true),
-                      const Spacer(),
-                      Text(
-                        opportunity.teamSizeDisplay,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Color.fromRGBO(255, 255, 255, 0.72),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      const Icon(
-                        Icons.north_east_rounded,
-                        size: 18,
-                        color: AppColors.white,
-                      ),
-                    ],
-                  ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.black,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              opportunity.projectTitle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 22,
-                                height: 1.15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.black,
-                              ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const _OpportunityEyebrow(label: '优先', inverted: true),
+                    const Icon(
+                      Icons.north_east_rounded,
+                      size: 16,
+                      color: AppColors.white,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            opportunity.projectTitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.h3.copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          _OpportunityMetaChip(
-                            label: opportunity.budgetDisplay,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        '当前在找 ${opportunity.neededRole}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.gray600,
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _OpportunityMetaChip(label: opportunity.neededRole),
-                          _OpportunityMetaChip(
-                            label: opportunity.teamSizeDisplay,
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      const SizedBox(height: 14),
-                      const Text(
-                        '进入组队大厅查看完整团队信息',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.gray500,
+                        const SizedBox(width: 10),
+                        _OpportunityMetaChip(
+                          label: opportunity.budgetDisplay,
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '当前在找 ${opportunity.neededRole}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.body2.copyWith(
+                        color: AppColors.gray600,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _OpportunityMetaChip(label: opportunity.neededRole),
+                        _OpportunityMetaChip(
+                          label: opportunity.teamSizeDisplay,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -198,9 +176,9 @@ class _OpportunityRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
@@ -215,8 +193,7 @@ class _OpportunityRow extends StatelessWidget {
                       opportunity.projectTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: AppTextStyles.body1.copyWith(
                         height: 1.25,
                         fontWeight: FontWeight.w700,
                         color: AppColors.black,
@@ -227,8 +204,7 @@ class _OpportunityRow extends StatelessWidget {
                       '需要 ${opportunity.neededRole}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: AppTextStyles.body2.copyWith(
                         color: AppColors.gray600,
                       ),
                     ),
@@ -254,7 +230,7 @@ class _OpportunityRow extends StatelessWidget {
                 height: 34,
                 decoration: BoxDecoration(
                   color: AppColors.gray100,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 alignment: Alignment.center,
                 child: const Icon(
@@ -288,11 +264,11 @@ class _OpportunityEyebrow extends StatelessWidget {
         color: inverted
             ? Colors.white.withValues(alpha: 0.12)
             : AppColors.white.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: AppTextStyles.overline.copyWith(
           fontSize: 11,
           letterSpacing: 0.2,
           fontWeight: FontWeight.w700,
@@ -313,13 +289,14 @@ class _OpportunityMetaChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: AppTextStyles.overline.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0,
           color: AppColors.gray700,
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../models/market_expert.dart';
 
@@ -89,11 +90,11 @@ class _MarketExpertCardState extends State<MarketExpertCard> {
   double get _radius {
     switch (widget.variant) {
       case MarketExpertCardVariant.feature:
-        return 30;
+        return AppRadius.xxxl;
       case MarketExpertCardVariant.shelf:
-        return 26;
+        return AppRadius.xxl;
       case MarketExpertCardVariant.editorial:
-        return 24;
+        return AppRadius.xxl;
     }
   }
 }
@@ -149,12 +150,10 @@ class _FeatureLayout extends StatelessWidget {
                         constraints: const BoxConstraints(maxWidth: 250),
                         child: Text(
                           expert.displayName,
-                          style: const TextStyle(
+                          style: AppTextStyles.h1.copyWith(
                             fontSize: 30,
                             height: 1.08,
-                            fontWeight: FontWeight.w700,
                             letterSpacing: -1.1,
-                            color: AppColors.black,
                           ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
@@ -165,7 +164,7 @@ class _FeatureLayout extends StatelessWidget {
                         constraints: const BoxConstraints(maxWidth: 286),
                         child: Text(
                           _communityDescription(expert),
-                          style: const TextStyle(
+                          style: AppTextStyles.body1.copyWith(
                             fontSize: 15,
                             height: 1.6,
                             color: AppColors.gray600,
@@ -261,12 +260,10 @@ class _ShelfLayout extends StatelessWidget {
             Expanded(
               child: Text(
                 expert.displayName,
-                style: const TextStyle(
-                  fontSize: 22,
+                style: AppTextStyles.h2.copyWith(
                   height: 1.15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.8,
-                  color: AppColors.black,
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
@@ -278,8 +275,7 @@ class _ShelfLayout extends StatelessWidget {
         Expanded(
           child: Text(
             _communityDescription(expert),
-            style: const TextStyle(
-              fontSize: 14,
+            style: AppTextStyles.body2.copyWith(
               height: 1.55,
               color: AppColors.gray600,
             ),
@@ -299,17 +295,14 @@ class _ShelfLayout extends StatelessWidget {
             Expanded(
               child: Text(
                 '${_memberCount(expert)} 人协作',
-                style: const TextStyle(
-                  fontSize: 18,
+                style: AppTextStyles.h3.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.black,
                 ),
               ),
             ),
             Text(
               _badgeLabel(expert),
-              style: TextStyle(
-                fontSize: 12,
+              style: AppTextStyles.caption.copyWith(
                 fontWeight: FontWeight.w600,
                 color: tone.accent,
               ),
@@ -357,12 +350,11 @@ class _EditorialLayout extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 expert.displayName,
-                style: const TextStyle(
+                style: AppTextStyles.h2.copyWith(
                   fontSize: 23,
                   height: 1.16,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.8,
-                  color: AppColors.black,
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
@@ -370,8 +362,7 @@ class _EditorialLayout extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 _communityDescription(expert),
-                style: const TextStyle(
-                  fontSize: 14,
+                style: AppTextStyles.body2.copyWith(
                   height: 1.6,
                   color: AppColors.gray600,
                 ),
@@ -428,8 +419,7 @@ class _TeamOverline extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 emphasisLabel ?? _badgeLabel(expert),
-                style: TextStyle(
-                  fontSize: 12,
+                style: AppTextStyles.caption.copyWith(
                   fontWeight: FontWeight.w600,
                   color: tone.accent,
                 ),
@@ -440,10 +430,8 @@ class _TeamOverline extends StatelessWidget {
         const Spacer(),
         Text(
           '${_memberCount(expert)} 人协作',
-          style: const TextStyle(
-            fontSize: 12,
+          style: AppTextStyles.caption.copyWith(
             fontWeight: FontWeight.w500,
-            color: AppColors.gray400,
           ),
         ),
       ],
@@ -480,8 +468,7 @@ class _TeamTagRow extends StatelessWidget {
               ),
               child: Text(
                 tag,
-                style: const TextStyle(
-                  fontSize: 12,
+                style: AppTextStyles.caption.copyWith(
                   fontWeight: FontWeight.w500,
                   color: AppColors.gray700,
                 ),
@@ -517,7 +504,7 @@ class _TeamMetaRail extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             '${_memberCount(expert)} 人协作',
-            style: TextStyle(
+            style: AppTextStyles.overline.copyWith(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: tone.accent,
@@ -526,8 +513,7 @@ class _TeamMetaRail extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             _metaCaption(expert),
-            style: const TextStyle(
-              fontSize: 12,
+            style: AppTextStyles.caption.copyWith(
               height: 1.35,
               color: AppColors.gray500,
             ),
@@ -591,8 +577,7 @@ class _AvatarStack extends StatelessWidget {
               ),
               child: Text(
                 badge,
-                style: TextStyle(
-                  fontSize: 10,
+                style: AppTextStyles.overline.copyWith(
                   fontWeight: FontWeight.w700,
                   color: tone.accent,
                 ),
@@ -621,8 +606,7 @@ class _PrimaryMetric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
+          style: AppTextStyles.caption.copyWith(
             fontWeight: FontWeight.w600,
             color: AppColors.gray500,
           ),
@@ -630,11 +614,9 @@ class _PrimaryMetric extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 22,
+          style: AppTextStyles.h2.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: -0.6,
-            color: AppColors.black,
           ),
         ),
       ],
@@ -664,8 +646,7 @@ class _InlineMetric extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
+          style: AppTextStyles.caption.copyWith(
             fontWeight: FontWeight.w600,
             color: AppColors.gray500,
           ),
@@ -694,17 +675,17 @@ class _TeamCardTone {
 _TeamCardTone _toneForExpert(MarketExpertItem expert) {
   if (expert.vibePower >= 900) {
     return const _TeamCardTone(
-      background: Color(0xFFF4EEFF),
+      background: AppColors.accentLight,
       border: AppColors.accentMuted,
       pillBackground: AppColors.white,
       accent: AppColors.accentDark,
-      overlay: Color(0xFFE4D8FF),
+      overlay: AppColors.accentMuted,
     );
   }
 
   if (expert.skills.length >= 3) {
     return const _TeamCardTone(
-      background: Color(0xFFF7F8FA),
+      background: AppColors.surfaceAlt,
       border: AppColors.gray200,
       pillBackground: AppColors.white,
       accent: AppColors.black,
@@ -717,7 +698,7 @@ _TeamCardTone _toneForExpert(MarketExpertItem expert) {
     border: AppColors.gray200,
     pillBackground: AppColors.white,
     accent: AppColors.black,
-    overlay: Color(0xFFE9E9E9),
+    overlay: AppColors.surfaceStrong,
   );
 }
 

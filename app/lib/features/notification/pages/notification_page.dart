@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/widgets/vcc_editorial_app_bar.dart';
 import '../../../shared/widgets/vcc_filter_chip_bar.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../models/notification_models.dart';
@@ -129,33 +131,70 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
     final showGroupHeaders = _filter == _NotificationFilter.all ||
         _filter == _NotificationFilter.unread;
 
+    final filterOptions = _NotificationFilter.values
+        .map(
+          (item) => VccFilterChipOption<_NotificationFilter>(
+            value: item,
+            label: item.label,
+          ),
+        )
+        .toList(growable: false);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: AppColors.black,
-          onRefresh: () => ref.read(notificationProvider.notifier).refresh(),
-          child: CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
+      backgroundColor: AppColors.surface,
+      body: RefreshIndicator(
+        color: AppColors.black,
+        onRefresh: () => ref.read(notificationProvider.notifier).refresh(),
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: [
+            VccEditorialAppBar(
+              title: '通知',
+              subtitle: state.unreadCount > 0
+                  ? '${state.unreadCount} 条未读'
+                  : null,
+              trailing: state.unreadCount > 0
+                  ? TextButton(
+                      onPressed: () => ref
+                          .read(notificationProvider.notifier)
+                          .markAllAsRead(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.black,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        '全部已读',
+                        style: AppTextStyles.body2.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                  child: _NotificationHero(
-                    unreadCount: state.unreadCount,
-                    filter: _filter,
-                    onFilterChanged: (next) => setState(() => _filter = next),
-                    onMarkAllRead: state.unreadCount > 0
-                        ? () => ref
-                            .read(notificationProvider.notifier)
-                            .markAllAsRead()
-                        : null,
-                  ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                ),
+                child: VccFilterChipBar<_NotificationFilter>(
+                  options: filterOptions,
+                  selectedValue: _filter,
+                  onSelected: (next) => setState(() => _filter = next),
+                  padding: EdgeInsets.zero,
                 ),
               ),
+            ),
               if (state.isLoading && state.notifications.isEmpty)
                 const SliverFillRemaining(
                   hasScrollBody: false,
@@ -221,106 +260,6 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _NotificationHero extends StatelessWidget {
-  final int unreadCount;
-  final _NotificationFilter filter;
-  final ValueChanged<_NotificationFilter> onFilterChanged;
-  final VoidCallback? onMarkAllRead;
-
-  const _NotificationHero({
-    required this.unreadCount,
-    required this.filter,
-    required this.onFilterChanged,
-    required this.onMarkAllRead,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final filterOptions = _NotificationFilter.values
-        .map(
-          (item) => VccFilterChipOption<_NotificationFilter>(
-            value: item,
-            label: item.label,
-          ),
-        )
-        .toList(growable: false);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            const Expanded(
-              child: Text(
-                '通知',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.black,
-                  letterSpacing: -0.8,
-                  height: 1,
-                ),
-              ),
-            ),
-            if (unreadCount > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.black,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '$unreadCount 条未读',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.white,
-                    ),
-                  ),
-                ),
-              ),
-            if (onMarkAllRead != null) ...[
-              const SizedBox(width: 10),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 1),
-                child: TextButton(
-                  onPressed: onMarkAllRead,
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.black,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: const Text(
-                    '全部已读',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 20),
-        VccFilterChipBar<_NotificationFilter>(
-          options: filterOptions,
-          selectedValue: filter,
-          onSelected: onFilterChanged,
-          padding: EdgeInsets.zero,
-        ),
-      ],
     );
   }
 }
@@ -328,6 +267,7 @@ class _NotificationHero extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   final String label;
   final int? count;
+
 
   const _SectionHeader({
     required this.label,
@@ -339,8 +279,7 @@ class _SectionHeader extends StatelessWidget {
     final suffix = count != null ? ' · $count' : '';
     return Text(
       '$label$suffix',
-      style: const TextStyle(
-        fontSize: 12,
+      style: AppTextStyles.caption.copyWith(
         fontWeight: FontWeight.w600,
         color: AppColors.gray400,
         letterSpacing: 1.8,
@@ -364,14 +303,14 @@ class _NotificationRow extends StatelessWidget {
 
     return Material(
       color: item.isRead ? Colors.transparent : AppColors.white,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(AppRadius.xxl),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         child: Ink(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(AppRadius.xxl),
             color: item.isRead ? AppColors.gray50 : AppColors.white,
           ),
           child: Row(
@@ -389,8 +328,7 @@ class _NotificationRow extends StatelessWidget {
                         Expanded(
                           child: Text(
                             item.title,
-                            style: TextStyle(
-                              fontSize: 15,
+                            style: AppTextStyles.body1.copyWith(
                               height: 1.35,
                               fontWeight: item.isRead
                                   ? FontWeight.w500
@@ -402,10 +340,7 @@ class _NotificationRow extends StatelessWidget {
                         const SizedBox(width: 12),
                         Text(
                           item.timeAgo,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.gray400,
-                          ),
+                          style: AppTextStyles.caption,
                         ),
                       ],
                     ),
@@ -413,8 +348,7 @@ class _NotificationRow extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         item.body,
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: AppTextStyles.body2.copyWith(
                           height: 1.6,
                           color: AppColors.gray600,
                         ),
@@ -469,7 +403,7 @@ class _NotificationGlyph extends StatelessWidget {
       height: 42,
       decoration: BoxDecoration(
         color: _background,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Icon(
         _icon,
@@ -514,9 +448,9 @@ class _NotificationGlyph extends StatelessWidget {
       case NotificationKind.matchSuccess:
         return AppColors.accentDark;
       case NotificationKind.payReminder:
-        return const Color(0xFFB45309);
+        return AppColors.warningForeground;
       case NotificationKind.milestoneDelivered:
-        return const Color(0xFF1D4ED8);
+        return AppColors.infoForeground;
       case NotificationKind.system:
         return AppColors.gray600;
     }
@@ -542,7 +476,7 @@ class _MetaPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -553,8 +487,7 @@ class _MetaPill extends StatelessWidget {
           ],
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
+            style: AppTextStyles.caption.copyWith(
               fontWeight: FontWeight.w600,
               color: foreground,
             ),
@@ -600,21 +533,15 @@ class _NotificationErrorState extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '通知加载失败',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: AppColors.black,
-            ),
+            style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             message,
-            style: const TextStyle(
-              fontSize: 14,
+            style: AppTextStyles.body2.copyWith(
               height: 1.7,
-              color: AppColors.gray500,
             ),
           ),
           const SizedBox(height: 22),
@@ -658,8 +585,8 @@ class _NotificationEmptyState extends StatelessWidget {
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(18),
+              color: AppColors.surfaceRaised,
+              borderRadius: BorderRadius.circular(AppRadius.xl),
             ),
             child: const Icon(
               Icons.notifications_none_rounded,
@@ -669,20 +596,12 @@ class _NotificationEmptyState extends StatelessWidget {
           const SizedBox(height: 18),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: AppColors.black,
-            ),
+            style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             subtitle,
-            style: const TextStyle(
-              fontSize: 14,
-              height: 1.7,
-              color: AppColors.gray500,
-            ),
+            style: AppTextStyles.body2.copyWith(height: 1.7),
           ),
           if (onResetFilter != null) ...[
             const SizedBox(height: 20),
@@ -693,10 +612,9 @@ class _NotificationEmptyState extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
               ),
-              child: const Text(
+              child: Text(
                 '查看全部通知',
-                style: TextStyle(
-                  fontSize: 14,
+                style: AppTextStyles.body2.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -732,13 +650,12 @@ class _LoadMoreFooter extends StatelessWidget {
     }
 
     if (!state.hasMore && state.notifications.isNotEmpty) {
-      return const Padding(
-        padding: EdgeInsets.fromLTRB(20, 18, 20, 36),
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 36),
         child: Center(
           child: Text(
             '已经到底了',
-            style: TextStyle(
-              fontSize: 13,
+            style: AppTextStyles.body2.copyWith(
               color: AppColors.gray400,
             ),
           ),

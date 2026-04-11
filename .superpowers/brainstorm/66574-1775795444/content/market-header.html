@@ -1,0 +1,86 @@
+<h2>广场页 Header 集成方案</h2>
+<p class="subtitle">广场页有 Tab 切换（项目/团队），header 结构比较特殊。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; overflow: hidden;">
+      <div style="background: #F9F9F9; padding: 20px; font-family: -apple-system, sans-serif;">
+        <!-- Expanded -->
+        <div style="margin-bottom: 12px;">
+          <span style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">EXPANDED</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+          <span style="font-size: 28px; font-weight: 700; color: #1A1C1C; letter-spacing: -0.8px;">广场</span>
+          <div style="display: flex; background: #F3F3F3; border-radius: 12px; padding: 3px;">
+            <span style="background: #1A1C1C; color: white; padding: 6px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;">项目</span>
+            <span style="color: #555; padding: 6px 14px; font-size: 13px; font-weight: 500;">团队</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <span style="background: #1A1C1C; color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px;">全部</span>
+          <span style="background: #F3F3F3; padding: 6px 12px; border-radius: 20px; font-size: 12px; color: #555;">开发</span>
+          <span style="background: #F3F3F3; padding: 6px 12px; border-radius: 20px; font-size: 12px; color: #555;">设计</span>
+        </div>
+        <!-- Arrow -->
+        <div style="text-align: center; color: #C6C6C6; font-size: 16px; margin: 8px 0;">↓ scroll ↓</div>
+        <!-- Collapsed -->
+        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 0;">
+          <span style="font-size: 18px; font-weight: 600; color: #1A1C1C;">广场</span>
+          <div style="display: flex; background: #F3F3F3; border-radius: 10px; padding: 2px;">
+            <span style="background: #1A1C1C; color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;">项目</span>
+            <span style="color: #555; padding: 4px 10px; font-size: 12px;">团队</span>
+          </div>
+        </div>
+        <span style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">COLLAPSED — tab switch stays, filter scrolls away</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Title + Tab 收缩，Filter 随内容滚走</h3>
+      <p>标题和 Tab switch 都在收缩区域内，标题缩小时 Tab switch 跟着贴紧。Filter bar 不固定，跟着内容滚上去。<strong>需要把 Column+TabBarView 改为 NestedScrollView。</strong>改动较大但效果最好。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; overflow: hidden;">
+      <div style="background: #F9F9F9; padding: 20px; font-family: -apple-system, sans-serif;">
+        <!-- Expanded -->
+        <div style="margin-bottom: 12px;">
+          <span style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">EXPANDED</span>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <span style="font-size: 28px; font-weight: 700; color: #1A1C1C; letter-spacing: -0.8px;">广场</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+          <div style="display: flex; background: #F3F3F3; border-radius: 12px; padding: 3px; flex: 1;">
+            <span style="background: #1A1C1C; color: white; padding: 6px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; flex: 1; text-align: center;">项目</span>
+            <span style="color: #555; padding: 6px 14px; font-size: 13px; font-weight: 500; flex: 1; text-align: center;">团队</span>
+          </div>
+        </div>
+        <!-- Arrow -->
+        <div style="text-align: center; color: #C6C6C6; font-size: 16px; margin: 8px 0;">↓ scroll ↓</div>
+        <!-- Collapsed -->
+        <div style="padding: 8px 0;">
+          <span style="font-size: 18px; font-weight: 600; color: #1A1C1C;">广场</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="display: flex; background: #F3F3F3; border-radius: 10px; padding: 2px; flex: 1;">
+            <span style="background: #1A1C1C; color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; flex: 1; text-align: center;">项目</span>
+            <span style="color: #555; padding: 4px 10px; font-size: 12px; flex: 1; text-align: center;">团队</span>
+          </div>
+        </div>
+        <span style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-top: 8px;">COLLAPSED — tab pinned below title</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Title 收缩 + Tab 固定钉住</h3>
+      <p>标题用 VccEditorialAppBar 收缩。Tab switch 作为第二个 pinned header 永远可见。两层 pinned header。改动中等——用两个 SliverPersistentHeader 即可（跟 worktree 的项目页一样的模式）。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px; padding: 16px; background: rgba(0,0,0,0.03); border-radius: 12px;">
+  <p class="label">当前结构</p>
+  <p style="font-size: 14px; color: #555; line-height: 1.6;">
+    广场页现在是 <code>Column(header + TabBarView)</code>，不是 sliver 布局。两种方案都需要改为 <code>NestedScrollView</code> 或 <code>CustomScrollView</code>。方案 B 改动更小且跟项目页模式一致。
+  </p>
+</div>

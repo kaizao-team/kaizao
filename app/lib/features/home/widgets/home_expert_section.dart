@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_card.dart';
 import '../models/home_models.dart';
@@ -59,18 +60,11 @@ class _ExpertCard extends StatelessWidget {
       child: VccCard(
         onTap: expert.id.isEmpty ? null : () => context.push('/team/${expert.id}/profile'),
         padding: const EdgeInsets.fromLTRB(16, 15, 16, 12),
-        borderRadius: 18,
-        backgroundColor: AppColors.white,
+        borderRadius: AppRadius.lg,
+        backgroundColor: AppColors.surfaceRaised,
         border: Border.all(
-          color: AppColors.gray200.withValues(alpha: 0.7),
+          color: AppColors.outlineVariant,
         ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(17, 17, 17, 0.05),
-            blurRadius: 18,
-            offset: Offset(0, 6),
-          ),
-        ],
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -88,7 +82,7 @@ class _ExpertCard extends StatelessWidget {
                   height: 30,
                   decoration: BoxDecoration(
                     color: AppColors.gray100,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   alignment: Alignment.center,
                   child: const Icon(
@@ -104,10 +98,8 @@ class _ExpertCard extends StatelessWidget {
               expert.displayName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 18,
+              style: AppTextStyles.h3.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppColors.black,
               ),
             ),
             const SizedBox(height: 8),
@@ -129,13 +121,12 @@ class _ExpertCard extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A1C1C),
-                      borderRadius: BorderRadius.circular(4),
+                      color: AppColors.onSurface,
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
                     ),
                     child: Text(
                       expert.vibeLevel!,
-                      style: const TextStyle(
-                        fontSize: 10,
+                      style: AppTextStyles.overline.copyWith(
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                         letterSpacing: 0.3,
@@ -152,8 +143,7 @@ class _ExpertCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     expert.rating > 0 ? expert.rating.toStringAsFixed(1) : '-',
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: AppTextStyles.body2.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppColors.gray700,
                     ),
@@ -165,8 +155,7 @@ class _ExpertCard extends StatelessWidget {
                     _experienceText(expert),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: AppTextStyles.caption.copyWith(
                       color: AppColors.gray500,
                     ),
                   ),
@@ -176,10 +165,8 @@ class _ExpertCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               _rateText(expert),
-              style: const TextStyle(
-                fontSize: 18,
+              style: AppTextStyles.h3.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppColors.black,
               ),
             ),
           ],
@@ -200,14 +187,13 @@ class _SkillTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 12,
+        style: AppTextStyles.caption.copyWith(
           fontWeight: FontWeight.w600,
           color: AppColors.gray700,
         ),

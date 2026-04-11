@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../models/market_expert.dart';
 
@@ -44,12 +45,12 @@ class _TeamWaterfallTileState extends State<TeamWaterfallTile> {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: widget.tinted ? const Color(0xFFF7F8FA) : AppColors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: widget.tinted ? AppColors.surfaceAlt : AppColors.white,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
               color: widget.tinted
                   ? AppColors.gray200
-                  : const Color(0xFFECECEC),
+                  : AppColors.surfaceStrong,
             ),
           ),
           child: Column(
@@ -71,11 +72,10 @@ class _TeamWaterfallTileState extends State<TeamWaterfallTile> {
               // Name
               Text(
                 expert.displayName,
-                style: const TextStyle(
+                style: AppTextStyles.body2.copyWith(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.2,
-                  color: AppColors.black,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -84,7 +84,7 @@ class _TeamWaterfallTileState extends State<TeamWaterfallTile> {
               // Tagline
               Text(
                 _tagline(expert),
-                style: const TextStyle(
+                style: AppTextStyles.overline.copyWith(
                   fontSize: 11,
                   height: 1.5,
                   color: AppColors.gray500,
@@ -111,9 +111,8 @@ class _TeamWaterfallTileState extends State<TeamWaterfallTile> {
                           ),
                           child: Text(
                             '#$s',
-                            style: const TextStyle(
+                            style: AppTextStyles.overline.copyWith(
                               fontSize: 9,
-                              fontWeight: FontWeight.w500,
                               color: AppColors.gray600,
                             ),
                           ),
@@ -127,9 +126,7 @@ class _TeamWaterfallTileState extends State<TeamWaterfallTile> {
                 children: [
                   Text(
                     '$memberCount人',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
+                    style: AppTextStyles.overline.copyWith(
                       color: AppColors.gray400,
                     ),
                   ),
@@ -139,7 +136,7 @@ class _TeamWaterfallTileState extends State<TeamWaterfallTile> {
                       width: 5,
                       height: 5,
                       decoration: const BoxDecoration(
-                        color: Color(0xFF22C55E),
+                        color: AppColors.success,
                         shape: BoxShape.circle,
                       ),
                     ),

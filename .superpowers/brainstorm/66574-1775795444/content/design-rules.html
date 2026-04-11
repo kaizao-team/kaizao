@@ -1,0 +1,163 @@
+<h2>统一设计规则 — 需要你拍板的决策</h2>
+<p class="subtitle">以下是 5 个 Tab 页面审计后发现的核心不一致项。每项需要选一个统一值。</p>
+
+<!-- Background Color -->
+<div class="section">
+  <h3>1. 页面背景色</h3>
+  <p style="font-size: 14px; color: #555; margin-bottom: 12px;">当前 5 个页面用了 4 种不同的灰白色</p>
+  <div class="options">
+    <div class="option" data-choice="bg-surface" onclick="toggleSelect(this)">
+      <div class="letter" style="background: #F9F9F9; color: #1A1C1C; border: 1px solid #E8E8E8;">A</div>
+      <div class="content">
+        <h3>#F9F9F9 (surface)</h3>
+        <p>最温暖的灰白，当前 Profile 和 Notification 在用。推荐统一为此值。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="bg-white" onclick="toggleSelect(this)">
+      <div class="letter" style="background: #FFFFFF; color: #1A1C1C; border: 1px solid #E8E8E8;">B</div>
+      <div class="content">
+        <h3>#FFFFFF (white)</h3>
+        <p>纯白。当前 Market 在用。更亮更干净，但卡片层级不明显。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Card Radius -->
+<div class="section">
+  <h3>2. 卡片圆角</h3>
+  <p style="font-size: 14px; color: #555; margin-bottom: 12px;">当前从 12px 到 30px 都有。VccCard 默认 12 但实际大部分页面用 24。</p>
+  <div class="options">
+    <div class="option" data-choice="radius-tier" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>三级体系（推荐）</h3>
+        <p><strong>大卡: 24</strong>（首页/Profile 主卡片） · <strong>标准: 20</strong>（列表卡片、通知行） · <strong>小元素: 12</strong>（tag、badge、输入框）</p>
+      </div>
+    </div>
+    <div class="option" data-choice="radius-flat" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>统一 20</h3>
+        <p>全部卡片统一 20px 圆角，不分级。更简单但缺少层次感。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Page Padding -->
+<div class="section">
+  <h3>3. 页面水平边距</h3>
+  <p style="font-size: 14px; color: #555; margin-bottom: 12px;">4 个页面用 20，项目列表用 16</p>
+  <div class="options">
+    <div class="option" data-choice="pad-20" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>统一 20 (AppSpacing.lg)</h3>
+        <p>4/5 页面已经是 20，只需改项目列表。推荐。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="pad-16" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>统一 16 (AppSpacing.base)</h3>
+        <p>更紧凑，内容区更宽。但需要改 4 个页面。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section Spacing -->
+<div class="section">
+  <h3>4. Section 间距</h3>
+  <p style="font-size: 14px; color: #555; margin-bottom: 12px;">页面内主要区块之间的垂直间距，当前 4~30 混乱</p>
+  <div class="options">
+    <div class="option" data-choice="gap-3tier" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>三级节奏（推荐）</h3>
+        <p><strong>大段落: 32</strong>（主要区域分隔） · <strong>中段落: 20</strong>（子区域） · <strong>小段落: 12</strong>（组内元素）· <strong>列表项间距: 12</strong></p>
+      </div>
+    </div>
+    <div class="option" data-choice="gap-2tier" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>两级节奏</h3>
+        <p><strong>段落: 24</strong> · <strong>元素: 12</strong>。更简单但视觉层次少。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Card Padding -->
+<div class="section">
+  <h3>5. 卡片内边距</h3>
+  <p style="font-size: 14px; color: #555; margin-bottom: 12px;">VccCard 默认 16，VccSurfaceCard 用 18，Market 特色卡片用 22</p>
+  <div class="options">
+    <div class="option" data-choice="cardpad-18" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>统一 18 左右 / 16 上下</h3>
+        <p>VccSurfaceCard 的当前值。大部分页面已经是这个。推荐。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="cardpad-16" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>统一 16 全边</h3>
+        <p>VccCard 原始默认值。最简单，但比当前大部分卡片更紧凑。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Typography -->
+<div class="section">
+  <h3>6. 字体层级</h3>
+  <p style="font-size: 14px; color: #555; margin-bottom: 12px;">Section 标题从 17 到 32 都有，正文 13~15 混用</p>
+  <div class="options">
+    <div class="option" data-choice="type-spec" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>收敛到现有 AppTextStyles（推荐）</h3>
+        <p><strong>页面标题: h1 (28/w700)</strong> · <strong>Section 标题: h3 (18/w600)</strong> · <strong>正文: body2 (14/w400)</strong> · <strong>辅助: caption (12/w400)</strong> · <strong>标签: overline (10/w500)</strong></p>
+      </div>
+    </div>
+    <div class="option" data-choice="type-custom" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>重新定义字体层级</h3>
+        <p>根据实际用法重新设计字体 scale，可能增减级别。需要更多讨论。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Card Shadow -->
+<div class="section">
+  <h3>7. 卡片阴影</h3>
+  <p style="font-size: 14px; color: #555; margin-bottom: 12px;">设计规范要求"极轻阴影"，但当前 3/5 页面完全没用阴影</p>
+  <div class="options">
+    <div class="option" data-choice="shadow-light" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>统一用 shadow1（极轻）</h3>
+        <p>所有卡片加 `shadow1`（4% 黑，blur 2）。有微妙深度感，但可能在 #F9F9F9 背景上不太明显。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="shadow-none" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>默认无阴影，只用边框</h3>
+        <p>纯平面设计，卡片用 0.5px outlineVariant 边框区分层级。更符合 Architectural Minimalism 的"克制"理念。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="shadow-selective" onclick="toggleSelect(this)">
+      <div class="letter">C</div>
+      <div class="content">
+        <h3>选择性阴影</h3>
+        <p>正常卡片无阴影用边框，只有 <strong>浮动元素</strong>（FAB、toast、dropdown）和<strong>首页 hero 卡</strong>才加阴影。</p>
+      </div>
+    </div>
+  </div>
+</div>

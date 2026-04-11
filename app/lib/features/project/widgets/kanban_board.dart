@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/project_models.dart';
 
 class KanbanBoard extends StatelessWidget {
@@ -106,7 +107,7 @@ class _KanbanColumn extends StatelessWidget {
       width: 280,
       decoration: BoxDecoration(
         color: isHovering ? AppColors.accentLight : AppColors.gray50,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(
           color: isHovering ? AppColors.accent : AppColors.gray200,
           width: isHovering ? 1.5 : 1,
@@ -130,8 +131,7 @@ class _KanbanColumn extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   '$title (${tasks.length})',
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: AppTextStyles.body2.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.black,
                   ),
@@ -139,12 +139,12 @@ class _KanbanColumn extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 1, color: AppColors.gray200),
+          const SizedBox(height: 1), // replaces Divider per no-line rule
           if (tasks.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(24),
+            Padding(
+              padding: const EdgeInsets.all(24),
               child: Text('暂无任务',
-                  style: TextStyle(fontSize: 13, color: AppColors.gray400)),
+                  style: AppTextStyles.body2.copyWith(color: AppColors.gray400)),
             )
           else
             ConstrainedBox(
@@ -176,7 +176,7 @@ class _KanbanColumn extends StatelessWidget {
               margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
               height: 48,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
                 border: Border.all(
                   color: AppColors.accent,
                   style: BorderStyle.solid,
@@ -203,7 +203,7 @@ class _DraggableTaskCard extends StatelessWidget {
       hapticFeedbackOnStart: true,
       feedback: Material(
         elevation: 8,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: _TaskCardContent(task: task, isDragging: true),
       ),
       childWhenDragging: Opacity(
@@ -246,7 +246,7 @@ class _TaskCardContent extends StatelessWidget {
           : Matrix4.identity(),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border(
           left: BorderSide(
             color: task.isAtRisk ? AppColors.error : AppColors.gray200,
@@ -268,12 +268,11 @@ class _TaskCardContent extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: _priorityColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
                 ),
                 child: Text(
                   task.priority,
-                  style: TextStyle(
-                    fontSize: 10,
+                  style: AppTextStyles.overline.copyWith(
                     fontWeight: FontWeight.w600,
                     color: _priorityColor,
                   ),
@@ -286,7 +285,7 @@ class _TaskCardContent extends StatelessWidget {
                       horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppColors.errorBg,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -304,7 +303,7 @@ class _TaskCardContent extends StatelessWidget {
               const Spacer(),
               Text(
                 '${task.effortHours}h',
-                style: const TextStyle(
+                style: AppTextStyles.overline.copyWith(
                     fontSize: 11, color: AppColors.gray400),
               ),
             ],
@@ -312,8 +311,7 @@ class _TaskCardContent extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             task.title,
-            style: const TextStyle(
-              fontSize: 14,
+            style: AppTextStyles.body2.copyWith(
               fontWeight: FontWeight.w500,
               color: AppColors.black,
             ),
@@ -323,8 +321,7 @@ class _TaskCardContent extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             task.description,
-            style:
-                const TextStyle(fontSize: 12, color: AppColors.gray500),
+            style: AppTextStyles.caption.copyWith(color: AppColors.gray500),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -336,7 +333,7 @@ class _TaskCardContent extends StatelessWidget {
                     size: 12, color: AppColors.gray400),
                 const SizedBox(width: 4),
                 Text(task.assignee!,
-                    style: const TextStyle(
+                    style: AppTextStyles.overline.copyWith(
                         fontSize: 11, color: AppColors.gray500)),
               ],
             ),
