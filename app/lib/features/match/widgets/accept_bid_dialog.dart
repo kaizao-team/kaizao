@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/match_models.dart';
 
 class AcceptBidDialog extends StatefulWidget {
@@ -53,16 +54,15 @@ class _AcceptBidDialogState extends State<AcceptBidDialog> {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 '确认选择',
-                style: TextStyle(
-                  fontSize: 18,
+                style: AppTextStyles.h3.copyWith(
                   fontWeight: FontWeight.w700,
                   color: AppColors.black,
                 ),
@@ -74,15 +74,15 @@ class _AcceptBidDialogState extends State<AcceptBidDialog> {
               const SizedBox(height: 10),
               _Row(label: '工期', value: '${bid.durationDays}天'),
               const SizedBox(height: 10),
-              const Text('方案摘要',
-                  style: TextStyle(fontSize: 13, color: AppColors.gray500)),
+              Text('方案摘要',
+                  style: AppTextStyles.caption.copyWith(
+                      fontSize: 13, color: AppColors.gray500)),
               const SizedBox(height: 4),
               Text(
                 bid.proposal,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
+                style: AppTextStyles.body2.copyWith(
                   height: 1.5,
                   color: AppColors.gray700,
                 ),
@@ -97,12 +97,12 @@ class _AcceptBidDialogState extends State<AcceptBidDialog> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           border: Border.all(color: AppColors.gray300),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
                             '再考虑',
-                            style: TextStyle(
+                            style: AppTextStyles.body2.copyWith(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                               color: AppColors.gray600,
@@ -123,12 +123,12 @@ class _AcceptBidDialogState extends State<AcceptBidDialog> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           color: AppColors.black,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
                             '确认选择',
-                            style: TextStyle(
+                            style: AppTextStyles.body2.copyWith(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: AppColors.white,
@@ -159,10 +159,10 @@ class _Row extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
-            style: const TextStyle(fontSize: 13, color: AppColors.gray500)),
+            style: AppTextStyles.caption.copyWith(
+                fontSize: 13, color: AppColors.gray500)),
         Text(value,
-            style: const TextStyle(
-                fontSize: 14,
+            style: AppTextStyles.body2.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.black)),
       ],
