@@ -388,44 +388,18 @@ class _DetailContentState extends State<_DetailContent>
                   child: _buildPrdSection(s),
                 ),
               ],
-              if (s.prdItems.isNotEmpty || s.earsTasks.isNotEmpty) ...[
+              if (s.prdItems.isNotEmpty) ...[
                 const SizedBox(height: _kProjectSectionGap),
                 VccPageSection(
                   label: '需求条目',
                   trailing: Text(
-                    '${s.prdItems.length + s.earsTasks.length} 条',
+                    '${s.prdItems.length} 条',
                     style: AppTextStyles.caption.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.gray400,
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      if (s.prdItems.isNotEmpty)
-                        _buildPrdItemCards(s.prdItems),
-                      if (s.earsTasks.isNotEmpty) ...[
-                        if (s.prdItems.isNotEmpty)
-                          const SizedBox(height: 10),
-                        _buildEarsTaskCards(s.earsTasks),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-              if (s.milestones.isNotEmpty) ...[
-                const SizedBox(height: _kProjectSectionGap),
-                VccPageSection(
-                  label: '里程碑',
-                  trailing: s.progress > 0
-                      ? Text(
-                          '${s.progress}%',
-                          style: AppTextStyles.caption.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.gray400,
-                          ),
-                        )
-                      : null,
-                  child: _buildMilestoneSection(s),
+                  child: _buildPrdItemCards(s.prdItems),
                 ),
               ],
               if (s.ownerName.isNotEmpty) ...[
