@@ -1,5 +1,3 @@
-import 'dart:ui' show lerpDouble;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/models/project_model.dart';
+import '../../../shared/widgets/vcc_editorial_app_bar.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
 import '../../../shared/widgets/vcc_filter_chip_bar.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -27,7 +26,6 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = MediaQuery.paddingOf(context).top;
     final authState = ref.watch(authStateProvider);
     final listState = ref.watch(projectListProvider);
     final isDemander = authState.userRole != 2;
@@ -48,6 +46,39 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       effectiveFilter,
     );
 
+    final headerTrailing = projects.isNotEmpty || isDemander
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (projects.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.black,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Text(
+                    '${projects.length} 个项目',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              if (isDemander) ...[
+                if (projects.isNotEmpty) const SizedBox(width: 8),
+                _ProjectHeaderAction(
+                  onPressed: () => context.push(RoutePaths.publishProject),
+                ),
+              ],
+            ],
+          )
+        : null;
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: RefreshIndicator(
@@ -58,16 +89,12 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
             parent: BouncingScrollPhysics(),
           ),
           slivers: [
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _ProjectTitleHeaderDelegate(
-                topPadding: topPadding,
-                isDemander: isDemander,
-                totalCount: projects.length,
-                onAdd: isDemander
-                    ? () => context.push(RoutePaths.publishProject)
-                    : null,
-              ),
+            VccEditorialAppBar(
+              title: '我的项目',
+              subtitle: isDemander
+                  ? '按状态管理招募、推进、验收与争议处理'
+                  : '按阶段查看交付、验收、争议与结项',
+              trailing: headerTrailing,
             ),
             SliverPersistentHeader(
               pinned: true,
@@ -185,154 +212,6 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       return;
     }
     context.push('/projects/${project.routingId}');
-  }
-}
-
-class _ProjectTitleHeaderDelegate extends SliverPersistentHeaderDelegate {
-  static const double _toolbarHeight = 54;
-  static const double _expandedHeight = 124;
-
-  final double topPadding;
-  final bool isDemander;
-  final int totalCount;
-  final VoidCallback? onAdd;
-
-  const _ProjectTitleHeaderDelegate({
-    required this.topPadding,
-    required this.isDemander,
-    required this.totalCount,
-    required this.onAdd,
-  });
-
-  @override
-  double get minExtent => topPadding + _toolbarHeight;
-
-  @override
-  double get maxExtent => topPadding + _expandedHeight;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    final range = maxExtent - minExtent;
-    final progress = range <= 0 ? 1.0 : (shrinkOffset / range).clamp(0.0, 1.0);
-    final subtitleOpacity =
-        1 - Curves.easeOut.transform((progress / 0.65).clamp(0.0, 1.0));
-    final badgeOpacity =
-        1 - Curves.easeOut.transform(((progress - 0.15) / 0.5).clamp(0.0, 1.0));
-    final dividerOpacity =
-        Curves.easeOut.transform(((progress - 0.82) / 0.18).clamp(0.0, 1.0));
-    final titleTop = lerpDouble(topPadding + 48, topPadding + 15, progress)!;
-    final titleSize = lerpDouble(30, 18, progress)!;
-    final titleWeight =
-        FontWeight.lerp(FontWeight.w700, FontWeight.w600, progress) ??
-            FontWeight.w600;
-    final subtitleTop = lerpDouble(topPadding + 86, topPadding + 70, progress)!;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: dividerOpacity > 0
-            ? Border(
-                bottom: BorderSide(
-                  color: AppColors.gray200.withValues(alpha: dividerOpacity),
-                  width: 0.5,
-                ),
-              )
-            : null,
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned(
-            top: topPadding + 10,
-            right: 20,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (totalCount > 0)
-                  IgnorePointer(
-                    child: Opacity(
-                      opacity: badgeOpacity,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.black,
-                          borderRadius: BorderRadius.circular(AppRadius.full),
-                        ),
-                        child: Text(
-                          '$totalCount 个项目',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (onAdd != null) ...[
-                  if (totalCount > 0) const SizedBox(width: 8),
-                  _ProjectHeaderAction(onPressed: onAdd!),
-                ],
-              ],
-            ),
-          ),
-          Positioned(
-            top: titleTop,
-            left: 20,
-            right: onAdd != null ? 132 : 20,
-            child: IgnorePointer(
-              child: Text(
-                '我的项目',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: titleSize,
-                  fontWeight: titleWeight,
-                  height: 1,
-                  letterSpacing: -0.8,
-                  color: AppColors.black,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: subtitleTop,
-            left: 20,
-            right: 20,
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: subtitleOpacity,
-                child: Text(
-                  isDemander ? '按状态管理招募、推进、验收与争议处理' : '按阶段查看交付、验收、争议与结项',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.35,
-                    color: AppColors.gray500,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _ProjectTitleHeaderDelegate oldDelegate) {
-    return topPadding != oldDelegate.topPadding ||
-        isDemander != oldDelegate.isDemander ||
-        totalCount != oldDelegate.totalCount ||
-        onAdd != oldDelegate.onAdd;
   }
 }
 
