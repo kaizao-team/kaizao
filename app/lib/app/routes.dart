@@ -81,6 +81,7 @@ class RoutePaths {
   static const String projectManage = '/projects/:projectId/manage';
   static const String acceptance =
       '/projects/:projectId/milestones/:milestoneId/acceptance';
+  static const String projectAcceptance = '/projects/:projectId/acceptance';
   static const String orderConfirm = '/orders/:orderId/confirm';
   static const String paymentResult = '/orders/:orderId/result';
   static const String settings = '/settings';
@@ -384,6 +385,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             milestoneId: state.pathParameters['milestoneId'] ?? '',
           ),
         ),
+      ),
+      GoRoute(
+        path: RoutePaths.projectAcceptance,
+        pageBuilder: (_, state) {
+          final projectId = state.pathParameters['projectId'] ?? '';
+          final milestoneId =
+              state.uri.queryParameters['milestoneId'] ?? '';
+          return _cupertinoPage(
+            AcceptancePage(
+              milestoneId: milestoneId,
+              projectId: projectId,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: RoutePaths.orderConfirm,

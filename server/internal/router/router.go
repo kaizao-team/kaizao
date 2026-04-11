@@ -143,6 +143,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		projects.POST("/:id/quick-match", middleware.JWTAuth(services.JWT), handlers.Bid.QuickMatch)
 		// v7.0 评价 (GET)
 		projects.GET("/:id/reviews", middleware.OptionalJWTAuth(services.JWT), handlers.Review.ListByProject)
+		projects.POST("/:id/deliver", middleware.JWTAuth(services.JWT), handlers.Task.DeliverProject)
+		projects.POST("/:id/accept", middleware.JWTAuth(services.JWT), handlers.Task.AcceptProject)
 		projects.POST("/:id/ai-assist", middleware.JWTAuth(services.JWT), placeholder)
 		// Phase 3 PRD
 		projects.GET("/:id/prd", middleware.JWTAuth(services.JWT), handlers.PRD.GetPRD)
@@ -161,6 +163,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	{
 		milestones.PUT("/:id", middleware.JWTAuth(services.JWT), placeholder)
 		milestones.POST("/:id/deliver", middleware.JWTAuth(services.JWT), handlers.Task.DeliverMilestone)
+		milestones.POST("/:id/complete", middleware.JWTAuth(services.JWT), handlers.Task.CompleteMilestone)
 		// Phase 5 验收
 		milestones.GET("/:id/acceptance", middleware.JWTAuth(services.JWT), handlers.Task.GetAcceptance)
 		milestones.POST("/:id/accept", middleware.JWTAuth(services.JWT), handlers.Task.AcceptMilestone)

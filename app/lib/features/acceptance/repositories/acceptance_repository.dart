@@ -15,6 +15,11 @@ class AcceptanceRepository {
     await _client.post(ApiEndpoints.milestoneAccept(milestoneId));
   }
 
+  /// 项目级验收通过
+  Future<void> confirmProjectAcceptance(String projectId) async {
+    await _client.post(ApiEndpoints.projectAccept(projectId));
+  }
+
   Future<void> submitRevision({
     required String milestoneId,
     required String description,
