@@ -194,6 +194,21 @@ class _BottomActions extends ConsumerWidget {
         ],
       );
     }
+    // status=2 已投标
+    if (state.status == 2 && state.hasBid) {
+      return Row(
+        children: [
+          Expanded(child: _buildChatButton()),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: VccButton(
+              text: '已投标，等待项目方选定',
+              onPressed: null,
+            ),
+          ),
+        ],
+      );
+    }
     // status=2 无 bid
     if (state.status == 2) {
       return Row(

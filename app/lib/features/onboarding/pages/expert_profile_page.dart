@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/models/project_category.dart';
 import '../../../shared/skills/app_skill_icon.dart';
 import '../../../shared/skills/app_skill_registry.dart';
 import '../../../shared/widgets/local_avatar_picker.dart';
@@ -29,6 +30,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
   final _inviteCodeController = TextEditingController();
   final Set<String> _selectedSkills = {};
   final Set<String> _selectedTools = {};
+  String? _serviceDirection;
   String? _avatarUrl;
 
   int _selfRating = 3;
@@ -54,6 +56,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
     _phoneController.text = draft['contact_phone'] as String? ?? '';
     _inviteCodeController.text = draft['invite_code'] as String? ?? '';
     _avatarUrl = draft['avatar_url'] as String?;
+    _serviceDirection = draft['service_direction'] as String?;
     if (draft['skills'] is List) {
       _selectedSkills.addAll((draft['skills'] as List).cast<String>());
     }
@@ -95,6 +98,11 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
     if (!_isValid) return;
 
     final notifier = ref.read(onboardingProvider.notifier);
+    // Save service direction to draft
+    if (_serviceDirection != null) {
+      await notifier
+          .saveDraft({'service_direction': _serviceDirection});
+    }
     final success = await notifier.submitExpertProfile(
       nickname: _nicknameController.text.trim(),
       avatarUrl: _avatarUrl,
@@ -106,6 +114,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
       rateMax: _rateMax,
       contactPhone: _phoneController.text.trim(),
       inviteCode: _inviteCodeController.text.trim(),
+      serviceDirection: _serviceDirection,
     );
     if (!mounted) return;
 
@@ -198,6 +207,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
             skills: _selectedSkills.toList(),
             tools: _selectedTools.toList(),
             availability: _availability,
+            serviceDirection: _serviceDirection,
             rateText:
                 '¥${_formatRate(_rateMin)} - ¥${_formatRate(_rateMax)} / 天',
           ),
@@ -305,7 +315,7 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
           const SizedBox(height: 28),
           const OnboardingSectionHeader(
             title: '联系手机号',
-            description: '便于撮合后第一时间联系你，仅对匹配方可见。',
+            description: '便于撮合后第一时间联系你，仅平台方可见。',
           ),
           const SizedBox(height: 8),
           OnboardingDeckCard(
@@ -351,6 +361,29 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
                   minHeight: 0,
                 ),
               ),
+            ),
+          ),
+          const SizedBox(height: 28),
+          const OnboardingSectionHeader(
+            title: '方向标签',
+            description: '选择你的团队最擅长的服务方向。',
+          ),
+          const SizedBox(height: 12),
+          OnboardingDeckCard(
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: projectCategorySpecs.map((spec) {
+                final isSelected = _serviceDirection == spec.key;
+                return OnboardingChip(
+                  label: spec.label,
+                  selected: isSelected,
+                  onTap: () {
+                    setState(
+                        () => _serviceDirection = isSelected ? null : spec.key);
+                  },
+                );
+              }).toList(),
             ),
           ),
           const SizedBox(height: 28),
@@ -472,6 +505,7 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
   final List<String> skills;
   final List<String> tools;
   final String availability;
+  final String? serviceDirection;
   final String rateText;
 
   const _ExpertProfilePreviewCard({
@@ -480,6 +514,7 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
     required this.skills,
     required this.tools,
     required this.availability,
+    this.serviceDirection,
     required this.rateText,
   });
 
@@ -524,6 +559,24 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
               ),
             ],
           ),
+          if (serviceDirection != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.onboardingPrimary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                projectCategoryLabel(serviceDirection),
+                style: AppTextStyles.caption.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onboardingPrimary,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           Text(
             '让项目方在几秒内理解你的方向、技术栈与合作节奏。',

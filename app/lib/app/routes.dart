@@ -35,6 +35,7 @@ import '../features/settings/pages/settings_page.dart';
 import '../features/settings/pages/about_page.dart';
 import '../features/settings/pages/help_feedback_page.dart';
 import '../features/profile/pages/edit_profile_page.dart';
+import '../features/profile/pages/portfolio_form_page.dart';
 import '../features/wallet/pages/wallet_page.dart';
 import '../features/team/pages/team_hall_page.dart';
 import '../features/team/pages/create_team_post_page.dart';
@@ -85,6 +86,7 @@ class RoutePaths {
   static const String settings = '/settings';
   static const String income = '/income';
   static const String editProfile = '/profile/edit';
+  static const String portfolioForm = '/profile/portfolio/new';
   static const String wallet = '/wallet';
   static const String teamHall = '/team';
   static const String createTeamPost = '/team/create';
@@ -339,6 +341,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.editProfile,
         pageBuilder: (_, __) => _cupertinoPage(
           const EditProfilePage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.portfolioForm,
+        pageBuilder: (_, __) => _cupertinoPage(
+          const PortfolioFormPage(),
         ),
       ),
       GoRoute(

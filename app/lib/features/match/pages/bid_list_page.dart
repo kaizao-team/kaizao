@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/models/vibe_level.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_tag.dart';
 import '../../../shared/widgets/vcc_toast.dart';
@@ -220,16 +221,27 @@ class BidListPage extends ConsumerWidget {
                                         const SizedBox(height: 4),
                                         Row(
                                           children: [
-                                            const Icon(Icons.star_rounded,
-                                                size: 16,
-                                                color: AppColors.accentGold),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '${bid.rating}',
-                                              style: AppTextStyles.body2
-                                                  .copyWith(
-                                                color: AppColors.gray600,
-                                                fontWeight: FontWeight.w600,
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.black
+                                                    .withValues(alpha: 0.06),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                bid.levelName ??
+                                                    vibeLevelLabel(
+                                                        bid.vibeLevel),
+                                                style: AppTextStyles.caption
+                                                    .copyWith(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.gray600,
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 12),
