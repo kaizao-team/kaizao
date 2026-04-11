@@ -10,7 +10,6 @@ import '../../notification/providers/notification_provider.dart';
 import '../models/match_models.dart';
 import '../providers/match_provider.dart';
 import '../widgets/ai_suggestion_card.dart';
-import '../widgets/bid_type_toggle.dart';
 
 class BidFormPage extends ConsumerStatefulWidget {
   final String projectId;
@@ -69,41 +68,6 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                   if (state.suggestion != null)
                     AiSuggestionCard(suggestion: state.suggestion!),
                   const SizedBox(height: 24),
-                  BidTypeToggle(
-                    selected: state.bidType,
-                    onChanged: notifier.setBidType,
-                  ),
-                  if (state.bidType == BidFormType.team) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.gray50,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(color: AppColors.gray200),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.group_outlined,
-                              size: 20, color: AppColors.gray500),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text('选择团队',
-                                style: AppTextStyles.body2.copyWith(
-                                    color: AppColors.gray500)),
-                          ),
-                          GestureDetector(
-                            onTap: () {},
-                            child: Text('去组队 →',
-                                style: AppTextStyles.caption.copyWith(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.accent)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 24),
                   Text('报价金额',
                       style: AppTextStyles.body2.copyWith(
