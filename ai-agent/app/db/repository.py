@@ -765,10 +765,10 @@ class RatingRepository:
                     project_id=project_id,
                 ))
 
-    async def sync_profile_to_team(self, user_uuid: str, profile_data: dict) -> None:
+    async def sync_profile_to_team(self, provider_id: str, profile_data: dict) -> None:
         """
         将评级结果同步到 Go 后端 teams 表。
-        通过 user_uuid → users.id → teams.leader_id 定位 team 行，
+        provider_id 可能是 team UUID 或 user UUID，两条路径都尝试。
         仅 UPDATE VibePower 相关字段，不 INSERT。
         """
         sync_fields = {
@@ -783,18 +783,26 @@ class RatingRepository:
 
         async with get_session_factory()() as session:
             async with session.begin():
-                # 查 user.id
+                # 路径 1: provider_id 是 team UUID，直接匹配 teams.uuid
+                result = await session.execute(
+                    update(Team)
+                    .where(Team.uuid == provider_id)
+                    .values(**values)
+                )
+                if result.rowcount > 0:
+                    logger.info("team_sync_ok", match="team_uuid", provider_id=provider_id, fields=list(values.keys()))
+                    return
+
+                # 路径 2: provider_id 是 user UUID，通过 users → teams.leader_id
                 q = await session.execute(
-                    select(User.id).where(User.uuid == user_uuid)
+                    select(User.id).where(User.uuid == provider_id)
                 )
                 user_row = q.first()
                 if not user_row:
-                    logger.warning("team_sync_skip", reason="user not found", user_uuid=user_uuid)
+                    logger.warning("team_sync_skip", reason="no match for provider_id", provider_id=provider_id)
                     return
 
                 leader_id = user_row[0]
-
-                # 更新 teams 表
                 result = await session.execute(
                     update(Team)
                     .where(Team.leader_id == leader_id)
@@ -803,7 +811,7 @@ class RatingRepository:
                 if result.rowcount == 0:
                     logger.warning("team_sync_skip", reason="no team row for leader", leader_id=leader_id)
                 else:
-                    logger.info("team_sync_ok", leader_id=leader_id, fields=list(values.keys()))
+                    logger.info("team_sync_ok", match="leader_id", leader_id=leader_id, fields=list(values.keys()))
 
     async def get_power_logs(
         self,
