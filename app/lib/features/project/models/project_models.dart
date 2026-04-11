@@ -10,9 +10,6 @@ class KanbanTask {
   final bool isAtRisk;
   final String createdAt;
   final String? completedAt;
-  final String? taskCode;
-  final String? featureItemId;
-  final String? earsType;
 
   const KanbanTask({
     required this.id,
@@ -26,9 +23,6 @@ class KanbanTask {
     required this.isAtRisk,
     required this.createdAt,
     this.completedAt,
-    this.taskCode,
-    this.featureItemId,
-    this.earsType,
   });
 
   bool get isTodo => status == 'todo';
@@ -48,9 +42,6 @@ class KanbanTask {
       isAtRisk: isAtRisk,
       createdAt: createdAt,
       completedAt: status == 'completed' ? DateTime.now().toIso8601String() : completedAt,
-      taskCode: taskCode,
-      featureItemId: featureItemId,
-      earsType: earsType,
     );
   }
 
@@ -63,13 +54,10 @@ class KanbanTask {
       priority: json['priority'] as String,
       assignee: json['assignee'] as String?,
       milestoneId: json['milestone_id'] as String?,
-      effortHours: json['effort_hours'] as int? ?? 0,
-      isAtRisk: json['is_at_risk'] as bool? ?? false,
+      effortHours: json['effort_hours'] as int,
+      isAtRisk: json['is_at_risk'] as bool,
       createdAt: json['created_at'] as String,
       completedAt: json['completed_at'] as String?,
-      taskCode: json['task_code'] as String?,
-      featureItemId: json['feature_item_id'] as String?,
-      earsType: json['ears_type'] as String?,
     );
   }
 }
@@ -169,7 +157,7 @@ class DailyReport {
   }
 }
 
-enum ProjectTab { kanban, milestone, prd, files, report }
+enum ProjectTab { tasks, milestones, files }
 
 class ProjectFile {
   final String uuid;
