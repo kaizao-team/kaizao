@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/profile_models.dart';
 import '../repositories/profile_repository.dart';
 
@@ -158,6 +159,8 @@ final profileProvider = StateNotifierProvider.autoDispose
     .family<ProfileNotifier, ProfileState, String>((ref, userId) {
   if (userId == 'me') {
     ref.keepAlive();
+    // Re-create when auth state changes (login/logout/switch account)
+    ref.watch(authStateProvider.select((s) => s.userId));
   }
   final repository = ref.watch(profileRepositoryProvider);
   return ProfileNotifier(repository, userId);

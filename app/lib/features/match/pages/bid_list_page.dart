@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
-import '../../../shared/models/vibe_level.dart';
+import '../../../shared/models/vibe_level.dart' show vibeLevelLabel, vibeLevelSpecs;
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_tag.dart';
 import '../../../shared/widgets/vcc_toast.dart';
@@ -233,9 +233,7 @@ class BidListPage extends ConsumerWidget {
                                                     BorderRadius.circular(4),
                                               ),
                                               child: Text(
-                                                bid.levelName ??
-                                                    vibeLevelLabel(
-                                                        bid.vibeLevel),
+                                                _formatLevelDisplay(bid),
                                                 style: AppTextStyles.caption
                                                     .copyWith(
                                                   fontSize: 11,
@@ -617,4 +615,11 @@ class _DetailSection extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Format level display: "vc-T3 熟练"
+String _formatLevelDisplay(BidItem bid) {
+  final code = bid.vibeLevel ?? 'vc-T1';
+  final label = bid.levelName ?? vibeLevelLabel(code);
+  return '$code $label';
 }

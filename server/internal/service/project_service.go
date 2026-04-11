@@ -130,7 +130,7 @@ func (s *ProjectService) ListMine(userUUID string, page, pageSize int, condition
 	return s.repos.Project.ListMine(user.ID, offset, pageSize, conditions, sortBy, sortOrder)
 }
 
-// ListByRole 按角色获取项目列表: role=1 需求方(我发布的), role=2 专家(我参与的)
+// ListByRole 按角色获取项目列表: role=1 需求方(我发布的), role=2 专家(我参与的+已投标的)
 func (s *ProjectService) ListByRole(userUUID string, role, page, pageSize int) ([]*model.Project, int64, error) {
 	user, err := s.repos.User.FindByUUID(userUUID)
 	if err != nil {
@@ -138,7 +138,7 @@ func (s *ProjectService) ListByRole(userUUID string, role, page, pageSize int) (
 	}
 	offset := (page - 1) * pageSize
 	if role == 2 {
-		return s.repos.Project.ListByProviderID(user.ID, offset, pageSize)
+		return s.repos.Project.ListByProviderOrBidder(user.ID, offset, pageSize)
 	}
 	return s.repos.Project.ListByOwnerID(user.ID, offset, pageSize)
 }

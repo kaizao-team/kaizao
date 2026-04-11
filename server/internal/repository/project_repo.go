@@ -90,6 +90,22 @@ func (r *projectRepository) ListByProviderID(providerID int64, offset, limit int
 	return r.List(offset, limit, map[string]interface{}{"provider_id": providerID}, "created_at", "desc")
 }
 
+func (r *projectRepository) ListByProviderOrBidder(userID int64, offset, limit int) ([]*model.Project, int64, error) {
+	var projects []*model.Project
+	var total int64
+
+	query := r.db.Model(&model.Project{}).Preload("Owner").Preload("Provider").
+		Where("provider_id = ? OR id IN (SELECT project_id FROM bids WHERE bidder_id = ? AND status = 1)", userID, userID)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Order("created_at desc").Offset(offset).Limit(limit).Find(&projects).Error; err != nil {
+		return nil, 0, err
+	}
+	return projects, total, nil
+}
+
 func (r *projectRepository) ListMine(userID int64, offset, limit int, conditions map[string]interface{}, sortBy, sortOrder string) ([]*model.Project, int64, error) {
 	var projects []*model.Project
 	var total int64

@@ -30,6 +30,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     super.dispose();
   }
 
+  bool get _isDemander => ref.read(profileProvider('me')).profile?.isDemander ?? false;
+
   void _initFields(ProfileState state) {
     if (_initialized) return;
     final p = state.profile;
@@ -116,24 +118,26 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           _buildField(
             '一句话介绍',
             _taglineController,
-            '如：全栈 Vibe Coder',
+            _isDemander ? '如：具身智能企业，专注机器人领域' : '如：全栈 Vibe Coder',
             maxLength: 30,
           ),
           const SizedBox(height: 20),
           _buildField(
-            '个人简介',
+            _isDemander ? '公司简介' : '个人简介',
             _bioController,
-            '介绍你的经验和技能...',
+            _isDemander ? '介绍公司服务及信息...' : '介绍你的经验和技能...',
             maxLines: 4,
             maxLength: 200,
           ),
-          const SizedBox(height: 28),
-          SkillTagEditor(
-            skills: state.skills,
-            onChanged: (skills) {
-              ref.read(profileProvider('me').notifier).updateSkills(skills);
-            },
-          ),
+          if (!_isDemander) ...[
+            const SizedBox(height: 28),
+            SkillTagEditor(
+              skills: state.skills,
+              onChanged: (skills) {
+                ref.read(profileProvider('me').notifier).updateSkills(skills);
+              },
+            ),
+          ],
           const SizedBox(height: 40),
           VccButton(text: '保存修改', onPressed: _save, isLoading: _isSaving),
           const SizedBox(height: 20),

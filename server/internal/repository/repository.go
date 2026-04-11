@@ -141,6 +141,8 @@ type ProjectRepository interface {
 	List(offset, limit int, conditions map[string]interface{}, sortBy, sortOrder string) ([]*model.Project, int64, error)
 	ListByOwnerID(ownerID int64, offset, limit int) ([]*model.Project, int64, error)
 	ListByProviderID(providerID int64, offset, limit int) ([]*model.Project, int64, error)
+	// ListByProviderOrBidder 作为 provider 或有投标的项目（团队方我的项目）
+	ListByProviderOrBidder(userID int64, offset, limit int) ([]*model.Project, int64, error)
 	// ListMine 当前用户作为 owner 或 provider 的项目（OR），可叠加与 List 相同的等值条件
 	ListMine(userID int64, offset, limit int, conditions map[string]interface{}, sortBy, sortOrder string) ([]*model.Project, int64, error)
 	ListMarket(offset, limit int, filter ProjectFilter) ([]*model.Project, int64, error)

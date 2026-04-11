@@ -214,7 +214,7 @@ class _BottomActions extends ConsumerWidget {
           const SizedBox(width: 12),
           const Expanded(
             child: VccButton(
-              text: '已投标，等待项目方选定',
+              text: '已投标',
               onPressed: null,
             ),
           ),
