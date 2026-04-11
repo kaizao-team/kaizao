@@ -143,17 +143,16 @@
       destroy-on-close
     >
       <el-form
-        ref="createFormRef"
         :model="createForm"
-        :rules="createRules"
         label-width="90px"
         label-position="top"
       >
-        <el-form-item label="团队 UUID" prop="team_uuid">
-          <el-input
-            v-model="createForm.team_uuid"
-            placeholder="请输入要绑定的团队 UUID"
-            clearable
+        <el-form-item label="生成数量" prop="count">
+          <el-input-number
+            v-model="createForm.count"
+            :min="1"
+            :max="200"
+            style="width: 100%"
           />
         </el-form-item>
         <el-form-item label="备注" prop="note">
@@ -186,7 +185,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Search, CopyDocument } from '@element-plus/icons-vue'
 import { useTable } from '@/composables/useTable'
 import { getInviteCodes, createInviteCode } from '@/api/invite-codes'
@@ -260,29 +258,23 @@ async function copyCode(code: string) {
 // ---- Create ----
 const showCreateDialog = ref(false)
 const creating = ref(false)
-const createFormRef = ref<FormInstance>()
 const createForm = reactive({
-  team_uuid: '',
+  count: 10,
   note: '',
   expires_at: '',
 })
-const createRules: FormRules = {
-  team_uuid: [{ required: true, message: '请输入团队 UUID', trigger: 'blur' }],
-}
 
 async function handleCreate() {
-  if (!createFormRef.value) return
-  await createFormRef.value.validate()
   creating.value = true
   try {
     await createInviteCode({
-      team_uuid: createForm.team_uuid,
+      count: createForm.count,
       note: createForm.note || undefined,
       expires_at: createForm.expires_at || undefined,
     })
     ElMessage.success('邀请码创建成功')
     showCreateDialog.value = false
-    createForm.team_uuid = ''
+    createForm.count = 10
     createForm.note = ''
     createForm.expires_at = ''
     handleSearch()

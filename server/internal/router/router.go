@@ -250,7 +250,9 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		// 邀请码
 		admin.POST("/invite-codes", handlers.Admin.CreateInviteCode)
 		admin.GET("/invite-codes", handlers.Admin.ListInviteCodes)
-		// 团队审核
+		// 团队管理
+		admin.GET("/teams", handlers.Admin.ListTeams)
+		admin.GET("/teams/:uuid", handlers.Admin.GetTeamDetail)
 		admin.PUT("/teams/:uuid/approval", handlers.Admin.ReviewTeamApproval)
 		admin.PUT("/teams/:uuid", handlers.Admin.UpdateTeam)
 		// 用户管理

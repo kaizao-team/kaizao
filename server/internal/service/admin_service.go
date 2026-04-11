@@ -531,6 +531,47 @@ func (s *AdminService) UpdateReviewStatus(uuid string, status int) error {
 	return s.db().Model(&model.Review{}).Where("uuid = ?", uuid).Update("status", status).Error
 }
 
+// ──────────── 团队管理 ────────────
+
+type AdminTeamListOpts struct {
+	Keyword        string
+	VibeLevel      string
+	ApprovalStatus *int
+	Page, PageSize int
+}
+
+func (s *AdminService) ListTeams(opts AdminTeamListOpts) ([]model.Team, int64, error) {
+	q := s.db().Model(&model.Team{}).Preload("Leader")
+	if opts.Keyword != "" {
+		like := "%" + opts.Keyword + "%"
+		q = q.Where("name LIKE ? OR uuid LIKE ?", like, like)
+	}
+	if opts.VibeLevel != "" {
+		q = q.Where("vibe_level = ?", opts.VibeLevel)
+	}
+	if opts.ApprovalStatus != nil {
+		q = q.Where("approval_status = ?", *opts.ApprovalStatus)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var teams []model.Team
+	off := (opts.Page - 1) * opts.PageSize
+	if err := q.Order("created_at DESC").Offset(off).Limit(opts.PageSize).Find(&teams).Error; err != nil {
+		return nil, 0, err
+	}
+	return teams, total, nil
+}
+
+func (s *AdminService) GetTeamDetail(teamUUID string) (*model.Team, error) {
+	var t model.Team
+	if err := s.db().Preload("Leader").Preload("Members.User").Where("uuid = ?", teamUUID).First(&t).Error; err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
 // UpdateTeamApproval 管理端审核团队
 func (s *AdminService) UpdateTeamApproval(teamUUID string, approvalStatus int16) error {
 	team, err := s.repos.Team.FindByUUID(teamUUID)

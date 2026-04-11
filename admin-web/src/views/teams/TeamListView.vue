@@ -104,6 +104,14 @@
 
         <el-table-column prop="completed_projects" label="完成项目" width="100" align="center" />
 
+        <el-table-column label="审核" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag size="small" :type="approvalTagType(row.approval_status)">
+              {{ approvalLabel(row.approval_status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag size="small" :type="teamStatusTagType(row.status)">
@@ -202,20 +210,36 @@ function vibeLevelTagType(
 }
 
 const STATUS_MAP: Record<
-  string,
-  { label: string; type?: 'info' | 'success' | 'warning' }
+  string | number,
+  { label: string; type?: 'info' | 'success' | 'warning' | 'danger' }
 > = {
+  1: { label: '活跃', type: 'success' },
+  3: { label: '禁用', type: 'danger' },
   recruiting: { label: '招募中', type: 'info' },
   confirming: { label: '确认中', type: 'warning' },
   active: { label: '进行中', type: 'success' },
 }
 
-function teamStatusLabel(status: string) {
-  return STATUS_MAP[status]?.label || status || '-'
+function teamStatusLabel(status: string | number) {
+  return STATUS_MAP[status]?.label || String(status || '-')
 }
 
-function teamStatusTagType(status: string): 'info' | 'warning' | 'success' | undefined {
+function teamStatusTagType(status: string | number): 'info' | 'warning' | 'success' | 'danger' | undefined {
   return STATUS_MAP[status]?.type ?? 'info'
+}
+
+function approvalLabel(s: number) {
+  if (s === 1) return '待审核'
+  if (s === 2) return '已通过'
+  if (s === 3) return '已拒绝'
+  return '-'
+}
+
+function approvalTagType(s: number): 'info' | 'success' | 'danger' | 'warning' {
+  if (s === 1) return 'warning'
+  if (s === 2) return 'success'
+  if (s === 3) return 'danger'
+  return 'info'
 }
 
 onMounted(() => {

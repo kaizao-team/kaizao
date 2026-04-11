@@ -13,7 +13,7 @@ export interface InviteCode {
 }
 
 export interface CreateInviteCodeParams {
-  team_uuid: string
+  count: number
   note?: string
   expires_at?: string
 }
