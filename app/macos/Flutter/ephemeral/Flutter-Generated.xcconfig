@@ -1,6 +1,6 @@
 // This is a generated file; do not edit or check into version control.
-FLUTTER_ROOT=/opt/homebrew/share/flutter
-FLUTTER_APPLICATION_PATH=/Users/zhangheng/Documents/WorkSpace/kaizao/app
+FLUTTER_ROOT=/Users/liangyutao/Documents/个人文件/AI项目撮合平台/05-代码/flutter
+FLUTTER_APPLICATION_PATH=/Users/liangyutao/Documents/个人文件/AI项目撮合平台/vibebuild/app
 COCOAPODS_PARALLEL_CODE_SIGN=true
 FLUTTER_BUILD_DIR=build
 FLUTTER_BUILD_NAME=1.0.0

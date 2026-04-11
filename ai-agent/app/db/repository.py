@@ -576,13 +576,13 @@ class GoTasksRepository:
                     await session.execute(
                         sqlalchemy_text(
                             """INSERT INTO tasks
-                            (uuid, project_id, task_code, title, ears_type,
+                            (uuid, project_id, task_code, feature_item_id, title, ears_type,
                              ears_trigger, ears_behavior, ears_full_text, module,
                              role_tag, priority, estimated_hours,
                              acceptance_criteria, dependencies,
                              status, sort_order, is_ai_generated, ai_confidence, created_at, updated_at)
                             VALUES
-                            (:uuid, :project_id, :task_code, :title, :ears_type,
+                            (:uuid, :project_id, :task_code, :feature_item_id, :title, :ears_type,
                              :ears_trigger, :ears_behavior, :ears_full_text, :module,
                              :role_tag, :priority, :estimated_hours,
                              :acceptance_criteria, :dependencies,
@@ -593,6 +593,7 @@ class GoTasksRepository:
                             "uuid": task_uuid,
                             "project_id": project_id,
                             "task_code": task_code,
+                            "feature_item_id": feature_item_id,
                             "title": title[:200],
                             "ears_type": ears_type,
                             "ears_trigger": ears_trigger,

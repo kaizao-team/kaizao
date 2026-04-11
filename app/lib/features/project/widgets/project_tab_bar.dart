@@ -15,7 +15,7 @@ class ProjectTabBar extends StatelessWidget {
   static const _tabs = [
     (ProjectTab.kanban, '看板', Icons.view_kanban_outlined),
     (ProjectTab.milestone, '里程碑', Icons.flag_outlined),
-    (ProjectTab.prd, 'PRD', Icons.description_outlined),
+    (ProjectTab.prd, '需求', Icons.description_outlined),
     (ProjectTab.files, '文件', Icons.folder_outlined),
     (ProjectTab.report, '简报', Icons.auto_awesome_outlined),
   ];

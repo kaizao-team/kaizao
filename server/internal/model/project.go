@@ -142,6 +142,7 @@ type Task struct {
 	MilestoneID        *int64     `gorm:"index" json:"milestone_id,omitempty"`
 	ParentTaskID       *int64     `gorm:"index" json:"parent_task_id,omitempty"`
 	TaskCode           string     `gorm:"type:varchar(20);not null" json:"task_code"`
+	FeatureItemID      string     `gorm:"type:varchar(20);default:''" json:"feature_item_id"`
 	Title              string     `gorm:"type:varchar(200);not null" json:"title"`
 	EarsType           string     `gorm:"type:varchar(20);not null;index" json:"ears_type"`
 	EarsTrigger        *string    `gorm:"type:text" json:"ears_trigger,omitempty"`
