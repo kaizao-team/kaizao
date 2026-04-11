@@ -19,6 +19,7 @@ import '../../../shared/widgets/vcc_section_label.dart';
 import '../../project/providers/project_list_provider.dart';
 import '../models/profile_models.dart';
 import '../providers/profile_provider.dart';
+import '../widgets/portfolio_grid.dart';
 
 const double _kProfilePageHorizontalPadding = 20;
 const double _kProfileSectionGap = 28;
@@ -155,6 +156,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           label: 'OVERVIEW',
                           child: _ProfileMetricsCard(profile: profile),
                         ),
+                        if (!profile.isDemander &&
+                            state.portfolios.isNotEmpty) ...[
+                          const SizedBox(height: _kProfileSectionGap),
+                          PortfolioGrid(items: state.portfolios),
+                        ],
                         const SizedBox(height: _kProfileSectionGap),
                         VccPageSection(
                           label: 'ACCOUNT',
