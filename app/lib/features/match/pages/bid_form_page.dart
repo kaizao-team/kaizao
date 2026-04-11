@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_input.dart';
 import '../../../shared/widgets/vcc_toast.dart';
@@ -46,8 +47,8 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
-        title: const Text('提交投标',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+        title: Text('提交投标',
+            style: AppTextStyles.h3.copyWith(fontSize: 17)),
       ),
       body: state.isLoading
           ? const Center(
@@ -61,7 +62,7 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
               ),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -78,7 +79,7 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: AppColors.gray50,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                         border: Border.all(color: AppColors.gray200),
                       ),
                       child: Row(
@@ -86,15 +87,15 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                           const Icon(Icons.group_outlined,
                               size: 20, color: AppColors.gray500),
                           const SizedBox(width: 10),
-                          const Expanded(
+                          Expanded(
                             child: Text('选择团队',
-                                style: TextStyle(
-                                    fontSize: 14, color: AppColors.gray500)),
+                                style: AppTextStyles.body2.copyWith(
+                                    color: AppColors.gray500)),
                           ),
                           GestureDetector(
                             onTap: () {},
-                            child: const Text('去组队 →',
-                                style: TextStyle(
+                            child: Text('去组队 →',
+                                style: AppTextStyles.caption.copyWith(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
                                     color: AppColors.accent)),
@@ -104,8 +105,8 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  const Text('报价金额',
-                      style: TextStyle(
+                  Text('报价金额',
+                      style: AppTextStyles.body2.copyWith(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: AppColors.black)),
@@ -120,11 +121,11 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                     },
                   ),
                   if (state.isAmountZero)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
                       child: Text('报价不能为 0',
-                          style:
-                              TextStyle(fontSize: 12, color: AppColors.error)),
+                          style: AppTextStyles.caption.copyWith(
+                              color: AppColors.error)),
                     ),
                   if (state.isAmountBelowBudget && !state.isAmountZero)
                     Padding(
@@ -136,15 +137,15 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                           const SizedBox(width: 4),
                           Text(
                             '报价低于项目方预算下限 ¥${widget.budgetMin?.toStringAsFixed(0) ?? ''}',
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.warning),
+                            style: AppTextStyles.caption.copyWith(
+                                color: AppColors.warning),
                           ),
                         ],
                       ),
                     ),
                   const SizedBox(height: 20),
-                  const Text('预计工期',
-                      style: TextStyle(
+                  Text('预计工期',
+                      style: AppTextStyles.body2.copyWith(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: AppColors.black)),
@@ -159,8 +160,8 @@ class _BidFormPageState extends ConsumerState<BidFormPage> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  const Text('方案描述',
-                      style: TextStyle(
+                  Text('方案描述',
+                      style: AppTextStyles.body2.copyWith(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: AppColors.black)),
