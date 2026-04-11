@@ -7,10 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../app/routes.dart';
+import '../../../app/theme/app_colors.dart';
 import '../../onboarding/providers/onboarding_provider.dart';
 import '../providers/auth_provider.dart';
-
-const _kBgColor = Color(0xFFF8F8FA);
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -40,7 +39,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: _kBgColor,
+        systemNavigationBarColor: AppColors.surface,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
@@ -152,7 +151,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
         (logoViewportSize * logoZoomScale * devicePixelRatio).round();
 
     return Scaffold(
-      backgroundColor: _kBgColor,
+      backgroundColor: AppColors.surface,
       body: AnimatedBuilder(
         animation: Listenable.merge([
           _logoController,
@@ -176,7 +175,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                             width: logoViewportSize,
                             height: logoViewportSize,
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(AppRadius.xs),
                               child: Transform.scale(
                                 scale: logoZoomScale,
                                 filterQuality: FilterQuality.high,
@@ -221,7 +220,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                               style: TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF1A1A1A),
+                                color: AppColors.black,
                                 letterSpacing: 6,
                               ),
                             ),
@@ -237,7 +236,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
-                          color: Color(0xFF9CA3AF),
+                          color: AppColors.gray400,
                           letterSpacing: 4,
                         ),
                       ),
@@ -258,8 +257,8 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       child: ElevatedButton(
                         onPressed: _onStart,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A1A1A),
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.black,
+                          foregroundColor: AppColors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
