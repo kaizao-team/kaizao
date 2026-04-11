@@ -99,7 +99,7 @@ class BidListPage extends ConsumerWidget {
                                               homeStateProvider.notifier)
                                           .refresh();
                                       if (context.mounted) {
-                                        context.go(RoutePaths.home);
+                                        context.pop();
                                       }
                                     }
                                   }
