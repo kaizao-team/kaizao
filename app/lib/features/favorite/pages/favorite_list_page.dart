@@ -264,14 +264,17 @@ class _ProjectFavoriteCard extends ConsumerWidget {
   }
 
   Future<void> _handleUnfavorite(BuildContext context, WidgetRef ref) async {
-    final ok = await ref.read(favoriteToggleProvider.notifier).toggle(
-          targetType: item.targetType.name,
-          targetId: item.targetId,
-        );
-    if (!context.mounted) return;
-    if (ok) {
+    try {
+      await ref.read(favoriteRepositoryProvider).removeFavorite(
+            targetType: item.targetType.name,
+            targetId: item.targetId,
+          );
+      if (!context.mounted) return;
       VccToast.show(context, message: '已取消收藏');
       ref.read(favoriteListProvider.notifier).loadFavorites();
+    } catch (_) {
+      if (!context.mounted) return;
+      VccToast.show(context, message: '取消收藏失败');
     }
   }
 }
@@ -287,8 +290,8 @@ class _ExpertFavoriteCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () => context.push(
-        RoutePaths.expertProfileView
-            .replaceFirst(':userId', item.targetId),
+        RoutePaths.teamProfile
+            .replaceFirst(':teamId', item.targetId),
       ),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -366,14 +369,17 @@ class _ExpertFavoriteCard extends ConsumerWidget {
   }
 
   Future<void> _handleUnfavorite(BuildContext context, WidgetRef ref) async {
-    final ok = await ref.read(favoriteToggleProvider.notifier).toggle(
-          targetType: item.targetType.name,
-          targetId: item.targetId,
-        );
-    if (!context.mounted) return;
-    if (ok) {
+    try {
+      await ref.read(favoriteRepositoryProvider).removeFavorite(
+            targetType: item.targetType.name,
+            targetId: item.targetId,
+          );
+      if (!context.mounted) return;
       VccToast.show(context, message: '已取消收藏');
       ref.read(favoriteListProvider.notifier).loadFavorites();
+    } catch (_) {
+      if (!context.mounted) return;
+      VccToast.show(context, message: '取消收藏失败');
     }
   }
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,10 +18,7 @@ class HomeOngoingProjectSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleProjects = projects.take(3).toList();
-    final previewProjects = visibleProjects.isEmpty && kDebugMode
-        ? [_debugPreviewProject]
-        : visibleProjects;
+    final previewProjects = projects.take(3).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,25 +422,3 @@ String _priceLabel(ProjectModel project) {
   return project.budgetDisplay;
 }
 
-final _debugPreviewProject = ProjectModel(
-  id: '',
-  uuid: '',
-  ownerId: 'preview_owner',
-  providerId: 'preview_provider',
-  teamId: null,
-  title: 'AI 招聘助手小程序',
-  description: '已完成项目对接，当前进入核心流程开发。',
-  category: 'dev',
-  budgetMin: 5000,
-  budgetMax: 8000,
-  agreedPrice: 6800,
-  complexity: 'medium',
-  progress: 63,
-  status: 5,
-  matchMode: 1,
-  viewCount: 0,
-  bidCount: 0,
-  techRequirements: const ['小程序', 'AI 工作流'],
-  publishedAt: DateTime(2026, 3, 24),
-  createdAt: DateTime(2026, 3, 21),
-);

@@ -149,6 +149,15 @@ class _BottomActions extends ConsumerWidget {
               },
       );
     }
+    if (state.status == 7) {
+      final revieweeId = state.data?['provider_id']?.toString() ?? '';
+      return VccButton(
+        text: '去评价',
+        onPressed: () => context.push(
+          '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=true',
+        ),
+      );
+    }
     // status >= 5
     return VccButton(
       text: '查看进度',
@@ -256,6 +265,15 @@ class _BottomActions extends ConsumerWidget {
       return const VccButton(
         text: '等待项目方启动',
         onPressed: null,
+      );
+    }
+    if (state.status == 7) {
+      final revieweeId = state.data?['owner_id']?.toString() ?? '';
+      return VccButton(
+        text: '去评价',
+        onPressed: () => context.push(
+          '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=false',
+        ),
       );
     }
     // status >= 5

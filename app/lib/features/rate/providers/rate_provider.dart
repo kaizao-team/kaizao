@@ -93,7 +93,7 @@ class RateFormNotifier extends StateNotifier<RateFormState> {
       await _repository.submitReview(ReviewSubmission(
         projectId: _projectId,
         revieweeId: _revieweeId,
-        overallRating: state.averageRating,
+        overallRating: state.overallRating,
         dimensions: state.dimensions,
         comment: state.comment.trim(),
       ));
