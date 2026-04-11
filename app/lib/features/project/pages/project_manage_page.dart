@@ -220,7 +220,7 @@ class _OverviewBar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Files Tab (placeholder — implemented in Step 5)
+// Files Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _FilesTab extends StatelessWidget {
@@ -235,18 +235,170 @@ class _FilesTab extends StatelessWidget {
     required this.ref,
   });
 
+  static const _kinds = [
+    ('reference', '参考文件'),
+    ('process', '过程文件'),
+    ('deliverable', '交付文件'),
+  ];
+
+  IconData _fileIcon(String contentType) {
+    if (contentType.contains('pdf')) return Icons.picture_as_pdf_outlined;
+    if (contentType.contains('image')) return Icons.image_outlined;
+    if (contentType.contains('word') || contentType.contains('document')) {
+      return Icons.article_outlined;
+    }
+    if (contentType.contains('spreadsheet') || contentType.contains('excel')) {
+      return Icons.table_chart_outlined;
+    }
+    if (contentType.contains('zip') || contentType.contains('compressed')) {
+      return Icons.folder_zip_outlined;
+    }
+    return Icons.insert_drive_file_outlined;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.folder_outlined, size: 48, color: AppColors.gray300),
-          const SizedBox(height: 12),
-          Text('文件管理即将上线',
-              style: AppTextStyles.body2.copyWith(color: AppColors.gray500)),
-        ],
-      ),
+    final notifier = ref.read(projectManageProvider(projectId).notifier);
+    final filteredFiles = state.filteredFiles;
+
+    return Column(
+      children: [
+        // Kind filter chips
+        Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          decoration: const BoxDecoration(
+            border: Border(
+                bottom: BorderSide(color: AppColors.gray200, width: 0.5)),
+          ),
+          child: Row(
+            children: _kinds.map((kind) {
+              final isSelected = state.selectedFileKind == kind.$1;
+              return Padding(
+                padding: const EdgeInsets.only(right: AppSpacing.sm),
+                child: GestureDetector(
+                  onTap: () => notifier.setFileKind(kind.$1),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.black : Colors.transparent,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.black
+                            : AppColors.gray300,
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      kind.$2,
+                      style: AppTextStyles.caption.copyWith(
+                        color: isSelected ? AppColors.white : AppColors.gray600,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+
+        // File list
+        Expanded(
+          child: filteredFiles.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.folder_outlined,
+                          size: 48, color: AppColors.gray300),
+                      const SizedBox(height: 12),
+                      Text(
+                        '暂无文件',
+                        style: AppTextStyles.body2
+                            .copyWith(color: AppColors.gray500),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  itemCount: filteredFiles.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: AppSpacing.md),
+                  itemBuilder: (context, index) {
+                    final file = filteredFiles[index];
+                    return GestureDetector(
+                      onTap: () async {
+                        try {
+                          final url = await ref
+                              .read(
+                                  projectManageProvider(projectId).notifier)
+                              .fetchDownloadUrl(file.uuid);
+                          if (context.mounted) {
+                            VccToast.show(context,
+                                message: '下载链接：$url',
+                                type: VccToastType.info);
+                          }
+                        } catch (_) {
+                          if (context.mounted) {
+                            VccToast.show(context,
+                                message: '获取下载链接失败',
+                                type: VccToastType.error);
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(AppSpacing.base),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceRaised,
+                          borderRadius:
+                              BorderRadius.circular(AppRadius.md),
+                          border: Border.all(
+                              color: AppColors.gray200, width: 0.5),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(_fileIcon(file.contentType),
+                                size: 28, color: AppColors.gray400),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    file.originalName,
+                                    style: AppTextStyles.body2.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.onSurface,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${file.displaySize}  ·  ${file.uploadedByNickname ?? '未知'}  ·  ${file.createdAt.toString().substring(0, 10)}',
+                                    style: AppTextStyles.caption.copyWith(
+                                        color: AppColors.gray400),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.download_outlined,
+                                size: 18, color: AppColors.gray400),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }

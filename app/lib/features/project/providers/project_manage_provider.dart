@@ -168,6 +168,10 @@ class ProjectManageNotifier extends StateNotifier<ProjectManageState> {
   void setFileKind(String kind) {
     state = state.copyWith(selectedFileKind: kind);
   }
+
+  Future<String> fetchDownloadUrl(String uuid) async {
+    return _repository.fetchFileDownloadUrl(projectId, uuid);
+  }
 }
 
 final projectManageProvider = StateNotifierProvider.autoDispose
