@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../models/match_models.dart';
 
 class AiSuggestionCard extends StatelessWidget {
@@ -15,7 +16,7 @@ class AiSuggestionCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.accentLight,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: AppColors.accentMuted),
       ),
       child: Column(
@@ -27,15 +28,15 @@ class AiSuggestionCard extends StatelessWidget {
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: AppColors.accent,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: const Icon(Icons.auto_awesome,
                     size: 16, color: AppColors.white),
               ),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 'AI 评估建议',
-                style: TextStyle(
+                style: AppTextStyles.body2.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: AppColors.black,
@@ -66,18 +67,18 @@ class AiSuggestionCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: AppColors.warningBg,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded,
+                  const Icon(Icons.warning_amber_rounded,
                       size: 14, color: AppColors.warning),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       '技能匹配度较低，建议评估后再投标',
-                      style: TextStyle(
-                          fontSize: 12, color: AppColors.warning),
+                      style: AppTextStyles.caption.copyWith(
+                          color: AppColors.warning),
                     ),
                   ),
                 ],
@@ -87,7 +88,7 @@ class AiSuggestionCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             suggestion.reason,
-            style: const TextStyle(
+            style: AppTextStyles.caption.copyWith(
               fontSize: 13,
               height: 1.5,
               color: AppColors.gray600,
@@ -116,12 +117,11 @@ class _InfoRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
-            style:
-                const TextStyle(fontSize: 13, color: AppColors.gray500)),
+            style: AppTextStyles.caption.copyWith(
+                fontSize: 13, color: AppColors.gray500)),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 14,
+          style: AppTextStyles.body2.copyWith(
             fontWeight: FontWeight.w600,
             color: valueColor ?? AppColors.black,
           ),
