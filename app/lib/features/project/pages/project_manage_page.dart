@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/project_models.dart';
@@ -44,7 +45,7 @@ class _ProjectManagePageState extends ConsumerState<ProjectManagePage> {
       appBar: AppBar(
         title: Text(
           displayTitle,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          style: AppTextStyles.body1.copyWith(fontSize: 17, fontWeight: FontWeight.w600),
         ),
         actions: [
           if (state.hasRisks)
@@ -149,29 +150,24 @@ class _ProjectManagePageState extends ConsumerState<ProjectManagePage> {
           const Icon(Icons.cloud_off_outlined,
               size: 48, color: AppColors.gray400),
           const SizedBox(height: 16),
-          const Text('加载失败',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.gray600)),
+          Text('加载失败',
+              style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w500, color: AppColors.gray600)),
           const SizedBox(height: 8),
           Text(message,
-              style:
-                  const TextStyle(fontSize: 13, color: AppColors.gray400)),
+              style: AppTextStyles.caption.copyWith(fontSize: 13, color: AppColors.gray400)),
           const SizedBox(height: 20),
           GestureDetector(
             onTap: () => ref
                 .read(projectManageProvider(widget.projectId).notifier)
                 .loadAll(),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
                 color: AppColors.black,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: const Text('重试',
-                  style: TextStyle(fontSize: 14, color: AppColors.white)),
+              child: Text('重试',
+                  style: AppTextStyles.body2.copyWith(color: AppColors.white)),
             ),
           ),
         ],
@@ -187,7 +183,7 @@ class _OverviewBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.base),
       color: AppColors.white,
       child: Row(
         children: [
@@ -197,9 +193,8 @@ class _OverviewBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('项目进度',
-                    style: TextStyle(
-                        fontSize: 13, color: AppColors.gray500)),
+                Text('项目进度',
+                    style: AppTextStyles.caption.copyWith(fontSize: 13, color: AppColors.gray500)),
                 const SizedBox(height: 4),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
@@ -233,21 +228,20 @@ class _PrdTab extends StatelessWidget {
           const Icon(Icons.description_outlined,
               size: 48, color: AppColors.gray300),
           const SizedBox(height: 12),
-          const Text('查看项目需求文档',
-              style: TextStyle(fontSize: 15, color: AppColors.gray500)),
+          Text('查看项目需求文档',
+              style: AppTextStyles.body2.copyWith(fontSize: 15, color: AppColors.gray500)),
           const SizedBox(height: 16),
           GestureDetector(
             onTap: () => context.push('/projects/$projectId/prd'),
             child: Container(
               padding: const EdgeInsets.symmetric(
-                  horizontal: 24, vertical: 10),
+                  horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
                 color: AppColors.black,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: const Text('查看 PRD',
-                  style: TextStyle(
-                      fontSize: 14, color: AppColors.white)),
+              child: Text('查看 PRD',
+                  style: AppTextStyles.body2.copyWith(color: AppColors.white)),
             ),
           ),
         ],
@@ -261,14 +255,14 @@ class _FilesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.folder_outlined, size: 48, color: AppColors.gray300),
-          SizedBox(height: 12),
+          const Icon(Icons.folder_outlined, size: 48, color: AppColors.gray300),
+          const SizedBox(height: 12),
           Text('文件管理（Phase 5）',
-              style: TextStyle(fontSize: 15, color: AppColors.gray500)),
+              style: AppTextStyles.body2.copyWith(fontSize: 15, color: AppColors.gray500)),
         ],
       ),
     );
@@ -290,22 +284,22 @@ class _ReportTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (reports.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_awesome_outlined,
+            const Icon(Icons.auto_awesome_outlined,
                 size: 48, color: AppColors.gray300),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text('暂无 AI 简报',
-                style: TextStyle(fontSize: 15, color: AppColors.gray500)),
+                style: AppTextStyles.body2.copyWith(fontSize: 15, color: AppColors.gray500)),
           ],
         ),
       );
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.base),
       itemCount: reports.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
