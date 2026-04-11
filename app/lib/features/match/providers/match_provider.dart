@@ -179,6 +179,8 @@ class BidFormNotifier extends StateNotifier<BidFormState> {
     }
   }
 
+  void reloadSuggestion() => _loadSuggestion();
+
   void setBidType(BidFormType type) {
     state = state.copyWith(bidType: type);
   }

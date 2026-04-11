@@ -38,6 +38,7 @@ class HomeSkillHeat extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.white,
               borderRadius: BorderRadius.circular(AppRadius.xxl),
+              border: Border.all(color: AppColors.gray200, width: 0.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

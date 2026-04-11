@@ -302,7 +302,7 @@ class _NotificationRow extends StatelessWidget {
     final unsupported = item.unsupportedTargetMessage != null;
 
     return Material(
-      color: item.isRead ? Colors.transparent : AppColors.white,
+      color: AppColors.surfaceRaised,
       borderRadius: BorderRadius.circular(AppRadius.xxl),
       child: InkWell(
         onTap: onTap,
@@ -311,7 +311,13 @@ class _NotificationRow extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.xxl),
-            color: item.isRead ? AppColors.gray50 : AppColors.white,
+            color: AppColors.surfaceRaised,
+            border: Border.all(
+              color: item.isRead
+                  ? AppColors.gray200
+                  : AppColors.gray300,
+              width: 0.5,
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

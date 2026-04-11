@@ -520,7 +520,7 @@ class _MorphRoleChip extends StatelessWidget {
                     height: 44,
                     decoration: BoxDecoration(
                       color: AppColors.black,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
                     child: Icon(icon, size: 20, color: AppColors.white),
                   ),

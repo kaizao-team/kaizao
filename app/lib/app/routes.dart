@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'theme/app_colors.dart';
+
 import '../features/auth/pages/splash_page.dart';
 import '../features/auth/pages/onboarding_page.dart';
 import '../features/auth/pages/login_page.dart';
@@ -144,6 +146,24 @@ Page<void> _onboardingFlowPage(GoRouterState state, Widget child) {
   );
 }
 
+Page<void> _fadeThroughPage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionDuration: AppDurations.normal,
+    reverseTransitionDuration: AppDurations.normal,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(
+        opacity: CurveTween(curve: Curves.easeInOut).animate(animation),
+        child: child,
+      );
+    },
+  );
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   final changeNotifier = ref.watch(authChangeNotifierProvider);
 
@@ -257,11 +277,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: RoutePaths.home,
-            pageBuilder: (_, __) => const NoTransitionPage(child: HomePage()),
+            pageBuilder: (_, __) => _fadeThroughPage(
+              key: const ValueKey('tab_home'),
+              child: const HomePage(),
+            ),
           ),
           GoRoute(
             path: RoutePaths.square,
-            pageBuilder: (_, state) => NoTransitionPage(
+            pageBuilder: (_, state) => _fadeThroughPage(
+              key: const ValueKey('tab_square'),
               child: MarketPage(
                 initialCategory: state.uri.queryParameters['category'],
                 initialTab: state.uri.queryParameters['tab'],
@@ -270,18 +294,24 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RoutePaths.notifications,
-            pageBuilder: (_, __) =>
-                const NoTransitionPage(child: NotificationPage()),
+            pageBuilder: (_, __) => _fadeThroughPage(
+              key: const ValueKey('tab_notifications'),
+              child: const NotificationPage(),
+            ),
           ),
           GoRoute(
             path: RoutePaths.projectList,
-            pageBuilder: (_, __) =>
-                const NoTransitionPage(child: ProjectListPage()),
+            pageBuilder: (_, __) => _fadeThroughPage(
+              key: const ValueKey('tab_projects'),
+              child: const ProjectListPage(),
+            ),
           ),
           GoRoute(
             path: RoutePaths.profile,
-            pageBuilder: (_, __) =>
-                const NoTransitionPage(child: ProfilePage()),
+            pageBuilder: (_, __) => _fadeThroughPage(
+              key: const ValueKey('tab_profile'),
+              child: const ProfilePage(),
+            ),
           ),
         ],
       ),

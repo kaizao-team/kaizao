@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
+import '../../../app/theme/app_colors.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -42,7 +43,7 @@ class _OnboardingPageState extends State<OnboardingPage>
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: Color(0xFFF6F6F6),
+        systemNavigationBarColor: AppColors.onboardingBackground,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
@@ -101,7 +102,7 @@ class _OnboardingPageState extends State<OnboardingPage>
     final isLast = _currentPage == _pages.length - 1;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: AppColors.onboardingBackground,
       body: Stack(
         children: [
           // Full-screen illustration — continuous morphing, light bg
@@ -134,8 +135,8 @@ class _OnboardingPageState extends State<OnboardingPage>
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          const Color(0xFFF6F6F6).withValues(alpha: 0.0),
-                          const Color(0xFFF6F6F6).withValues(alpha: 0.88),
+                          AppColors.onboardingBackground.withValues(alpha: 0.0),
+                          AppColors.onboardingBackground.withValues(alpha: 0.88),
                         ],
                         stops: const [0.0, 1.0],
                       ),
@@ -179,8 +180,8 @@ class _OnboardingPageState extends State<OnboardingPage>
                       height: 6,
                       decoration: BoxDecoration(
                         color: active
-                            ? const Color(0xFF1A1A1A)
-                            : const Color(0xFFD4D4D4),
+                            ? AppColors.black
+                            : AppColors.gray300,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     );
@@ -205,7 +206,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                             style: const TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF1A1A1A),
+                              color: AppColors.black,
                               height: 1.2,
                               letterSpacing: -0.5,
                             ),
@@ -230,7 +231,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                           _pages[i].description,
                           style: const TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF6B7280),
+                            color: AppColors.gray500,
                             height: 1.65,
                           ),
                         ),
@@ -258,7 +259,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                           child: Container(
                             height: 50,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1A),
+                              color: AppColors.black,
                               borderRadius: BorderRadius.circular(13),
                             ),
                             alignment: Alignment.center,
@@ -270,7 +271,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFFF6F6F6),
+                                  color: AppColors.white,
                                   letterSpacing: 0.2,
                                 ),
                               ),
@@ -287,8 +288,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                           child: Container(
                             height: 50,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1A)
-                                  .withValues(alpha: 0.06),
+                              color: AppColors.black.withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(13),
                             ),
                             alignment: Alignment.center,
@@ -297,7 +297,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF9CA3AF),
+                                color: AppColors.gray400,
                               ),
                             ),
                           ),

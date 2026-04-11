@@ -357,7 +357,7 @@ class _IdentityFocusCardState extends State<_IdentityFocusCard>
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
         color: AppColors.onboardingSurface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         border: Border.all(
           color: AppColors.onboardingHairline.withValues(alpha: 0.75),
         ),

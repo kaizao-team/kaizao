@@ -62,7 +62,10 @@ class _FeaturedDemandCard extends StatelessWidget {
 
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(AppRadius.xxl),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        side: const BorderSide(color: AppColors.gray200, width: 0.5),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xxl),
         onTap: projectRoute == null ? null : () => context.push(projectRoute),
@@ -133,7 +136,10 @@ class _DemandRow extends StatelessWidget {
 
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(AppRadius.xl),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        side: const BorderSide(color: AppColors.gray200, width: 0.5),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: projectRoute == null ? null : () => context.push(projectRoute),

@@ -78,7 +78,10 @@ class _FeaturedOpportunityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(AppRadius.xxl),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        side: const BorderSide(color: AppColors.gray200, width: 0.5),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xxl),
         onTap: onTap,
@@ -176,7 +179,10 @@ class _OpportunityRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(AppRadius.xl),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        side: const BorderSide(color: AppColors.gray200, width: 0.5),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: onTap,

@@ -316,3 +316,23 @@ Ambient shadow 建议：
 - ✅ tonal layering + 大留白
 - ✅ 结构型排版
 - ✅ 项目方 / 团队方统一术语
+
+---
+
+## 统一设计规则（2026-04-10 确立）
+
+| 维度 | 统一值 |
+|------|--------|
+| 背景色 | AppColors.surface (#F9F9F9) |
+| 圆角-大卡 | AppRadius.xxl (24) |
+| 圆角-标准 | AppRadius.md (12) |
+| 圆角-小 | AppRadius.sm (8) |
+| 页面边距 | 20 (AppSpacing.lg) |
+| Section 间距 | 28 default / 32 strong / 48 hero break |
+| 列表项间距 | 12 (AppSpacing.md) |
+| 卡片内边距 | Base=16, Surface=18,18,18,16 |
+| 阴影 | 卡片无阴影，tonal layering + 弱边框 |
+| 卡片边框 | `Border.all(color: AppColors.gray200, width: 0.5)` — 白色卡片在 surface 背景上必须有此边框 |
+| Divider | 禁止，靠白空间分隔 |
+| Bottom Bar | 20,8,20,8 + safe area |
+| Modal/Sheet 顶部圆角 | `AppRadius.xxl` (24) — 所有 showModalBottomSheet 和 Dialog |

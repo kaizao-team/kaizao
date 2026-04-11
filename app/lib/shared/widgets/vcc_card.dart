@@ -46,9 +46,8 @@ class VccCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(borderRadius ?? AppRadius.md),
           border: border ??
               Border.all(
-                color:
-                    isDark ? AppColors.darkDivider : AppColors.outlineVariant,
-                width: 0.8,
+                color: isDark ? AppColors.darkDivider : AppColors.gray200,
+                width: 0.5,
               ),
           boxShadow: boxShadow,
         ),
