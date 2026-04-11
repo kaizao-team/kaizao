@@ -1177,8 +1177,9 @@ class _ImmersiveProfileHeader extends StatelessWidget {
         ),
         child: Stack(
           fit: StackFit.expand,
+          clipBehavior: Clip.none,
           children: [
-            // Settings icon — fades out as title collapses
+            // Settings button — hero style (icon + text) → fades out on scroll
             Positioned(
               top: topPadding + 10,
               right: 20,
@@ -1189,16 +1190,33 @@ class _ImmersiveProfileHeader extends StatelessWidget {
                   child: GestureDetector(
                     onTap: onSettingsTap,
                     child: Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
                       decoration: BoxDecoration(
                         color: settingsBg,
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                         border: Border.all(color: settingsBorder),
                       ),
-                      child: Icon(
-                        Icons.settings_outlined,
-                        size: 18,
-                        color: textColor,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.settings_outlined,
+                            size: 16,
+                            color: textColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '设置',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
