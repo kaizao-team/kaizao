@@ -495,3 +495,16 @@ func (s *ProjectService) UserBidStatus(projectID int64, userUUID string) string 
 		return ""
 	}
 }
+
+// HasUserReviewed 检查用户是否已评价某项目
+func (s *ProjectService) HasUserReviewed(projectID int64, userUUID string) bool {
+	u, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return false
+	}
+	var count int64
+	s.repos.DB().Model(&model.Review{}).
+		Where("project_id = ? AND reviewer_id = ?", projectID, u.ID).
+		Count(&count)
+	return count > 0
+}

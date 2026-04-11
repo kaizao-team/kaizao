@@ -321,6 +321,7 @@ type projectDetail struct {
 	Milestones  interface{} `json:"milestones"`
 	MyBidStatus *string     `json:"my_bid_status,omitempty"`
 	BidID       *string     `json:"bid_id,omitempty"`
+	HasReviewed bool        `json:"has_reviewed"`
 }
 
 func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string, isParticipant bool) projectDetail {
@@ -390,6 +391,11 @@ func (h *ProjectHandler) buildProjectDetail(p *model.Project, userUUID string, i
 			bidUUID := bid.UUID
 			detail.BidID = &bidUUID
 		}
+	}
+
+	// 检查当前用户是否已评价该项目
+	if p.Status >= model.ProjectStatusCompleted && userUUID != "" {
+		detail.HasReviewed = h.projectService.HasUserReviewed(p.ID, userUUID)
 	}
 
 	return detail

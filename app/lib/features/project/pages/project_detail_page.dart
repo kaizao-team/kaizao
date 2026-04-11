@@ -196,12 +196,21 @@ class _BottomActions extends ConsumerWidget {
       );
     }
     if (state.status == 7) {
+      final hasReviewed = state.data?['has_reviewed'] == true;
+      if (hasReviewed) {
+        return const VccButton(text: '已评价', onPressed: null);
+      }
       final revieweeId = state.data?['provider_id']?.toString() ?? '';
       return VccButton(
         text: '去评价',
-        onPressed: () => context.push(
-          '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=true',
-        ),
+        onPressed: () async {
+          await context.push(
+            '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=true',
+          );
+          if (context.mounted) {
+            ref.invalidate(projectDetailProvider(projectId));
+          }
+        },
       );
     }
     // status >= 5
@@ -314,12 +323,21 @@ class _BottomActions extends ConsumerWidget {
       );
     }
     if (state.status == 7) {
+      final hasReviewed = state.data?['has_reviewed'] == true;
+      if (hasReviewed) {
+        return const VccButton(text: '已评价', onPressed: null);
+      }
       final revieweeId = state.data?['owner_id']?.toString() ?? '';
       return VccButton(
         text: '去评价',
-        onPressed: () => context.push(
-          '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=false',
-        ),
+        onPressed: () async {
+          await context.push(
+            '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=false',
+          );
+          if (context.mounted) {
+            ref.invalidate(projectDetailProvider(projectId));
+          }
+        },
       );
     }
     // status >= 5
