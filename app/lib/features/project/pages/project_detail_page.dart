@@ -117,16 +117,19 @@ class _BottomActions extends ConsumerWidget {
       );
     }
     if (state.status == 3) {
+      final alreadyAligned = state.data?['owner_aligned'] == true;
       return VccButton(
-        text: state.isConfirmingAlignment ? '确认中…' : '确认需求对齐',
-        onPressed: state.isConfirmingAlignment
+        text: alreadyAligned
+            ? '已确认，等待团队方确认'
+            : (state.isConfirmingAlignment ? '确认中…' : '确认需求对齐'),
+        onPressed: alreadyAligned || state.isConfirmingAlignment
             ? null
             : () async {
                 final ok = await ref
                     .read(projectDetailProvider(projectId).notifier)
                     .confirmAlignment();
                 if (context.mounted && ok) {
-                  VccToast.show(context, message: '需求已对齐');
+                  VccToast.show(context, message: '已确认需求对齐');
                 }
               },
       );
@@ -229,10 +232,29 @@ class _BottomActions extends ConsumerWidget {
         ],
       );
     }
-    // status 3-4 等待
-    if (state.status == 3 || state.status == 4) {
+    // status=3 团队方也需要确认需求对齐
+    if (state.status == 3) {
+      final alreadyAligned = state.data?['provider_aligned'] == true;
+      return VccButton(
+        text: alreadyAligned
+            ? '已确认，等待项目方确认'
+            : (state.isConfirmingAlignment ? '确认中…' : '确认需求对齐'),
+        onPressed: alreadyAligned || state.isConfirmingAlignment
+            ? null
+            : () async {
+                final ok = await ref
+                    .read(projectDetailProvider(projectId).notifier)
+                    .confirmAlignment();
+                if (context.mounted && ok) {
+                  VccToast.show(context, message: '已确认需求对齐');
+                }
+              },
+      );
+    }
+    // status=4 等待项目方启动
+    if (state.status == 4) {
       return const VccButton(
-        text: '等待项目启动',
+        text: '等待项目方启动',
         onPressed: null,
       );
     }

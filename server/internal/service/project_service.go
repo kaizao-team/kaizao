@@ -277,38 +277,113 @@ func (s *ProjectService) PublishDraft(projectUUID, ownerUserUUID string) (*model
 	return s.repos.Project.FindByUUID(projectUUID)
 }
 
-// ConfirmAlignment 项目方确认需求已对齐：status 3→4
-func (s *ProjectService) ConfirmAlignment(projectUUID, ownerUUID string) error {
-	p, err := s.GetPeekIfOwner(projectUUID, ownerUUID)
+// ConfirmAlignment 双方确认需求对齐：owner 或 provider 各自标记，双方都确认后 status 3→4
+func (s *ProjectService) ConfirmAlignment(projectUUID, callerUUID string) error {
+	p, err := s.repos.Project.FindByUUID(projectUUID)
 	if err != nil {
 		return err
+	}
+	u, err := s.repos.User.FindByUUID(callerUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrUserNotFound)
 	}
 	if p.Status != 3 {
 		return fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
 	}
 
-	if err := s.repos.Project.UpdateFields(p.ID, map[string]interface{}{
-		"status": int16(4),
-	}); err != nil {
+	isOwner := p.OwnerID == u.ID
+	isProvider := p.ProviderID != nil && *p.ProviderID == u.ID
+	if !isOwner && !isProvider {
+		return fmt.Errorf("%d", errcode.ErrProjectOwnerOnly)
+	}
+
+	updates := map[string]interface{}{}
+	if isOwner {
+		updates["owner_aligned"] = true
+	}
+	if isProvider {
+		updates["provider_aligned"] = true
+	}
+
+	if err := s.repos.Project.UpdateFields(p.ID, updates); err != nil {
 		return err
 	}
 
-	// 通知团队方
-	if p.ProviderID != nil {
+	// 重新读取最新状态
+	p, err = s.repos.Project.FindByID(p.ID)
+	if err != nil {
+		return err
+	}
+
+	// 双方都确认后，status → 4
+	if p.OwnerAligned && p.ProviderAligned {
+		if err := s.repos.Project.UpdateFields(p.ID, map[string]interface{}{
+			"status": int16(4),
+		}); err != nil {
+			return err
+		}
+
+		// 通知双方需求已对齐
 		targetType := "project"
-		sourceRole := "demander"
 		targetUUID := p.UUID
-		n := &model.Notification{
-			UserID:           *p.ProviderID,
+		sourceRole := "system"
+		content := fmt.Sprintf("项目「%s」需求已对齐，等待项目方启动", p.Title)
+		if p.ProviderID != nil {
+			n := &model.Notification{
+				UserID:           *p.ProviderID,
+				SourceRole:       &sourceRole,
+				Title:            "需求已对齐",
+				Content:          content,
+				NotificationType: model.NotificationTypeMatchSuccess,
+				TargetType:       &targetType,
+				TargetID:         &p.ID,
+				TargetUUID:       &targetUUID,
+			}
+			_ = s.repos.Notification.Create(n)
+		}
+		nOwner := &model.Notification{
+			UserID:           p.OwnerID,
 			SourceRole:       &sourceRole,
 			Title:            "需求已对齐",
-			Content:          fmt.Sprintf("项目「%s」需求已对齐，等待启动", p.Title),
+			Content:          content,
 			NotificationType: model.NotificationTypeMatchSuccess,
 			TargetType:       &targetType,
 			TargetID:         &p.ID,
 			TargetUUID:       &targetUUID,
 		}
-		_ = s.repos.Notification.Create(n)
+		_ = s.repos.Notification.Create(nOwner)
+	} else {
+		// 通知对方："X 方已确认需求对齐，等待你确认"
+		targetType := "project"
+		targetUUID := p.UUID
+		if isOwner && p.ProviderID != nil {
+			sourceRole := "demander"
+			n := &model.Notification{
+				UserID:           *p.ProviderID,
+				SourceRole:       &sourceRole,
+				Title:            "项目方已确认需求对齐",
+				Content:          fmt.Sprintf("项目「%s」项目方已确认需求对齐，请你也确认", p.Title),
+				NotificationType: model.NotificationTypeMatchSuccess,
+				TargetType:       &targetType,
+				TargetID:         &p.ID,
+				TargetUUID:       &targetUUID,
+			}
+			_ = s.repos.Notification.Create(n)
+		}
+		if isProvider {
+			sourceRole := "provider"
+			n := &model.Notification{
+				UserID:           p.OwnerID,
+				SourceRole:       &sourceRole,
+				Title:            "团队方已确认需求对齐",
+				Content:          fmt.Sprintf("项目「%s」团队方已确认需求对齐，请你也确认", p.Title),
+				NotificationType: model.NotificationTypeMatchSuccess,
+				TargetType:       &targetType,
+				TargetID:         &p.ID,
+				TargetUUID:       &targetUUID,
+			}
+			_ = s.repos.Notification.Create(n)
+		}
 	}
 	return nil
 }
