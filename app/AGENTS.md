@@ -372,3 +372,52 @@ app/lib/
 - 不要使用 SliverAppBar 的 title + flexibleSpace 组合（会重叠）
 - 不要在每个页面自己写 header delegate（使用 VccEditorialAppBar）
 - 例外: 功能特殊的页面（如功能需要 badge + filter 二级 header）可保留自定义 delegate
+
+---
+
+## 卡片可见性规则
+
+背景色 `AppColors.surface` (#F9F9F9) 与白色卡片仅有 6 色阶差距，去掉阴影后卡片边界必须靠边框支撑。
+
+**规则：所有白色卡片容器必须有弱边框**
+
+```dart
+// VccCard 默认已内置此边框，直接用 VccCard 即可
+// 自定义 Container 需手动加：
+decoration: BoxDecoration(
+  color: AppColors.white, // 或 surfaceRaised
+  borderRadius: BorderRadius.circular(AppRadius.md),
+  border: Border.all(color: AppColors.gray200, width: 0.5),
+),
+```
+
+- 无阴影 ≠ 无边界，tonal layering 必须靠边框辅助
+- 已读/未读差异用字重 + 左侧 accent 条区分，不用背景色差
+- 禁止用 `outlineVariant` 做卡片边框（太淡，#C6C6C6 at 20% 几乎不可见）
+
+---
+
+## Modal / Dialog 圆角规范
+
+| 场景 | 圆角 |
+|------|------|
+| `showModalBottomSheet` | `BorderRadius.vertical(top: Radius.circular(AppRadius.xxl))` |
+| `showDialog` 圆角容器 | `BorderRadius.circular(AppRadius.xxl)` |
+| 页面内卡片弹出区 | `AppRadius.md`（12） |
+
+---
+
+## 新页面开发 Checklist
+
+新建或重构页面前，逐项确认：
+
+- [ ] 背景色使用 `AppColors.surface` (#F9F9F9)
+- [ ] 所有白色卡片容器有 `Border.all(color: AppColors.gray200, width: 0.5)`
+- [ ] 无 `BoxShadow`（除非是 floating 元素）
+- [ ] 所有 `TextStyle` 用 `AppTextStyles.xxx.copyWith(...)` 而非内联 `TextStyle(fontSize: N)`
+- [ ] 所有圆角用 `AppRadius.*`
+- [ ] 所有间距用 `AppSpacing.*`
+- [ ] 硬编码颜色替换为 `AppColors.*`
+- [ ] Modal/Sheet 顶部圆角 `AppRadius.xxl` (24)
+- [ ] Tab 页 header 使用 `VccEditorialAppBar`
+- [ ] `flutter analyze` 零 error

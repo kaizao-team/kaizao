@@ -332,5 +332,7 @@ Ambient shadow 建议：
 | 列表项间距 | 12 (AppSpacing.md) |
 | 卡片内边距 | Base=16, Surface=18,18,18,16 |
 | 阴影 | 卡片无阴影，tonal layering + 弱边框 |
+| 卡片边框 | `Border.all(color: AppColors.gray200, width: 0.5)` — 白色卡片在 surface 背景上必须有此边框 |
 | Divider | 禁止，靠白空间分隔 |
 | Bottom Bar | 20,8,20,8 + safe area |
+| Modal/Sheet 顶部圆角 | `AppRadius.xxl` (24) — 所有 showModalBottomSheet 和 Dialog |
