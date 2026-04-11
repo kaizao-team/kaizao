@@ -132,7 +132,11 @@
               </el-table-column>
               <el-table-column prop="task_code" label="编号" width="100" />
               <el-table-column prop="title" label="EARS 描述" min-width="200" show-overflow-tooltip />
-              <el-table-column prop="ears_type" label="EARS 类型" width="120" />
+              <el-table-column prop="ears_type" label="EARS 类型" width="120">
+                <template #default="{ row }">
+                  {{ earsTypeLabel(row.ears_type) }}
+                </template>
+              </el-table-column>
               <el-table-column prop="module" label="模块" width="120" show-overflow-tooltip />
               <el-table-column prop="priority" label="优先级" width="80" align="center" />
               <el-table-column label="预估工时" width="100" align="right">
@@ -140,7 +144,11 @@
                   {{ row.estimated_hours != null ? `${row.estimated_hours}h` : '-' }}
                 </template>
               </el-table-column>
-              <el-table-column prop="status" label="状态" width="100" />
+              <el-table-column label="状态" width="100">
+                <template #default="{ row }">
+                  {{ earsStatusLabel(row.status) }}
+                </template>
+              </el-table-column>
             </el-table>
             <el-empty v-else-if="!loadingEarsTasks && !earsPolling" description="暂无 EARS 任务，请先执行拆解" :image-size="64" />
           </div>
@@ -443,6 +451,31 @@ function formatBudgetRange(p: ProjectDetail | null) {
   if (min != null && max != null) return `${formatMoney(min)} ~ ${formatMoney(max)}`
   if (min != null) return `${formatMoney(min)} ~`
   return `~ ${formatMoney(max)}`
+}
+
+const EARS_TYPE_MAP: Record<string, string> = {
+  ubiquitous: '普适性需求',
+  event: '事件驱动',
+  state: '状态驱动',
+  optional: '可选功能',
+  unwanted: '异常处理',
+}
+
+const EARS_STATUS_MAP: Record<string | number, string> = {
+  1: '待开始',
+  2: '进行中',
+  3: '已完成',
+  todo: '待开始',
+  in_progress: '进行中',
+  completed: '已完成',
+}
+
+function earsTypeLabel(type: string) {
+  return EARS_TYPE_MAP[type] || type || '-'
+}
+
+function earsStatusLabel(status: string | number) {
+  return EARS_STATUS_MAP[status] || String(status || '-')
 }
 
 function formatFileSize(bytes: number) {
