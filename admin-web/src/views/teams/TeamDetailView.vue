@@ -23,6 +23,7 @@
             <el-tag size="small" :type="teamStatusTagType(team?.status)">
               {{ teamStatusLabel(team?.status) }}
             </el-tag>
+            <el-button size="small" @click="openEditDialog">编辑团队</el-button>
           </div>
           <div class="profile-meta">
             <span>UUID: <code>{{ team?.id }}</code></span>
@@ -190,6 +191,41 @@
         </el-tab-pane>
       </el-tabs>
     </div>
+
+    <el-dialog v-model="editDialogVisible" title="编辑团队" width="520px" destroy-on-close>
+      <el-form label-position="top">
+        <el-form-item label="Vibe Level">
+          <el-select v-model="editForm.vibe_level" clearable placeholder="选择等级">
+            <el-option
+              v-for="i in 10"
+              :key="i"
+              :label="`vc-T${i}`"
+              :value="`vc-T${i}`"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Vibe Power">
+          <el-input-number v-model="editForm.vibe_power" :min="0" :max="750" />
+        </el-form-item>
+        <el-form-item label="预算范围">
+          <div style="display: flex; gap: 12px; align-items: center">
+            <el-input-number v-model="editForm.budget_min" :min="0" :precision="0" placeholder="最低" />
+            <span>—</span>
+            <el-input-number v-model="editForm.budget_max" :min="0" :precision="0" placeholder="最高" />
+          </div>
+        </el-form-item>
+        <el-form-item label="团队状态">
+          <el-select v-model="editForm.status" clearable placeholder="选择状态">
+            <el-option label="活跃 (1)" :value="1" />
+            <el-option label="禁用 (3)" :value="3" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="editSaving" @click="submitEditTeam">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -204,6 +240,7 @@ import {
   getTeamStaticAssets,
   getTeamCurrentInviteCode,
   createInviteCodeForTeam,
+  updateTeam,
 } from '@/api/teams'
 import type { Team, TeamMember } from '@/types/team'
 
@@ -358,6 +395,53 @@ async function onCreateInviteCode() {
     if (e === 'cancel' || e === 'close') return
   } finally {
     creatingCode.value = false
+  }
+}
+
+// ──── 编辑团队对话框 ────
+const editDialogVisible = ref(false)
+const editSaving = ref(false)
+const editForm = ref({
+  vibe_level: undefined as string | undefined,
+  vibe_power: undefined as number | undefined,
+  budget_min: undefined as number | undefined,
+  budget_max: undefined as number | undefined,
+  status: undefined as number | undefined,
+})
+
+function openEditDialog() {
+  editForm.value = {
+    vibe_level: team.value?.vibe_level ?? undefined,
+    vibe_power: team.value?.vibe_power ?? undefined,
+    budget_min: team.value?.budget_min ?? undefined,
+    budget_max: team.value?.budget_max ?? undefined,
+    status: team.value?.status != null ? (typeof team.value.status === 'number' ? team.value.status : undefined) : undefined,
+  }
+  editDialogVisible.value = true
+}
+
+async function submitEditTeam() {
+  const payload: Record<string, any> = {}
+  const f = editForm.value
+  if (f.vibe_level != null) payload.vibe_level = f.vibe_level
+  if (f.vibe_power != null) payload.vibe_power = f.vibe_power
+  if (f.budget_min != null) payload.budget_min = f.budget_min
+  if (f.budget_max != null) payload.budget_max = f.budget_max
+  if (f.status != null) payload.status = f.status
+  if (Object.keys(payload).length === 0) {
+    ElMessage.warning('请至少修改一个字段')
+    return
+  }
+  editSaving.value = true
+  try {
+    await updateTeam(uuid, payload)
+    ElMessage.success('已更新')
+    editDialogVisible.value = false
+    await loadTeam()
+  } catch {
+    ElMessage.error('更新失败')
+  } finally {
+    editSaving.value = false
   }
 }
 

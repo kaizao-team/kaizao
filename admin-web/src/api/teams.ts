@@ -16,6 +16,10 @@ export function getTeamCurrentInviteCode(uuid: string) {
   return request.get(`/admin/teams/${uuid}/current-invite-code`)
 }
 
+export function updateTeam(uuid: string, data: Record<string, any>) {
+  return request.put(`/admin/teams/${uuid}`, data)
+}
+
 export function createInviteCodeForTeam(teamUuid: string, note?: string, expiresAt?: string) {
   return request.post('/admin/invite-codes', {
     team_uuid: teamUuid,

@@ -248,6 +248,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		admin.GET("/invite-codes", handlers.Admin.ListInviteCodes)
 		// 团队审核
 		admin.PUT("/teams/:uuid/approval", handlers.Admin.ReviewTeamApproval)
+		admin.PUT("/teams/:uuid", handlers.Admin.UpdateTeam)
 		// 用户管理
 		admin.PUT("/users/:uuid/onboarding", handlers.Admin.UpdateUserOnboarding)
 		admin.GET("/users", handlers.Admin.ListUsers)
@@ -258,6 +259,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		// 项目管理
 		admin.GET("/projects", handlers.Admin.ListProjects)
 		admin.PUT("/projects/:uuid/review", handlers.Admin.ReviewProject)
+		admin.PUT("/projects/:uuid", handlers.Admin.UpdateProject)
 		// Dashboard
 		admin.GET("/dashboard", handlers.Admin.GetDashboard)
 		// 举报

@@ -18,6 +18,7 @@
           审核通过
         </el-button>
         <el-button :loading="reviewLoading" @click="handleReject">下架</el-button>
+        <el-button @click="openProjectEditDialog">编辑项目</el-button>
         <el-button type="danger" plain :loading="reviewLoading" @click="openCloseDialog">
           关闭项目
         </el-button>
@@ -277,6 +278,32 @@
       </el-tabs>
     </div>
 
+    <el-dialog v-model="projectEditVisible" title="编辑项目" width="520px" destroy-on-close>
+      <el-form label-position="top">
+        <el-form-item label="预算范围">
+          <div style="display: flex; gap: 12px; align-items: center">
+            <el-input-number v-model="projectEditForm.budget_min" :min="0" :precision="0" placeholder="最低" />
+            <span>~</span>
+            <el-input-number v-model="projectEditForm.budget_max" :min="0" :precision="0" placeholder="最高" />
+          </div>
+        </el-form-item>
+        <el-form-item label="截止日期">
+          <el-date-picker
+            v-model="projectEditForm.deadline"
+            type="date"
+            placeholder="选择日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="projectEditVisible = false">取消</el-button>
+        <el-button type="primary" :loading="projectEditSaving" @click="submitProjectEdit">保存</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog
       v-model="closeDialogVisible"
       title="关闭项目"
@@ -332,6 +359,7 @@ import {
   getProjectPRD,
   getAIDocuments,
   reviewProject,
+  updateProject,
 } from '@/api/projects'
 import type { Project, ProjectFile } from '@/types/project'
 
@@ -737,6 +765,47 @@ async function confirmClose() {
     /* handled */
   } finally {
     reviewLoading.value = false
+  }
+}
+
+// ──── 编辑项目对话框 ────
+const projectEditVisible = ref(false)
+const projectEditSaving = ref(false)
+const projectEditForm = ref({
+  budget_min: undefined as number | undefined,
+  budget_max: undefined as number | undefined,
+  deadline: undefined as string | undefined,
+})
+
+function openProjectEditDialog() {
+  projectEditForm.value = {
+    budget_min: project.value?.budget_min ?? undefined,
+    budget_max: project.value?.budget_max ?? undefined,
+    deadline: (project.value as any)?.deadline ?? undefined,
+  }
+  projectEditVisible.value = true
+}
+
+async function submitProjectEdit() {
+  const payload: Record<string, any> = {}
+  const f = projectEditForm.value
+  if (f.budget_min != null) payload.budget_min = f.budget_min
+  if (f.budget_max != null) payload.budget_max = f.budget_max
+  if (f.deadline) payload.deadline = f.deadline
+  if (Object.keys(payload).length === 0) {
+    ElMessage.warning('请至少修改一个字段')
+    return
+  }
+  projectEditSaving.value = true
+  try {
+    await updateProject(uuid, payload)
+    ElMessage.success('已更新')
+    projectEditVisible.value = false
+    await loadProject()
+  } catch {
+    ElMessage.error('更新失败')
+  } finally {
+    projectEditSaving.value = false
   }
 }
 

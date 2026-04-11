@@ -8,6 +8,10 @@ export function reviewProject(uuid: string, data: { action: string; reason?: str
   return request.put(`/admin/projects/${uuid}/review`, data)
 }
 
+export function updateProject(uuid: string, data: Record<string, any>) {
+  return request.put(`/admin/projects/${uuid}`, data)
+}
+
 export function getProjectDetail(id: string) {
   return request.get(`/projects/${id}`)
 }
