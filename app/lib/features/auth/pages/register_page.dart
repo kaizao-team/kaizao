@@ -323,14 +323,13 @@ class _RegisterForm extends StatelessWidget {
               FilteringTextInputFormatter.digitsOnly,
               LengthLimitingTextInputFormatter(11),
             ],
-            prefixIcon: const Padding(
-              padding: EdgeInsets.only(left: 16, right: 8),
+            prefixIcon: Padding(
+              padding: const EdgeInsets.only(left: AppSpacing.base, right: AppSpacing.sm),
               child: Center(
                 widthFactor: 1,
                 child: Text(
                   '+86',
-                  style: TextStyle(
-                    fontSize: 16,
+                  style: AppTextStyles.body1.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.gray500,
                   ),
