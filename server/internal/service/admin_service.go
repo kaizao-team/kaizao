@@ -542,6 +542,51 @@ func (s *AdminService) UpdateTeamApproval(teamUUID string, approvalStatus int16)
 	})
 }
 
+// UpdateTeamFields 管理端编辑团队字段（白名单过滤）
+func (s *AdminService) UpdateTeamFields(teamUUID string, fields map[string]interface{}) error {
+	team, err := s.repos.Team.FindByUUID(teamUUID)
+	if err != nil {
+		return err
+	}
+	allowed := map[string]bool{
+		"vibe_level": true, "vibe_power": true,
+		"budget_min": true, "budget_max": true,
+		"status": true,
+	}
+	filtered := make(map[string]interface{})
+	for k, v := range fields {
+		if allowed[k] {
+			filtered[k] = v
+		}
+	}
+	if len(filtered) == 0 {
+		return fmt.Errorf("no_valid_fields")
+	}
+	return s.repos.Team.UpdateFields(team.ID, filtered)
+}
+
+// UpdateProjectFields 管理端编辑项目字段（白名单过滤）
+func (s *AdminService) UpdateProjectFields(projectUUID string, fields map[string]interface{}) error {
+	var p model.Project
+	if err := s.db().Where("uuid = ?", projectUUID).First(&p).Error; err != nil {
+		return err
+	}
+	allowed := map[string]bool{
+		"budget_min": true, "budget_max": true,
+		"deadline": true, "status": true, "close_reason": true,
+	}
+	filtered := make(map[string]interface{})
+	for k, v := range fields {
+		if allowed[k] {
+			filtered[k] = v
+		}
+	}
+	if len(filtered) == 0 {
+		return fmt.Errorf("no_valid_fields")
+	}
+	return s.db().Model(&model.Project{}).Where("id = ?", p.ID).Updates(filtered).Error
+}
+
 // DBStatusToFront 导出给 handler 层使用
 func DBStatusToFront(db int16) int {
 	return dbStatusToFront(db)

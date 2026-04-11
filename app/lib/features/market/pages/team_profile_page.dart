@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -268,23 +267,12 @@ double _teamHeroBottomSpacing({
   return hasSummary ? 88 : 100;
 }
 
-const List<String> _debugPreviewSkills = [
-  'Flutter',
-  'Swift',
-  'Kotlin',
-  'React',
-  'Figma',
-  'Docker',
-];
-
 List<SkillParticleItem> _teamHeroSkills(TeamProfile profile) {
   final officialSkills = profile.skills
       .map((skill) => skill.trim())
       .where((skill) => skill.isNotEmpty)
       .toList(growable: false);
-  final displaySkills = officialSkills.isNotEmpty
-      ? officialSkills
-      : (kDebugMode ? _debugPreviewSkills : const <String>[]);
+  final displaySkills = officialSkills;
 
   return displaySkills
       .asMap()
@@ -649,21 +637,6 @@ class _TeamMembersCardState extends State<_TeamMembersCard> {
           ),
     ];
 
-    if (kDebugMode && members.length == 1) {
-      members.addAll(
-        _debugPreviewMembers.map(
-          (member) => _TeamDisplayMember(
-            id: member.id,
-            userId: '',
-            displayName: member.displayName,
-            avatarUrl: null,
-            roleLabel: member.roleLabel,
-            isPreview: true,
-          ),
-        ),
-      );
-    }
-
     return members;
   }
 
@@ -678,10 +651,6 @@ class _TeamMembersCardState extends State<_TeamMembersCard> {
     TeamProfile profile,
     List<_TeamDisplayMember> members,
   ) {
-    if (members.any((member) => member.isPreview)) {
-      return '成员数据待回传';
-    }
-
     final count =
         profile.memberCount > 0 ? profile.memberCount : members.length;
     return count <= 1 ? '当前公开负责人' : '$count 位成员';
@@ -780,7 +749,6 @@ class _TeamDisplayMember {
   final String? avatarUrl;
   final String roleLabel;
   final bool isLeader;
-  final bool isPreview;
 
   const _TeamDisplayMember({
     required this.id,
@@ -789,36 +757,10 @@ class _TeamDisplayMember {
     required this.avatarUrl,
     required this.roleLabel,
     this.isLeader = false,
-    this.isPreview = false,
   });
 
-  bool get canOpenProfile => userId.isNotEmpty && !isPreview;
+  bool get canOpenProfile => userId.isNotEmpty;
 }
-
-class _DebugPreviewMember {
-  final String id;
-  final String displayName;
-  final String roleLabel;
-
-  const _DebugPreviewMember({
-    required this.id,
-    required this.displayName,
-    required this.roleLabel,
-  });
-}
-
-const List<_DebugPreviewMember> _debugPreviewMembers = [
-  _DebugPreviewMember(
-    id: 'preview-design',
-    displayName: 'Ari',
-    roleLabel: '设计协作',
-  ),
-  _DebugPreviewMember(
-    id: 'preview-backend',
-    displayName: 'Bo',
-    roleLabel: '后端协作',
-  ),
-];
 
 class _TeamHeroGridPainter extends CustomPainter {
   const _TeamHeroGridPainter();

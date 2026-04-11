@@ -81,6 +81,23 @@ class AcceptanceNotifier extends StateNotifier<AcceptanceState> {
     }
   }
 
+  Future<bool> confirmProjectAcceptance(String projectId) async {
+    state = state.copyWith(isSubmitting: true, errorMessage: () => null);
+    try {
+      await _repository.confirmProjectAcceptance(projectId);
+      if (!mounted) return false;
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(
+        isSubmitting: false,
+        errorMessage: () => e.toString(),
+      );
+      return false;
+    }
+  }
+
   Future<bool> submitRevision(
       String description, List<String> relatedItemIds) async {
     state = state.copyWith(isSubmitting: true, errorMessage: () => null);

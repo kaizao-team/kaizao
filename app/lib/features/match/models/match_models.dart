@@ -32,6 +32,8 @@ class BidItem {
   final List<String> skills;
   final String createdAt;
   final BidStatus status;
+  final String? vibeLevel;
+  final String? levelName;
 
   const BidItem({
     required this.id,
@@ -53,6 +55,8 @@ class BidItem {
     this.skills = const [],
     required this.createdAt,
     this.status = BidStatus.pending,
+    this.vibeLevel,
+    this.levelName,
   });
 
   bool get isTeamBid => bidType == 'team';
@@ -79,6 +83,8 @@ class BidItem {
         skills: skills,
         createdAt: createdAt,
         status: status ?? this.status,
+        vibeLevel: vibeLevel,
+        levelName: levelName,
       );
 
   factory BidItem.fromJson(Map<String, dynamic> json) {
@@ -108,6 +114,8 @@ class BidItem {
       createdAt: json['created_at']?.toString() ?? '',
       status: BidStatus.fromValue(
           json['status'] is int ? json['status'] as int : null),
+      vibeLevel: json['vibe_level']?.toString(),
+      levelName: json['level_name']?.toString(),
     );
   }
 }
@@ -165,4 +173,4 @@ class AiSuggestion {
   }
 }
 
-enum BidFormType { personal, team }
+enum BidFormType { team, group }

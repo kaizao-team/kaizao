@@ -393,10 +393,164 @@ func (s *MilestoneService) Accept(msUUID, actorUserUUID string) (*model.Mileston
 	now := time.Now()
 	ms.Status = 3
 	ms.AcceptedAt = &now
+
 	if err := s.repos.Milestone.Update(ms); err != nil {
 		return nil, err
 	}
 	return ms, nil
+}
+
+// CompleteMilestone 团队方标记单个里程碑完成。
+func (s *MilestoneService) CompleteMilestone(msUUID, actorUserUUID string) (*model.Milestone, error) {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	ms, err := s.repos.Milestone.FindByUUID(msUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneNotFound)
+	}
+	p, err := s.repos.Project.FindByID(ms.ProjectID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if p.ProviderID == nil || *p.ProviderID != u.ID {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneDeliverProviderOnly)
+	}
+	switch ms.Status {
+	case 3:
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneAlreadyCompleted)
+	case 5:
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
+	case 1, 2, 4:
+		// allowed
+	default:
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
+	}
+	now := time.Now()
+	ms.Status = 3
+	ms.AcceptedAt = &now
+	if err := s.repos.Milestone.Update(ms); err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
+// DeliverProject 团队方提交整个项目交付（所有里程碑须 status=3）。
+func (s *MilestoneService) DeliverProject(projectUUID, actorUserUUID string, deliveryNote, previewURL string) error {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	p, err := s.repos.Project.FindByUUID(projectUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if p.ProviderID == nil || *p.ProviderID != u.ID {
+		return fmt.Errorf("%d", errcode.ErrMilestoneDeliverProviderOnly)
+	}
+	if p.Status != model.ProjectStatusInProgress {
+		return fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
+	}
+	allMs, err := s.repos.Milestone.ListByProjectID(p.ID)
+	if err != nil {
+		return err
+	}
+	if len(allMs) == 0 {
+		return fmt.Errorf("%d", errcode.ErrMilestonesNotAllCompleted)
+	}
+	for _, m := range allMs {
+		if m.Status != 3 {
+			return fmt.Errorf("%d", errcode.ErrMilestonesNotAllCompleted)
+		}
+	}
+
+	return s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.Project{}).Where("id = ?", p.ID).Updates(map[string]interface{}{
+			"status": model.ProjectStatusAccepting,
+		}).Error; err != nil {
+			return err
+		}
+		txRepos := repository.NewRepositories(tx)
+		targetType := "project"
+		sourceRole := "provider"
+		n := &model.Notification{
+			UserID:           p.OwnerID,
+			SourceRole:       &sourceRole,
+			Title:            "项目已提交交付",
+			Content:          fmt.Sprintf("项目「%s」已提交交付，请及时验收。", p.Title),
+			NotificationType: model.NotificationTypeProjectDelivered,
+			TargetType:       &targetType,
+			TargetID:         &p.ID,
+			TargetUUID:       &p.UUID,
+		}
+		if err := txRepos.Notification.Create(n); err != nil {
+			s.log.Error("DeliverProject: notify owner", zap.Error(err))
+		}
+		return nil
+	})
+}
+
+// AcceptProject 项目方验收整个项目。
+func (s *MilestoneService) AcceptProject(projectUUID, actorUserUUID string) error {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	p, err := s.repos.Project.FindByUUID(projectUUID)
+	if err != nil {
+		return fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if p.OwnerID != u.ID {
+		return fmt.Errorf("%d", errcode.ErrProjectOwnerOnly)
+	}
+	if p.Status != model.ProjectStatusAccepting {
+		return fmt.Errorf("%d", errcode.ErrProjectStatusInvalid)
+	}
+
+	now := time.Now()
+	return s.repos.DB().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.Project{}).Where("id = ?", p.ID).Updates(map[string]interface{}{
+			"status":       model.ProjectStatusCompleted,
+			"completed_at": &now,
+		}).Error; err != nil {
+			return err
+		}
+		txRepos := repository.NewRepositories(tx)
+		targetType := "project"
+		sourceRole := "system"
+		// Notify owner
+		n := &model.Notification{
+			UserID:           p.OwnerID,
+			SourceRole:       &sourceRole,
+			Title:            "项目已完成",
+			Content:          fmt.Sprintf("项目「%s」已验收通过，项目已完结。", p.Title),
+			NotificationType: model.NotificationTypeProjectCompleted,
+			TargetType:       &targetType,
+			TargetID:         &p.ID,
+			TargetUUID:       &p.UUID,
+		}
+		if err := txRepos.Notification.Create(n); err != nil {
+			s.log.Error("AcceptProject: notify owner", zap.Error(err))
+		}
+		// Notify provider
+		if p.ProviderID != nil {
+			np := &model.Notification{
+				UserID:           *p.ProviderID,
+				SourceRole:       &sourceRole,
+				Title:            "项目已完成",
+				Content:          fmt.Sprintf("项目「%s」已验收通过，项目已完结。", p.Title),
+				NotificationType: model.NotificationTypeProjectCompleted,
+				TargetType:       &targetType,
+				TargetID:         &p.ID,
+				TargetUUID:       &p.UUID,
+			}
+			if err := txRepos.Notification.Create(np); err != nil {
+				s.log.Error("AcceptProject: notify provider", zap.Error(err))
+			}
+		}
+		return nil
+	})
 }
 
 func (s *MilestoneService) RequestRevision(msUUID, actorUserUUID, description string, relatedItems []string) (string, error) {

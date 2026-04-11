@@ -69,6 +69,8 @@ type Project struct {
 	Progress           int16      `gorm:"not null;default:0" json:"progress"`
 	CurrentMilestoneID *int64     `json:"current_milestone_id,omitempty"`
 	Status             int16      `gorm:"not null;default:1;index" json:"status"`
+	OwnerAligned       bool       `gorm:"not null;default:false" json:"owner_aligned"`
+	ProviderAligned    bool       `gorm:"not null;default:false" json:"provider_aligned"`
 	CloseReason        *string    `gorm:"type:varchar(200)" json:"close_reason,omitempty"`
 	ViewCount          int        `gorm:"not null;default:0" json:"view_count"`
 	BidCount           int        `gorm:"not null;default:0" json:"bid_count"`
@@ -140,6 +142,7 @@ type Task struct {
 	MilestoneID        *int64     `gorm:"index" json:"milestone_id,omitempty"`
 	ParentTaskID       *int64     `gorm:"index" json:"parent_task_id,omitempty"`
 	TaskCode           string     `gorm:"type:varchar(20);not null" json:"task_code"`
+	FeatureItemID      string     `gorm:"type:varchar(20);default:''" json:"feature_item_id"`
 	Title              string     `gorm:"type:varchar(200);not null" json:"title"`
 	EarsType           string     `gorm:"type:varchar(20);not null;index" json:"ears_type"`
 	EarsTrigger        *string    `gorm:"type:text" json:"ears_trigger,omitempty"`

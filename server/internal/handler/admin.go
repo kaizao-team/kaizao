@@ -716,6 +716,105 @@ func (h *AdminHandler) UpdateReviewStatus(c *gin.Context) {
 	response.SuccessMsg(c, "已更新", nil)
 }
 
+// ──────────── 团队编辑 ────────────
+
+type adminUpdateTeamReq struct {
+	VibeLevel *string  `json:"vibe_level"`
+	VibePower *int     `json:"vibe_power"`
+	BudgetMin *float64 `json:"budget_min"`
+	BudgetMax *float64 `json:"budget_max"`
+	Status    *int16   `json:"status"`
+}
+
+// UpdateTeam PUT /admin/teams/:uuid
+func (h *AdminHandler) UpdateTeam(c *gin.Context) {
+	uuid := c.Param("uuid")
+	var req adminUpdateTeamReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	fields := make(map[string]interface{})
+	if req.VibeLevel != nil {
+		fields["vibe_level"] = *req.VibeLevel
+	}
+	if req.VibePower != nil {
+		fields["vibe_power"] = *req.VibePower
+	}
+	if req.BudgetMin != nil {
+		fields["budget_min"] = *req.BudgetMin
+	}
+	if req.BudgetMax != nil {
+		fields["budget_max"] = *req.BudgetMax
+	}
+	if req.Status != nil {
+		fields["status"] = *req.Status
+	}
+	if len(fields) == 0 {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "至少提供一个字段")
+		return
+	}
+	if err := h.adminService.UpdateTeamFields(uuid, fields); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			response.ErrorNotFound(c, errcode.ErrTeamNotFound, errcode.GetMessage(errcode.ErrTeamNotFound))
+			return
+		}
+		response.ErrorInternal(c, "更新失败")
+		return
+	}
+	response.SuccessMsg(c, "已更新", nil)
+}
+
+// ──────────── 项目编辑 ────────────
+
+type adminUpdateProjectReq struct {
+	BudgetMin *float64 `json:"budget_min"`
+	BudgetMax *float64 `json:"budget_max"`
+	Deadline  *string  `json:"deadline"`
+	Status    *int16   `json:"status"`
+}
+
+// UpdateProject PUT /admin/projects/:uuid
+func (h *AdminHandler) UpdateProject(c *gin.Context) {
+	uuid := c.Param("uuid")
+	var req adminUpdateProjectReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	fields := make(map[string]interface{})
+	if req.BudgetMin != nil {
+		fields["budget_min"] = *req.BudgetMin
+	}
+	if req.BudgetMax != nil {
+		fields["budget_max"] = *req.BudgetMax
+	}
+	if req.Deadline != nil {
+		t, err := time.Parse("2006-01-02", *req.Deadline)
+		if err != nil {
+			response.ErrorBadRequest(c, errcode.ErrParamInvalid, "deadline 格式须为 YYYY-MM-DD")
+			return
+		}
+		fields["deadline"] = t
+	}
+	if req.Status != nil {
+		fields["status"] = *req.Status
+	}
+	if len(fields) == 0 {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "至少提供一个字段")
+		return
+	}
+	if err := h.adminService.UpdateProjectFields(uuid, fields); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			response.ErrorNotFound(c, errcode.ErrAdminProjectNotFound, errcode.GetMessage(errcode.ErrAdminProjectNotFound))
+			return
+		}
+		response.ErrorInternal(c, "更新失败")
+		return
+	}
+	response.SuccessMsg(c, "已更新", nil)
+}
+
 // ──────────── AI 模型配置（代理转发到 ai-agent） ────────────
 
 // GetAIModelConfig GET /admin/ai-models → ai-agent GET /api/v2/models/config

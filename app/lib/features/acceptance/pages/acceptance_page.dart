@@ -10,7 +10,13 @@ import '../widgets/payment_release_dialog.dart';
 
 class AcceptancePage extends ConsumerWidget {
   final String milestoneId;
-  const AcceptancePage({super.key, required this.milestoneId});
+  final String? projectId;
+
+  const AcceptancePage({
+    super.key,
+    required this.milestoneId,
+    this.projectId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -197,13 +203,21 @@ class AcceptancePage extends ConsumerWidget {
         milestoneTitle: checklist.milestoneTitle,
         isSubmitting: ref.read(acceptanceProvider(milestoneId)).isSubmitting,
         onConfirm: () async {
-          final success = await ref
-              .read(acceptanceProvider(milestoneId).notifier)
-              .confirmAcceptance();
+          bool success;
+          if (projectId != null) {
+            success = await ref
+                .read(acceptanceProvider(milestoneId).notifier)
+                .confirmProjectAcceptance(projectId!);
+          } else {
+            success = await ref
+                .read(acceptanceProvider(milestoneId).notifier)
+                .confirmAcceptance();
+          }
           if (context.mounted) {
             Navigator.pop(context);
             if (success) {
-              VccToast.show(context, message: '验收通过，款项已释放');
+              VccToast.show(context, message: '验收通过，项目已完结');
+              Navigator.pop(context); // pop AcceptancePage
             }
           }
         },

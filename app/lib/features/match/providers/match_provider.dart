@@ -113,7 +113,7 @@ class BidFormState {
     this.isLoading = false,
     this.isSubmitting = false,
     this.suggestion,
-    this.bidType = BidFormType.personal,
+    this.bidType = BidFormType.team,
     this.amount,
     this.durationDays,
     this.proposal = '',

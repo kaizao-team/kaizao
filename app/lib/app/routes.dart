@@ -35,6 +35,7 @@ import '../features/settings/pages/settings_page.dart';
 import '../features/settings/pages/about_page.dart';
 import '../features/settings/pages/help_feedback_page.dart';
 import '../features/profile/pages/edit_profile_page.dart';
+import '../features/profile/pages/portfolio_form_page.dart';
 import '../features/wallet/pages/wallet_page.dart';
 import '../features/team/pages/team_hall_page.dart';
 import '../features/team/pages/create_team_post_page.dart';
@@ -80,11 +81,13 @@ class RoutePaths {
   static const String projectManage = '/projects/:projectId/manage';
   static const String acceptance =
       '/projects/:projectId/milestones/:milestoneId/acceptance';
+  static const String projectAcceptance = '/projects/:projectId/acceptance';
   static const String orderConfirm = '/orders/:orderId/confirm';
   static const String paymentResult = '/orders/:orderId/result';
   static const String settings = '/settings';
   static const String income = '/income';
   static const String editProfile = '/profile/edit';
+  static const String portfolioForm = '/profile/portfolio/new';
   static const String wallet = '/wallet';
   static const String teamHall = '/team';
   static const String createTeamPost = '/team/create';
@@ -342,6 +345,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: RoutePaths.portfolioForm,
+        pageBuilder: (_, __) => _cupertinoPage(
+          const PortfolioFormPage(),
+        ),
+      ),
+      GoRoute(
         path: RoutePaths.profileView,
         pageBuilder: (_, state) =>
             _cupertinoPage(ProfilePage(userId: state.pathParameters['userId'])),
@@ -376,6 +385,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             milestoneId: state.pathParameters['milestoneId'] ?? '',
           ),
         ),
+      ),
+      GoRoute(
+        path: RoutePaths.projectAcceptance,
+        pageBuilder: (_, state) {
+          final projectId = state.pathParameters['projectId'] ?? '';
+          final milestoneId =
+              state.uri.queryParameters['milestoneId'] ?? '';
+          return _cupertinoPage(
+            AcceptancePage(
+              milestoneId: milestoneId,
+              projectId: projectId,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: RoutePaths.orderConfirm,

@@ -117,16 +117,19 @@ class _BottomActions extends ConsumerWidget {
       );
     }
     if (state.status == 3) {
+      final alreadyAligned = state.data?['owner_aligned'] == true;
       return VccButton(
-        text: state.isConfirmingAlignment ? '确认中…' : '确认需求对齐',
-        onPressed: state.isConfirmingAlignment
+        text: alreadyAligned
+            ? '已确认，等待团队方确认'
+            : (state.isConfirmingAlignment ? '确认中…' : '确认需求对齐'),
+        onPressed: alreadyAligned || state.isConfirmingAlignment
             ? null
             : () async {
                 final ok = await ref
                     .read(projectDetailProvider(projectId).notifier)
                     .confirmAlignment();
                 if (context.mounted && ok) {
-                  VccToast.show(context, message: '需求已对齐');
+                  VccToast.show(context, message: '已确认需求对齐');
                 }
               },
       );
@@ -144,6 +147,15 @@ class _BottomActions extends ConsumerWidget {
                   VccToast.show(context, message: '项目已启动');
                 }
               },
+      );
+    }
+    if (state.status == 7) {
+      final revieweeId = state.data?['provider_id']?.toString() ?? '';
+      return VccButton(
+        text: '去评价',
+        onPressed: () => context.push(
+          '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=true',
+        ),
       );
     }
     // status >= 5
@@ -194,6 +206,21 @@ class _BottomActions extends ConsumerWidget {
         ],
       );
     }
+    // status=2 已投标
+    if (state.status == 2 && state.hasBid) {
+      return Row(
+        children: [
+          Expanded(child: _buildChatButton()),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: VccButton(
+              text: '已投标，等待项目方选定',
+              onPressed: null,
+            ),
+          ),
+        ],
+      );
+    }
     // status=2 无 bid
     if (state.status == 2) {
       return Row(
@@ -214,11 +241,39 @@ class _BottomActions extends ConsumerWidget {
         ],
       );
     }
-    // status 3-4 等待
-    if (state.status == 3 || state.status == 4) {
+    // status=3 团队方也需要确认需求对齐
+    if (state.status == 3) {
+      final alreadyAligned = state.data?['provider_aligned'] == true;
+      return VccButton(
+        text: alreadyAligned
+            ? '已确认，等待项目方确认'
+            : (state.isConfirmingAlignment ? '确认中…' : '确认需求对齐'),
+        onPressed: alreadyAligned || state.isConfirmingAlignment
+            ? null
+            : () async {
+                final ok = await ref
+                    .read(projectDetailProvider(projectId).notifier)
+                    .confirmAlignment();
+                if (context.mounted && ok) {
+                  VccToast.show(context, message: '已确认需求对齐');
+                }
+              },
+      );
+    }
+    // status=4 等待项目方启动
+    if (state.status == 4) {
       return const VccButton(
-        text: '等待项目启动',
+        text: '等待项目方启动',
         onPressed: null,
+      );
+    }
+    if (state.status == 7) {
+      final revieweeId = state.data?['owner_id']?.toString() ?? '';
+      return VccButton(
+        text: '去评价',
+        onPressed: () => context.push(
+          '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=false',
+        ),
       );
     }
     // status >= 5
@@ -351,44 +406,18 @@ class _DetailContentState extends State<_DetailContent>
                   child: _buildPrdSection(s),
                 ),
               ],
-              if (s.prdItems.isNotEmpty || s.earsTasks.isNotEmpty) ...[
+              if (s.prdItems.isNotEmpty) ...[
                 const SizedBox(height: _kProjectSectionGap),
                 VccPageSection(
                   label: '需求条目',
                   trailing: Text(
-                    '${s.prdItems.length + s.earsTasks.length} 条',
+                    '${s.prdItems.length} 条',
                     style: AppTextStyles.caption.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.gray400,
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      if (s.prdItems.isNotEmpty)
-                        _buildPrdItemCards(s.prdItems),
-                      if (s.earsTasks.isNotEmpty) ...[
-                        if (s.prdItems.isNotEmpty)
-                          const SizedBox(height: 10),
-                        _buildEarsTaskCards(s.earsTasks),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-              if (s.milestones.isNotEmpty) ...[
-                const SizedBox(height: _kProjectSectionGap),
-                VccPageSection(
-                  label: '里程碑',
-                  trailing: s.progress > 0
-                      ? Text(
-                          '${s.progress}%',
-                          style: AppTextStyles.caption.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.gray400,
-                          ),
-                        )
-                      : null,
-                  child: _buildMilestoneSection(s),
+                  child: _buildPrdItemCards(s.prdItems),
                 ),
               ],
               if (s.ownerName.isNotEmpty) ...[

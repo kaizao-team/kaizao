@@ -1,0 +1,1 @@
+{"type":"click","text":"B. 统一交互层\n        \n          Pinned header\n          下拉刷新统一从内容起点出现，不压 header\n          \n          \n            \n            \n            \n          \n          Toast/inline loading/skeleton 走统一组件和语义色\n        \n      \n    \n    \n      B. 推荐\n      统一刷新锚点、通知样式和 loading 分层，但不重做每个页面结构。","choice":"b","id":null,"timestamp":1775894488941}

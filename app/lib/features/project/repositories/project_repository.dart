@@ -45,6 +45,26 @@ class ProjectRepository {
         .toList();
   }
 
+  Future<void> completeMilestone(String milestoneId) async {
+    await _client.post(ApiEndpoints.milestoneComplete(milestoneId));
+  }
+
+  Future<void> deliverProject(
+    String projectId, {
+    String? note,
+    String? previewUrl,
+  }) async {
+    final data = <String, dynamic>{};
+    if (note != null && note.isNotEmpty) data['delivery_note'] = note;
+    if (previewUrl != null && previewUrl.isNotEmpty) {
+      data['preview_url'] = previewUrl;
+    }
+    await _client.post(
+      ApiEndpoints.projectDeliver(projectId),
+      data: data,
+    );
+  }
+
   Future<void> confirmAlignment(String projectId) async {
     await _client.post(ApiEndpoints.projectConfirmAlignment(projectId));
   }

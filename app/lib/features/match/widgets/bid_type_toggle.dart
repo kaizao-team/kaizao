@@ -37,7 +37,7 @@ class BidTypeToggle extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    type == BidFormType.personal ? '个人投标' : '团队投标',
+                    type == BidFormType.team ? '个人投标' : '团队投标',
                     style: AppTextStyles.body2.copyWith(
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w400,

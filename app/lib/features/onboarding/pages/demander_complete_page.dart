@@ -56,23 +56,6 @@ class DemanderCompletePage extends ConsumerWidget {
     return buffer.toString().split('').reversed.join();
   }
 
-  String _buildProjectCode(String seed) {
-    final normalized = seed.trim().isEmpty ? 'KAIZO' : seed.trim();
-    final hash = normalized.hashCode.abs().toString();
-    final suffix = hash.padLeft(4, '0').substring(0, 4);
-    return 'KZ-$suffix';
-  }
-
-  String _estimateCycle(num? min, num? max) {
-    final minValue = min?.toDouble() ?? 1000;
-    final maxValue = max?.toDouble() ?? 5000;
-    final midpoint = (minValue + maxValue) / 2;
-    if (midpoint < 5000) return '7 天上线首版';
-    if (midpoint < 15000) return '14 天推进主版本';
-    if (midpoint < 30000) return '21 天完成核心功能';
-    return '28 天进入交付节奏';
-  }
-
   Future<void> _goToProjectDetail(BuildContext context, WidgetRef ref) async {
     final draft = ref.read(onboardingProvider).draft;
     final projectId = draft['project_uuid'] as String?;
@@ -110,7 +93,6 @@ class DemanderCompletePage extends ConsumerWidget {
     );
     final budgetMin = draft['budget_min'] as num?;
     final budgetMax = draft['budget_max'] as num?;
-    final projectId = draft['project_uuid'] as String?;
     final budgetText =
         '¥${_formatBudget(budgetMin)} - ¥${_formatBudget(budgetMax)} / 项目';
 
@@ -138,11 +120,9 @@ class DemanderCompletePage extends ConsumerWidget {
           ),
           const SizedBox(height: 22),
           _RequirementSummaryCard(
-            projectCode: _buildProjectCode(projectId ?? title),
             title: title,
             category: category,
             budgetText: budgetText,
-            cycleText: _estimateCycle(budgetMin, budgetMax),
           ),
           const SizedBox(height: 18),
           const OnboardingInfoBlock(
@@ -164,18 +144,14 @@ class DemanderCompletePage extends ConsumerWidget {
 }
 
 class _RequirementSummaryCard extends StatelessWidget {
-  final String projectCode;
   final String title;
   final String category;
   final String budgetText;
-  final String cycleText;
 
   const _RequirementSummaryCard({
-    required this.projectCode,
     required this.title,
     required this.category,
     required this.budgetText,
-    required this.cycleText,
   });
 
   @override
@@ -187,12 +163,6 @@ class _RequirementSummaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                'REQUIREMENT ID · $projectCode',
-                style: AppTextStyles.onboardingMeta.copyWith(
-                  color: AppColors.onboardingPrimary,
-                ),
-              ),
               const Spacer(),
               const OnboardingStatusBadge(text: '团队匹配中', animate: true),
             ],
@@ -212,22 +182,6 @@ class _RequirementSummaryCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          _MetaLine(icon: Icons.schedule_outlined, text: cycleText),
-          const SizedBox(height: 18),
-          OnboardingSectionHeader(
-            title: '团队候选队列 (2)',
-            accessory: Text(
-              '实时更新中',
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.onboardingMutedText,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const _QueuePlaceholder(),
-          const SizedBox(height: 10),
-          const _QueuePlaceholder(),
         ],
       ),
     );
@@ -261,67 +215,3 @@ class _MetaLine extends StatelessWidget {
   }
 }
 
-class _QueuePlaceholder extends StatelessWidget {
-  const _QueuePlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.onboardingSurfaceMuted.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.onboardingHairline.withValues(alpha: 0.45),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: AppColors.onboardingSurface,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.person_outline_rounded,
-              size: 18,
-              color: AppColors.gray400,
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                OnboardingSkeletonBlock(
-                  width: 120,
-                  height: 8,
-                  color: AppColors.gray200,
-                ),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    OnboardingSkeletonBlock(
-                      width: 72,
-                      height: 8,
-                      color: AppColors.gray100,
-                    ),
-                    SizedBox(width: 10),
-                    OnboardingSkeletonBlock(
-                      width: 42,
-                      height: 8,
-                      color: AppColors.onboardingSurface,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

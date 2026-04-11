@@ -158,6 +158,8 @@ const (
 	NotificationTypeMilestoneDelivered int16 = 22 // 里程碑待验收
 	NotificationTypeNewBid             int16 = 23 // 收到新投标
 	NotificationTypeProjectPublished   int16 = 24 // 项目已发布
+	NotificationTypeProjectCompleted   int16 = 25 // 项目已完成
+	NotificationTypeProjectDelivered   int16 = 26 // 项目已提交交付
 )
 
 func (n *Notification) BeforeCreate(tx *gorm.DB) error {

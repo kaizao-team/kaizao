@@ -12,6 +12,9 @@ class UserProfile {
   final UserStats stats;
   final String bio;
   final String createdAt;
+  final String? vibeLevel;
+  final int vibePower;
+  final String? levelName;
 
   const UserProfile({
     required this.id,
@@ -27,6 +30,9 @@ class UserProfile {
     this.stats = const UserStats(),
     this.bio = '',
     this.createdAt = '',
+    this.vibeLevel,
+    this.vibePower = 0,
+    this.levelName,
   });
 
   bool get isDemander => role == 1;
@@ -53,6 +59,9 @@ class UserProfile {
           : const UserStats(),
       bio: json['bio']?.toString() ?? '',
       createdAt: json['created_at']?.toString() ?? '',
+      vibeLevel: json['vibe_level']?.toString(),
+      vibePower: (json['vibe_power'] as num?)?.toInt() ?? 0,
+      levelName: json['level_name']?.toString(),
     );
   }
 }

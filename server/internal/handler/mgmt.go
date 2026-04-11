@@ -155,17 +155,20 @@ func (h *TaskHandler) listTasksInternal(c *gin.Context, projectID string) {
 			}
 		}
 		list = append(list, gin.H{
-			"id":             t.UUID,
-			"title":          t.Title,
-			"description":    t.EarsBehavior,
-			"status":         status,
-			"priority":       priority,
-			"assignee":       assignee,
-			"milestone_id":   msID,
-			"effort_hours":   t.EstimatedHours,
-			"is_at_risk":     false,
-			"created_at":     t.CreatedAt,
-			"completed_at":   t.CompletedAt,
+			"id":              t.UUID,
+			"title":           t.Title,
+			"description":     t.EarsBehavior,
+			"status":          status,
+			"priority":        priority,
+			"assignee":        assignee,
+			"milestone_id":    msID,
+			"effort_hours":    t.EstimatedHours,
+			"is_at_risk":      false,
+			"created_at":      t.CreatedAt,
+			"completed_at":    t.CompletedAt,
+			"task_code":       t.TaskCode,
+			"feature_item_id": t.FeatureItemID,
+			"ears_type":       t.EarsType,
 		})
 	}
 	response.Success(c, list)
@@ -393,6 +396,59 @@ func (h *TaskHandler) AcceptMilestone(c *gin.Context) {
 	response.SuccessMsg(c, "验收通过，款项已释放", gin.H{
 		"status":          "accepted",
 		"released_amount": amount,
+	})
+}
+
+func (h *TaskHandler) CompleteMilestone(c *gin.Context) {
+	msID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	ms, err := h.milestoneService.CompleteMilestone(msID, userUUID)
+	if err != nil {
+		respondDeliverError(c, err)
+		return
+	}
+	response.SuccessMsg(c, "里程碑已标记完成", gin.H{
+		"milestone_id": ms.UUID,
+		"status":       "completed",
+	})
+}
+
+func (h *TaskHandler) DeliverProject(c *gin.Context) {
+	projectID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	var req struct {
+		DeliveryNote *string `json:"delivery_note"`
+		PreviewURL   *string `json:"preview_url"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	note := ""
+	if req.DeliveryNote != nil {
+		note = *req.DeliveryNote
+	}
+	url := ""
+	if req.PreviewURL != nil {
+		url = *req.PreviewURL
+	}
+	err := h.milestoneService.DeliverProject(projectID, userUUID, note, url)
+	if err != nil {
+		respondDeliverError(c, err)
+		return
+	}
+	response.SuccessMsg(c, "项目交付已提交", gin.H{
+		"status": "accepting",
+	})
+}
+
+func (h *TaskHandler) AcceptProject(c *gin.Context) {
+	projectID := c.Param("id")
+	userUUID := c.GetString("user_uuid")
+	err := h.milestoneService.AcceptProject(projectID, userUUID)
+	if err != nil {
+		respondMilestoneAcceptanceError(c, err)
+		return
+	}
+	response.SuccessMsg(c, "项目验收通过", gin.H{
+		"status": "completed",
 	})
 }
 

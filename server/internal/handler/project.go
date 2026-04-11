@@ -229,7 +229,7 @@ func (h *ProjectHandler) ConfirmAlignment(c *gin.Context) {
 		response.ErrorInternal(c, "确认需求对齐失败")
 		return
 	}
-	response.SuccessMsg(c, "需求已对齐", gin.H{"status": 4})
+	response.SuccessMsg(c, "已确认需求对齐", nil)
 }
 
 // Start 启动项目 (status 4→5)
