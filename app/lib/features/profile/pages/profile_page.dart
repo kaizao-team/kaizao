@@ -1151,11 +1151,9 @@ class _ImmersiveProfileHeader extends StatelessWidget {
       progress,
     )!;
 
-    // Settings fades out in the second half of scroll
-    final settingsOpacity = 1 -
-        Curves.easeOut.transform(
-          ((progress - 0.5) / 0.5).clamp(0.0, 1.0),
-        );
+    // Text portion collapses in the first half of scroll
+    final textProgress = Curves.easeInOut
+        .transform((progress * 2).clamp(0.0, 1.0));
 
     // Divider appears at full collapse
     final dividerOpacity = Curves.easeOut
@@ -1179,46 +1177,56 @@ class _ImmersiveProfileHeader extends StatelessWidget {
           fit: StackFit.expand,
           clipBehavior: Clip.none,
           children: [
-            // Settings button — hero style (icon + text) → fades out on scroll
+            // Settings button — collapses from (icon + 设置 text) to icon only
             Positioned(
               top: topPadding + 10,
               right: 20,
-              child: IgnorePointer(
-                ignoring: settingsOpacity < 0.1,
-                child: Opacity(
-                  opacity: settingsOpacity,
-                  child: GestureDetector(
-                    onTap: onSettingsTap,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 9,
+              child: GestureDetector(
+                onTap: onSettingsTap,
+                child: Container(
+                  padding: EdgeInsets.lerp(
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    const EdgeInsets.all(9),
+                    textProgress,
+                  ),
+                  decoration: BoxDecoration(
+                    color: settingsBg,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: settingsBorder),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.settings_outlined,
+                        size: 16,
+                        color: textColor,
                       ),
-                      decoration: BoxDecoration(
-                        color: settingsBg,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(color: settingsBorder),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.settings_outlined,
-                            size: 16,
-                            color: textColor,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '设置',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: textColor,
+                      // Text width collapses to zero
+                      ClipRect(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: 1 - textProgress,
+                          child: Opacity(
+                            opacity: 1 - textProgress,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(width: 8),
+                                Text(
+                                  '设置',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
