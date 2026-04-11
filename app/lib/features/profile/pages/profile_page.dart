@@ -106,15 +106,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     // Schedule hero measurement after build
     WidgetsBinding.instance.addPostFrameCallback((_) => _measureHero());
 
-    // Header fade-in progress (last 40% of hero scroll)
-    final fadeStart = _heroHeight * 0.6;
-    final fadeProgress = _heroHeight <= 0
-        ? 1.0
-        : (((_scrollOffset - fadeStart) / (_heroHeight - fadeStart))
-            .clamp(0.0, 1.0));
+    final headerProgress = (_scrollOffset / (_heroHeight + 70)).clamp(0.0, 1.0);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: fadeProgress > 0.6
+      value: headerProgress > 0.5
           ? SystemUiOverlayStyle.dark
           : SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -327,7 +322,7 @@ class _ProfileHero extends ConsumerWidget {
               }
               context.go(RoutePaths.home);
             },
-      contentPadding: EdgeInsets.fromLTRB(20, isSelf ? 28 : 12, 20, 18),
+      contentPadding: EdgeInsets.fromLTRB(20, isSelf ? 60 : 12, 20, 18),
       bottomSpacing: hasSkillParticles
           ? 110
           : hasDemandBoard
@@ -1108,11 +1103,10 @@ class _ProfileMenuItem {
 
 /// Immersive floating header for the self-profile page.
 ///
-/// Phase 1 (hero scrolling away): background + title fade in.
-/// Phase 2 (content scrolling past hero): title physically shrinks 30→18px.
+/// Always visible — starts with transparent background + white text on the
+/// dark hero. As the user scrolls, background fades to AppColors.surface and
+/// text transitions to black. Title physically shrinks 30→18px.
 class _ImmersiveProfileHeader extends StatelessWidget {
-  static const double _shrinkRange = 70;
-
   final double scrollOffset;
   final double heroHeight;
   final VoidCallback onSettingsTap;
@@ -1127,37 +1121,51 @@ class _ImmersiveProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
 
-    // Phase 1: fade in as hero scrolls off (last 40% of hero height)
-    final fadeStart = heroHeight * 0.6;
-    final fadeRange = heroHeight - fadeStart;
-    final fadeProgress = fadeRange <= 0
-        ? 1.0
-        : ((scrollOffset - fadeStart) / fadeRange).clamp(0.0, 1.0);
+    // Unified 0→1 progress over the full hero + shrink range
+    final totalRange = heroHeight + 70;
+    final progress =
+        totalRange <= 0 ? 1.0 : (scrollOffset / totalRange).clamp(0.0, 1.0);
 
-    // Phase 2: title shrinks after hero fully gone
-    final shrinkProgress =
-        ((scrollOffset - heroHeight) / _shrinkRange).clamp(0.0, 1.0);
-
-    final titleSize = lerpDouble(30, 18, shrinkProgress)!;
+    // Title physically shrinks and moves up
+    final titleSize = lerpDouble(30, 18, progress)!;
     final titleWeight =
-        FontWeight.lerp(FontWeight.w700, FontWeight.w600, shrinkProgress) ??
+        FontWeight.lerp(FontWeight.w700, FontWeight.w600, progress) ??
             FontWeight.w700;
-    final titleTop = lerpDouble(topPadding + 12, topPadding + 14, shrinkProgress)!;
+    final titleTop =
+        lerpDouble(topPadding + 12, topPadding + 14, progress)!;
 
-    final trailingOpacity = (1 -
-            Curves.easeOut.transform(
-              ((shrinkProgress - 0.15) / 0.5).clamp(0.0, 1.0),
-            )) *
-        fadeProgress;
+    // Colors: white (on dark hero) → dark (on light header)
+    final textColor = Color.lerp(Colors.white, AppColors.black, progress)!;
+    final bgColor = AppColors.surface
+        .withValues(alpha: Curves.easeIn.transform(progress));
 
+    // Settings button style transitions from ghost (white) to solid (gray)
+    final settingsBg = Color.lerp(
+      Colors.white.withValues(alpha: 0.12),
+      AppColors.gray100,
+      progress,
+    )!;
+    final settingsBorder = Color.lerp(
+      Colors.white.withValues(alpha: 0.18),
+      AppColors.gray200,
+      progress,
+    )!;
+
+    // Settings fades out in the second half of scroll
+    final settingsOpacity = 1 -
+        Curves.easeOut.transform(
+          ((progress - 0.5) / 0.5).clamp(0.0, 1.0),
+        );
+
+    // Divider appears at full collapse
     final dividerOpacity = Curves.easeOut
-        .transform(((shrinkProgress - 0.82) / 0.18).clamp(0.0, 1.0));
+        .transform(((progress - 0.9) / 0.1).clamp(0.0, 1.0));
 
     return SizedBox(
       height: topPadding + 48,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: fadeProgress),
+          color: bgColor,
           border: dividerOpacity > 0
               ? Border(
                   bottom: BorderSide(
@@ -1175,47 +1183,44 @@ class _ImmersiveProfileHeader extends StatelessWidget {
               top: topPadding + 10,
               right: 20,
               child: IgnorePointer(
-                ignoring: trailingOpacity < 0.1,
+                ignoring: settingsOpacity < 0.1,
                 child: Opacity(
-                  opacity: trailingOpacity,
+                  opacity: settingsOpacity,
                   child: GestureDetector(
                     onTap: onSettingsTap,
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.gray100,
+                        color: settingsBg,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.gray200),
+                        border: Border.all(color: settingsBorder),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.settings_outlined,
                         size: 18,
-                        color: AppColors.black,
+                        color: textColor,
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-            // Title "我的" — fades in then physically shrinks
+            // Title "我的" — always visible, physically shrinks + color shifts
             Positioned(
               top: titleTop,
               left: 20,
               right: 132,
               child: IgnorePointer(
-                child: Opacity(
-                  opacity: fadeProgress,
-                  child: Text(
-                    '我的',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: titleSize,
-                      fontWeight: titleWeight,
-                      height: 1,
-                      letterSpacing: -0.8,
-                      color: AppColors.black,
-                    ),
+                child: Text(
+                  '我的',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: titleSize,
+                    fontWeight: titleWeight,
+                    height: 1,
+                    letterSpacing: -0.8,
+                    color: textColor,
                   ),
                 ),
               ),
