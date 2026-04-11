@@ -32,7 +32,7 @@ class BidListPage extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           '收到的投标 (${state.bids.length})',
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
       body: state.isLoading
@@ -56,7 +56,7 @@ class BidListPage extends ConsumerWidget {
                           .read(bidListProvider(projectId).notifier)
                           .loadBids(),
                       child: ListView.separated(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(AppSpacing.base),
                         itemCount: state.bids.length,
                         separatorBuilder: (_, __) =>
                             const SizedBox(height: 12),
@@ -125,7 +125,7 @@ class BidListPage extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
       ),
       builder: (ctx) {
         final bottomPadding = MediaQuery.of(ctx).padding.bottom;
@@ -156,7 +156,7 @@ class BidListPage extends ConsumerWidget {
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -168,7 +168,7 @@ class BidListPage extends ConsumerWidget {
                                         ? bid.userName.substring(0, 1)
                                         : 'U',
                                   ),
-                                  const SizedBox(width: 14),
+                                  const SizedBox(width: AppSpacing.base),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -179,8 +179,7 @@ class BidListPage extends ConsumerWidget {
                                             Flexible(
                                               child: Text(
                                                 bid.userName,
-                                                style: const TextStyle(
-                                                  fontSize: 18,
+                                                style: AppTextStyles.h3.copyWith(
                                                   fontWeight: FontWeight.w700,
                                                   color: AppColors.black,
                                                 ),
@@ -199,11 +198,11 @@ class BidListPage extends ConsumerWidget {
                                                 decoration: BoxDecoration(
                                                   color: AppColors.gray100,
                                                   borderRadius:
-                                                      BorderRadius.circular(4),
+                                                      BorderRadius.circular(AppRadius.xs),
                                                 ),
-                                                child: const Text(
+                                                child: Text(
                                                   '团队',
-                                                  style: TextStyle(
+                                                  style: AppTextStyles.caption.copyWith(
                                                     fontSize: 11,
                                                     color: AppColors.gray500,
                                                   ),
@@ -258,10 +257,8 @@ class BidListPage extends ConsumerWidget {
                                   children: [
                                     Text(
                                       '¥${bid.bidAmount.toStringAsFixed(0)}',
-                                      style: const TextStyle(
-                                        fontSize: 24,
+                                      style: AppTextStyles.num2.copyWith(
                                         fontWeight: FontWeight.w700,
-                                        color: AppColors.black,
                                       ),
                                     ),
                                     const SizedBox(width: 16),
@@ -349,9 +346,9 @@ class BidListPage extends ConsumerWidget {
                                     style: AppTextStyles.body1.copyWith(
                                       fontWeight: FontWeight.w600,
                                       color: bid.status == BidStatus.accepted
-                                          ? const Color(0xFF2E7D32)
+                                          ? AppColors.statusAcceptedFg
                                           : bid.status == BidStatus.rejected
-                                              ? const Color(0xFFC62828)
+                                              ? AppColors.statusRejectedFg
                                               : AppColors.gray500,
                                     ),
                                   ),
@@ -361,10 +358,10 @@ class BidListPage extends ConsumerWidget {
                                 const SizedBox(height: 20),
                                 Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.all(14),
+                                  padding: const EdgeInsets.all(AppSpacing.md),
                                   decoration: BoxDecoration(
                                     color: AppColors.accentLight,
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(AppRadius.md),
                                     border: Border.all(
                                       color: AppColors.accent.withValues(
                                           alpha: 0.3),
@@ -417,27 +414,26 @@ class BidListPage extends ConsumerWidget {
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
       ),
       builder: (ctx) {
         final bottomPadding = MediaQuery.of(ctx).padding.bottom;
         return Padding(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, 16 + bottomPadding),
+          padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.base + bottomPadding),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 '撤回投标',
-                style: TextStyle(
+                style: AppTextStyles.h3.copyWith(
                   fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1C1C),
+                  color: AppColors.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 '撤回后将无法恢复，确定要撤回这条投标吗？',
-                style: TextStyle(fontSize: 14, color: AppColors.gray500),
+                style: AppTextStyles.body2.copyWith(color: AppColors.gray500),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -462,12 +458,15 @@ class BidListPage extends ConsumerWidget {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),
-                  child: const Text('确认撤回',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                  child: Text('确认撤回',
+                      style: AppTextStyles.body2.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      )),
                 ),
               ),
               const SizedBox(height: 12),
@@ -477,13 +476,13 @@ class BidListPage extends ConsumerWidget {
                 child: TextButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFFF3F3F3),
+                    backgroundColor: AppColors.surfaceAlt,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),
-                  child: const Text('取消',
-                      style: TextStyle(
+                  child: Text('取消',
+                      style: AppTextStyles.body2.copyWith(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: AppColors.gray600,
@@ -498,14 +497,17 @@ class BidListPage extends ConsumerWidget {
   }
 
   Widget _buildEmpty() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.inbox_outlined, size: 48, color: AppColors.gray300),
-          SizedBox(height: 12),
+          const Icon(Icons.inbox_outlined, size: 48, color: AppColors.gray300),
+          const SizedBox(height: AppSpacing.md),
           Text('暂无投标',
-              style: TextStyle(fontSize: 15, color: AppColors.gray500)),
+              style: AppTextStyles.body2.copyWith(
+                fontSize: 15,
+                color: AppColors.gray500,
+              )),
         ],
       ),
     );
@@ -519,29 +521,31 @@ class BidListPage extends ConsumerWidget {
           const Icon(Icons.cloud_off_outlined,
               size: 48, color: AppColors.gray400),
           const SizedBox(height: 16),
-          const Text('加载失败',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.gray600)),
-          const SizedBox(height: 8),
+          Text('加载失败',
+              style: AppTextStyles.body1.copyWith(
+                fontWeight: FontWeight.w500,
+                color: AppColors.gray600,
+              )),
+          const SizedBox(height: AppSpacing.sm),
           Text(message,
-              style:
-                  const TextStyle(fontSize: 13, color: AppColors.gray400),
+              style: AppTextStyles.caption.copyWith(
+                fontSize: 13,
+                color: AppColors.gray400,
+              ),
               textAlign: TextAlign.center),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.lg),
           GestureDetector(
             onTap: () =>
                 ref.read(bidListProvider(projectId).notifier).loadBids(),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl, vertical: AppSpacing.md),
               decoration: BoxDecoration(
                 color: AppColors.black,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: const Text('重试',
-                  style: TextStyle(fontSize: 14, color: AppColors.white)),
+              child: Text('重试',
+                  style: AppTextStyles.body2.copyWith(color: AppColors.white)),
             ),
           ),
         ],
