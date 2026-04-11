@@ -346,3 +346,29 @@ app/lib/
 - 使用 **Riverpod**
 - 路由使用 **GoRouter**
 - 页面逻辑优先拆成 `page / provider / repository / widget`
+
+---
+
+## Header 收缩规范
+
+所有 Tab 页面应使用统一的收缩 header 模式：
+
+### 标准页面 — VccEditorialAppBar
+- 组件: `shared/widgets/vcc_editorial_app_bar.dart`
+- 标题从 30px 物理缩小到 18px
+- 副标题和 trailing 随滚动淡出
+- 使用 SliverPersistentHeader + lerpDouble 驱动
+
+### 带 Tab 切换的页面（如广场）
+- 使用 ScrollNotification 驱动 header 动画
+- 收缩时 Tab switch 变为胶囊 capsule 只显示当前 tab
+- Filter bar 用 ClipRect + heightFactor 收缩高度
+
+### 首页
+- Logo + 品牌字收缩（26→18px）
+- 使用 SliverPersistentHeader pinned
+
+### 禁止
+- 不要使用 SliverAppBar 的 title + flexibleSpace 组合（会重叠）
+- 不要在每个页面自己写 header delegate（使用 VccEditorialAppBar）
+- 例外: 功能特殊的页面（如功能需要 badge + filter 二级 header）可保留自定义 delegate
