@@ -1,7 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/ai_agent_client.dart';
-import '../../../core/network/api_endpoints.dart';
 import '../models/project_models.dart';
 import '../repositories/project_repository.dart';
 
@@ -10,17 +7,19 @@ class ProjectManageState {
   final ProjectTab currentTab;
   final List<KanbanTask> tasks;
   final List<Milestone> milestones;
-  final List<DailyReport> reports;
-  final List<Map<String, dynamic>> prdItems;
+  final List<ProjectFile> files;
+  final String selectedFileKind;
+  final bool isMilestoneActing;
   final String? errorMessage;
 
   const ProjectManageState({
     this.isLoading = false,
-    this.currentTab = ProjectTab.kanban,
+    this.currentTab = ProjectTab.tasks,
     this.tasks = const [],
     this.milestones = const [],
-    this.reports = const [],
-    this.prdItems = const [],
+    this.files = const [],
+    this.selectedFileKind = 'reference',
+    this.isMilestoneActing = false,
     this.errorMessage,
   });
 
@@ -29,8 +28,9 @@ class ProjectManageState {
     ProjectTab? currentTab,
     List<KanbanTask>? tasks,
     List<Milestone>? milestones,
-    List<DailyReport>? reports,
-    List<Map<String, dynamic>>? prdItems,
+    List<ProjectFile>? files,
+    String? selectedFileKind,
+    bool? isMilestoneActing,
     String? Function()? errorMessage,
   }) {
     return ProjectManageState(
@@ -38,8 +38,9 @@ class ProjectManageState {
       currentTab: currentTab ?? this.currentTab,
       tasks: tasks ?? this.tasks,
       milestones: milestones ?? this.milestones,
-      reports: reports ?? this.reports,
-      prdItems: prdItems ?? this.prdItems,
+      files: files ?? this.files,
+      selectedFileKind: selectedFileKind ?? this.selectedFileKind,
+      isMilestoneActing: isMilestoneActing ?? this.isMilestoneActing,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
@@ -55,8 +56,8 @@ class ProjectManageState {
     return (completedTasks.length / tasks.length * 100).round();
   }
 
-  bool get hasRisks => tasks.any((t) => t.isAtRisk);
-  int get riskCount => tasks.where((t) => t.isAtRisk).length;
+  List<ProjectFile> get filteredFiles =>
+      files.where((f) => f.fileKind == selectedFileKind).toList();
 }
 
 class ProjectManageNotifier extends StateNotifier<ProjectManageState> {
@@ -71,22 +72,13 @@ class ProjectManageNotifier extends StateNotifier<ProjectManageState> {
   Future<void> loadAll() async {
     state = state.copyWith(isLoading: true, errorMessage: () => null);
     try {
-      final tasksFuture = _repository.fetchTasks(projectId);
-      final milestonesFuture = _repository.fetchMilestones(projectId);
-      final reportsFuture = _repository.fetchDailyReports(projectId);
-      final prdItemsFuture = _fetchPrdItems();
-
-      final tasks = await tasksFuture;
-      final milestones = await milestonesFuture;
-      final reports = await reportsFuture;
-      final prdItems = await prdItemsFuture;
+      final tasks = await _repository.fetchTasks(projectId);
+      final milestones = await _repository.fetchMilestones(projectId);
       if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         tasks: tasks,
         milestones: milestones,
-        reports: reports,
-        prdItems: prdItems,
       );
     } catch (e) {
       if (!mounted) return;
@@ -97,52 +89,11 @@ class ProjectManageNotifier extends StateNotifier<ProjectManageState> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchPrdItems() async {
-    try {
-      final aiClient = AiAgentClient();
-      final overview = await aiClient.get(ApiEndpoints.pipelineOverview(projectId));
-      final overviewData = overview['data'];
-      if (overviewData is Map && overviewData['prd_items'] is List) {
-        return (overviewData['prd_items'] as List)
-            .whereType<Map<String, dynamic>>()
-            .toList();
-      }
-    } catch (e) {
-      debugPrint('[ProjectManage] fetchPrdItems error: $e');
-    }
-    return [];
-  }
-
   void switchTab(ProjectTab tab) {
     state = state.copyWith(currentTab: tab);
-  }
-
-  Future<bool> completeMilestone(String milestoneId) async {
-    try {
-      await _repository.completeMilestone(milestoneId);
-      await loadAll();
-      return true;
-    } catch (e) {
-      debugPrint('[ProjectManage] completeMilestone error: $e');
-      return false;
+    if (tab == ProjectTab.files && state.files.isEmpty) {
+      loadFiles();
     }
-  }
-
-  Future<bool> deliverProject({String? note, String? previewUrl}) async {
-    try {
-      await _repository.deliverProject(projectId,
-          note: note, previewUrl: previewUrl);
-      await loadAll();
-      return true;
-    } catch (e) {
-      debugPrint('[ProjectManage] deliverProject error: $e');
-      return false;
-    }
-  }
-
-  bool get canDeliverProject {
-    return state.milestones.isNotEmpty &&
-        state.milestones.every((m) => m.isCompleted);
   }
 
   Future<void> moveTask(String taskId, String newStatus) async {
@@ -151,13 +102,75 @@ class ProjectManageNotifier extends StateNotifier<ProjectManageState> {
       return t;
     }).toList();
     state = state.copyWith(tasks: updatedTasks);
-
     try {
       await _repository.updateTaskStatus(taskId, newStatus);
     } catch (_) {
       if (!mounted) return;
       await loadAll();
     }
+  }
+
+  Future<void> deliverMilestone(String milestoneId,
+      {String? note, String? previewUrl}) async {
+    state = state.copyWith(isMilestoneActing: true);
+    try {
+      await _repository.deliverMilestone(milestoneId,
+          note: note, previewUrl: previewUrl);
+      if (!mounted) return;
+      await _reloadMilestones();
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+          isMilestoneActing: false, errorMessage: () => e.toString());
+    }
+  }
+
+  Future<void> acceptMilestone(String milestoneId) async {
+    state = state.copyWith(isMilestoneActing: true);
+    try {
+      await _repository.acceptMilestone(milestoneId);
+      if (!mounted) return;
+      await _reloadMilestones();
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+          isMilestoneActing: false, errorMessage: () => e.toString());
+    }
+  }
+
+  Future<void> requestRevision(String milestoneId, {String? reason}) async {
+    state = state.copyWith(isMilestoneActing: true);
+    try {
+      await _repository.requestRevision(milestoneId, reason: reason);
+      if (!mounted) return;
+      await _reloadMilestones();
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+          isMilestoneActing: false, errorMessage: () => e.toString());
+    }
+  }
+
+  Future<void> _reloadMilestones() async {
+    final milestones = await _repository.fetchMilestones(projectId);
+    if (!mounted) return;
+    state = state.copyWith(isMilestoneActing: false, milestones: milestones);
+  }
+
+  Future<void> loadFiles() async {
+    try {
+      final files = await _repository.fetchFiles(projectId);
+      if (!mounted) return;
+      state = state.copyWith(files: files);
+    } catch (_) {}
+  }
+
+  void setFileKind(String kind) {
+    state = state.copyWith(selectedFileKind: kind);
+  }
+
+  Future<String> fetchDownloadUrl(String uuid) async {
+    return _repository.fetchFileDownloadUrl(projectId, uuid);
   }
 }
 

@@ -24,6 +24,31 @@ class ProjectKanbanMock {
       delayMs: 400,
       handler: (options) => _dailyReports(options),
     );
+
+    handlers['GET:/api/v1/projects/:id/files'] = MockHandler(
+      delayMs: 300,
+      handler: (options) => _files(options),
+    );
+
+    handlers['GET:/api/v1/projects/:id/files/:uuid'] = MockHandler(
+      delayMs: 200,
+      handler: (options) => _fileDetail(options),
+    );
+
+    handlers['POST:/api/v1/milestones/:id/deliver'] = MockHandler(
+      delayMs: 500,
+      handler: (options) => {'code': 0, 'message': 'ok', 'data': null},
+    );
+
+    handlers['POST:/api/v1/milestones/:id/accept'] = MockHandler(
+      delayMs: 500,
+      handler: (options) => {'code': 0, 'message': 'ok', 'data': null},
+    );
+
+    handlers['POST:/api/v1/milestones/:id/revision'] = MockHandler(
+      delayMs: 500,
+      handler: (options) => {'code': 0, 'message': 'ok', 'data': null},
+    );
   }
 
   static Map<String, dynamic> _tasks(RequestOptions options) {
@@ -58,10 +83,30 @@ class ProjectKanbanMock {
       'message': 'ok',
       'data': [
         {'id': 'm1', 'title': '需求确认 & 基础框架', 'status': 'completed', 'progress': 100, 'due_date': '2026-03-17', 'amount': 1500, 'task_count': 2, 'completed_task_count': 2},
-        {'id': 'm2', 'title': '核心功能开发', 'status': 'in_progress', 'progress': 40, 'due_date': '2026-03-28', 'amount': 3000, 'task_count': 3, 'completed_task_count': 0},
+        {'id': 'm2', 'title': '核心功能开发', 'status': 'delivered', 'progress': 40, 'due_date': '2026-03-28', 'amount': 3000, 'task_count': 3, 'completed_task_count': 0},
         {'id': 'm3', 'title': '通信 & 支付模块', 'status': 'pending', 'progress': 0, 'due_date': '2026-04-05', 'amount': 2000, 'task_count': 2, 'completed_task_count': 0},
         {'id': 'm4', 'title': '测试 & 上线', 'status': 'pending', 'progress': 0, 'due_date': '2026-04-12', 'amount': 1500, 'task_count': 2, 'completed_task_count': 0},
       ],
+    };
+  }
+
+  static Map<String, dynamic> _files(RequestOptions options) {
+    return {
+      'code': 0,
+      'message': 'ok',
+      'data': [
+        {'uuid': 'f1', 'file_kind': 'reference', 'original_name': '需求文档.pdf', 'content_type': 'application/pdf', 'size_bytes': 1258291, 'uploaded_by_nickname': 'Dylan', 'created_at': '2026-04-10T09:00:00Z'},
+        {'uuid': 'f2', 'file_kind': 'reference', 'original_name': 'API接口文档.md', 'content_type': 'text/markdown', 'size_bytes': 348160, 'uploaded_by_nickname': 'Dylan', 'created_at': '2026-04-09T14:30:00Z'},
+        {'uuid': 'f3', 'file_kind': 'process', 'original_name': '技术方案.docx', 'content_type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'size_bytes': 512000, 'uploaded_by_nickname': '张开发', 'created_at': '2026-04-08T11:00:00Z'},
+      ],
+    };
+  }
+
+  static Map<String, dynamic> _fileDetail(RequestOptions options) {
+    return {
+      'code': 0,
+      'message': 'ok',
+      'data': {'download_url': 'https://example.com/files/mock-download-url'},
     };
   }
 

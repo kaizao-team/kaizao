@@ -81,6 +81,9 @@ class ApiEndpoints {
   static String projectAiAssist(String id) => '/api/v1/projects/$id/ai-assist';
   static String projectAttachments(String id) =>
       '/api/v1/projects/$id/attachments';
+  static String projectFiles(String id) => '/api/v1/projects/$id/files';
+  static String projectFileDetail(String id, String uuid) =>
+      '/api/v1/projects/$id/files/$uuid';
   static String projectClose(String id) => '/api/v1/projects/$id/close';
   static String projectConfirmAlignment(String id) =>
       '/api/v1/projects/$id/confirm-alignment';
@@ -97,15 +100,15 @@ class ApiEndpoints {
   // 里程碑模块 /api/v1/milestones
   // ============================================================
   static String milestoneDeliver(String id) => '/api/v1/milestones/$id/deliver';
-  static String milestoneComplete(String id) =>
-      '/api/v1/milestones/$id/complete';
   static String milestoneAccept(String id) => '/api/v1/milestones/$id/accept';
   static String milestoneAcceptance(String id) =>
       '/api/v1/milestones/$id/acceptance';
   static String milestoneRevision(String id) =>
       '/api/v1/milestones/$id/revision';
-  static String projectDeliver(String id) => '/api/v1/projects/$id/deliver';
-  static String projectAccept(String id) => '/api/v1/projects/$id/accept';
+  static String milestoneComplete(String id) =>
+      '/api/v1/milestones/$id/complete';
+  static String projectDeliver(String id) =>
+      '/api/v1/projects/$id/deliver';
 
   // ============================================================
   // 评论模块 /api/v1/projects/:id/comments

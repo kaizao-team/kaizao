@@ -82,4 +82,48 @@ class ProjectRepository {
         .map((e) => DailyReport.fromJson(e))
         .toList();
   }
+
+  Future<void> deliverMilestone(String milestoneId,
+      {String? note, String? previewUrl}) async {
+    await _client.post(
+      ApiEndpoints.milestoneDeliver(milestoneId),
+      data: {
+        if (note != null) 'note': note,
+        if (previewUrl != null) 'preview_url': previewUrl,
+      },
+    );
+  }
+
+  Future<void> acceptMilestone(String milestoneId) async {
+    await _client.post(ApiEndpoints.milestoneAccept(milestoneId));
+  }
+
+  Future<void> requestRevision(String milestoneId, {String? reason}) async {
+    await _client.post(
+      ApiEndpoints.milestoneRevision(milestoneId),
+      data: {if (reason != null) 'reason': reason},
+    );
+  }
+
+  Future<List<ProjectFile>> fetchFiles(String projectId,
+      {String? fileKind}) async {
+    final response = await _client.get(
+      ApiEndpoints.projectFiles(projectId),
+      queryParameters: {if (fileKind != null) 'file_kind': fileKind},
+    );
+    final list = response.data as List? ?? [];
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map((e) => ProjectFile.fromJson(e))
+        .toList();
+  }
+
+  Future<String> fetchFileDownloadUrl(String projectId, String uuid) async {
+    final response = await _client.get(
+      ApiEndpoints.projectFileDetail(projectId, uuid),
+    );
+    return (response.data as Map<String, dynamic>?)?['download_url']
+            as String? ??
+        '';
+  }
 }

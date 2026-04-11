@@ -1,0 +1,91 @@
+<h2>全局体验统一方向</h2>
+<p class="subtitle">基于当前 Flutter 实现分布，先锁总策略。看哪个更适合这次 worktree 的修复范围。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A. 系统最小改动</div>
+        <div class="mockup-body">
+          <div style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-weight:700">Header</div>
+          <div style="padding:18px 14px 6px;color:#6b7280;font-size:12px">刷新圆点仍跟随各页面容器位置</div>
+          <div style="margin:8px 14px;height:18px;width:18px;border:2px solid #111;border-top-color:transparent;border-radius:999px"></div>
+          <div class="placeholder" style="height:140px">Page content</div>
+          <div style="padding:12px 14px;color:#6b7280;font-size:12px">Toast 只统一颜色，不动交互层</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. 最小修补</h3>
+      <p>风险最低，但刷新位置和 loading 体验仍会残留不一致。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B. 统一交互层</div>
+        <div class="mockup-body">
+          <div style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-weight:700">Pinned header</div>
+          <div style="padding:8px 14px;color:#6b7280;font-size:12px">下拉刷新统一从内容起点出现，不压 header</div>
+          <div style="margin:8px 14px 10px;height:18px;width:18px;border:2px solid #111;border-top-color:transparent;border-radius:999px"></div>
+          <div style="display:grid;gap:8px;padding:0 14px 14px">
+            <div style="height:18px;background:#e5e7eb;border-radius:6px"></div>
+            <div style="height:88px;background:#e5e7eb;border-radius:14px"></div>
+            <div style="height:88px;background:#e5e7eb;border-radius:14px"></div>
+          </div>
+          <div style="padding:0 14px 14px;color:#6b7280;font-size:12px">Toast/inline loading/skeleton 走统一组件和语义色</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. 推荐</h3>
+      <p>统一刷新锚点、通知样式和 loading 分层，但不重做每个页面结构。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">C. 全量视觉重构</div>
+        <div class="mockup-body">
+          <div style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-weight:700">New shell</div>
+          <div style="display:grid;gap:10px;padding:14px">
+            <div style="height:52px;background:linear-gradient(135deg,#f3eeff,#ede9fe);border-radius:16px"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="height:96px;background:#e5e7eb;border-radius:14px"></div>
+              <div style="height:96px;background:#e5e7eb;border-radius:14px"></div>
+            </div>
+            <div style="height:160px;background:#e5e7eb;border-radius:18px"></div>
+          </div>
+          <div style="padding:0 14px 14px;color:#6b7280;font-size:12px">按信息架构重做 skeleton 和通知表现</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. 大改版</h3>
+      <p>一致性最好，但范围会扩大，不适合这次以修复为主的 worktree。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>我目前的判断</h3>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>B 的收益</h4>
+      <ul>
+        <li>能把下拉刷新从“页面各自决定”收敛成共享规则</li>
+        <li>能统一 toast / success / warning / error 的视觉和行为</li>
+        <li>能把 full-screen loading、inline loading、layout skeleton 分开治理</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>B 的代价</h4>
+      <ul>
+        <li>需要抽共享容器或约束页面接入方式</li>
+        <li>骨架屏只会覆盖高频列表页，不会一次性铺满所有页面</li>
+      </ul>
+    </div>
+  </div>
+</div>

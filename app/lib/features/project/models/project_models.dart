@@ -10,9 +10,6 @@ class KanbanTask {
   final bool isAtRisk;
   final String createdAt;
   final String? completedAt;
-  final String? taskCode;
-  final String? featureItemId;
-  final String? earsType;
 
   const KanbanTask({
     required this.id,
@@ -26,9 +23,6 @@ class KanbanTask {
     required this.isAtRisk,
     required this.createdAt,
     this.completedAt,
-    this.taskCode,
-    this.featureItemId,
-    this.earsType,
   });
 
   bool get isTodo => status == 'todo';
@@ -48,9 +42,6 @@ class KanbanTask {
       isAtRisk: isAtRisk,
       createdAt: createdAt,
       completedAt: status == 'completed' ? DateTime.now().toIso8601String() : completedAt,
-      taskCode: taskCode,
-      featureItemId: featureItemId,
-      earsType: earsType,
     );
   }
 
@@ -63,13 +54,10 @@ class KanbanTask {
       priority: json['priority'] as String,
       assignee: json['assignee'] as String?,
       milestoneId: json['milestone_id'] as String?,
-      effortHours: json['effort_hours'] as int? ?? 0,
-      isAtRisk: json['is_at_risk'] as bool? ?? false,
+      effortHours: json['effort_hours'] as int,
+      isAtRisk: json['is_at_risk'] as bool,
       createdAt: json['created_at'] as String,
       completedAt: json['completed_at'] as String?,
-      taskCode: json['task_code'] as String?,
-      featureItemId: json['feature_item_id'] as String?,
-      earsType: json['ears_type'] as String?,
     );
   }
 }
@@ -169,4 +157,49 @@ class DailyReport {
   }
 }
 
-enum ProjectTab { kanban, milestone, prd, files, report }
+enum ProjectTab { tasks, milestones, files }
+
+class ProjectFile {
+  final String uuid;
+  final String fileKind;
+  final String originalName;
+  final String contentType;
+  final int sizeBytes;
+  final String? milestoneId;
+  final String? uploadedByNickname;
+  final DateTime createdAt;
+  final String? downloadUrl;
+
+  const ProjectFile({
+    required this.uuid,
+    required this.fileKind,
+    required this.originalName,
+    required this.contentType,
+    required this.sizeBytes,
+    this.milestoneId,
+    this.uploadedByNickname,
+    required this.createdAt,
+    this.downloadUrl,
+  });
+
+  factory ProjectFile.fromJson(Map<String, dynamic> json) {
+    return ProjectFile(
+      uuid: json['uuid'] as String? ?? '',
+      fileKind: json['file_kind'] as String? ?? 'reference',
+      originalName: json['original_name'] as String? ?? '',
+      contentType: json['content_type'] as String? ?? '',
+      sizeBytes: json['size_bytes'] as int? ?? 0,
+      milestoneId: json['milestone_id'] as String?,
+      uploadedByNickname: json['uploaded_by_nickname'] as String?,
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
+      downloadUrl: json['download_url'] as String?,
+    );
+  }
+
+  String get displaySize {
+    if (sizeBytes < 1024) return '${sizeBytes}B';
+    if (sizeBytes < 1024 * 1024) return '${(sizeBytes / 1024).toStringAsFixed(1)}KB';
+    return '${(sizeBytes / 1024 / 1024).toStringAsFixed(1)}MB';
+  }
+}
