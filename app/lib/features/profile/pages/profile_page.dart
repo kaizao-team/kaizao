@@ -10,6 +10,7 @@ import '../../../shared/models/project_category.dart';
 import '../../../shared/models/project_model.dart';
 import '../../../shared/skills/skill_particle_field.dart';
 import '../../../shared/widgets/vcc_card.dart';
+import '../../../shared/widgets/vcc_editorial_app_bar.dart';
 import '../../../shared/widgets/vcc_empty_state.dart';
 import '../../../shared/widgets/vcc_identity_hero.dart';
 import '../../../shared/widgets/vcc_loading.dart';
@@ -21,44 +22,15 @@ import '../providers/profile_provider.dart';
 const double _kProfilePageHorizontalPadding = 20;
 const double _kProfileSectionGap = 28;
 
-class ProfilePage extends ConsumerStatefulWidget {
+class ProfilePage extends ConsumerWidget {
   final String? userId;
 
   const ProfilePage({super.key, this.userId});
 
   @override
-  ConsumerState<ProfilePage> createState() => _ProfilePageState();
-}
-
-class _ProfilePageState extends ConsumerState<ProfilePage> {
-  late final ScrollController _scrollController;
-  double _navBarOpacity = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController()..addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    if (!_scrollController.hasClients) return;
-    final opacity = (_scrollController.offset / 100).clamp(0.0, 1.0);
-    if ((opacity - _navBarOpacity).abs() > 0.01) {
-      setState(() => _navBarOpacity = opacity);
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final topPadding = MediaQuery.paddingOf(context).top;
-    final effectiveId = widget.userId ?? 'me';
-    final isSelf = widget.userId == null;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final effectiveId = userId ?? 'me';
+    final isSelf = userId == null;
     final state = ref.watch(profileProvider(effectiveId));
 
     if (state.isLoading && state.profile == null) {
@@ -91,136 +63,128 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       );
     }
 
-    void handleNavBarAction() {
-      if (isSelf) {
-        context.push(RoutePaths.settings);
-        return;
-      }
-      if (context.canPop()) {
-        context.pop();
-        return;
-      }
-      context.go(RoutePaths.home);
-    }
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: _navBarOpacity > 0.5
-          ? SystemUiOverlayStyle.dark
-          : SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: AppColors.surface,
-        body: Stack(
-          children: [
-            RefreshIndicator(
-              color: AppColors.black,
-              onRefresh: () async {
-                await ref
-                    .read(profileProvider(effectiveId).notifier)
-                    .loadProfile();
-                if (isSelf && profile.isDemander) {
-                  await ref.read(projectListProvider.notifier).refresh();
-                }
-              },
-              child: CustomScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
-                ),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _ProfileHero(
-                      profile: profile,
-                      isSelf: isSelf,
-                      skills: state.skills,
+        body: RefreshIndicator(
+          color: AppColors.black,
+          onRefresh: () async {
+            await ref.read(profileProvider(effectiveId).notifier).loadProfile();
+            if (isSelf && profile.isDemander) {
+              await ref.read(projectListProvider.notifier).refresh();
+            }
+          },
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            slivers: [
+              if (isSelf)
+                VccEditorialAppBar(
+                  title: '我的',
+                  trailing: GestureDetector(
+                    onTap: () => context.push(RoutePaths.settings),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.gray100,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.gray200),
+                      ),
+                      child: const Icon(
+                        Icons.settings_outlined,
+                        size: 18,
+                        color: AppColors.black,
+                      ),
                     ),
                   ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
-                      _kProfilePageHorizontalPadding,
-                      18,
-                      _kProfilePageHorizontalPadding,
-                      40,
+                ),
+              SliverToBoxAdapter(
+                child: isSelf
+                    ? MediaQuery.removePadding(
+                        context: context,
+                        removeTop: true,
+                        child: _ProfileHero(
+                          profile: profile,
+                          isSelf: isSelf,
+                          skills: state.skills,
+                        ),
+                      )
+                    : _ProfileHero(
+                        profile: profile,
+                        isSelf: isSelf,
+                        skills: state.skills,
+                      ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  _kProfilePageHorizontalPadding,
+                  18,
+                  _kProfilePageHorizontalPadding,
+                  40,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    VccPageSection(
+                      label: 'OVERVIEW',
+                      child: _ProfileMetricsCard(profile: profile),
                     ),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        VccPageSection(
-                          label: 'OVERVIEW',
-                          child: _ProfileMetricsCard(profile: profile),
-                        ),
-                        const SizedBox(height: _kProfileSectionGap),
-                        VccPageSection(
-                          label: 'ACCOUNT',
-                          child: _ProfileInfoCard(profile: profile),
-                        ),
-                        if (isSelf) ...[
-                          const SizedBox(height: _kProfileSectionGap),
-                          VccPageSection(
-                            label: 'QUICK ACTIONS',
-                            child: _ProfileMenuGroup(
-                              items: [
-                                _ProfileMenuItem(
-                                  label: '编辑资料',
-                                  trailingText: '完善资料',
-                                  onTap: () =>
-                                      context.push(RoutePaths.editProfile),
-                                ),
-                                _ProfileMenuItem(
-                                  label: '我的钱包',
-                                  trailingText: '余额与记录',
-                                  onTap: () =>
-                                      context.push(RoutePaths.wallet),
-                                ),
-                                _ProfileMenuItem(
-                                  label: '消息通知',
-                                  onTap: () =>
-                                      context.push(RoutePaths.notifications),
-                                ),
-                                _ProfileMenuItem(
-                                  label: '我的收藏',
-                                  onTap: () =>
-                                      context.push(RoutePaths.favorites),
-                                ),
-                              ],
+                    const SizedBox(height: _kProfileSectionGap),
+                    VccPageSection(
+                      label: 'ACCOUNT',
+                      child: _ProfileInfoCard(profile: profile),
+                    ),
+                    if (isSelf) ...[
+                      const SizedBox(height: _kProfileSectionGap),
+                      VccPageSection(
+                        label: 'QUICK ACTIONS',
+                        child: _ProfileMenuGroup(
+                          items: [
+                            _ProfileMenuItem(
+                              label: '编辑资料',
+                              trailingText: '完善资料',
+                              onTap: () => context.push(RoutePaths.editProfile),
                             ),
+                            _ProfileMenuItem(
+                              label: '我的钱包',
+                              trailingText: '余额与记录',
+                              onTap: () => context.push(RoutePaths.wallet),
+                            ),
+                            _ProfileMenuItem(
+                              label: '消息通知',
+                              onTap: () =>
+                                  context.push(RoutePaths.notifications),
+                            ),
+                            _ProfileMenuItem(
+                              label: '我的收藏',
+                              onTap: () => context.push(RoutePaths.favorites),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: _kProfileSectionGap),
+                    VccPageSection(
+                      label: 'SUPPORT',
+                      child: _ProfileMenuGroup(
+                        items: [
+                          _ProfileMenuItem(
+                            label: '帮助与反馈',
+                            onTap: () => context.push(RoutePaths.helpFeedback),
+                          ),
+                          _ProfileMenuItem(
+                            label: '关于 KAIZO',
+                            onTap: () => context.push(RoutePaths.about),
                           ),
                         ],
-                        const SizedBox(height: _kProfileSectionGap),
-                        VccPageSection(
-                          label: 'SUPPORT',
-                          child: _ProfileMenuGroup(
-                            items: [
-                              _ProfileMenuItem(
-                                label: '帮助与反馈',
-                                onTap: () =>
-                                    context.push(RoutePaths.helpFeedback),
-                              ),
-                              _ProfileMenuItem(
-                                label: '关于 KAIZO',
-                                onTap: () => context.push(RoutePaths.about),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ]),
+                      ),
                     ),
-                  ),
-                ],
+                  ]),
+                ),
               ),
-            ),
-            // Compact nav bar overlaid on hero — fades in as user scrolls
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _ProfileNavBar(
-                topPadding: topPadding,
-                nickname: profile.nickname,
-                isSelf: isSelf,
-                opacity: _navBarOpacity,
-                onAction: handleNavBarAction,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -295,8 +259,8 @@ class _ProfileHero extends ConsumerWidget {
     }
 
     return VccIdentityHero(
-      eyebrow: 'PROFILE',
-      title: '我的',
+      eyebrow: isSelf ? null : 'PROFILE',
+      title: isSelf ? null : '我的',
       headline: profile.nickname,
       summary: summary,
       avatar: _HeroAvatarCard(profile: profile),
@@ -305,21 +269,18 @@ class _ProfileHero extends ConsumerWidget {
         if (profile.isVerified) const VccHeroBadge(label: '已认证'),
         if (profile.wechatBound) const VccHeroBadge(label: '微信已绑定'),
       ],
-      actionLabel: isSelf ? '设置' : '返回',
-      actionIcon:
-          isSelf ? Icons.settings_outlined : Icons.arrow_back_ios_new_rounded,
-      onActionTap: () {
-        if (isSelf) {
-          context.push(RoutePaths.settings);
-          return;
-        }
-        if (context.canPop()) {
-          context.pop();
-          return;
-        }
-        context.go(RoutePaths.home);
-      },
-      contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+      actionLabel: isSelf ? null : '返回',
+      actionIcon: isSelf ? null : Icons.arrow_back_ios_new_rounded,
+      onActionTap: isSelf
+          ? null
+          : () {
+              if (context.canPop()) {
+                context.pop();
+                return;
+              }
+              context.go(RoutePaths.home);
+            },
+      contentPadding: EdgeInsets.fromLTRB(20, isSelf ? 28 : 12, 20, 18),
       bottomSpacing: hasSkillParticles
           ? 110
           : hasDemandBoard
@@ -1096,101 +1057,6 @@ class _ProfileMenuItem {
     this.trailingText,
     required this.onTap,
   });
-}
-
-class _ProfileNavBar extends StatelessWidget {
-  static const double _height = 48;
-
-  final double topPadding;
-  final String nickname;
-  final bool isSelf;
-  final double opacity;
-  final VoidCallback onAction;
-
-  const _ProfileNavBar({
-    required this.topPadding,
-    required this.nickname,
-    required this.isSelf,
-    required this.opacity,
-    required this.onAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final dividerOpacity = ((opacity - 0.8) / 0.2).clamp(0.0, 1.0);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: opacity),
-        border: dividerOpacity > 0
-            ? Border(
-                bottom: BorderSide(
-                  color: AppColors.gray200.withValues(alpha: dividerOpacity),
-                  width: 0.5,
-                ),
-              )
-            : null,
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(top: topPadding),
-        child: SizedBox(
-          height: _height,
-          child: Row(
-            children: [
-              if (!isSelf)
-                IgnorePointer(
-                  ignoring: opacity < 0.1,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 18,
-                      ),
-                      color: AppColors.black,
-                      onPressed: onAction,
-                    ),
-                  ),
-                )
-              else
-                const SizedBox(width: 48),
-              Expanded(
-                child: Opacity(
-                  opacity: opacity,
-                  child: Text(
-                    nickname,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.3,
-                      color: AppColors.black,
-                    ),
-                  ),
-                ),
-              ),
-              if (isSelf)
-                IgnorePointer(
-                  ignoring: opacity < 0.1,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: IconButton(
-                      icon: const Icon(Icons.settings_outlined, size: 20),
-                      color: AppColors.black,
-                      onPressed: onAction,
-                    ),
-                  ),
-                )
-              else
-                const SizedBox(width: 48),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _DotGridPainter extends CustomPainter {

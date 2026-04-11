@@ -7,15 +7,15 @@ import 'vcc_avatar.dart';
 import 'vcc_card.dart';
 
 class VccIdentityHero extends StatelessWidget {
-  final String eyebrow;
-  final String title;
+  final String? eyebrow;
+  final String? title;
   final String headline;
   final String? summary;
   final Widget avatar;
   final List<Widget> badges;
-  final String actionLabel;
-  final IconData actionIcon;
-  final VoidCallback onActionTap;
+  final String? actionLabel;
+  final IconData? actionIcon;
+  final VoidCallback? onActionTap;
   final List<Widget> layers;
   final EdgeInsetsGeometry contentPadding;
   final double bottomSpacing;
@@ -23,14 +23,14 @@ class VccIdentityHero extends StatelessWidget {
 
   const VccIdentityHero({
     super.key,
-    required this.eyebrow,
-    required this.title,
+    this.eyebrow,
+    this.title,
     required this.headline,
     required this.avatar,
     required this.badges,
-    required this.actionLabel,
-    required this.actionIcon,
-    required this.onActionTap,
+    this.actionLabel,
+    this.actionIcon,
+    this.onActionTap,
     this.summary,
     this.layers = const <Widget>[],
     this.contentPadding = const EdgeInsets.fromLTRB(20, 12, 20, 18),
@@ -61,36 +61,44 @@ class VccIdentityHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      eyebrow,
-                      style: AppTextStyles.overline.copyWith(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white.withValues(alpha: 0.4),
-                        letterSpacing: 3,
+                if (eyebrow != null || onActionTap != null) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: eyebrow != null
+                            ? Text(
+                                eyebrow!,
+                                style: AppTextStyles.overline.copyWith(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  letterSpacing: 3,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
                       ),
-                    ),
-                    const Spacer(),
-                    VccHeroActionButton(
-                      label: actionLabel,
-                      icon: actionIcon,
-                      onTap: onActionTap,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  title,
-                  style: AppTextStyles.h1.copyWith(
-                    fontSize: 24,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                    height: 1.2,
+                      if (onActionTap != null)
+                        VccHeroActionButton(
+                          label: actionLabel ?? '',
+                          icon: actionIcon ?? Icons.arrow_back_ios_new_rounded,
+                          onTap: onActionTap!,
+                        ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 14),
+                ],
+                if (title != null) ...[
+                  Text(
+                    title!,
+                    style: AppTextStyles.h1.copyWith(
+                      fontSize: 24,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
