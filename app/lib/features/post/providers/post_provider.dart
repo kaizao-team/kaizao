@@ -63,6 +63,7 @@ class PostState {
 
   // Team matching
   final RecommendedTeam? recommendedTeam;
+  final List<String> excludedTeamIds;
   final bool isLoadingMatch;
   final bool isConfirmingMatch;
   final PostPublishResultType? publishResultType;
@@ -88,6 +89,7 @@ class PostState {
     this.budgetSuggestion,
     this.isProjectPublished = false,
     this.recommendedTeam,
+    this.excludedTeamIds = const [],
     this.isLoadingMatch = false,
     this.isConfirmingMatch = false,
     this.publishResultType,
@@ -115,6 +117,7 @@ class PostState {
     BudgetSuggestion? Function()? budgetSuggestion,
     bool? isProjectPublished,
     RecommendedTeam? Function()? recommendedTeam,
+    List<String>? excludedTeamIds,
     bool? isLoadingMatch,
     bool? isConfirmingMatch,
     PostPublishResultType? Function()? publishResultType,
@@ -144,6 +147,7 @@ class PostState {
       isProjectPublished: isProjectPublished ?? this.isProjectPublished,
       recommendedTeam:
           recommendedTeam != null ? recommendedTeam() : this.recommendedTeam,
+      excludedTeamIds: excludedTeamIds ?? this.excludedTeamIds,
       isLoadingMatch: isLoadingMatch ?? this.isLoadingMatch,
       isConfirmingMatch: isConfirmingMatch ?? this.isConfirmingMatch,
       publishResultType: publishResultType != null
@@ -326,6 +330,7 @@ class PostNotifier extends StateNotifier<PostState> {
       budgetSuggestion: () => null,
       isProjectPublished: false,
       recommendedTeam: () => null,
+      excludedTeamIds: const [],
       isLoadingMatch: false,
       isConfirmingMatch: false,
       publishResultType: () => null,
@@ -1125,7 +1130,20 @@ class PostNotifier extends StateNotifier<PostState> {
         step: state.currentStep == 0 ? 1 : state.currentStep,
       );
 
-      final result = await _repository.recommendTeam(pid);
+      // Sync budget + category to backend before matching
+      await _repository.updateProjectDraft(
+        pid,
+        title: state.overviewData?.title,
+        description: state.overviewData?.summary,
+        category: state.category,
+        budgetMin: state.budgetMin,
+        budgetMax: state.budgetMax,
+      );
+
+      final result = await _repository.recommendTeam(
+        pid,
+        excludeTeamIds: state.excludedTeamIds,
+      );
       if (!mounted) return;
 
       final recommendations = result['recommendations'];
@@ -1141,16 +1159,23 @@ class PostNotifier extends StateNotifier<PostState> {
             recommendations.first as Map<dynamic, dynamic>,
           ),
         );
+        // Track this team so "换一个" excludes it next time
+        final updatedExcludes = [...state.excludedTeamIds];
+        final teamId = team.teamId;
+        if (teamId != null && !updatedExcludes.contains(teamId)) {
+          updatedExcludes.add(teamId);
+        }
         state = state.copyWith(
           isLoadingMatch: false,
           recommendedTeam: () => team,
+          excludedTeamIds: updatedExcludes,
         );
       } else {
         final noMatchReason = result['no_match_reason']?.toString().trim();
         state = state.copyWith(
           isLoadingMatch: false,
           errorMessage: () =>
-              noMatchReason?.isNotEmpty == true ? noMatchReason : '未匹配到可用团队',
+              noMatchReason?.isNotEmpty == true ? noMatchReason : '暂无更多推荐团队',
         );
       }
     } catch (e) {

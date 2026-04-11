@@ -99,11 +99,17 @@ type SimpleMatchResult struct {
 }
 
 // SimpleMatchProviders 按预算+级别简化匹配团队方，使用 CalcMatchScore 真实计算匹配分
-func (s *BidService) SimpleMatchProviders(project *model.Project, budgetMax float64, limit int) ([]SimpleMatchResult, error) {
+func (s *BidService) SimpleMatchProviders(project *model.Project, budgetMax float64, limit int, excludeTeamUUIDs []string) ([]SimpleMatchResult, error) {
 	if limit <= 0 {
 		limit = 10
 	}
-	users, err := s.repos.User.ListProvidersByBudgetAndLevel(budgetMax, limit*2) // fetch more to filter/sort
+
+	excludeSet := make(map[string]struct{}, len(excludeTeamUUIDs))
+	for _, id := range excludeTeamUUIDs {
+		excludeSet[id] = struct{}{}
+	}
+
+	users, err := s.repos.User.ListProvidersByBudgetAndLevel(budgetMax, limit*4) // fetch more to allow filtering
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +123,15 @@ func (s *BidService) SimpleMatchProviders(project *model.Project, budgetMax floa
 		if team == nil {
 			continue
 		}
+		// Skip excluded teams
+		if _, excluded := excludeSet[team.UUID]; excluded {
+			continue
+		}
 		score := float64(CalcMatchScore(project, team))
+		// Only keep teams with direction match (score >= 50)
+		if score < 50 {
+			continue
+		}
 		results = append(results, SimpleMatchResult{
 			User:       u,
 			Team:       team,

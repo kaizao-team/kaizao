@@ -91,7 +91,7 @@ class ExpertOnboardingRepository {
         if (budgetMax != null) 'budget_max': budgetMax,
         if (description != null) 'description': description,
         'invite_code': inviteCode,
-        if (serviceDirection != null) 'service_direction': serviceDirection,
+        if (serviceDirection != null) 'service_directions': [serviceDirection],
       },
       fromJson: (data) => data as Map<String, dynamic>,
     );

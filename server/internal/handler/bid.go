@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vibebuild/server/internal/model"
@@ -199,8 +200,9 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 	}
 
 	var q struct {
-		Page     int `form:"page"`
-		PageSize int `form:"page_size"`
+		Page           int    `form:"page"`
+		PageSize       int    `form:"page_size"`
+		ExcludeTeamIDs string `form:"exclude_team_ids"`
 	}
 	_ = c.ShouldBindQuery(&q)
 	if q.PageSize < 1 {
@@ -208,6 +210,15 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 	}
 	if q.PageSize > 20 {
 		q.PageSize = 20
+	}
+
+	var excludeTeamUUIDs []string
+	if q.ExcludeTeamIDs != "" {
+		for _, id := range strings.Split(q.ExcludeTeamIDs, ",") {
+			if t := strings.TrimSpace(id); t != "" {
+				excludeTeamUUIDs = append(excludeTeamUUIDs, t)
+			}
+		}
 	}
 
 	budgetMax := 0.0
@@ -218,7 +229,7 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 		budgetMax = 1e8 // 无上限时不过滤
 	}
 
-	results, err := h.bidService.SimpleMatchProviders(project, budgetMax, q.PageSize)
+	results, err := h.bidService.SimpleMatchProviders(project, budgetMax, q.PageSize, excludeTeamUUIDs)
 	if err != nil {
 		h.log.Warn("simple_match_failed", zap.Error(err))
 		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "匹配服务调用失败: "+err.Error())
@@ -290,7 +301,7 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 		budgetMax = 1e8
 	}
 
-	results, err := h.bidService.SimpleMatchProviders(project, budgetMax, 10)
+	results, err := h.bidService.SimpleMatchProviders(project, budgetMax, 10, nil)
 	if err != nil {
 		h.log.Warn("quick_match_simple_failed", zap.Error(err))
 		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "匹配服务调用失败: "+err.Error())
