@@ -96,6 +96,8 @@ class Milestone {
   bool get isCompleted => status == 'completed';
   bool get isInProgress => status == 'in_progress';
   bool get isPending => status == 'pending';
+  bool get isDelivered => status == 'delivered';
+  bool get isRevisionRequested => status == 'revision_requested';
 
   factory Milestone.fromJson(Map<String, dynamic> json) {
     return Milestone(
@@ -155,4 +157,49 @@ class DailyReport {
   }
 }
 
-enum ProjectTab { kanban, milestone, prd, files, report }
+enum ProjectTab { tasks, milestones, files }
+
+class ProjectFile {
+  final String uuid;
+  final String fileKind;
+  final String originalName;
+  final String contentType;
+  final int sizeBytes;
+  final String? milestoneId;
+  final String? uploadedByNickname;
+  final DateTime createdAt;
+  final String? downloadUrl;
+
+  const ProjectFile({
+    required this.uuid,
+    required this.fileKind,
+    required this.originalName,
+    required this.contentType,
+    required this.sizeBytes,
+    this.milestoneId,
+    this.uploadedByNickname,
+    required this.createdAt,
+    this.downloadUrl,
+  });
+
+  factory ProjectFile.fromJson(Map<String, dynamic> json) {
+    return ProjectFile(
+      uuid: json['uuid'] as String? ?? '',
+      fileKind: json['file_kind'] as String? ?? 'reference',
+      originalName: json['original_name'] as String? ?? '',
+      contentType: json['content_type'] as String? ?? '',
+      sizeBytes: json['size_bytes'] as int? ?? 0,
+      milestoneId: json['milestone_id'] as String?,
+      uploadedByNickname: json['uploaded_by_nickname'] as String?,
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
+      downloadUrl: json['download_url'] as String?,
+    );
+  }
+
+  String get displaySize {
+    if (sizeBytes < 1024) return '${sizeBytes}B';
+    if (sizeBytes < 1024 * 1024) return '${(sizeBytes / 1024).toStringAsFixed(1)}KB';
+    return '${(sizeBytes / 1024 / 1024).toStringAsFixed(1)}MB';
+  }
+}

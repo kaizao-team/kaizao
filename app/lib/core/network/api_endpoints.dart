@@ -81,6 +81,9 @@ class ApiEndpoints {
   static String projectAiAssist(String id) => '/api/v1/projects/$id/ai-assist';
   static String projectAttachments(String id) =>
       '/api/v1/projects/$id/attachments';
+  static String projectFiles(String id) => '/api/v1/projects/$id/files';
+  static String projectFileDetail(String id, String uuid) =>
+      '/api/v1/projects/$id/files/$uuid';
   static String projectClose(String id) => '/api/v1/projects/$id/close';
   static String projectConfirmAlignment(String id) =>
       '/api/v1/projects/$id/confirm-alignment';
