@@ -75,6 +75,12 @@ class AppColors {
   static const Color infoForeground = Color(0xFF1D4ED8);
   static const Color badgeRed = Color(0xFFFF5A5F);
 
+  // Bid status colors
+  static const Color statusAcceptedBg = Color(0xFFE8F5E9);
+  static const Color statusAcceptedFg = Color(0xFF2E7D32);
+  static const Color statusRejectedBg = Color(0xFFFBE9E7);
+  static const Color statusRejectedFg = Color(0xFFC62828);
+
   // ============================================================
   // 语义色 — 深色模式
   // ============================================================
