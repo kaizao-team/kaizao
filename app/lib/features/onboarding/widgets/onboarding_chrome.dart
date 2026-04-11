@@ -297,7 +297,7 @@ class _OnboardingPrimaryButtonState extends State<OnboardingPrimaryButton> {
           width: double.infinity,
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             boxShadow: _disabled ? const [] : AppShadows.onboardingLift,
           ),
           child: Center(
