@@ -52,9 +52,13 @@ class ProjectManageState {
       tasks.where((t) => t.isCompleted).toList();
 
   int get totalProgress {
-    if (tasks.isEmpty) return 0;
-    return (completedTasks.length / tasks.length * 100).round();
+    if (milestones.isEmpty) return 0;
+    final completed = milestones.where((m) => m.isCompleted).length;
+    return (completed / milestones.length * 100).round();
   }
+
+  int get completedMilestoneCount =>
+      milestones.where((m) => m.isCompleted).length;
 
   List<ProjectFile> get filteredFiles =>
       files.where((f) => f.fileKind == selectedFileKind).toList();

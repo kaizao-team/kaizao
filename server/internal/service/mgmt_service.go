@@ -478,6 +478,47 @@ func (s *MilestoneService) CompleteMilestone(msUUID, actorUserUUID string) (*mod
 	}
 	ms.Status = 3
 	ms.AcceptedAt = &now
+
+	// 检查是否所有里程碑都已完成，若是则自动提交项目交付
+	allMs, err := s.repos.Milestone.ListByProjectID(p.ID)
+	if err == nil {
+		allDone := len(allMs) > 0
+		for _, m := range allMs {
+			if m.Status != 3 {
+				allDone = false
+				break
+			}
+		}
+		if allDone && p.Status == model.ProjectStatusInProgress {
+			// 所有任务标为完成
+			_ = s.repos.DB().Model(&model.Task{}).
+				Where("project_id = ? AND status != 3", p.ID).
+				Updates(map[string]interface{}{"status": int16(3), "completed_at": &now})
+			// 项目状态 → 验收中，并通知项目方
+			_ = s.repos.DB().Transaction(func(tx *gorm.DB) error {
+				if err := tx.Model(&model.Project{}).Where("id = ?", p.ID).Updates(map[string]interface{}{
+					"status": model.ProjectStatusAccepting,
+				}).Error; err != nil {
+					return err
+				}
+				txRepos := repository.NewRepositories(tx)
+				targetType := "project"
+				sourceRole := "provider"
+				n := &model.Notification{
+					UserID:           p.OwnerID,
+					SourceRole:       &sourceRole,
+					Title:            "项目已提交交付",
+					Content:          fmt.Sprintf("项目「%s」所有里程碑已完成，请及时验收。", p.Title),
+					NotificationType: model.NotificationTypeProjectDelivered,
+					TargetType:       &targetType,
+					TargetID:         &p.ID,
+					TargetUUID:       &p.UUID,
+				}
+				return txRepos.Notification.Create(n)
+			})
+		}
+	}
+
 	return ms, nil
 }
 

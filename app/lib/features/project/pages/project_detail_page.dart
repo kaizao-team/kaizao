@@ -149,6 +149,52 @@ class _BottomActions extends ConsumerWidget {
               },
       );
     }
+    if (state.status == 6) {
+      return Row(
+        children: [
+          Expanded(
+            child: VccButton(
+              text: '查看进度',
+              type: VccButtonType.secondary,
+              onPressed: () => context.push('/projects/$projectId/manage'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: VccButton(
+              text: '验收通过',
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('确认验收'),
+                    content: const Text('确认验收该项目？验收后项目将标记为已完成。'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('取消'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('确认验收'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true && context.mounted) {
+                  final ok = await ref
+                      .read(projectDetailProvider(projectId).notifier)
+                      .acceptProject();
+                  if (context.mounted && ok) {
+                    VccToast.show(context, message: '项目验收通过');
+                  }
+                }
+              },
+            ),
+          ),
+        ],
+      );
+    }
     if (state.status == 7) {
       final revieweeId = state.data?['provider_id']?.toString() ?? '';
       return VccButton(

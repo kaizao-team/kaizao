@@ -289,6 +289,19 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
       return false;
     }
   }
+
+  Future<bool> acceptProject() async {
+    try {
+      await ApiClient().post<void>(ApiEndpoints.projectAccept(projectId));
+      await loadDetail();
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(errorMessage: () => e.toString());
+      }
+      return false;
+    }
+  }
 }
 
 final projectDetailProvider = StateNotifierProvider.autoDispose.family<
