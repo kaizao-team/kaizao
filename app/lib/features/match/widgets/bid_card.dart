@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_tag.dart';
 import '../models/match_models.dart';
@@ -23,10 +24,10 @@ class BidCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
         color: bid.isAiRecommended ? AppColors.accentLight : AppColors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(
           color: bid.isAiRecommended ? AppColors.accent : AppColors.gray200,
           width: bid.isAiRecommended ? 1.5 : 1,
@@ -37,15 +38,15 @@ class BidCard extends StatelessWidget {
         children: [
           if (bid.isAiRecommended)
             Container(
-              margin: const EdgeInsets.only(bottom: 10),
+              margin: const EdgeInsets.only(bottom: AppSpacing.md),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: AppColors.accent,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
               ),
-              child: const Text(
+              child: Text(
                 'AI 推荐',
-                style: TextStyle(
+                style: AppTextStyles.caption.copyWith(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: AppColors.white,
@@ -81,7 +82,7 @@ class BidCard extends StatelessWidget {
                             bid.isTeamBid
                                 ? (bid.teamName ?? bid.userName)
                                 : bid.userName,
-                            style: const TextStyle(
+                            style: AppTextStyles.body2.copyWith(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: AppColors.black,
@@ -96,12 +97,14 @@ class BidCard extends StatelessWidget {
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: AppColors.gray100,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(AppRadius.xs),
                             ),
-                            child: const Text(
+                            child: Text(
                               '团队',
-                              style: TextStyle(
-                                  fontSize: 10, color: AppColors.gray500),
+                              style: AppTextStyles.caption.copyWith(
+                                fontSize: 10,
+                                color: AppColors.gray500,
+                              ),
                             ),
                           ),
                         ],
@@ -115,8 +118,8 @@ class BidCard extends StatelessWidget {
                         const SizedBox(width: 2),
                         Text(
                           '${bid.rating} · 完成率${bid.completionRate}%',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.gray500),
+                          style: AppTextStyles.caption.copyWith(
+                              color: AppColors.gray500),
                         ),
                       ],
                     ),
@@ -129,11 +132,11 @@ class BidCard extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.accentLight,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: Text(
                     '匹配 ${bid.matchScore}%',
-                    style: const TextStyle(
+                    style: AppTextStyles.caption.copyWith(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.accent,
@@ -147,7 +150,7 @@ class BidCard extends StatelessWidget {
             children: [
               Text(
                 '¥${bid.bidAmount.toStringAsFixed(0)}',
-                style: const TextStyle(
+                style: AppTextStyles.body1.copyWith(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: AppColors.black,
@@ -156,8 +159,7 @@ class BidCard extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 '${bid.durationDays}天',
-                style: const TextStyle(
-                    fontSize: 14, color: AppColors.gray500),
+                style: AppTextStyles.body2.copyWith(color: AppColors.gray500),
               ),
             ],
           ),
@@ -166,14 +168,13 @@ class BidCard extends StatelessWidget {
             bid.proposal,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 14,
+            style: AppTextStyles.body2.copyWith(
               height: 1.5,
               color: AppColors.gray600,
             ),
           ),
           if (bid.skills.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.md),
             Wrap(
               spacing: 6,
               runSpacing: 4,
@@ -181,11 +182,11 @@ class BidCard extends StatelessWidget {
             ),
           ],
           if (bid.isTeamBid && bid.teamMembers.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.md),
             _TeamMemberRow(members: bid.teamMembers),
           ],
           if (!bid.isPending) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.md),
             _BidStatusBadge(status: bid.status),
           ],
           const SizedBox(height: 12),
@@ -241,7 +242,7 @@ class _TeamMemberRow extends StatelessWidget {
         Expanded(
           child: Text(
             members.map((m) => '${m.name}(${m.role})').join(' · '),
-            style: const TextStyle(fontSize: 12, color: AppColors.gray500),
+            style: AppTextStyles.caption.copyWith(color: AppColors.gray500),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -259,8 +260,8 @@ class _BidStatusBadge extends StatelessWidget {
     if (status == BidStatus.pending) return const SizedBox.shrink();
 
     final (Color bg, Color fg) = switch (status) {
-      BidStatus.accepted => (const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
-      BidStatus.rejected => (const Color(0xFFFBE9E7), const Color(0xFFC62828)),
+      BidStatus.accepted => (AppColors.statusAcceptedBg, AppColors.statusAcceptedFg),
+      BidStatus.rejected => (AppColors.statusRejectedBg, AppColors.statusRejectedFg),
       BidStatus.withdrawn => (AppColors.gray100, AppColors.gray500),
       _ => (AppColors.gray100, AppColors.gray500),
     };
@@ -269,11 +270,15 @@ class _BidStatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppRadius.xs),
       ),
       child: Text(
         status.label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: fg),
+        style: AppTextStyles.caption.copyWith(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: fg,
+        ),
       ),
     );
   }
@@ -295,16 +300,16 @@ class _ActionButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.sm),
         decoration: BoxDecoration(
           color: isPrimary ? AppColors.black : AppColors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           border:
               isPrimary ? null : Border.all(color: AppColors.gray300),
         ),
         child: Text(
           label,
-          style: TextStyle(
+          style: AppTextStyles.caption.copyWith(
             fontSize: 13,
             fontWeight: FontWeight.w500,
             color: isPrimary ? AppColors.white : AppColors.gray700,
