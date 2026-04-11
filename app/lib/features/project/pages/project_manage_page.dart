@@ -67,6 +67,10 @@ class ProjectManagePage extends ConsumerWidget {
                       progress: state.totalProgress,
                       completedCount: state.completedTasks.length,
                       totalCount: state.tasks.length,
+                      milestoneTotal: state.milestones.length,
+                      milestoneCompleted: state.milestones
+                          .where((m) => m.isCompleted)
+                          .length,
                     ),
                     ProjectTabBar(
                       selected: state.currentTab,
@@ -180,11 +184,15 @@ class _OverviewBar extends StatelessWidget {
   final int progress;
   final int completedCount;
   final int totalCount;
+  final int milestoneTotal;
+  final int milestoneCompleted;
 
   const _OverviewBar({
     required this.progress,
     required this.completedCount,
     required this.totalCount,
+    required this.milestoneTotal,
+    required this.milestoneCompleted,
   });
 
   @override
@@ -195,26 +203,65 @@ class _OverviewBar extends StatelessWidget {
       color: AppColors.surfaceRaised,
       child: Row(
         children: [
-          ProgressRing(progress: progress, size: 52, strokeWidth: 5),
+          ProgressRing(progress: progress, size: 56, strokeWidth: 5),
           const SizedBox(width: AppSpacing.base),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$progress%',
-                style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700),
-              ),
-              Text(
-                totalCount > 0
-                    ? '$completedCount/$totalCount 任务完成'
-                    : '暂无任务',
-                style:
-                    AppTextStyles.caption.copyWith(color: AppColors.gray500),
-              ),
-            ],
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _StatColumn(
+                    value: '$progress%',
+                    label: '整体进度',
+                  ),
+                ),
+                Container(width: 0.5, height: 32, color: AppColors.gray200),
+                Expanded(
+                  child: _StatColumn(
+                    value: totalCount > 0 ? '$completedCount/$totalCount' : '—',
+                    label: '任务完成',
+                  ),
+                ),
+                Container(width: 0.5, height: 32, color: AppColors.gray200),
+                Expanded(
+                  child: _StatColumn(
+                    value: milestoneTotal > 0
+                        ? '$milestoneCompleted/$milestoneTotal'
+                        : '—',
+                    label: '里程碑',
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatColumn extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _StatColumn({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          value,
+          style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w700),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: AppTextStyles.overline.copyWith(color: AppColors.gray400),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }

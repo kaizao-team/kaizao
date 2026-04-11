@@ -428,6 +428,7 @@ class _ActionArea extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       backgroundColor: AppColors.surfaceRaised,
       shape: const RoundedRectangleBorder(
         borderRadius:
@@ -435,21 +436,11 @@ class _ActionArea extends StatelessWidget {
       ),
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(
-            20, 16, 20, MediaQuery.viewInsetsOf(ctx).bottom + 16),
+            20, 0, 20, MediaQuery.viewInsetsOf(ctx).bottom + 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 36, height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.gray300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.base),
             Text('提交交付', style: AppTextStyles.h3),
             const SizedBox(height: AppSpacing.xl),
             Text('交付说明（可选）', style: AppTextStyles.inputLabel),
@@ -529,6 +520,7 @@ class _ActionArea extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       backgroundColor: AppColors.surfaceRaised,
       shape: const RoundedRectangleBorder(
         borderRadius:
@@ -536,21 +528,11 @@ class _ActionArea extends StatelessWidget {
       ),
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(
-            20, 16, 20, MediaQuery.viewInsetsOf(ctx).bottom + 16),
+            20, 0, 20, MediaQuery.viewInsetsOf(ctx).bottom + 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 36, height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.gray300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.base),
             Text('要求修改', style: AppTextStyles.h3),
             const SizedBox(height: AppSpacing.xl),
             Text('修改原因', style: AppTextStyles.inputLabel),
