@@ -189,30 +189,40 @@ class _MilestoneItem extends StatelessWidget {
 
                     // Meta row
                     const SizedBox(height: AppSpacing.sm),
-                    Row(
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 4,
                       children: [
-                        if (milestone.dueDate.isNotEmpty) ...[
-                          const Icon(Icons.calendar_today_outlined,
-                              size: 12, color: AppColors.gray400),
-                          const SizedBox(width: 4),
-                          Text(
-                            milestone.dueDate,
-                            style: AppTextStyles.caption
-                                .copyWith(color: AppColors.gray500),
+                        if (milestone.dueDate.isNotEmpty)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.calendar_today_outlined,
+                                  size: 12, color: AppColors.gray400),
+                              const SizedBox(width: 4),
+                              Text(
+                                milestone.dueDate.length >= 10
+                                    ? milestone.dueDate.substring(0, 10)
+                                    : milestone.dueDate,
+                                style: AppTextStyles.caption
+                                    .copyWith(color: AppColors.gray500),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                        ],
-                        if (milestone.estimatedDays != null) ...[
-                          const Icon(Icons.schedule_outlined,
-                              size: 12, color: AppColors.gray400),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${milestone.estimatedDays!.toStringAsFixed(milestone.estimatedDays == milestone.estimatedDays!.roundToDouble() ? 0 : 1)} 天',
-                            style: AppTextStyles.caption
-                                .copyWith(color: AppColors.gray500),
+                        if (milestone.estimatedDays != null)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.schedule_outlined,
+                                  size: 12, color: AppColors.gray400),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${milestone.estimatedDays!.toStringAsFixed(milestone.estimatedDays == milestone.estimatedDays!.roundToDouble() ? 0 : 1)} 天',
+                                style: AppTextStyles.caption
+                                    .copyWith(color: AppColors.gray500),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                        ],
                         if (milestone.amount > 0)
                           Text(
                             '¥${milestone.amount.toStringAsFixed(0)}',
