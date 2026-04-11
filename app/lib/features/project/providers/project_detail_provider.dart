@@ -258,6 +258,9 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
     try {
       await _projectRepository.confirmAlignment(projectId);
       await loadDetail();
+      if (mounted) {
+        state = state.copyWith(isConfirmingAlignment: false);
+      }
       return true;
     } catch (e) {
       if (mounted) {

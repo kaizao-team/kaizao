@@ -11,6 +11,7 @@ import '../../../shared/widgets/vcc_toast.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../home/providers/home_provider.dart';
 import '../../notification/providers/notification_provider.dart';
+import '../../project/providers/project_detail_provider.dart';
 import '../../project/providers/project_list_provider.dart';
 import '../models/match_models.dart';
 import '../providers/match_provider.dart';
@@ -91,6 +92,7 @@ class BidListPage extends ConsumerWidget {
                       .read(notificationProvider.notifier)
                       .loadNotifications();
                   ref.read(homeStateProvider.notifier).refresh();
+                  ref.invalidate(projectDetailProvider(projectId));
                   if (context.mounted) context.pop();
                 }
               }
@@ -170,6 +172,7 @@ class BidListPage extends ConsumerWidget {
                               Row(
                                 children: [
                                   VccAvatar(
+                                    imageUrl: bid.isTeamBid ? bid.teamAvatarUrl : bid.avatar,
                                     size: VccAvatarSize.large,
                                     fallbackText: bid.userName.isNotEmpty
                                         ? bid.userName.substring(0, 1)
@@ -250,15 +253,17 @@ class BidListPage extends ConsumerWidget {
                                                 color: AppColors.gray500,
                                               ),
                                             ),
-                                            const SizedBox(width: 12),
-                                            Text(
-                                              '匹配 ${bid.matchScore}%',
-                                              style: AppTextStyles.body2
-                                                  .copyWith(
-                                                color: AppColors.accent,
-                                                fontWeight: FontWeight.w600,
+                                            if (bid.matchScore > 0) ...[
+                                              const SizedBox(width: 12),
+                                              Text(
+                                                '匹配 ${bid.matchScore}%',
+                                                style: AppTextStyles.body2
+                                                    .copyWith(
+                                                  color: AppColors.accent,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
                                               ),
-                                            ),
+                                            ],
                                           ],
                                         ),
                                       ],

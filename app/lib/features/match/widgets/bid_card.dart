@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/models/vibe_level.dart' show vibeLevelLabel;
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_tag.dart';
 import '../models/match_models.dart';
@@ -118,17 +119,10 @@ class BidCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.star_rounded,
-                            size: 14, color: AppColors.accentGold),
-                        const SizedBox(width: 2),
-                        Text(
-                          '${bid.rating} · 完成率${bid.completionRate}%',
-                          style: AppTextStyles.caption.copyWith(
-                              color: AppColors.gray500),
-                        ),
-                      ],
+                    Text(
+                      '${_formatLevelDisplay(bid)} · 完成率${bid.completionRate}%',
+                      style: AppTextStyles.caption.copyWith(
+                          color: AppColors.gray500),
                     ),
                   ],
                 ),
@@ -272,6 +266,7 @@ class _BidStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     if (status == BidStatus.pending) return const SizedBox.shrink();
 
+
     final (Color bg, Color fg) = switch (status) {
       BidStatus.accepted => (AppColors.statusAcceptedBg, AppColors.statusAcceptedFg),
       BidStatus.rejected => (AppColors.statusRejectedBg, AppColors.statusRejectedFg),
@@ -331,4 +326,10 @@ class _ActionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatLevelDisplay(BidItem bid) {
+  final code = bid.vibeLevel ?? 'vc-T1';
+  final label = bid.levelName ?? vibeLevelLabel(code);
+  return '$code $label';
 }
