@@ -1139,21 +1139,25 @@ class _ImmersiveProfileHeader extends StatelessWidget {
     final bgColor = AppColors.surface
         .withValues(alpha: Curves.easeIn.transform(progress));
 
-    // Settings button style transitions from ghost (white) to solid (gray)
-    final settingsBg = Color.lerp(
-      Colors.white.withValues(alpha: 0.12),
-      AppColors.gray100,
-      progress,
-    )!;
-    final settingsBorder = Color.lerp(
-      Colors.white.withValues(alpha: 0.18),
-      AppColors.gray200,
-      progress,
-    )!;
-
     // Text portion collapses in the first half of scroll
     final textProgress = Curves.easeInOut
         .transform((progress * 2).clamp(0.0, 1.0));
+
+    // Settings button: ghost white → invisible container (just icon)
+    final settingsBg = Color.lerp(
+      Colors.white.withValues(alpha: 0.12),
+      Colors.transparent,
+      textProgress,
+    )!;
+    final settingsBorder = Color.lerp(
+      Colors.white.withValues(alpha: 0.18),
+      Colors.transparent,
+      textProgress,
+    )!;
+    // Align icon center with title center as both animate
+    final titleCenterY = titleTop + titleSize / 2;
+    const iconContainerHeight = 34.0; // padding(9) + icon(16) + padding(9)
+    final settingsTop = titleCenterY - iconContainerHeight / 2;
 
     // Divider appears at full collapse
     final dividerOpacity = Curves.easeOut
@@ -1177,9 +1181,9 @@ class _ImmersiveProfileHeader extends StatelessWidget {
           fit: StackFit.expand,
           clipBehavior: Clip.none,
           children: [
-            // Settings button — collapses from (icon + 设置 text) to icon only
+            // Settings button — collapses from (icon + 设置 text) to bare icon
             Positioned(
-              top: topPadding + 10,
+              top: settingsTop,
               right: 20,
               child: GestureDetector(
                 onTap: onSettingsTap,
