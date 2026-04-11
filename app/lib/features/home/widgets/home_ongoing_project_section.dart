@@ -65,7 +65,10 @@ class _EmptyOngoingProjectCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.surfaceRaised,
-      borderRadius: BorderRadius.circular(AppRadius.xxl),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        side: const BorderSide(color: AppColors.gray200, width: 0.5),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xxl),
         onTap: () => context.push(RoutePaths.publishProject),
@@ -132,7 +135,10 @@ class _FeaturedOngoingProjectCard extends StatelessWidget {
 
     return Material(
       color: AppColors.surfaceRaised,
-      borderRadius: BorderRadius.circular(AppRadius.xxl),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        side: const BorderSide(color: AppColors.gray200, width: 0.5),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xxl),
         onTap: route == null ? null : () => context.push(route),
@@ -232,7 +238,10 @@ class _CompactOngoingProjectRow extends StatelessWidget {
 
     return Material(
       color: AppColors.surfaceRaised,
-      borderRadius: BorderRadius.circular(AppRadius.xl),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        side: const BorderSide(color: AppColors.gray200, width: 0.5),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: route == null ? null : () => context.push(route),
