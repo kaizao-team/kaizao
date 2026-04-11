@@ -1,228 +1,171 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../models/project_models.dart';
 
-class KanbanBoard extends StatelessWidget {
+class KanbanBoard extends StatefulWidget {
   final List<KanbanTask> todoTasks;
   final List<KanbanTask> inProgressTasks;
   final List<KanbanTask> completedTasks;
-  final void Function(String taskId, String newStatus) onMoveTask;
-  final void Function(KanbanTask task)? onTaskTap;
   final bool readOnly;
+  final void Function(String taskId, String newStatus) onMoveTask;
 
   const KanbanBoard({
     super.key,
     required this.todoTasks,
     required this.inProgressTasks,
     required this.completedTasks,
+    required this.readOnly,
     required this.onMoveTask,
-    this.onTaskTap,
-    this.readOnly = false,
   });
 
   @override
+  State<KanbanBoard> createState() => _KanbanBoardState();
+}
+
+class _KanbanBoardState extends State<KanbanBoard> {
+  // 已完成默认折叠
+  final Map<String, bool> _expanded = {
+    'todo': true,
+    'in_progress': true,
+    'completed': false,
+  };
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _KanbanColumn(
-            title: '待办',
-            tasks: todoTasks,
-            statusColor: AppColors.gray400,
-            acceptStatus: 'todo',
-            onMoveTask: onMoveTask,
-            onTaskTap: onTaskTap,
-            readOnly: readOnly,
-          ),
-          const SizedBox(width: 12),
-          _KanbanColumn(
-            title: '进行中',
-            tasks: inProgressTasks,
-            statusColor: AppColors.accent,
-            acceptStatus: 'in_progress',
-            onMoveTask: onMoveTask,
-            onTaskTap: onTaskTap,
-            readOnly: readOnly,
-          ),
-          const SizedBox(width: 12),
-          _KanbanColumn(
-            title: '已完成',
-            tasks: completedTasks,
-            statusColor: AppColors.success,
-            acceptStatus: 'completed',
-            onMoveTask: onMoveTask,
-            onTaskTap: onTaskTap,
-            readOnly: readOnly,
-          ),
-        ],
-      ),
+    final sections = [
+      (status: 'todo', label: '待办', tasks: widget.todoTasks),
+      (status: 'in_progress', label: '进行中', tasks: widget.inProgressTasks),
+      (status: 'completed', label: '已完成', tasks: widget.completedTasks),
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.base, AppSpacing.lg, AppSpacing.xxl),
+      children: sections.map((section) {
+        final isExpanded = _expanded[section.status] ?? true;
+        return _TaskSection(
+          status: section.status,
+          label: section.label,
+          tasks: section.tasks,
+          isExpanded: isExpanded,
+          readOnly: widget.readOnly,
+          onToggle: () => setState(() {
+            _expanded[section.status] = !isExpanded;
+          }),
+          onMoveTask: widget.onMoveTask,
+        );
+      }).toList(),
     );
   }
 }
 
-class _KanbanColumn extends StatelessWidget {
-  final String title;
-  final List<KanbanTask> tasks;
-  final Color statusColor;
-  final String acceptStatus;
-  final void Function(String taskId, String newStatus) onMoveTask;
-  final void Function(KanbanTask task)? onTaskTap;
-  final bool readOnly;
+// ─────────────────────────────────────────────────────────────────────────────
+// Task Section (foldable)
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const _KanbanColumn({
-    required this.title,
+class _TaskSection extends StatelessWidget {
+  final String status;
+  final String label;
+  final List<KanbanTask> tasks;
+  final bool isExpanded;
+  final bool readOnly;
+  final VoidCallback onToggle;
+  final void Function(String taskId, String newStatus) onMoveTask;
+
+  const _TaskSection({
+    required this.status,
+    required this.label,
     required this.tasks,
-    required this.statusColor,
-    required this.acceptStatus,
+    required this.isExpanded,
+    required this.readOnly,
+    required this.onToggle,
     required this.onMoveTask,
-    this.onTaskTap,
-    this.readOnly = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (readOnly) return _buildColumnBody(context, isHovering: false);
-
-    return DragTarget<KanbanTask>(
-      onWillAcceptWithDetails: (details) => details.data.status != acceptStatus,
-      onAcceptWithDetails: (details) {
-        HapticFeedback.mediumImpact();
-        onMoveTask(details.data.id, acceptStatus);
-      },
-      builder: (context, candidateData, rejectedData) {
-        final isHovering = candidateData.isNotEmpty;
-        return _buildColumnBody(context, isHovering: isHovering);
-      },
-    );
-  }
-
-  Widget _buildColumnBody(BuildContext context, {required bool isHovering}) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: 280,
-      decoration: BoxDecoration(
-        color: isHovering ? AppColors.accentLight : AppColors.gray50,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: isHovering ? AppColors.accent : AppColors.gray200,
-          width: isHovering ? 1.5 : 1,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: onToggle,
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             child: Row(
               children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    shape: BoxShape.circle,
-                  ),
+                AnimatedRotation(
+                  turns: isExpanded ? 0 : -0.25,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.expand_more,
+                      size: 18, color: AppColors.gray400),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.xs),
                 Text(
-                  '$title (${tasks.length})',
-                  style: AppTextStyles.body2.copyWith(
+                  '$label · ${tasks.length}',
+                  style: AppTextStyles.caption.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.black,
+                    color: AppColors.gray500,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 1), // replaces Divider per no-line rule
-          if (tasks.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('暂无任务',
-                  style: AppTextStyles.body2.copyWith(color: AppColors.gray400)),
-            )
-          else
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.55,
-              ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.all(8),
-                itemCount: tasks.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final task = tasks[index];
-                  if (readOnly) {
-                    return GestureDetector(
-                      onTap: onTaskTap != null ? () => onTaskTap!(task) : null,
-                      child: _TaskCardContent(task: task),
-                    );
-                  }
-                  return _DraggableTaskCard(
-                    task: task,
-                    onTap: onTaskTap != null ? () => onTaskTap!(task) : null,
-                  );
-                },
-              ),
-            ),
-          if (isHovering && !readOnly)
-            Container(
-              margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-              height: 48,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                border: Border.all(
-                  color: AppColors.accent,
-                  style: BorderStyle.solid,
+        ),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 200),
+          crossFadeState: isExpanded
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          firstChild: tasks.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.only(
+                      bottom: AppSpacing.md, left: AppSpacing.sm),
+                  child: Text(
+                    '无任务',
+                    style:
+                        AppTextStyles.caption.copyWith(color: AppColors.gray400),
+                  ),
+                )
+              : Column(
+                  children: tasks
+                      .map((task) => Padding(
+                            padding:
+                                const EdgeInsets.only(bottom: AppSpacing.md),
+                            child: _TaskCard(
+                              task: task,
+                              readOnly: readOnly,
+                              currentStatus: status,
+                              onMove: onMoveTask,
+                            ),
+                          ))
+                      .toList(),
                 ),
-              ),
-            ),
-        ],
-      ),
+          secondChild: const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 }
 
-class _DraggableTaskCard extends StatelessWidget {
+// ─────────────────────────────────────────────────────────────────────────────
+// Task Card
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TaskCard extends StatelessWidget {
   final KanbanTask task;
-  final VoidCallback? onTap;
+  final bool readOnly;
+  final String currentStatus;
+  final void Function(String taskId, String newStatus) onMove;
 
-  const _DraggableTaskCard({required this.task, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return LongPressDraggable<KanbanTask>(
-      data: task,
-      delay: const Duration(milliseconds: 300),
-      hapticFeedbackOnStart: true,
-      feedback: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: _TaskCardContent(task: task, isDragging: true),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.3,
-        child: _TaskCardContent(task: task),
-      ),
-      child: GestureDetector(
-        onTap: onTap,
-        child: _TaskCardContent(task: task),
-      ),
-    );
-  }
-}
-
-class _TaskCardContent extends StatelessWidget {
-  final KanbanTask task;
-  final bool isDragging;
-
-  const _TaskCardContent({required this.task, this.isDragging = false});
+  const _TaskCard({
+    required this.task,
+    required this.readOnly,
+    required this.currentStatus,
+    required this.onMove,
+  });
 
   Color get _priorityColor {
     switch (task.priority) {
@@ -237,31 +180,19 @@ class _TaskCardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: 264,
-      padding: const EdgeInsets.all(12),
-      transform: isDragging
-          ? Matrix4.diagonal3Values(1.02, 1.02, 1.0)
-          : Matrix4.identity(),
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border(
-          left: BorderSide(
-            color: task.isAtRisk ? AppColors.error : AppColors.gray200,
-            width: task.isAtRisk ? 3 : 1,
-          ),
-          top: BorderSide(color: AppColors.gray200, width: 1),
-          right: BorderSide(color: AppColors.gray200, width: 1),
-          bottom: BorderSide(color: AppColors.gray200, width: 1),
-        ),
-        boxShadow: isDragging ? AppShadows.shadow3 : AppShadows.shadow1,
+        border: Border.all(color: AppColors.gray200, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Row 1: priority badge + title + effort
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding:
@@ -273,72 +204,150 @@ class _TaskCardContent extends StatelessWidget {
                 child: Text(
                   task.priority,
                   style: AppTextStyles.overline.copyWith(
-                    fontWeight: FontWeight.w600,
                     color: _priorityColor,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0,
                   ),
                 ),
               ),
-              if (task.isAtRisk) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.errorBg,
-                    borderRadius: BorderRadius.circular(AppRadius.xs),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  task.title,
+                  style: AppTextStyles.body2.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurface,
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.warning_amber_rounded,
-                          size: 10, color: AppColors.error),
-                      SizedBox(width: 2),
-                      Text('有风险',
-                          style: TextStyle(
-                              fontSize: 10, color: AppColors.error)),
-                    ],
-                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (task.effortHours > 0) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '${task.effortHours}h',
+                  style: AppTextStyles.caption
+                      .copyWith(color: AppColors.gray400),
                 ),
               ],
-              const Spacer(),
-              Text(
-                '${task.effortHours}h',
-                style: AppTextStyles.overline.copyWith(
-                    fontSize: 11, color: AppColors.gray400),
-              ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            task.title,
-            style: AppTextStyles.body2.copyWith(
-              fontWeight: FontWeight.w500,
-              color: AppColors.black,
+
+          // Row 2: description
+          if (task.description.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              task.description,
+              style: AppTextStyles.caption.copyWith(color: AppColors.gray500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            task.description,
-            style: AppTextStyles.caption.copyWith(color: AppColors.gray500),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (task.assignee != null) ...[
-            const SizedBox(height: 8),
+          ],
+
+          // Row 3: assignee + move button
+          if (task.assignee != null || !readOnly) ...[
+            const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                const Icon(Icons.person_outline,
-                    size: 12, color: AppColors.gray400),
-                const SizedBox(width: 4),
-                Text(task.assignee!,
-                    style: AppTextStyles.overline.copyWith(
-                        fontSize: 11, color: AppColors.gray500)),
+                if (task.assignee != null) ...[
+                  const Icon(Icons.person_outline,
+                      size: 14, color: AppColors.gray400),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      task.assignee!,
+                      style: AppTextStyles.caption
+                          .copyWith(color: AppColors.gray500),
+                    ),
+                  ),
+                ] else
+                  const Spacer(),
+                if (!readOnly)
+                  GestureDetector(
+                    onTap: () => _showMoveSheet(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm, vertical: 4),
+                      decoration: BoxDecoration(
+                        border:
+                            Border.all(color: AppColors.gray200, width: 0.5),
+                        borderRadius: BorderRadius.circular(AppRadius.xs),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '移动',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.gray600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          const Icon(Icons.expand_more,
+                              size: 12, color: AppColors.gray400),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  void _showMoveSheet(BuildContext context) {
+    final targets = <(String, String)>[
+      ('todo', '待办'),
+      ('in_progress', '进行中'),
+      ('completed', '已完成'),
+    ].where((t) => t.$1 != currentStatus).toList();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceRaised,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+      ),
+      builder: (_) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.gray300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.base),
+              Text(
+                '移动到',
+                style: AppTextStyles.body2.copyWith(
+                    fontWeight: FontWeight.w600, color: AppColors.gray500),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              ...targets.map((t) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(t.$2, style: AppTextStyles.body1),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      onMove(task.id, t.$1);
+                    },
+                  )),
+            ],
+          ),
+        ),
       ),
     );
   }
