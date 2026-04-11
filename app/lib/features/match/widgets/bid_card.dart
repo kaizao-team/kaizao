@@ -26,12 +26,16 @@ class BidCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
-        color: bid.isAiRecommended ? AppColors.accentLight : AppColors.white,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: bid.isAiRecommended ? AppColors.accent : AppColors.gray200,
-          width: bid.isAiRecommended ? 1.5 : 1,
-        ),
+        border: bid.isAiRecommended
+            ? const Border(
+                left: BorderSide(color: AppColors.accent, width: 2.5),
+                top: BorderSide(color: AppColors.gray200, width: 0.5),
+                right: BorderSide(color: AppColors.gray200, width: 0.5),
+                bottom: BorderSide(color: AppColors.gray200, width: 0.5),
+              )
+            : Border.all(color: AppColors.gray200, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

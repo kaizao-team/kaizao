@@ -55,67 +55,73 @@ class BidListPage extends ConsumerWidget {
                       onRefresh: () => ref
                           .read(bidListProvider(projectId).notifier)
                           .loadBids(),
-                      child: ListView.separated(
-                        padding: const EdgeInsets.all(AppSpacing.base),
-                        itemCount: state.bids.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final bid = state.bids[index];
-                          final isBidOwner = bid.userId == currentUserId;
-                          return BidCard(
-                            bid: bid,
-                            isOwner: isBidOwner,
-                            onViewDetail: () =>
-                                _showBidDetail(context, bid),
-                            onAccept: () {
-                              AcceptBidDialog.show(
-                                context,
-                                bid: bid,
-                                onConfirm: () async {
-                                  final ok = await ref
-                                      .read(
-                                          bidListProvider(projectId).notifier)
-                                      .acceptBid(bid.id);
-                                  if (context.mounted) {
-                                    VccToast.show(context,
-                                        message: ok
-                                            ? '已选定 ${bid.userName}，撮合成功'
-                                            : '操作失败，请重试',
-                                        type: ok
-                                            ? VccToastType.success
-                                            : VccToastType.error);
-                                    if (ok) {
-                                      ref
-                                          .read(
-                                              projectListProvider.notifier)
-                                          .refresh();
-                                      ref
-                                          .read(
-                                              notificationProvider.notifier)
-                                          .loadNotifications();
-                                      ref
-                                          .read(
-                                              homeStateProvider.notifier)
-                                          .refresh();
-                                      if (context.mounted) {
-                                        context.pop();
-                                      }
-                                    }
-                                  }
-                                },
-                              );
-                            },
-                            onWithdraw: () => _confirmWithdraw(
-                              context,
-                              ref,
-                              bid.id,
-                              bid.userName,
-                            ),
-                          );
-                        },
-                      ),
+                      child: _buildGroupedList(
+                        context, ref, state.bids, currentUserId, projectId),
                     ),
+    );
+  }
+
+  Widget _buildGroupedList(BuildContext context, WidgetRef ref,
+      List<BidItem> bids, String? currentUserId, String projectId) {
+    final aiRecommended = bids.where((b) => b.isAiRecommended).toList();
+    final others = bids.where((b) => !b.isAiRecommended).toList();
+
+    Widget buildCard(BidItem bid) {
+      final isBidOwner = bid.userId == currentUserId;
+      return BidCard(
+        bid: bid,
+        isOwner: isBidOwner,
+        onViewDetail: () => _showBidDetail(context, bid),
+        onAccept: () {
+          AcceptBidDialog.show(
+            context,
+            bid: bid,
+            onConfirm: () async {
+              final ok = await ref
+                  .read(bidListProvider(projectId).notifier)
+                  .acceptBid(bid.id);
+              if (context.mounted) {
+                VccToast.show(context,
+                    message: ok ? '已选定 ${bid.userName}，撮合成功' : '操作失败，请重试',
+                    type: ok ? VccToastType.success : VccToastType.error);
+                if (ok) {
+                  ref.read(projectListProvider.notifier).refresh();
+                  ref
+                      .read(notificationProvider.notifier)
+                      .loadNotifications();
+                  ref.read(homeStateProvider.notifier).refresh();
+                  if (context.mounted) context.pop();
+                }
+              }
+            },
+          );
+        },
+        onWithdraw: () =>
+            _confirmWithdraw(context, ref, bid.id, bid.userName),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      children: [
+        if (aiRecommended.isNotEmpty) ...[
+          _SectionHeader(label: 'AI 推荐', count: aiRecommended.length),
+          const SizedBox(height: AppSpacing.sm),
+          ...aiRecommended.map((bid) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: buildCard(bid),
+              )),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        if (others.isNotEmpty) ...[
+          _SectionHeader(label: '其他投标', count: others.length),
+          const SizedBox(height: AppSpacing.sm),
+          ...others.map((bid) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: buildCard(bid),
+              )),
+        ],
+      ],
     );
   }
 
@@ -549,6 +555,28 @@ class BidListPage extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  final int count;
+
+  const _SectionHeader({required this.label, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Text(
+        '$label · $count',
+        style: AppTextStyles.caption.copyWith(
+          fontWeight: FontWeight.w600,
+          color: AppColors.gray400,
+          letterSpacing: 1.8,
+        ),
       ),
     );
   }
