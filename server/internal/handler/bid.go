@@ -103,6 +103,7 @@ func (h *BidHandler) ListBids(c *gin.Context) {
 			item["completion_rate"] = b.Bidder.CompletionRate
 		}
 		item["is_ai_recommended"] = b.IsAIRecommended
+		item["quoted_at"] = b.QuotedAt
 		list = append(list, item)
 	}
 	response.Success(c, list)
@@ -339,6 +340,51 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 		"estimated_duration_days": bid.EstimatedDays,
 	}
 	response.SuccessMsg(c, "已发送匹配请求，等待团队确认", resp)
+}
+
+// QuoteBid PUT /api/v1/bids/:bidId/quote — 团队方对 AI 推荐的 bid 提交报价
+func (h *BidHandler) QuoteBid(c *gin.Context) {
+	bidID := c.Param("bidId")
+	userUUID := c.GetString("user_uuid")
+	var req struct {
+		Amount       float64 `json:"amount" binding:"required,min=1"`
+		DurationDays int     `json:"duration_days" binding:"required,min=1"`
+		Proposal     string  `json:"proposal"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	if err := h.bidService.QuoteBid(bidID, userUUID, req.Amount, req.DurationDays, req.Proposal); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrBidNotFound, err.Error())
+		return
+	}
+	response.SuccessMsg(c, "报价已提交", gin.H{
+		"status": "quoted",
+	})
+}
+
+// CancelMatch POST /api/v1/bids/:bidId/cancel-match — 项目方取消智能匹配（报价前/后均可）
+func (h *BidHandler) CancelMatch(c *gin.Context) {
+	bidID := c.Param("bidId")
+	userUUID := c.GetString("user_uuid")
+	if err := h.bidService.CancelMatch(bidID, userUUID); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrBidNotFound, err.Error())
+		return
+	}
+	response.SuccessMsg(c, "已取消匹配", gin.H{
+		"status": "cancelled",
+	})
 }
 
 // RejectBid POST /api/v1/bids/:bidId/reject — 团队方拒绝推荐

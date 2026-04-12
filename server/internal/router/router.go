@@ -177,6 +177,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		bids.POST("/:bidId/accept", middleware.JWTAuth(services.JWT), handlers.Bid.AcceptBid)
 		bids.POST("/:bidId/confirm", middleware.JWTAuth(services.JWT), handlers.Bid.ConfirmBid)
 		bids.POST("/:bidId/reject", middleware.JWTAuth(services.JWT), handlers.Bid.RejectBid)
+		bids.POST("/:bidId/cancel-match", middleware.JWTAuth(services.JWT), handlers.Bid.CancelMatch)
+		bids.PUT("/:bidId/quote", middleware.JWTAuth(services.JWT), handlers.Bid.QuoteBid)
 		bids.PUT("/:bidId/withdraw", middleware.JWTAuth(services.JWT), handlers.Bid.WithdrawBid)
 	}
 

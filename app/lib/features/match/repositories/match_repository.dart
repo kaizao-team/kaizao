@@ -59,4 +59,24 @@ class MatchRepository {
   Future<void> rejectBid(String bidId) async {
     await _client.post(ApiEndpoints.bidReject(bidId));
   }
+
+  Future<void> cancelMatch(String bidId) async {
+    await _client.post(ApiEndpoints.bidCancelMatch(bidId));
+  }
+
+  Future<void> quoteBid({
+    required String bidId,
+    required double amount,
+    required int durationDays,
+    String? proposal,
+  }) async {
+    await _client.put(
+      ApiEndpoints.bidQuote(bidId),
+      data: {
+        'amount': amount,
+        'duration_days': durationDays,
+        if (proposal != null && proposal.isNotEmpty) 'proposal': proposal,
+      },
+    );
+  }
 }

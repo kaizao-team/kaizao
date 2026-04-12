@@ -129,6 +129,8 @@ class ApiEndpoints {
   static String bidAccept(String id) => '/api/v1/bids/$id/accept';
   static String bidConfirm(String id) => '/api/v1/bids/$id/confirm';
   static String bidReject(String id) => '/api/v1/bids/$id/reject';
+  static String bidQuote(String id) => '/api/v1/bids/$id/quote';
+  static String bidCancelMatch(String id) => '/api/v1/bids/$id/cancel-match';
   static String bidWithdraw(String id) => '/api/v1/bids/$id/withdraw';
   static String projectRecommendations(String projectId) =>
       '/api/v1/projects/$projectId/recommendations';

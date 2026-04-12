@@ -33,6 +33,7 @@ type Bid struct {
 	Status           int16      `gorm:"not null;default:1;index" json:"status"`
 	IsAIRecommended  bool       `gorm:"not null;default:false" json:"is_ai_recommended"`
 	RejectReason     *string    `gorm:"type:varchar(200)" json:"reject_reason,omitempty"`
+	QuotedAt      *time.Time `json:"quoted_at,omitempty"`
 	AcceptedAt    *time.Time `json:"accepted_at,omitempty"`
 	CreatedAt     time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
 	UpdatedAt     time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`

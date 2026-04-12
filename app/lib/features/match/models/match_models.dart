@@ -29,6 +29,7 @@ class BidItem {
   final String? teamAvatarUrl;
   final List<TeamMember> teamMembers;
   final bool isAiRecommended;
+  final String? quotedAt;
   final List<String> skills;
   final String createdAt;
   final BidStatus status;
@@ -52,6 +53,7 @@ class BidItem {
     this.teamAvatarUrl,
     this.teamMembers = const [],
     required this.isAiRecommended,
+    this.quotedAt,
     this.skills = const [],
     required this.createdAt,
     this.status = BidStatus.pending,
@@ -62,6 +64,7 @@ class BidItem {
   bool get isTeamBid => bidType == 'team';
   bool get isPending => status == BidStatus.pending;
   bool get canWithdraw => status == BidStatus.pending;
+  bool get hasQuoted => quotedAt != null && quotedAt!.isNotEmpty;
 
   BidItem copyWith({BidStatus? status}) => BidItem(
         id: id,
@@ -80,6 +83,7 @@ class BidItem {
         teamAvatarUrl: teamAvatarUrl,
         teamMembers: teamMembers,
         isAiRecommended: isAiRecommended,
+        quotedAt: quotedAt,
         skills: skills,
         createdAt: createdAt,
         status: status ?? this.status,
@@ -109,6 +113,7 @@ class BidItem {
               .toList() ??
           [],
       isAiRecommended: json['is_ai_recommended'] as bool? ?? false,
+      quotedAt: json['quoted_at']?.toString(),
       skills:
           (json['skills'] as List?)?.map((e) => e.toString()).toList() ?? [],
       createdAt: json['created_at']?.toString() ?? '',
