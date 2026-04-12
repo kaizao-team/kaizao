@@ -13,6 +13,7 @@ class ProjectDetailState {
   final Map<String, dynamic>? data;
   final String? errorMessage;
   final bool hasBid;
+  final String? myBidId;
   final List<Map<String, dynamic>> prdItems;
   final List<Map<String, dynamic>> earsTasks;
   final bool isConfirmingBid;
@@ -25,6 +26,7 @@ class ProjectDetailState {
     this.data,
     this.errorMessage,
     this.hasBid = false,
+    this.myBidId,
     this.prdItems = const [],
     this.earsTasks = const [],
     this.isConfirmingBid = false,
@@ -38,6 +40,7 @@ class ProjectDetailState {
     Map<String, dynamic>? data,
     String? Function()? errorMessage,
     bool? hasBid,
+    String? Function()? myBidId,
     List<Map<String, dynamic>>? prdItems,
     List<Map<String, dynamic>>? earsTasks,
     bool? isConfirmingBid,
@@ -50,6 +53,7 @@ class ProjectDetailState {
       data: data ?? this.data,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       hasBid: hasBid ?? this.hasBid,
+      myBidId: myBidId != null ? myBidId() : this.myBidId,
       prdItems: prdItems ?? this.prdItems,
       earsTasks: earsTasks ?? this.earsTasks,
       isConfirmingBid: isConfirmingBid ?? this.isConfirmingBid,
@@ -112,7 +116,7 @@ class ProjectDetailState {
     }
   }
 
-  String? get bidId => data?['bid_id']?.toString();
+  String? get bidId => myBidId ?? data?['bid_id']?.toString();
 
   bool get isFavorited => data?['is_favorited'] as bool? ?? false;
 
@@ -162,10 +166,13 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
       if (!mounted) return;
 
       bool hasBid = false;
+      String? myBidId;
       if (_currentUserId != null && _currentUserId.isNotEmpty) {
         try {
           final bids = await _matchRepository.fetchBids(projectId);
-          hasBid = bids.any((b) => b.userId == _currentUserId);
+          final myBid = bids.where((b) => b.userId == _currentUserId).firstOrNull;
+          hasBid = myBid != null;
+          if (myBid != null) myBidId = myBid.id;
         } catch (_) {}
       }
 
@@ -202,6 +209,7 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
         isLoading: false,
         data: data,
         hasBid: hasBid,
+        myBidId: () => myBidId,
         prdItems: prdItems,
         earsTasks: earsTasks,
       );

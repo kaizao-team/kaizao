@@ -263,6 +263,8 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 		row["avatar_url"] = r.User.AvatarURL
 		row["rating"] = r.User.AvgRating
 		row["completion_rate"] = r.User.CompletionRate
+		row["vibe_level"] = r.Team.VibeLevel
+		row["vibe_power"] = r.Team.VibePower
 		if ps := h.bidService.PrimarySkillName(r.User.ID); ps != "" {
 			row["primary_skill"] = ps
 			row["skill"] = ps
