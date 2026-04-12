@@ -191,7 +191,7 @@ func (s *TeamService) GetDetail(teamUUID string) (*model.Team, error) {
 // CreateTeam 创建团队，当前用户为队长。
 // role 非 2/3 时自动提升为专家（role=2）；已有主团队则拒绝。
 // 唯一性检查在事务内执行，避免并发重复创建。
-func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *float64, availableStatus *int, budgetMin, budgetMax *float64, description *string, inviteCode *string, serviceDirections []string) (*model.Team, error) {
+func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *float64, availableStatus *int, budgetMin, budgetMax *float64, description *string, inviteCode *string, serviceDirections []string, selfRating *int) (*model.Team, error) {
 	u, err := s.repos.User.FindByUUID(userUUID)
 	if err != nil {
 		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
@@ -240,6 +240,11 @@ func (s *TeamService) CreateTeam(userUUID string, name *string, hourlyRate *floa
 	if len(serviceDirections) > 0 {
 		raw, _ := json.Marshal(serviceDirections)
 		t.ServiceDirections = model.JSON(raw)
+	}
+	if selfRating != nil && *selfRating >= 1 && *selfRating <= 5 {
+		level, power := mapSelfRatingToVibe(*selfRating)
+		t.VibeLevel = level
+		t.VibePower = power
 	}
 
 	if err := s.repos.DB().Transaction(func(tx *gorm.DB) error {
@@ -438,4 +443,23 @@ func (s *TeamService) StaticAssetPublicURL(objectKey string) string {
 		return ""
 	}
 	return s.store.PublicURL(objectKey)
+}
+
+// mapSelfRatingToVibe maps user self-rating (1-5) to vibe_level and vibe_power.
+// Power is set to the midpoint of each level's range.
+func mapSelfRatingToVibe(selfRating int) (string, int) {
+	switch selfRating {
+	case 1:
+		return "vc-T1", 50
+	case 2:
+		return "vc-T2", 150
+	case 3:
+		return "vc-T3", 275
+	case 4:
+		return "vc-T4", 450
+	case 5:
+		return "vc-T5", 650
+	default:
+		return "vc-T1", 0
+	}
 }

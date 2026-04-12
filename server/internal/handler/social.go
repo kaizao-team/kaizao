@@ -163,6 +163,7 @@ func (h *TeamHandler) CreateTeam(c *gin.Context) {
 		req.Description,
 		req.InviteCode,
 		req.ServiceDirections,
+		req.SelfRating,
 	)
 	if err != nil {
 		code, _ := strconv.Atoi(err.Error())
