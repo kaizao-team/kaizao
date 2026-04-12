@@ -16,6 +16,7 @@ import '../../../shared/widgets/vcc_toast.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../favorite/providers/favorite_provider.dart';
 import '../providers/project_detail_provider.dart';
+import '../providers/project_list_provider.dart';
 
 const double _kProjectPageHorizontalPadding = 20;
 const double _kProjectSectionGap = 28;
@@ -130,6 +131,7 @@ class _BottomActions extends ConsumerWidget {
                     .confirmAlignment();
                 if (context.mounted && ok) {
                   VccToast.show(context, message: '已确认需求对齐');
+                  ref.invalidate(projectListProvider);
                 }
               },
       );
@@ -145,6 +147,7 @@ class _BottomActions extends ConsumerWidget {
                     .startProject();
                 if (context.mounted && ok) {
                   VccToast.show(context, message: '项目已启动');
+                  ref.invalidate(projectListProvider);
                 }
               },
       );
@@ -187,6 +190,7 @@ class _BottomActions extends ConsumerWidget {
                       .acceptProject();
                   if (context.mounted && ok) {
                     VccToast.show(context, message: '项目验收通过');
+                    ref.invalidate(projectListProvider);
                   }
                 }
               },
@@ -238,6 +242,7 @@ class _BottomActions extends ConsumerWidget {
                           .rejectBid();
                       if (context.mounted && ok) {
                         VccToast.show(context, message: '已拒绝推荐');
+                        ref.invalidate(projectListProvider);
                       }
                     },
             ),
@@ -254,6 +259,7 @@ class _BottomActions extends ConsumerWidget {
                           .confirmBid();
                       if (context.mounted && ok) {
                         VccToast.show(context, message: '已确认接受');
+                        ref.invalidate(projectListProvider);
                       }
                     },
             ),
@@ -311,6 +317,7 @@ class _BottomActions extends ConsumerWidget {
                     .confirmAlignment();
                 if (context.mounted && ok) {
                   VccToast.show(context, message: '已确认需求对齐');
+                  ref.invalidate(projectListProvider);
                 }
               },
       );
