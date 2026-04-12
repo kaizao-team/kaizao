@@ -56,32 +56,33 @@ func calcBudgetScore(project *model.Project, team *model.Team) int {
 
 	pMin := 0.0
 	pMax := 0.0
-	if project.BudgetMin != nil {
+	if project.BudgetMin != nil && *project.BudgetMin > 0 {
 		pMin = *project.BudgetMin
 	}
-	if project.BudgetMax != nil {
+	if project.BudgetMax != nil && *project.BudgetMax > 0 {
 		pMax = *project.BudgetMax
 	}
+	// Only fill missing bound when the other is set; 0 means "no limit"
 	if pMax <= 0 && pMin > 0 {
-		pMax = pMin
+		pMax = pMin * 3 // no upper limit → generous ceiling
 	}
 	if pMin <= 0 && pMax > 0 {
-		pMin = pMax
+		pMin = 0 // no lower limit → keep 0
 	}
 
 	tMin := 0.0
 	tMax := 0.0
-	if team.BudgetMin != nil {
+	if team.BudgetMin != nil && *team.BudgetMin > 0 {
 		tMin = *team.BudgetMin
 	}
-	if team.BudgetMax != nil {
+	if team.BudgetMax != nil && *team.BudgetMax > 0 {
 		tMax = *team.BudgetMax
 	}
 	if tMax <= 0 && tMin > 0 {
-		tMax = tMin
+		tMax = tMin * 3
 	}
 	if tMin <= 0 && tMax > 0 {
-		tMin = tMax
+		tMin = 0
 	}
 
 	// Full containment: project budget falls within team range
