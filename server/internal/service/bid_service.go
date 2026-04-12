@@ -109,11 +109,7 @@ func (s *BidService) SimpleMatchProviders(project *model.Project, budgetMax floa
 		excludeSet[id] = struct{}{}
 	}
 
-	fetchLimit := limit * 4
-	if fetchLimit < 50 {
-		fetchLimit = 50 // ensure we scan enough candidates for direction filtering
-	}
-	users, err := s.repos.User.ListProvidersByBudgetAndLevel(budgetMax, fetchLimit)
+	users, err := s.repos.User.ListProvidersByBudgetAndLevel(budgetMax, 0) // 0 = no limit, fetch all
 	if err != nil {
 		return nil, err
 	}

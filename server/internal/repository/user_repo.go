@@ -208,8 +208,10 @@ func (r *userRepository) ListProvidersByBudgetAndLevel(budgetMax float64, limit 
 		Joins("JOIN teams t ON t.id = tm.team_id AND t.status = 1").
 		Where("u.role = 2 AND u.status = 1 AND u.onboarding_status = 2").
 		Where("u.hourly_rate IS NULL OR u.hourly_rate <= ?", budgetMax).
-		Order("u.level DESC, u.avg_rating DESC").
-		Limit(limit)
+		Order("u.level DESC, u.avg_rating DESC")
+	if limit > 0 {
+		q = q.Limit(limit)
+	}
 	if err := q.Find(&users).Error; err != nil {
 		return nil, err
 	}
