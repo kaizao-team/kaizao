@@ -308,7 +308,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     required double rateMax,
     String? contactPhone,
     required String inviteCode,
-    String? serviceDirection,
+    List<String> serviceDirections = const [],
   }) async {
     final phone =
         (contactPhone != null && contactPhone.isNotEmpty) ? contactPhone : null;
@@ -323,7 +323,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       'rate_max': rateMax,
       'invite_code': inviteCode,
       if (phone != null) 'contact_phone': phone,
-      if (serviceDirection != null) 'service_direction': serviceDirection,
+      if (serviceDirections.isNotEmpty) 'service_directions': serviceDirections,
     };
 
     state = state.copyWith(isLoading: true, errorMessage: null);
@@ -346,7 +346,8 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         budgetMin: rateMin,
         budgetMax: rateMax,
         inviteCode: inviteCode,
-        serviceDirection: serviceDirection,
+        serviceDirections: serviceDirections,
+        selfRating: selfRating,
       );
       await saveDraft(payload);
       if (!mounted) return false;

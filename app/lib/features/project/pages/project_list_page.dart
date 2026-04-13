@@ -207,10 +207,6 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   }
 
   void _openProject(BuildContext context, ProjectModel project) {
-    if (project.status == 5) {
-      context.push('/projects/${project.routingId}/manage');
-      return;
-    }
     context.push('/projects/${project.routingId}');
   }
 }

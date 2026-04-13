@@ -85,7 +85,6 @@ class ApiEndpoints {
   static String projectFileDetail(String id, String uuid) =>
       '/api/v1/projects/$id/files/$uuid';
   static String projectClose(String id) => '/api/v1/projects/$id/close';
-  static String projectAccept(String id) => '/api/v1/projects/$id/accept';
   static String projectConfirmAlignment(String id) =>
       '/api/v1/projects/$id/confirm-alignment';
   static String projectStart(String id) => '/api/v1/projects/$id/start';
@@ -100,6 +99,7 @@ class ApiEndpoints {
   // ============================================================
   // 里程碑模块 /api/v1/milestones
   // ============================================================
+  static String milestoneStart(String id) => '/api/v1/milestones/$id/start';
   static String milestoneDeliver(String id) => '/api/v1/milestones/$id/deliver';
   static String milestoneAccept(String id) => '/api/v1/milestones/$id/accept';
   static String milestoneAcceptance(String id) =>
@@ -109,6 +109,7 @@ class ApiEndpoints {
   static String milestoneComplete(String id) =>
       '/api/v1/milestones/$id/complete';
   static String projectDeliver(String id) => '/api/v1/projects/$id/deliver';
+  static String projectAccept(String id) => '/api/v1/projects/$id/accept';
 
   // ============================================================
   // 评论模块 /api/v1/projects/:id/comments
@@ -126,6 +127,8 @@ class ApiEndpoints {
   static String bidAccept(String id) => '/api/v1/bids/$id/accept';
   static String bidConfirm(String id) => '/api/v1/bids/$id/confirm';
   static String bidReject(String id) => '/api/v1/bids/$id/reject';
+  static String bidQuote(String id) => '/api/v1/bids/$id/quote';
+  static String bidCancelMatch(String id) => '/api/v1/bids/$id/cancel-match';
   static String bidWithdraw(String id) => '/api/v1/bids/$id/withdraw';
   static String projectRecommendations(String projectId) =>
       '/api/v1/projects/$projectId/recommendations';

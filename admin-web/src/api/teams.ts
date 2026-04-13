@@ -1,11 +1,11 @@
 import request from './request'
 
 export function getTeams(params: Record<string, any>) {
-  return request.get('/teams', { params })
+  return request.get('/admin/teams', { params })
 }
 
 export function getTeamDetail(uuid: string) {
-  return request.get(`/teams/${uuid}`)
+  return request.get(`/admin/teams/${uuid}`)
 }
 
 export function getTeamStaticAssets(uuid: string, params?: Record<string, any>) {

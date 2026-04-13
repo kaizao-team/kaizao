@@ -79,7 +79,8 @@ class ExpertOnboardingRepository {
     double? budgetMax,
     String? description,
     required String inviteCode,
-    String? serviceDirection,
+    List<String>? serviceDirections,
+    int? selfRating,
   }) async {
     final response = await _client.post<Map<String, dynamic>>(
       ApiEndpoints.teams,
@@ -91,7 +92,9 @@ class ExpertOnboardingRepository {
         if (budgetMax != null) 'budget_max': budgetMax,
         if (description != null) 'description': description,
         'invite_code': inviteCode,
-        if (serviceDirection != null) 'service_direction': serviceDirection,
+        if (serviceDirections != null && serviceDirections.isNotEmpty)
+          'service_directions': serviceDirections,
+        if (selfRating != null) 'self_rating': selfRating,
       },
       fromJson: (data) => data as Map<String, dynamic>,
     );

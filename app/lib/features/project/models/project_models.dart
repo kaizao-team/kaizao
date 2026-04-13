@@ -6,6 +6,9 @@ class KanbanTask {
   final String priority;
   final String? assignee;
   final String? milestoneId;
+  final String? featureItemId;
+  final String? taskCode;
+  final String? earsType;
   final int effortHours;
   final bool isAtRisk;
   final String createdAt;
@@ -19,6 +22,9 @@ class KanbanTask {
     required this.priority,
     this.assignee,
     this.milestoneId,
+    this.featureItemId,
+    this.taskCode,
+    this.earsType,
     required this.effortHours,
     required this.isAtRisk,
     required this.createdAt,
@@ -54,7 +60,10 @@ class KanbanTask {
       priority: json['priority'] as String,
       assignee: json['assignee'] as String?,
       milestoneId: json['milestone_id'] as String?,
-      effortHours: json['effort_hours'] as int,
+      featureItemId: json['feature_item_id'] as String?,
+      taskCode: json['task_code'] as String?,
+      earsType: json['ears_type'] as String?,
+      effortHours: (json['effort_hours'] as num?)?.toInt() ?? 0,
       isAtRisk: json['is_at_risk'] as bool,
       createdAt: json['created_at'] as String,
       completedAt: json['completed_at'] as String?,

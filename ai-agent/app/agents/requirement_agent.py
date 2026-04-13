@@ -425,6 +425,7 @@ class RequirementAgent(ToolUseBaseAgent):
             "   - 每个里程碑是一个交付阶段，不要按需求条目或子任务分组\n"
             "   - 根据项目复杂度合理分配各阶段天数\n"
             "3. 所有里程碑的 payment_ratio 总和必须等于 1\n"
+            "\n**重要：所有输出内容（ears_statement、title、描述等）必须使用中文。**\n"
         )
         if agreed_days:
             base += f"4. 项目预期交付时间为 {agreed_days} 天，所有里程碑天数总和不得超过此值\n"

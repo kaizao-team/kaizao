@@ -4,13 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
-import '../../../shared/models/vibe_level.dart';
+import '../../../shared/models/vibe_level.dart' show vibeLevelLabel, vibeLevelSpecs;
 import '../../../shared/widgets/vcc_avatar.dart';
 import '../../../shared/widgets/vcc_tag.dart';
 import '../../../shared/widgets/vcc_toast.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../home/providers/home_provider.dart';
 import '../../notification/providers/notification_provider.dart';
+import '../../project/providers/project_detail_provider.dart';
 import '../../project/providers/project_list_provider.dart';
 import '../models/match_models.dart';
 import '../providers/match_provider.dart';
@@ -91,6 +92,7 @@ class BidListPage extends ConsumerWidget {
                       .read(notificationProvider.notifier)
                       .loadNotifications();
                   ref.read(homeStateProvider.notifier).refresh();
+                  ref.invalidate(projectDetailProvider(projectId));
                   if (context.mounted) context.pop();
                 }
               }
@@ -170,6 +172,7 @@ class BidListPage extends ConsumerWidget {
                               Row(
                                 children: [
                                   VccAvatar(
+                                    imageUrl: bid.isTeamBid ? bid.teamAvatarUrl : bid.avatar,
                                     size: VccAvatarSize.large,
                                     fallbackText: bid.userName.isNotEmpty
                                         ? bid.userName.substring(0, 1)
@@ -233,9 +236,7 @@ class BidListPage extends ConsumerWidget {
                                                     BorderRadius.circular(4),
                                               ),
                                               child: Text(
-                                                bid.levelName ??
-                                                    vibeLevelLabel(
-                                                        bid.vibeLevel),
+                                                _formatLevelDisplay(bid),
                                                 style: AppTextStyles.caption
                                                     .copyWith(
                                                   fontSize: 11,
@@ -252,15 +253,17 @@ class BidListPage extends ConsumerWidget {
                                                 color: AppColors.gray500,
                                               ),
                                             ),
-                                            const SizedBox(width: 12),
-                                            Text(
-                                              '匹配 ${bid.matchScore}%',
-                                              style: AppTextStyles.body2
-                                                  .copyWith(
-                                                color: AppColors.accent,
-                                                fontWeight: FontWeight.w600,
+                                            if (bid.matchScore > 0) ...[
+                                              const SizedBox(width: 12),
+                                              Text(
+                                                '匹配 ${bid.matchScore}%',
+                                                style: AppTextStyles.body2
+                                                    .copyWith(
+                                                  color: AppColors.accent,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
                                               ),
-                                            ),
+                                            ],
                                           ],
                                         ),
                                       ],
@@ -617,4 +620,11 @@ class _DetailSection extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Format level display: "vc-T3 熟练"
+String _formatLevelDisplay(BidItem bid) {
+  final code = bid.vibeLevel ?? 'vc-T1';
+  final label = bid.levelName ?? vibeLevelLabel(code);
+  return '$code $label';
 }

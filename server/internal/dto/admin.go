@@ -18,6 +18,16 @@ type AdminUpdateUserStatusReq struct {
 	Reason *string `json:"reason"`
 }
 
+// ──────────── 团队管理 ────────────
+
+type AdminListTeamsQuery struct {
+	Keyword        string `form:"keyword"`
+	VibeLevel      string `form:"vibe_level"`
+	ApprovalStatus *int   `form:"approval_status"`
+	Page           int    `form:"page,default=1"`
+	PageSize       int    `form:"page_size,default=20"`
+}
+
 // ──────────── 项目管理 ────────────
 
 type AdminListProjectsQuery struct {

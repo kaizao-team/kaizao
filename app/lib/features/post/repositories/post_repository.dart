@@ -179,13 +179,16 @@ class PostRepository {
   /// GET project recommendations from the Go backend.
   Future<Map<String, dynamic>> recommendTeam(
     String projectId, {
-    int pageSize = 1,
+    int pageSize = 10,
+    List<String> excludeTeamIds = const [],
   }) async {
     final response = await _client.get<Map<String, dynamic>>(
       ApiEndpoints.projectRecommendations(projectId),
       queryParameters: {
         'page': 1,
         'page_size': pageSize,
+        if (excludeTeamIds.isNotEmpty)
+          'exclude_team_ids': excludeTeamIds.join(','),
       },
       fromJson: (data) => data as Map<String, dynamic>,
     );

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vibebuild/server/internal/model"
@@ -102,6 +103,7 @@ func (h *BidHandler) ListBids(c *gin.Context) {
 			item["completion_rate"] = b.Bidder.CompletionRate
 		}
 		item["is_ai_recommended"] = b.IsAIRecommended
+		item["quoted_at"] = b.QuotedAt
 		list = append(list, item)
 	}
 	response.Success(c, list)
@@ -199,8 +201,9 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 	}
 
 	var q struct {
-		Page     int `form:"page"`
-		PageSize int `form:"page_size"`
+		Page           int    `form:"page"`
+		PageSize       int    `form:"page_size"`
+		ExcludeTeamIDs string `form:"exclude_team_ids"`
 	}
 	_ = c.ShouldBindQuery(&q)
 	if q.PageSize < 1 {
@@ -208,6 +211,15 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 	}
 	if q.PageSize > 20 {
 		q.PageSize = 20
+	}
+
+	var excludeTeamUUIDs []string
+	if q.ExcludeTeamIDs != "" {
+		for _, id := range strings.Split(q.ExcludeTeamIDs, ",") {
+			if t := strings.TrimSpace(id); t != "" {
+				excludeTeamUUIDs = append(excludeTeamUUIDs, t)
+			}
+		}
 	}
 
 	budgetMax := 0.0
@@ -218,7 +230,7 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 		budgetMax = 1e8 // 无上限时不过滤
 	}
 
-	results, err := h.bidService.SimpleMatchProviders(budgetMax, q.PageSize)
+	results, err := h.bidService.SimpleMatchProviders(project, budgetMax, q.PageSize, excludeTeamUUIDs)
 	if err != nil {
 		h.log.Warn("simple_match_failed", zap.Error(err))
 		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "匹配服务调用失败: "+err.Error())
@@ -252,6 +264,8 @@ func (h *BidHandler) Recommendations(c *gin.Context) {
 		row["avatar_url"] = r.User.AvatarURL
 		row["rating"] = r.User.AvgRating
 		row["completion_rate"] = r.User.CompletionRate
+		row["vibe_level"] = r.Team.VibeLevel
+		row["vibe_power"] = r.Team.VibePower
 		if ps := h.bidService.PrimarySkillName(r.User.ID); ps != "" {
 			row["primary_skill"] = ps
 			row["skill"] = ps
@@ -290,7 +304,7 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 		budgetMax = 1e8
 	}
 
-	results, err := h.bidService.SimpleMatchProviders(budgetMax, 10)
+	results, err := h.bidService.SimpleMatchProviders(project, budgetMax, 10, nil)
 	if err != nil {
 		h.log.Warn("quick_match_simple_failed", zap.Error(err))
 		response.ErrorBadRequest(c, errcode.ErrAIServiceUnavailable, "匹配服务调用失败: "+err.Error())
@@ -326,6 +340,51 @@ func (h *BidHandler) QuickMatch(c *gin.Context) {
 		"estimated_duration_days": bid.EstimatedDays,
 	}
 	response.SuccessMsg(c, "已发送匹配请求，等待团队确认", resp)
+}
+
+// QuoteBid PUT /api/v1/bids/:bidId/quote — 团队方对 AI 推荐的 bid 提交报价
+func (h *BidHandler) QuoteBid(c *gin.Context) {
+	bidID := c.Param("bidId")
+	userUUID := c.GetString("user_uuid")
+	var req struct {
+		Amount       float64 `json:"amount" binding:"required,min=1"`
+		DurationDays int     `json:"duration_days" binding:"required,min=1"`
+		Proposal     string  `json:"proposal"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	if err := h.bidService.QuoteBid(bidID, userUUID, req.Amount, req.DurationDays, req.Proposal); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrBidNotFound, err.Error())
+		return
+	}
+	response.SuccessMsg(c, "报价已提交", gin.H{
+		"status": "quoted",
+	})
+}
+
+// CancelMatch POST /api/v1/bids/:bidId/cancel-match — 项目方取消智能匹配（报价前/后均可）
+func (h *BidHandler) CancelMatch(c *gin.Context) {
+	bidID := c.Param("bidId")
+	userUUID := c.GetString("user_uuid")
+	if err := h.bidService.CancelMatch(bidID, userUUID); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorBadRequest(c, errcode.ErrBidNotFound, err.Error())
+		return
+	}
+	response.SuccessMsg(c, "已取消匹配", gin.H{
+		"status": "cancelled",
+	})
 }
 
 // RejectBid POST /api/v1/bids/:bidId/reject — 团队方拒绝推荐

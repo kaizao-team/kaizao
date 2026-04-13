@@ -109,23 +109,48 @@
           <div class="ears-tasks-section">
             <div class="ears-tasks-header">
               <h3 class="sub-title">EARS 任务</h3>
-              <el-button size="small" text :loading="loadingEarsTasks" @click="fetchEarsTasks">
+              <el-button size="small" text :loading="loadingEarsTasks" :disabled="earsPolling" @click="fetchEarsTasks">
                 刷新
               </el-button>
             </div>
-            <el-table v-if="earsTasks.length" v-loading="loadingEarsTasks" :data="earsTasks" stripe size="small">
+            <div v-if="earsPolling" class="ears-polling-bar">
+              <el-progress
+                :percentage="earsPollingProgress"
+                :stroke-width="18"
+                :text-inside="true"
+                striped
+                striped-flow
+              />
+              <p class="ears-polling-msg">{{ earsPollingMsg }}</p>
+            </div>
+            <el-table v-if="earsTasks.length" v-loading="loadingEarsTasks" :data="earsTasks" stripe size="small" :default-sort="{ prop: 'feature_item_id', order: 'ascending' }">
+              <el-table-column prop="feature_item_id" label="关联需求" width="120" sortable>
+                <template #default="{ row }">
+                  <span v-if="row.feature_item_id" class="feature-item-tag">{{ row.feature_item_id }}</span>
+                  <span v-else style="color: #ccc">—</span>
+                </template>
+              </el-table-column>
               <el-table-column prop="task_code" label="编号" width="100" />
-              <el-table-column prop="title" label="任务名称" min-width="200" show-overflow-tooltip />
-              <el-table-column prop="ears_type" label="EARS 类型" width="120" />
+              <el-table-column prop="title" label="EARS 描述" min-width="200" show-overflow-tooltip />
+              <el-table-column prop="ears_type" label="EARS 类型" width="120">
+                <template #default="{ row }">
+                  {{ earsTypeLabel(row.ears_type) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="module" label="模块" width="120" show-overflow-tooltip />
               <el-table-column prop="priority" label="优先级" width="80" align="center" />
               <el-table-column label="预估工时" width="100" align="right">
                 <template #default="{ row }">
                   {{ row.estimated_hours != null ? `${row.estimated_hours}h` : '-' }}
                 </template>
               </el-table-column>
-              <el-table-column prop="status" label="状态" width="100" />
+              <el-table-column label="状态" width="100">
+                <template #default="{ row }">
+                  {{ earsStatusLabel(row.status) }}
+                </template>
+              </el-table-column>
             </el-table>
-            <el-empty v-else-if="!loadingEarsTasks" description="暂无 EARS 任务，请先执行拆解" :image-size="64" />
+            <el-empty v-else-if="!loadingEarsTasks && !earsPolling" description="暂无 EARS 任务，请先执行拆解" :image-size="64" />
           </div>
         </el-tab-pane>
 
@@ -337,7 +362,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
@@ -385,6 +410,10 @@ const prdUploading = ref(false)
 const prdReanalyzing = ref(false)
 const earsTasks = ref<Record<string, any>[]>([])
 const loadingEarsTasks = ref(false)
+const earsPolling = ref(false)
+const earsPollingProgress = ref(0)
+const earsPollingMsg = ref('')
+let earsPollingTimer: ReturnType<typeof setInterval> | null = null
 
 const files = ref<ProjectFile[]>([])
 const loadingFiles = ref(false)
@@ -422,6 +451,31 @@ function formatBudgetRange(p: ProjectDetail | null) {
   if (min != null && max != null) return `${formatMoney(min)} ~ ${formatMoney(max)}`
   if (min != null) return `${formatMoney(min)} ~`
   return `~ ${formatMoney(max)}`
+}
+
+const EARS_TYPE_MAP: Record<string, string> = {
+  ubiquitous: '普适性需求',
+  event: '事件驱动',
+  state: '状态驱动',
+  optional: '可选功能',
+  unwanted: '异常处理',
+}
+
+const EARS_STATUS_MAP: Record<string | number, string> = {
+  1: '待开始',
+  2: '进行中',
+  3: '已完成',
+  todo: '待开始',
+  in_progress: '进行中',
+  completed: '已完成',
+}
+
+function earsTypeLabel(type: string) {
+  return EARS_TYPE_MAP[type] || type || '-'
+}
+
+function earsStatusLabel(status: string | number) {
+  return EARS_STATUS_MAP[status] || String(status || '-')
 }
 
 function formatFileSize(bytes: number) {
@@ -536,20 +590,93 @@ async function downloadAIDoc(row: Record<string, any>) {
   }
 }
 
+function stopEarsPolling() {
+  if (earsPollingTimer) {
+    clearInterval(earsPollingTimer)
+    earsPollingTimer = null
+  }
+  earsPolling.value = false
+  earsPollingProgress.value = 0
+  earsPollingMsg.value = ''
+}
+
+function startEarsPolling() {
+  // 只启动轮询阶段（不重置进度条状态，由 runReanalyzeAndDecompose 统一管理）
+  if (earsPollingTimer) {
+    clearInterval(earsPollingTimer)
+    earsPollingTimer = null
+  }
+
+  earsPollingMsg.value = 'AI 正在拆解需求，通常需要 30~90 秒...'
+
+  const startTime = Date.now()
+  const maxDuration = 150_000 // 2.5 min timeout
+  const pollInterval = 4_000 // 4s
+
+  earsPollingTimer = setInterval(async () => {
+    const elapsed = Date.now() - startTime
+    // 轮询阶段进度：从 40% 到 95%
+    earsPollingProgress.value = Math.min(95, Math.round(40 + 55 * (1 - Math.exp(-elapsed / 60_000))))
+
+    if (elapsed > 30_000) {
+      earsPollingMsg.value = '拆解进行中，请耐心等待...'
+    }
+    if (elapsed > 70_000) {
+      earsPollingMsg.value = '即将完成...'
+    }
+
+    try {
+      const res = await getEarsTasks(uuid)
+      const tasks = normalizeEarsTasksPayload((res as any)?.data)
+      if (tasks.length > 0) {
+        earsTasks.value = tasks
+        earsPollingProgress.value = 100
+        earsPollingMsg.value = `拆解完成，共 ${tasks.length} 个任务`
+        await refreshPrdAndDocs()
+        setTimeout(() => stopEarsPolling(), 1500)
+        return
+      }
+    } catch {
+      // ignore, keep polling
+    }
+
+    if (elapsed >= maxDuration) {
+      earsPollingMsg.value = '拆解超时，请稍后手动刷新'
+      setTimeout(() => stopEarsPolling(), 2000)
+    }
+  }, pollInterval)
+}
+
 async function runReanalyzeAndDecompose() {
   prdReanalyzing.value = true
+  // 立即显示进度条
+  earsPolling.value = true
+  earsPollingProgress.value = 5
+  earsPollingMsg.value = '正在提取 PRD 结构化数据...'
+
   try {
-    ElMessage.info('正在提取 PRD 结构化数据...')
-    await reanalyzePRD(uuid)
-    ElMessage.info('正在进行 EARS 拆解...')
+    // 阶段 1：reanalyze（非关键，失败可跳过）
+    try {
+      await reanalyzePRD(uuid)
+      earsPollingProgress.value = 20
+      earsPollingMsg.value = '结构化提取完成，正在启动 EARS 拆解...'
+    } catch {
+      earsPollingProgress.value = 15
+      earsPollingMsg.value = '结构化提取跳过，直接启动 EARS 拆解...'
+    }
+
+    // 阶段 2：decompose
     await decomposePRD(uuid)
-    ElMessage.success('EARS 拆解已启动')
-    await refreshPrdAndDocs()
-    await fetchEarsTasks()
+    earsPollingProgress.value = 35
+    earsPollingMsg.value = 'EARS 拆解已启动，等待 AI 处理...'
+    prdReanalyzing.value = false
+
+    // 阶段 3：轮询等待结果
+    startEarsPolling()
   } catch {
     ElMessage.warning('EARS 拆解失败，可稍后手动重试')
-  } finally {
     prdReanalyzing.value = false
+    stopEarsPolling()
   }
 }
 
@@ -812,6 +939,10 @@ async function submitProjectEdit() {
 onMounted(() => {
   void loadProject()
 })
+
+onBeforeUnmount(() => {
+  stopEarsPolling()
+})
 </script>
 
 <style scoped>
@@ -922,6 +1053,27 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
+}
+
+.ears-polling-bar {
+  margin-bottom: 16px;
+}
+
+.ears-polling-msg {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #999;
+}
+
+.feature-item-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f0f0f0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  font-family: 'SF Mono', monospace;
 }
 
 .prd-text {

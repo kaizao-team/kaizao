@@ -16,6 +16,7 @@ import '../../../shared/widgets/vcc_toast.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../favorite/providers/favorite_provider.dart';
 import '../providers/project_detail_provider.dart';
+import '../providers/project_list_provider.dart';
 
 const double _kProjectPageHorizontalPadding = 20;
 const double _kProjectSectionGap = 28;
@@ -100,6 +101,10 @@ class _BottomActions extends ConsumerWidget {
 
   /// 项目方底部按钮
   Widget _buildDemanderActions(BuildContext context, WidgetRef ref) {
+    // status=2 且有 pending AI bid → 显示报价确认按钮
+    if (state.status == 2 && state.pendingAiBids.isNotEmpty) {
+      return _DemanderQuoteActions(projectId: projectId, state: state);
+    }
     if (state.status <= 2) {
       return Row(
         children: [
@@ -130,6 +135,7 @@ class _BottomActions extends ConsumerWidget {
                     .confirmAlignment();
                 if (context.mounted && ok) {
                   VccToast.show(context, message: '已确认需求对齐');
+                  ref.invalidate(projectListProvider);
                 }
               },
       );
@@ -145,17 +151,74 @@ class _BottomActions extends ConsumerWidget {
                     .startProject();
                 if (context.mounted && ok) {
                   VccToast.show(context, message: '项目已启动');
+                  ref.invalidate(projectListProvider);
                 }
               },
       );
     }
+    if (state.status == 6) {
+      return Row(
+        children: [
+          Expanded(
+            child: VccButton(
+              text: '查看进度',
+              type: VccButtonType.secondary,
+              onPressed: () => context.push('/projects/$projectId/manage'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: VccButton(
+              text: '验收通过',
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('确认验收'),
+                    content: const Text('确认验收该项目？验收后项目将标记为已完成。'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('取消'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('确认验收'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true && context.mounted) {
+                  final ok = await ref
+                      .read(projectDetailProvider(projectId).notifier)
+                      .acceptProject();
+                  if (context.mounted && ok) {
+                    VccToast.show(context, message: '项目验收通过');
+                    ref.invalidate(projectListProvider);
+                  }
+                }
+              },
+            ),
+          ),
+        ],
+      );
+    }
     if (state.status == 7) {
+      final hasReviewed = state.data?['has_reviewed'] == true;
+      if (hasReviewed) {
+        return const VccButton(text: '已评价', onPressed: null);
+      }
       final revieweeId = state.data?['provider_id']?.toString() ?? '';
       return VccButton(
         text: '去评价',
-        onPressed: () => context.push(
-          '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=true',
-        ),
+        onPressed: () async {
+          await context.push(
+            '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=true',
+          );
+          if (context.mounted) {
+            ref.invalidate(projectDetailProvider(projectId));
+          }
+        },
       );
     }
     // status >= 5
@@ -167,46 +230,43 @@ class _BottomActions extends ConsumerWidget {
 
   /// 团队方底部按钮
   Widget _buildProviderActions(BuildContext context, WidgetRef ref) {
-    // status=2 且有 bid（被推荐待确认）
-    if (state.status == 2 && state.hasBid && state.bidId != null) {
-      return Row(
-        children: [
-          Expanded(
-            child: VccButton(
-              text: state.isRejectingBid ? '拒绝中…' : '拒绝',
-              type: VccButtonType.secondary,
-              onPressed: state.isRejectingBid || state.isConfirmingBid
-                  ? null
-                  : () async {
-                      final ok = await ref
-                          .read(projectDetailProvider(projectId).notifier)
-                          .rejectBid();
-                      if (context.mounted && ok) {
-                        VccToast.show(context, message: '已拒绝推荐');
-                      }
-                    },
+    // status=2 且有 AI 推荐 bid
+    if (state.status == 2 && state.hasBid && state.bidId != null && state.myBidIsAiRecommended) {
+      // 已报价 → 等待项目方确认
+      if (state.myBidHasQuoted) {
+        return Row(
+          children: [
+            Expanded(
+              child: VccButton(
+                text: state.isRejectingBid ? '拒绝中…' : '拒绝推荐',
+                type: VccButtonType.secondary,
+                onPressed: state.isRejectingBid
+                    ? null
+                    : () async {
+                        final ok = await ref
+                            .read(projectDetailProvider(projectId).notifier)
+                            .rejectBid();
+                        if (context.mounted && ok) {
+                          VccToast.show(context, message: '已拒绝推荐');
+                          ref.invalidate(projectListProvider);
+                        }
+                      },
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: VccButton(
-              text: state.isConfirmingBid ? '确认中…' : '确认接受',
-              onPressed: state.isConfirmingBid || state.isRejectingBid
-                  ? null
-                  : () async {
-                      final ok = await ref
-                          .read(projectDetailProvider(projectId).notifier)
-                          .confirmBid();
-                      if (context.mounted && ok) {
-                        VccToast.show(context, message: '已确认接受');
-                      }
-                    },
+            const SizedBox(width: 12),
+            Expanded(
+              child: VccButton(
+                text: '已报价 ¥${state.myBidPrice.toStringAsFixed(0)}',
+                onPressed: null,
+              ),
             ),
-          ),
-        ],
-      );
+          ],
+        );
+      }
+      // 未报价 → 显示报价表单
+      return _ProviderQuoteActions(projectId: projectId, state: state);
     }
-    // status=2 已投标
+    // status=2 已投标（手动投标）
     if (state.status == 2 && state.hasBid) {
       return Row(
         children: [
@@ -214,7 +274,7 @@ class _BottomActions extends ConsumerWidget {
           const SizedBox(width: 12),
           const Expanded(
             child: VccButton(
-              text: '已投标，等待项目方选定',
+              text: '已投标',
               onPressed: null,
             ),
           ),
@@ -256,6 +316,7 @@ class _BottomActions extends ConsumerWidget {
                     .confirmAlignment();
                 if (context.mounted && ok) {
                   VccToast.show(context, message: '已确认需求对齐');
+                  ref.invalidate(projectListProvider);
                 }
               },
       );
@@ -267,14 +328,11 @@ class _BottomActions extends ConsumerWidget {
         onPressed: null,
       );
     }
+    if (state.status == 6) {
+      return const VccButton(text: '等待项目方验收', onPressed: null);
+    }
     if (state.status == 7) {
-      final revieweeId = state.data?['owner_id']?.toString() ?? '';
-      return VccButton(
-        text: '去评价',
-        onPressed: () => context.push(
-          '${RoutePaths.rate}?projectId=$projectId&revieweeId=$revieweeId&isDemander=false',
-        ),
-      );
+      return const VccButton(text: '项目交付完毕', onPressed: null);
     }
     // status >= 5
     return VccButton(
@@ -310,6 +368,295 @@ class _BottomActions extends ConsumerWidget {
               ),
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 团队方报价操作（AI 推荐 bid 的报价表单）
+class _ProviderQuoteActions extends ConsumerStatefulWidget {
+  final String projectId;
+  final ProjectDetailState state;
+
+  const _ProviderQuoteActions({required this.projectId, required this.state});
+
+  @override
+  ConsumerState<_ProviderQuoteActions> createState() => _ProviderQuoteActionsState();
+}
+
+class _ProviderQuoteActionsState extends ConsumerState<_ProviderQuoteActions> {
+  late final TextEditingController _priceController;
+  late final TextEditingController _durationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _priceController = TextEditingController(
+      text: widget.state.myBidPrice > 0
+          ? widget.state.myBidPrice.toStringAsFixed(0)
+          : '',
+    );
+    _durationController = TextEditingController(
+      text: widget.state.myBidDuration > 0
+          ? widget.state.myBidDuration.toString()
+          : '14',
+    );
+  }
+
+  @override
+  void dispose() {
+    _priceController.dispose();
+    _durationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.state;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            '你被推荐为本项目服务方，请报价',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.gray500,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: TextField(
+                  controller: _priceController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: '报价（元）',
+                    hintStyle: AppTextStyles.caption.copyWith(color: AppColors.gray400),
+                    prefixText: '¥ ',
+                    prefixStyle: AppTextStyles.caption.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.onSurface,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppColors.outlineVariant),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppColors.outlineVariant),
+                    ),
+                  ),
+                  style: AppTextStyles.body1.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 80,
+              height: 44,
+              child: TextField(
+                controller: _durationController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: '天',
+                  hintStyle: AppTextStyles.caption.copyWith(color: AppColors.gray400),
+                  suffixText: '天',
+                  suffixStyle: AppTextStyles.caption.copyWith(
+                    color: AppColors.gray500,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.outlineVariant),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.outlineVariant),
+                  ),
+                ),
+                style: AppTextStyles.body1.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: VccButton(
+                text: s.isRejectingBid ? '拒绝中…' : '拒绝',
+                type: VccButtonType.secondary,
+                onPressed: s.isRejectingBid || s.isQuotingBid
+                    ? null
+                    : () async {
+                        final ok = await ref
+                            .read(projectDetailProvider(widget.projectId).notifier)
+                            .rejectBid();
+                        if (context.mounted && ok) {
+                          VccToast.show(context, message: '已拒绝推荐');
+                          ref.invalidate(projectListProvider);
+                        }
+                      },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: VccButton(
+                text: s.isQuotingBid ? '提交中…' : '提交报价',
+                onPressed: s.isQuotingBid || s.isRejectingBid
+                    ? null
+                    : () async {
+                        final price = double.tryParse(_priceController.text);
+                        final days = int.tryParse(_durationController.text);
+                        if (price == null || price <= 0 || days == null || days <= 0) {
+                          VccToast.show(context, message: '请输入有效的报价和工期');
+                          return;
+                        }
+                        final ok = await ref
+                            .read(projectDetailProvider(widget.projectId).notifier)
+                            .quoteBid(price, days);
+                        if (context.mounted && ok) {
+                          VccToast.show(context, message: '报价已提交');
+                          ref.invalidate(projectListProvider);
+                        }
+                      },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 项目方智能匹配操作：等待报价 / 查看报价后接受或拒绝
+class _DemanderQuoteActions extends ConsumerWidget {
+  final String projectId;
+  final ProjectDetailState state;
+
+  const _DemanderQuoteActions({required this.projectId, required this.state});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bid = state.pendingAiBids.first;
+    final bidId = bid['id']?.toString() ?? '';
+    final teamName = bid['team_name']?.toString() ?? '';
+    final hasQuoted = bid['has_quoted'] == true;
+
+    // 团队方尚未报价 → 等待 + 取消匹配
+    if (!hasQuoted) {
+      return Row(
+        children: [
+          Expanded(
+            child: VccButton(
+              text: '取消匹配',
+              type: VccButtonType.secondary,
+              onPressed: () async {
+                final ok = await ref
+                    .read(projectDetailProvider(projectId).notifier)
+                    .cancelMatch(bidId);
+                if (context.mounted && ok) {
+                  VccToast.show(context, message: '已取消匹配');
+                  ref.invalidate(projectListProvider);
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: VccButton(
+              text: '等待${teamName.isNotEmpty ? teamName : "团队方"}报价',
+              onPressed: null,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // 团队方已报价 → 显示报价信息 + 接受/拒绝
+    final amount = (bid['bid_amount'] as num?)?.toDouble() ?? 0;
+    final days = (bid['duration_days'] as num?)?.toInt() ?? 0;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceAlt,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${teamName.isNotEmpty ? teamName : "团队方"} 已报价',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '¥${amount.toStringAsFixed(0)}  ·  工期 $days 天',
+                style: AppTextStyles.body1.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: VccButton(
+                text: '拒绝报价',
+                type: VccButtonType.secondary,
+                onPressed: () async {
+                  final ok = await ref
+                      .read(projectDetailProvider(projectId).notifier)
+                      .cancelMatch(bidId);
+                  if (context.mounted && ok) {
+                    VccToast.show(context, message: '已拒绝报价');
+                    ref.invalidate(projectListProvider);
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: VccButton(
+                text: '接受报价',
+                onPressed: () async {
+                  final ok = await ref
+                      .read(projectDetailProvider(projectId).notifier)
+                      .acceptBidByOwner(bidId);
+                  if (context.mounted && ok) {
+                    VccToast.show(context, message: '撮合成功');
+                    ref.invalidate(projectListProvider);
+                  }
+                },
+              ),
+            ),
+          ],
         ),
       ],
     );

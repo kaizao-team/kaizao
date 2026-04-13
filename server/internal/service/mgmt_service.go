@@ -400,6 +400,48 @@ func (s *MilestoneService) Accept(msUUID, actorUserUUID string) (*model.Mileston
 	return ms, nil
 }
 
+// StartMilestone 团队方启动里程碑（pending→in_progress）。
+// 首个里程碑可直接启动，后续需上一个里程碑已完成（status=3）。
+func (s *MilestoneService) StartMilestone(msUUID, actorUserUUID string) (*model.Milestone, error) {
+	u, err := s.repos.User.FindByUUID(actorUserUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrUserNotFound)
+	}
+	ms, err := s.repos.Milestone.FindByUUID(msUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneNotFound)
+	}
+	p, err := s.repos.Project.FindByID(ms.ProjectID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	if p.ProviderID == nil || *p.ProviderID != u.ID {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneDeliverProviderOnly)
+	}
+	if ms.Status != 1 {
+		return nil, fmt.Errorf("%d", errcode.ErrMilestoneAlreadyStarted)
+	}
+
+	// 按 sort_order 排列，检查当前里程碑之前的里程碑是否都已完成
+	allMS, err := s.repos.Milestone.ListByProjectID(p.ID)
+	if err != nil {
+		return nil, fmt.Errorf("%d", errcode.ErrProjectNotFound)
+	}
+	for _, prev := range allMS {
+		if prev.SortOrder < ms.SortOrder && prev.Status != 3 {
+			return nil, fmt.Errorf("%d", errcode.ErrMilestonePreviousNotDone)
+		}
+	}
+
+	if err := s.repos.Milestone.UpdateFields(ms.ID, map[string]interface{}{
+		"status": int16(2),
+	}); err != nil {
+		return nil, err
+	}
+	ms.Status = 2
+	return ms, nil
+}
+
 // CompleteMilestone 团队方标记单个里程碑完成。
 func (s *MilestoneService) CompleteMilestone(msUUID, actorUserUUID string) (*model.Milestone, error) {
 	u, err := s.repos.User.FindByUUID(actorUserUUID)
@@ -428,11 +470,55 @@ func (s *MilestoneService) CompleteMilestone(msUUID, actorUserUUID string) (*mod
 		return nil, fmt.Errorf("%d", errcode.ErrMilestoneStatusInvalid)
 	}
 	now := time.Now()
-	ms.Status = 3
-	ms.AcceptedAt = &now
-	if err := s.repos.Milestone.Update(ms); err != nil {
+	if err := s.repos.Milestone.UpdateFields(ms.ID, map[string]interface{}{
+		"status":      int16(3),
+		"accepted_at": &now,
+	}); err != nil {
 		return nil, err
 	}
+	ms.Status = 3
+	ms.AcceptedAt = &now
+
+	// 检查是否所有里程碑都已完成，若是则自动提交项目交付
+	allMs, err := s.repos.Milestone.ListByProjectID(p.ID)
+	if err == nil {
+		allDone := len(allMs) > 0
+		for _, m := range allMs {
+			if m.Status != 3 {
+				allDone = false
+				break
+			}
+		}
+		if allDone && p.Status == model.ProjectStatusInProgress {
+			// 所有任务标为完成
+			_ = s.repos.DB().Model(&model.Task{}).
+				Where("project_id = ? AND status != 3", p.ID).
+				Updates(map[string]interface{}{"status": int16(3), "completed_at": &now})
+			// 项目状态 → 验收中，并通知项目方
+			_ = s.repos.DB().Transaction(func(tx *gorm.DB) error {
+				if err := tx.Model(&model.Project{}).Where("id = ?", p.ID).Updates(map[string]interface{}{
+					"status": model.ProjectStatusAccepting,
+				}).Error; err != nil {
+					return err
+				}
+				txRepos := repository.NewRepositories(tx)
+				targetType := "project"
+				sourceRole := "provider"
+				n := &model.Notification{
+					UserID:           p.OwnerID,
+					SourceRole:       &sourceRole,
+					Title:            "项目已提交交付",
+					Content:          fmt.Sprintf("项目「%s」所有里程碑已完成，请及时验收。", p.Title),
+					NotificationType: model.NotificationTypeProjectDelivered,
+					TargetType:       &targetType,
+					TargetID:         &p.ID,
+					TargetUUID:       &p.UUID,
+				}
+				return txRepos.Notification.Create(n)
+			})
+		}
+	}
+
 	return ms, nil
 }
 

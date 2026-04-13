@@ -22,10 +22,13 @@ export const ONBOARDING_STATUS: Record<number, { label: string; type: TagType }>
 export const PROJECT_STATUS: Record<number, { label: string; type: TagType }> = {
   1: { label: '草稿', type: 'info' },
   2: { label: '已发布', type: undefined },
-  3: { label: '匹配中', type: 'warning' },
-  4: { label: '进行中', type: 'primary' },
-  5: { label: '已完成', type: 'success' },
-  6: { label: '已关闭', type: 'danger' },
+  3: { label: '已撮合', type: 'warning' },
+  4: { label: '需求对齐中', type: 'warning' },
+  5: { label: '进行中', type: 'primary' },
+  6: { label: '验收中', type: 'primary' },
+  7: { label: '已完成', type: 'success' },
+  8: { label: '已关闭', type: 'danger' },
+  9: { label: '争议中', type: 'danger' },
 }
 
 export const ORDER_STATUS: Record<number, { label: string; type: TagType }> = {

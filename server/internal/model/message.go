@@ -267,8 +267,9 @@ type Team struct {
 	Name           string     `gorm:"type:varchar(100);not null" json:"name"`
 	LeaderID       int64      `gorm:"not null;index" json:"leader_id"`
 	AvatarURL      *string    `gorm:"type:varchar(512)" json:"avatar_url,omitempty"`
-	Description    *string    `gorm:"type:text" json:"description,omitempty"`
-	TeamType       int16      `gorm:"not null;default:1;index" json:"team_type"`
+	Description       *string    `gorm:"type:text" json:"description,omitempty"`
+	ServiceDirections JSON      `gorm:"type:json" json:"service_directions,omitempty"`
+	TeamType          int16     `gorm:"not null;default:1;index" json:"team_type"`
 	ProjectID      *int64     `gorm:"index" json:"project_id,omitempty"`
 	SkillsCoverage JSON       `gorm:"type:json" json:"skills_coverage"`
 	MemberCount    int        `gorm:"not null;default:1" json:"member_count"`

@@ -52,9 +52,13 @@ class ProjectManageState {
       tasks.where((t) => t.isCompleted).toList();
 
   int get totalProgress {
-    if (tasks.isEmpty) return 0;
-    return (completedTasks.length / tasks.length * 100).round();
+    if (milestones.isEmpty) return 0;
+    final completed = milestones.where((m) => m.isCompleted).length;
+    return (completed / milestones.length * 100).round();
   }
+
+  int get completedMilestoneCount =>
+      milestones.where((m) => m.isCompleted).length;
 
   List<ProjectFile> get filteredFiles =>
       files.where((f) => f.fileKind == selectedFileKind).toList();
@@ -107,6 +111,32 @@ class ProjectManageNotifier extends StateNotifier<ProjectManageState> {
     } catch (_) {
       if (!mounted) return;
       await loadAll();
+    }
+  }
+
+  Future<void> startMilestone(String milestoneId) async {
+    state = state.copyWith(isMilestoneActing: true);
+    try {
+      await _repository.startMilestone(milestoneId);
+      if (!mounted) return;
+      await _reloadMilestones();
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+          isMilestoneActing: false, errorMessage: () => e.toString());
+    }
+  }
+
+  Future<void> completeMilestone(String milestoneId) async {
+    state = state.copyWith(isMilestoneActing: true);
+    try {
+      await _repository.completeMilestone(milestoneId);
+      if (!mounted) return;
+      await _reloadMilestones();
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+          isMilestoneActing: false, errorMessage: () => e.toString());
     }
   }
 

@@ -162,6 +162,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 	milestones := v1.Group("/milestones")
 	{
 		milestones.PUT("/:id", middleware.JWTAuth(services.JWT), placeholder)
+		milestones.POST("/:id/start", middleware.JWTAuth(services.JWT), handlers.Task.StartMilestone)
 		milestones.POST("/:id/deliver", middleware.JWTAuth(services.JWT), handlers.Task.DeliverMilestone)
 		milestones.POST("/:id/complete", middleware.JWTAuth(services.JWT), handlers.Task.CompleteMilestone)
 		// Phase 5 验收
@@ -176,6 +177,8 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		bids.POST("/:bidId/accept", middleware.JWTAuth(services.JWT), handlers.Bid.AcceptBid)
 		bids.POST("/:bidId/confirm", middleware.JWTAuth(services.JWT), handlers.Bid.ConfirmBid)
 		bids.POST("/:bidId/reject", middleware.JWTAuth(services.JWT), handlers.Bid.RejectBid)
+		bids.POST("/:bidId/cancel-match", middleware.JWTAuth(services.JWT), handlers.Bid.CancelMatch)
+		bids.PUT("/:bidId/quote", middleware.JWTAuth(services.JWT), handlers.Bid.QuoteBid)
 		bids.PUT("/:bidId/withdraw", middleware.JWTAuth(services.JWT), handlers.Bid.WithdrawBid)
 	}
 
@@ -249,7 +252,9 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		// 邀请码
 		admin.POST("/invite-codes", handlers.Admin.CreateInviteCode)
 		admin.GET("/invite-codes", handlers.Admin.ListInviteCodes)
-		// 团队审核
+		// 团队管理
+		admin.GET("/teams", handlers.Admin.ListTeams)
+		admin.GET("/teams/:uuid", handlers.Admin.GetTeamDetail)
 		admin.PUT("/teams/:uuid/approval", handlers.Admin.ReviewTeamApproval)
 		admin.PUT("/teams/:uuid", handlers.Admin.UpdateTeam)
 		// 用户管理

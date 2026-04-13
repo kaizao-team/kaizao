@@ -83,6 +83,10 @@ class ProjectRepository {
         .toList();
   }
 
+  Future<void> startMilestone(String milestoneId) async {
+    await _client.post(ApiEndpoints.milestoneStart(milestoneId));
+  }
+
   Future<void> deliverMilestone(String milestoneId,
       {String? note, String? previewUrl}) async {
     await _client.post(

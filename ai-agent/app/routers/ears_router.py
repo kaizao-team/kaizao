@@ -43,7 +43,7 @@ async def get_ears_tasks(project_id: str, request: Request):
         async with get_session_factory()() as session:
             result = await session.execute(
                 sqlalchemy_text(
-                    "SELECT uuid, task_code, title, ears_type, ears_trigger, "
+                    "SELECT uuid, task_code, feature_item_id, title, ears_type, ears_trigger, "
                     "ears_behavior, ears_full_text, module, role_tag, priority, "
                     "estimated_hours, acceptance_criteria, dependencies, status, "
                     "sort_order, is_ai_generated, created_at "
@@ -79,7 +79,7 @@ async def get_ears_task(project_id: str, task_id: str, request: Request):
         async with get_session_factory()() as session:
             result = await session.execute(
                 sqlalchemy_text(
-                    "SELECT uuid, task_code, title, ears_type, ears_trigger, "
+                    "SELECT uuid, task_code, feature_item_id, title, ears_type, ears_trigger, "
                     "ears_behavior, ears_full_text, module, role_tag, priority, "
                     "estimated_hours, acceptance_criteria, dependencies, status, "
                     "sort_order, is_ai_generated, created_at "

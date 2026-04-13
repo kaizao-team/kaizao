@@ -180,6 +180,120 @@ func (h *AdminHandler) UpdateUserOnboarding(c *gin.Context) {
 	response.SuccessMsg(c, "已更新", nil)
 }
 
+// ──────────── 团队管理 ────────────
+
+// ListTeams GET /admin/teams
+func (h *AdminHandler) ListTeams(c *gin.Context) {
+	var q dto.AdminListTeamsQuery
+	if err := c.ShouldBindQuery(&q); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "参数校验失败")
+		return
+	}
+	if q.Page < 1 {
+		q.Page = 1
+	}
+	if q.PageSize < 1 || q.PageSize > 100 {
+		q.PageSize = 20
+	}
+	teams, total, err := h.adminService.ListTeams(service.AdminTeamListOpts{
+		Keyword:        q.Keyword,
+		VibeLevel:      q.VibeLevel,
+		ApprovalStatus: q.ApprovalStatus,
+		Page:           q.Page,
+		PageSize:       q.PageSize,
+	})
+	if err != nil {
+		response.ErrorInternal(c, "查询失败")
+		return
+	}
+	out := make([]gin.H, 0, len(teams))
+	for _, t := range teams {
+		item := gin.H{
+			"id":                t.UUID,
+			"team_name":         t.Name,
+			"avatar_url":        t.AvatarURL,
+			"description":       t.Description,
+			"member_count":      t.MemberCount,
+			"vibe_level":        t.VibeLevel,
+			"vibe_power":        t.VibePower,
+			"avg_rating":        t.AvgRating,
+			"total_projects":    t.TotalProjects,
+			"completed_projects": t.TotalProjects,
+			"status":            t.Status,
+			"approval_status":   t.ApprovalStatus,
+			"hourly_rate":       t.HourlyRate,
+			"budget_min":        t.BudgetMin,
+			"budget_max":        t.BudgetMax,
+			"created_at":        t.CreatedAt,
+		}
+		if t.Leader != nil {
+			item["nickname"] = t.Leader.Nickname
+			item["leader_avatar_url"] = t.Leader.AvatarURL
+		}
+		out = append(out, item)
+	}
+	response.SuccessWithMeta(c, out, response.BuildMeta(q.Page, q.PageSize, total))
+}
+
+// GetTeamDetail GET /admin/teams/:uuid
+func (h *AdminHandler) GetTeamDetail(c *gin.Context) {
+	uuid := c.Param("uuid")
+	team, err := h.adminService.GetTeamDetail(uuid)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			response.ErrorNotFound(c, errcode.ErrTeamNotFound, errcode.GetMessage(errcode.ErrTeamNotFound))
+			return
+		}
+		response.ErrorInternal(c, "查询失败")
+		return
+	}
+	members := make([]gin.H, 0, len(team.Members))
+	for _, m := range team.Members {
+		row := gin.H{
+			"id":        m.ID,
+			"role":      m.RoleInTeam,
+			"ratio":     m.SplitRatio,
+			"is_leader": m.UserID == team.LeaderID,
+			"status":    "accepted",
+		}
+		if m.User != nil {
+			row["user_id"] = m.User.UUID
+			row["nickname"] = m.User.Nickname
+			row["avatar_url"] = m.User.AvatarURL
+		}
+		members = append(members, row)
+	}
+	result := gin.H{
+		"id":                team.UUID,
+		"team_name":         team.Name,
+		"description":       team.Description,
+		"avatar_url":        team.AvatarURL,
+		"vibe_level":        team.VibeLevel,
+		"vibe_power":        team.VibePower,
+		"avg_rating":        team.AvgRating,
+		"member_count":      team.MemberCount,
+		"total_projects":    team.TotalProjects,
+		"status":            team.Status,
+		"approval_status":   team.ApprovalStatus,
+		"hourly_rate":       team.HourlyRate,
+		"budget_min":        team.BudgetMin,
+		"budget_max":        team.BudgetMax,
+		"available_status":  team.AvailableStatus,
+		"experience_years":  team.ExperienceYears,
+		"resume_summary":    team.ResumeSummary,
+		"members":           members,
+		"created_at":        team.CreatedAt,
+	}
+	if team.Leader != nil {
+		result["leader_uuid"] = team.Leader.UUID
+		result["nickname"] = team.Leader.Nickname
+		result["leader_avatar_url"] = team.Leader.AvatarURL
+		result["completed_projects"] = team.Leader.CompletedOrders
+		result["tagline"] = team.Leader.Bio
+	}
+	response.Success(c, result)
+}
+
 // ──────────── 用户管理 ────────────
 
 // ListUsers GET /admin/users

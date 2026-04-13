@@ -5,6 +5,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../market/repositories/market_repository.dart';
+import '../../match/models/match_models.dart';
 import '../../match/repositories/match_repository.dart';
 import '../repositories/project_repository.dart';
 
@@ -13,24 +14,38 @@ class ProjectDetailState {
   final Map<String, dynamic>? data;
   final String? errorMessage;
   final bool hasBid;
+  final String? myBidId;
+  final bool myBidIsAiRecommended;
+  final double myBidPrice;
+  final int myBidDuration;
+  final bool myBidHasQuoted;
   final List<Map<String, dynamic>> prdItems;
   final List<Map<String, dynamic>> earsTasks;
   final bool isConfirmingBid;
   final bool isRejectingBid;
   final bool isConfirmingAlignment;
   final bool isStartingProject;
+  final bool isQuotingBid;
+  final List<Map<String, dynamic>> pendingAiBids;
 
   const ProjectDetailState({
     this.isLoading = false,
     this.data,
     this.errorMessage,
     this.hasBid = false,
+    this.myBidId,
+    this.myBidIsAiRecommended = false,
+    this.myBidPrice = 0,
+    this.myBidDuration = 0,
+    this.myBidHasQuoted = false,
     this.prdItems = const [],
     this.earsTasks = const [],
     this.isConfirmingBid = false,
     this.isRejectingBid = false,
     this.isConfirmingAlignment = false,
     this.isStartingProject = false,
+    this.isQuotingBid = false,
+    this.pendingAiBids = const [],
   });
 
   ProjectDetailState copyWith({
@@ -38,24 +53,38 @@ class ProjectDetailState {
     Map<String, dynamic>? data,
     String? Function()? errorMessage,
     bool? hasBid,
+    String? Function()? myBidId,
+    bool? myBidIsAiRecommended,
+    double? myBidPrice,
+    int? myBidDuration,
+    bool? myBidHasQuoted,
     List<Map<String, dynamic>>? prdItems,
     List<Map<String, dynamic>>? earsTasks,
     bool? isConfirmingBid,
     bool? isRejectingBid,
     bool? isConfirmingAlignment,
     bool? isStartingProject,
+    bool? isQuotingBid,
+    List<Map<String, dynamic>>? pendingAiBids,
   }) {
     return ProjectDetailState(
       isLoading: isLoading ?? this.isLoading,
       data: data ?? this.data,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       hasBid: hasBid ?? this.hasBid,
+      myBidId: myBidId != null ? myBidId() : this.myBidId,
+      myBidIsAiRecommended: myBidIsAiRecommended ?? this.myBidIsAiRecommended,
+      myBidPrice: myBidPrice ?? this.myBidPrice,
+      myBidDuration: myBidDuration ?? this.myBidDuration,
+      myBidHasQuoted: myBidHasQuoted ?? this.myBidHasQuoted,
       prdItems: prdItems ?? this.prdItems,
       earsTasks: earsTasks ?? this.earsTasks,
       isConfirmingBid: isConfirmingBid ?? this.isConfirmingBid,
       isRejectingBid: isRejectingBid ?? this.isRejectingBid,
       isConfirmingAlignment: isConfirmingAlignment ?? this.isConfirmingAlignment,
       isStartingProject: isStartingProject ?? this.isStartingProject,
+      isQuotingBid: isQuotingBid ?? this.isQuotingBid,
+      pendingAiBids: pendingAiBids ?? this.pendingAiBids,
     );
   }
 
@@ -112,7 +141,7 @@ class ProjectDetailState {
     }
   }
 
-  String? get bidId => data?['bid_id']?.toString();
+  String? get bidId => myBidId ?? data?['bid_id']?.toString();
 
   bool get isFavorited => data?['is_favorited'] as bool? ?? false;
 
@@ -162,10 +191,37 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
       if (!mounted) return;
 
       bool hasBid = false;
+      String? myBidId;
+      bool myBidIsAiRecommended = false;
+      double myBidPrice = 0;
+      int myBidDuration = 0;
+      bool myBidHasQuoted = false;
+      List<Map<String, dynamic>> pendingAiBids = [];
       if (_currentUserId != null && _currentUserId.isNotEmpty) {
         try {
           final bids = await _matchRepository.fetchBids(projectId);
-          hasBid = bids.any((b) => b.userId == _currentUserId);
+          final myBid = bids.where((b) => b.userId == _currentUserId).firstOrNull;
+          hasBid = myBid != null;
+          if (myBid != null) {
+            myBidId = myBid.id;
+            myBidIsAiRecommended = myBid.isAiRecommended;
+            myBidPrice = myBid.bidAmount;
+            myBidDuration = myBid.durationDays;
+            myBidHasQuoted = myBid.hasQuoted;
+          }
+          // Collect ALL pending AI bids for demander view (both quoted and unquoted)
+          pendingAiBids = bids
+              .where((b) => b.isAiRecommended && b.status == BidStatus.pending)
+              .map((b) => {
+                'id': b.id,
+                'user_name': b.userName,
+                'team_name': b.teamName ?? '',
+                'bid_amount': b.bidAmount,
+                'duration_days': b.durationDays,
+                'proposal': b.proposal,
+                'has_quoted': b.hasQuoted,
+              })
+              .toList();
         } catch (_) {}
       }
 
@@ -202,8 +258,14 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
         isLoading: false,
         data: data,
         hasBid: hasBid,
+        myBidId: () => myBidId,
+        myBidIsAiRecommended: myBidIsAiRecommended,
+        myBidPrice: myBidPrice,
+        myBidDuration: myBidDuration,
+        myBidHasQuoted: myBidHasQuoted,
         prdItems: prdItems,
         earsTasks: earsTasks,
+        pendingAiBids: pendingAiBids,
       );
     } catch (e, st) {
       debugPrint('[ProjectDetail] loadDetail error: $e\n$st');
@@ -258,6 +320,9 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
     try {
       await _projectRepository.confirmAlignment(projectId);
       await loadDetail();
+      if (mounted) {
+        state = state.copyWith(isConfirmingAlignment: false);
+      }
       return true;
     } catch (e) {
       if (mounted) {
@@ -282,6 +347,69 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
           isStartingProject: false,
           errorMessage: () => e.toString(),
         );
+      }
+      return false;
+    }
+  }
+
+  Future<bool> quoteBid(double amount, int durationDays, {String? proposal}) async {
+    final bidId = state.bidId;
+    if (bidId == null || bidId.isEmpty) return false;
+    state = state.copyWith(isQuotingBid: true);
+    try {
+      await _matchRepository.quoteBid(
+        bidId: bidId,
+        amount: amount,
+        durationDays: durationDays,
+        proposal: proposal,
+      );
+      await loadDetail();
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(
+          isQuotingBid: false,
+          errorMessage: () => e.toString(),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<bool> acceptBidByOwner(String bidId) async {
+    try {
+      await _matchRepository.acceptBid(bidId);
+      await loadDetail();
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(errorMessage: () => e.toString());
+      }
+      return false;
+    }
+  }
+
+  Future<bool> cancelMatch(String bidId) async {
+    try {
+      await _matchRepository.cancelMatch(bidId);
+      await loadDetail();
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(errorMessage: () => e.toString());
+      }
+      return false;
+    }
+  }
+
+  Future<bool> acceptProject() async {
+    try {
+      await ApiClient().post<void>(ApiEndpoints.projectAccept(projectId));
+      await loadDetail();
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(errorMessage: () => e.toString());
       }
       return false;
     }

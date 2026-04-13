@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../shared/widgets/vcc_toast.dart';
@@ -9,7 +8,7 @@ import '../models/project_models.dart';
 import '../providers/project_detail_provider.dart';
 import '../providers/project_manage_provider.dart';
 import '../widgets/progress_ring.dart';
-import '../widgets/kanban_board.dart';
+import '../widgets/requirement_task_list.dart';
 import '../widgets/milestone_timeline.dart';
 import '../widgets/project_tab_bar.dart';
 
@@ -40,13 +39,7 @@ class ProjectManagePage extends ConsumerWidget {
           displayTitle,
           style: AppTextStyles.h3,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.description_outlined),
-            onPressed: () => context.push('/projects/$projectId/prd'),
-            tooltip: '需求文档',
-          ),
-        ],
+        actions: const [],
       ),
       body: state.isLoading
           ? const Center(
@@ -65,8 +58,8 @@ class ProjectManagePage extends ConsumerWidget {
                   children: [
                     _OverviewBar(
                       progress: state.totalProgress,
-                      completedCount: state.completedTasks.length,
-                      totalCount: state.tasks.length,
+                      completedCount: state.completedMilestoneCount,
+                      totalCount: state.milestones.length,
                     ),
                     ProjectTabBar(
                       selected: state.currentTab,
@@ -92,21 +85,11 @@ class ProjectManagePage extends ConsumerWidget {
 
     switch (state.currentTab) {
       case ProjectTab.tasks:
-        return KanbanBoard(
+        final detailState = ref.watch(projectDetailProvider(projectId));
+        return RequirementTaskList(
           key: const ValueKey('tasks'),
-          todoTasks: state.todoTasks,
-          inProgressTasks: state.inProgressTasks,
-          completedTasks: state.completedTasks,
-          readOnly: !isTeamMember,
-          onMoveTask: (taskId, newStatus) {
-            ref
-                .read(projectManageProvider(projectId).notifier)
-                .moveTask(taskId, newStatus);
-            if (newStatus == 'completed') {
-              VccToast.show(context,
-                  message: '任务已完成', type: VccToastType.success);
-            }
-          },
+          tasks: state.tasks,
+          prdItems: detailState.prdItems,
         );
       case ProjectTab.milestones:
         return MilestoneTimeline(
@@ -118,9 +101,13 @@ class ProjectManagePage extends ConsumerWidget {
             final notifier =
                 ref.read(projectManageProvider(projectId).notifier);
             switch (action) {
+              case 'start':
+                notifier.startMilestone(milestoneId);
               case 'deliver':
                 notifier.deliverMilestone(milestoneId,
                     note: note, previewUrl: previewUrl);
+              case 'complete':
+                notifier.completeMilestone(milestoneId);
               case 'accept':
                 notifier.acceptMilestone(milestoneId);
               case 'revision':
@@ -206,8 +193,8 @@ class _OverviewBar extends StatelessWidget {
               ),
               Text(
                 totalCount > 0
-                    ? '$completedCount/$totalCount 任务完成'
-                    : '暂无任务',
+                    ? '$completedCount/$totalCount 里程碑完成'
+                    : '暂无里程碑',
                 style:
                     AppTextStyles.caption.copyWith(color: AppColors.gray500),
               ),
