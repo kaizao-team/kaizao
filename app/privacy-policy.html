@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="description"
+    content="KAIZO 隐私政策，说明平台如何收集、使用、存储并保护用户个人信息。"
+  >
+  <meta name="color-scheme" content="light">
+  <title>KAIZO 隐私政策</title>
+  <style>
+    :root {
+      --surface: #f9f9f9;
+      --surface-alt: #f3f3f3;
+      --surface-raised: #ffffff;
+      --surface-strong: #e8e8e8;
+      --text-primary: #1a1c1c;
+      --text-secondary: #535858;
+      --text-muted: #767b7b;
+      --border: #d9d9d9;
+      --shadow: rgba(26, 28, 28, 0.04);
+      --max-width: 900px;
+      --radius-lg: 24px;
+      --radius-md: 12px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+      --space-16: 64px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC",
+        "Microsoft YaHei", sans-serif;
+      color: var(--text-primary);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(249, 249, 249, 1) 42%),
+        var(--surface);
+      line-height: 1.75;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      width: min(calc(100% - 40px), var(--max-width));
+      margin: 0 auto;
+      padding: var(--space-12) 0 var(--space-16);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: 6px var(--space-3);
+      border: 0.5px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text-muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hero {
+      padding: var(--space-10) 0 var(--space-12);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.65fr);
+      gap: var(--space-8);
+      align-items: end;
+    }
+
+    h1 {
+      margin: var(--space-4) 0 var(--space-4);
+      font-size: clamp(32px, 5vw, 56px);
+      line-height: 1.04;
+      letter-spacing: -0.04em;
+      font-weight: 700;
+    }
+
+    .summary {
+      max-width: 640px;
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+
+    .meta-card,
+    .section,
+    .toc {
+      background: rgba(255, 255, 255, 0.86);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 24px 40px var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .meta-card {
+      padding: var(--space-6);
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .meta-label {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .meta-value {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+      gap: var(--space-8);
+      align-items: start;
+    }
+
+    .toc {
+      position: sticky;
+      top: 24px;
+      padding: var(--space-6);
+    }
+
+    .toc-title {
+      margin: 0 0 var(--space-4);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .toc-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: var(--space-3);
+    }
+
+    .toc-list a {
+      display: block;
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .content {
+      display: grid;
+      gap: var(--space-6);
+    }
+
+    .section {
+      padding: var(--space-8);
+    }
+
+    .section h2 {
+      margin: 0 0 var(--space-4);
+      font-size: clamp(24px, 3vw, 32px);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+
+    .section p {
+      margin: 0 0 var(--space-4);
+      color: var(--text-secondary);
+      font-size: 15px;
+    }
+
+    .section p:last-child {
+      margin-bottom: 0;
+    }
+
+    .note {
+      padding: var(--space-5);
+      border-radius: var(--radius-md);
+      background: var(--surface-alt);
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    footer {
+      margin-top: var(--space-12);
+      padding-top: var(--space-6);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 860px) {
+      .hero-grid,
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .toc {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        width: min(calc(100% - 24px), var(--max-width));
+        padding-top: var(--space-8);
+      }
+
+      .hero {
+        padding: var(--space-8) 0 var(--space-8);
+      }
+
+      .meta-card,
+      .toc,
+      .section {
+        padding: var(--space-5);
+        border-radius: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">KAIZO / Privacy Policy</div>
+          <h1>隐私政策</h1>
+          <p class="summary">
+            本政策说明 KAIZO 如何收集、使用、存储并保护你的个人信息。该页面可作为
+            App Store Connect 审核与公开披露所使用的隐私政策地址。
+          </p>
+        </div>
+        <aside class="meta-card" aria-label="文档信息">
+          <div>
+            <div class="meta-label">更新日期</div>
+            <div class="meta-value">2026-03-27</div>
+          </div>
+          <div>
+            <div class="meta-label">适用对象</div>
+            <div class="meta-value">KAIZO 平台用户</div>
+          </div>
+        </aside>
+      </div>
+    </header>
+
+    <main>
+      <nav class="toc" aria-label="目录">
+        <p class="toc-title">目录</p>
+        <ul class="toc-list">
+          <li><a href="#section-1">1. 我们收集的信息</a></li>
+          <li><a href="#section-2">2. 信息如何使用</a></li>
+          <li><a href="#section-3">3. 你的权利</a></li>
+          <li><a href="#section-4">4. 联系与反馈</a></li>
+        </ul>
+      </nav>
+
+      <div class="content">
+        <section id="section-1" class="section">
+          <h2>1. 我们收集的信息</h2>
+          <p>
+            当你注册、登录或使用服务时，我们可能收集手机号、登录结果、昵称、头像、
+            角色类型、设备与日志信息。
+          </p>
+          <p>
+            在你主动使用实名认证、支付、消息通知等功能时，我们会收集对应能力所必需的信息。
+          </p>
+        </section>
+
+        <section id="section-2" class="section">
+          <h2>2. 信息如何使用</h2>
+          <p>
+            我们使用这些信息完成账号登录、识别用户身份、提供撮合与协作服务、改进产品体验并保障系统安全。
+          </p>
+          <p>
+            在必要范围内，我们可能向短信、云服务、支付或风控合作方共享最小必要信息以完成对应能力。
+          </p>
+        </section>
+
+        <section id="section-3" class="section">
+          <h2>3. 你的权利</h2>
+          <p>
+            你有权访问、更正、补充与你账号相关的信息，并可根据产品能力关闭部分通知或申请注销账号。
+          </p>
+          <p>
+            若你对个人信息处理方式有疑问，可通过应用内“帮助与反馈”联系平台。
+          </p>
+        </section>
+
+        <section id="section-4" class="section">
+          <h2>4. 联系与反馈</h2>
+          <p>
+            如你需要咨询个人信息处理方式、申请更正账号信息，或对本政策有疑问，可通过
+            KAIZO 应用内的“帮助与反馈”入口与我们联系。
+          </p>
+          <div class="note">
+            如果你们后续确认了正式客服邮箱或公司主体名称，建议把这一段再补成更完整的公开联系信息。
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <p>KAIZO 隐私政策公开页</p>
+    </footer>
+  </div>
+</body>
+</html>
