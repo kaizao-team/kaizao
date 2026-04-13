@@ -50,7 +50,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: AppColors.white,
+        systemNavigationBarColor: AppColors.surfaceCanvas,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
@@ -177,10 +177,18 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     final compact = screenHeight < 820 || keyboardInset > 0;
 
     return AuthPageShell(
+      mode: AuthScreenMode.register,
       compact: compact,
       keyboardInset: keyboardInset,
+      heroHeightFactor: 0.72,
+      heroTitle: '把项目\n尽快开造',
+      heroDescription: '创建账号，下一步选择你是项目方还是团队方。',
       heroScale: _heroScale,
       heroLift: _heroLift,
+      onLoginTap: () {
+        context.go(RoutePaths.login);
+      },
+      onRegisterTap: () {},
       form: _RegisterForm(
         usernameController: _usernameController,
         passwordController: _passwordController,
@@ -217,9 +225,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
         onPrivacyPolicyTap: () {
           context.push(RoutePaths.privacyPolicy);
         },
-      ),
-      footer: _RegisterFooter(
-        onLoginTap: () => context.go(RoutePaths.login),
       ),
     );
   }
@@ -324,7 +329,10 @@ class _RegisterForm extends StatelessWidget {
               LengthLimitingTextInputFormatter(11),
             ],
             prefixIcon: Padding(
-              padding: const EdgeInsets.only(left: AppSpacing.base, right: AppSpacing.sm),
+              padding: const EdgeInsets.only(
+                left: AppSpacing.base,
+                right: AppSpacing.sm,
+              ),
               child: Center(
                 widthFactor: 1,
                 child: Text(
@@ -335,40 +343,6 @@ class _RegisterForm extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _RegisterFooter extends StatelessWidget {
-  final VoidCallback onLoginTap;
-
-  const _RegisterFooter({required this.onLoginTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          '已有账号？',
-          style: AppTextStyles.body2.copyWith(color: AppColors.gray500),
-        ),
-        TextButton(
-          onPressed: onLoginTap,
-          style: TextButton.styleFrom(
-            minimumSize: Size.zero,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text(
-            '返回登录',
-            style: AppTextStyles.body2.copyWith(
-              color: AppColors.black,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ),

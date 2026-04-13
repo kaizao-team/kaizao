@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/routes.dart';
 import '../../../app/theme/app_colors.dart';
-import '../../../app/theme/app_text_styles.dart';
 import '../../../core/auth/auth_session_manager.dart';
 import '../../../shared/widgets/vcc_button.dart';
 import '../../../shared/widgets/vcc_input.dart';
@@ -50,7 +49,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: AppColors.white,
+        systemNavigationBarColor: AppColors.surfaceCanvas,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
@@ -170,11 +169,17 @@ class _LoginPageState extends ConsumerState<LoginPage>
     final compact = screenHeight < 820 || keyboardInset > 0;
 
     return AuthPageShell(
+      mode: AuthScreenMode.login,
       compact: compact,
       keyboardInset: keyboardInset,
+      heroTitle: '让想法\n开始运转',
+      heroDescription: '进入开造，继续你的项目协作与匹配流程。',
       heroScale: _heroScale,
       heroLift: _heroLift,
-      heroSubtitle: '欢迎来到开造',
+      onLoginTap: () {},
+      onRegisterTap: () {
+        context.go(RoutePaths.register);
+      },
       form: _PasswordPanel(
         usernameController: _usernameController,
         passwordController: _passwordController,
@@ -209,11 +214,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
           setState(() => _agreedToTerms = !_agreedToTerms);
         },
       ),
-      footer: _LoginFooter(
-        onRegisterTap: () {
-          context.push(RoutePaths.register);
-        },
-      ),
     );
   }
 }
@@ -233,7 +233,6 @@ class _PasswordPanel extends StatelessWidget {
   final VoidCallback onRefreshCaptcha;
 
   const _PasswordPanel({
-    super.key,
     required this.usernameController,
     required this.passwordController,
     required this.captchaCodeController,
@@ -289,45 +288,6 @@ class _PasswordPanel extends StatelessWidget {
           isLoading: isLoadingCaptcha,
           compact: compact,
         ),
-      ],
-    );
-  }
-}
-
-class _LoginFooter extends StatelessWidget {
-  final VoidCallback onRegisterTap;
-
-  const _LoginFooter({required this.onRegisterTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '第一次使用 KAIZO？',
-              style: AppTextStyles.body2.copyWith(color: AppColors.gray500),
-            ),
-            TextButton(
-              onPressed: onRegisterTap,
-              style: TextButton.styleFrom(
-                minimumSize: Size.zero,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                '新用户注册',
-                style: AppTextStyles.body2.copyWith(
-                  color: AppColors.black,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
       ],
     );
   }

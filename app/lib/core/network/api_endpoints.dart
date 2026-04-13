@@ -108,10 +108,8 @@ class ApiEndpoints {
       '/api/v1/milestones/$id/revision';
   static String milestoneComplete(String id) =>
       '/api/v1/milestones/$id/complete';
-  static String projectDeliver(String id) =>
-      '/api/v1/projects/$id/deliver';
-  static String projectAccept(String id) =>
-      '/api/v1/projects/$id/accept';
+  static String projectDeliver(String id) => '/api/v1/projects/$id/deliver';
+  static String projectAccept(String id) => '/api/v1/projects/$id/accept';
 
   // ============================================================
   // 评论模块 /api/v1/projects/:id/comments
