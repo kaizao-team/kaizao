@@ -45,6 +45,7 @@ class AuthPageShell extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
     final keyboardVisible = keyboardInset > 0;
     final topPadding = mediaQuery.padding.top;
+    final bottomSafeArea = mediaQuery.padding.bottom;
     final isRegister = mode == AuthScreenMode.register;
     final baseHeroHeight = keyboardVisible
         ? 148.0
@@ -56,7 +57,7 @@ class AuthPageShell extends StatelessWidget {
     final formSectionSpacing = isRegister ? AppSpacing.lg : AppSpacing.xl;
     final bottomPadding = keyboardVisible
         ? keyboardInset + AppSpacing.lg
-        : (isRegister ? AppSpacing.lg : AppSpacing.xl);
+        : bottomSafeArea + (isRegister ? AppSpacing.lg : AppSpacing.xl);
     final footerBottomSpacing = isRegister ? AppSpacing.base : AppSpacing.lg;
 
     return Scaffold(

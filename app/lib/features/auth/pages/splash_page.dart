@@ -148,7 +148,8 @@ class _SplashPageState extends ConsumerState<SplashPage>
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     const logoViewportSize = 212.0;
     const logoMediaScale = 2.25;
-    final logoCacheSize = (logoViewportSize * devicePixelRatio).round();
+    final logoCacheSize =
+        (logoViewportSize * logoMediaScale * devicePixelRatio).round();
 
     return Scaffold(
       backgroundColor: _kBgColor,
