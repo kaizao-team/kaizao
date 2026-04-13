@@ -16,37 +16,32 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
 
   static const _faqItems = <_FaqItem>[
     _FaqItem(
-      question: 'KAIZO 是什么？',
-      answer:
-          'KAIZO（开造）是一个 AI 驱动的软件项目撮合平台。项目方可以通过 AI 对话快速梳理需求，平台智能匹配合适的团队方，帮助双方高效对接与协作。',
+      question: '开造是做什么的？',
+      answer: '开造帮项目方先把需求和预算理顺，再把项目推给更合适的团队，也让团队更快看到适合自己的合作机会。',
     ),
     _FaqItem(
-      question: '如何发布一个项目？',
-      answer:
-          '登录后选择「项目方」角色，点击首页的「创建项目」，通过 AI 对话描述你的需求，系统会自动生成项目概览并为你推荐合适的团队。',
+      question: '怎么发布一个项目？',
+      answer: '注册后选择「项目方」，跟着引导把方向、需求和预算说清，系统会整理成项目摘要，再继续帮你匹配团队。',
     ),
     _FaqItem(
-      question: '如何成为团队方接单？',
-      answer:
-          '登录后选择「团队方」角色，完善团队资料和技能标签，即可在项目广场浏览项目并提交投标。',
+      question: '团队方怎么开始接项目？',
+      answer: '选择「团队方」后，先把团队资料、能力标签和排期补齐，系统会先生成一版团队档案，之后就能进入广场接项目。',
     ),
     _FaqItem(
-      question: '项目方如何选择团队？',
-      answer:
-          '项目发布后，平台会智能推荐匹配的团队。你也可以在收到投标后查看团队详情，选择最合适的团队方进行合作。',
+      question: '项目方怎么选团队？',
+      answer: '项目发布后，平台会先给出推荐团队；你也可以查看投标和团队详情，再决定和谁继续聊、继续合作。',
     ),
     _FaqItem(
-      question: '我的信息安全吗？',
-      answer:
-          '我们严格保护用户数据，所有通信均采用加密传输，项目信息仅对相关方可见。详情请参阅我们的隐私政策。',
+      question: '我的资料谁能看到？',
+      answer: '公开展示的会是合作判断需要的内容，联系方式这类敏感信息不会随意暴露。具体规则可以看隐私政策。',
     ),
     _FaqItem(
       question: '如何修改个人资料？',
-      answer: '进入「我的」页面，点击头像或个人信息区域即可编辑。',
+      answer: '进入「我的」页面后，可以继续完善资料，也能顺手查看钱包、通知和收藏。',
     ),
     _FaqItem(
       question: '遇到问题怎么办？',
-      answer: '你可以通过页面底部的反馈入口或客服邮箱联系我们，我们会在 24 小时内回复。',
+      answer: '可以直接在这个页面提交反馈，或者发邮件给我们。我们会尽快看并跟进。',
     ),
   ];
 
@@ -75,12 +70,12 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'FAQ',
+              '常见问题',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: AppColors.gray400,
-                letterSpacing: 2.5,
+                letterSpacing: 0.8,
               ),
             ),
           ),
@@ -102,12 +97,12 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'CONTACT',
+              '联系方式',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: AppColors.gray400,
-                letterSpacing: 2.5,
+                letterSpacing: 0.8,
               ),
             ),
           ),
@@ -159,12 +154,12 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'FEEDBACK',
+              '意见反馈',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: AppColors.gray400,
-                letterSpacing: 2.5,
+                letterSpacing: 0.8,
               ),
             ),
           ),
@@ -187,7 +182,7 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
                     color: Color(0xFF1A1C1C),
                   ),
                   decoration: InputDecoration(
-                    hintText: '请输入你的问题或建议...',
+                    hintText: '把问题、建议，或者你卡住的地方写给我们',
                     hintStyle: TextStyle(
                       fontSize: 14,
                       color: AppColors.gray400.withValues(alpha: 0.6),
@@ -250,8 +245,7 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
 
   void _copyEmail(BuildContext context) {
     Clipboard.setData(const ClipboardData(text: 'liangyutao.good@163.com'));
-    VccToast.show(context,
-        message: '邮箱已复制', type: VccToastType.success);
+    VccToast.show(context, message: '邮箱已复制', type: VccToastType.success);
   }
 }
 

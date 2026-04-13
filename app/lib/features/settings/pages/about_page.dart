@@ -13,7 +13,7 @@ class AboutPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         title: const Text(
-          '关于 KAIZO',
+          '关于开造',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
       ),
@@ -46,7 +46,7 @@ class AboutPage extends StatelessWidget {
           const SizedBox(height: 4),
           const Center(
             child: Text(
-              'AI 驱动的软件项目撮合平台',
+              '让项目和团队更快对上路',
               style: TextStyle(fontSize: 14, color: AppColors.gray500),
             ),
           ),
@@ -75,7 +75,7 @@ class AboutPage extends StatelessWidget {
               Padding(
                 padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
                 child: Text(
-                  'KAIZO 通过人工智能技术，帮助项目方快速梳理软件需求，并智能匹配最合适的开发团队。无论你是有创意想要落地的创业者，还是寻找优质项目的技术团队，KAIZO 都能让对接更高效、协作更透明。',
+                  '开造会先帮项目方把方向、需求和预算理顺，再把项目推给更合适的团队。对项目方来说，少一点来回解释；对团队方来说，更快看到适合自己的合作机会。',
                   style: TextStyle(
                     fontSize: 14,
                     color: Color(0xFF555555),
@@ -96,25 +96,25 @@ class AboutPage extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: AppColors.gray400,
-                    letterSpacing: 2,
+                    letterSpacing: 0.8,
                   ),
                 ),
               ),
               _buildFeatureItem(
-                'AI 需求梳理',
-                '通过智能对话，帮你把模糊的想法变成清晰的项目需求',
+                '把想法先整理清楚',
+                '通过引导式对话，把模糊需求慢慢整理成可继续推进的项目摘要',
               ),
               _buildFeatureItem(
-                '智能团队匹配',
-                '基于技能、经验、评价等多维度，精准推荐最适合的团队',
+                '更快找到合适团队',
+                '按方向、能力和协作节奏做匹配，先把可能合拍的团队推到你面前',
               ),
               _buildFeatureItem(
-                '高效撮合流程',
-                '从需求发布到团队确认，全流程线上化，减少沟通成本',
+                '合作节奏更清楚',
+                '从发布、沟通到确认合作，关键节点都会沉淀下来',
               ),
               _buildFeatureItem(
-                '透明项目管理',
-                '项目进展实时可见，双方协作有据可查',
+                '项目进展看得见',
+                '状态、里程碑与验收进度都能持续回看',
               ),
               const SizedBox(height: 8),
             ],
@@ -130,11 +130,10 @@ class AboutPage extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: AppColors.gray400,
-                    letterSpacing: 2,
+                    letterSpacing: 0.8,
                   ),
                 ),
               ),
-              _InfoRow(label: '官方网站', value: '敬请期待'),
               _InfoRow(label: '客服邮箱', value: 'liangyutao.good@163.com'),
               SizedBox(height: 6),
             ],
@@ -150,7 +149,7 @@ class AboutPage extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: AppColors.gray400,
-                    letterSpacing: 2,
+                    letterSpacing: 0.8,
                   ),
                 ),
               ),
@@ -168,7 +167,7 @@ class AboutPage extends StatelessWidget {
           const SizedBox(height: 40),
           Center(
             child: Text(
-              '© 2026 KAIZO. All rights reserved.',
+              '© 2026 开造 KAIZO',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.gray400.withValues(alpha: 0.6),

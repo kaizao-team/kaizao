@@ -84,19 +84,19 @@ class TeamProfilePage extends ConsumerWidget {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 VccPageSection(
-                  label: 'OVERVIEW',
+                  label: '概览',
                   child: _TeamMetricsCard(profile: profile),
                 ),
                 if (hasStorySection) ...[
                   const SizedBox(height: _kTeamSectionGap),
                   VccPageSection(
-                    label: 'PRESENCE',
+                    label: '团队介绍',
                     child: _TeamStoryCard(profile: profile),
                   ),
                 ],
                 const SizedBox(height: _kTeamSectionGap),
                 VccPageSection(
-                  label: 'MEMBERS',
+                  label: '成员',
                   child: _TeamMembersCard(profile: profile),
                 ),
                 const SizedBox(height: _kTeamSectionGap),
@@ -176,7 +176,7 @@ class _TeamHero extends StatelessWidget {
     }
 
     return VccIdentityHero(
-      eyebrow: 'TEAM PROFILE',
+      eyebrow: '团队资料',
       title: '团队',
       headline: profile.teamName,
       summary: heroSummary,
@@ -406,7 +406,7 @@ class _TeamStoryCard extends StatelessWidget {
       items.add('已完成 ${profile.completedProjects} 个项目');
     }
     if (profile.vibePower > 0) {
-      items.add('Vibe Power ${profile.vibePower}');
+      items.add('团队氛围 ${profile.vibePower}');
     }
     return items;
   }

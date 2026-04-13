@@ -411,7 +411,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '确认选择',
+                    '确认这些选项',
                     textAlign: TextAlign.center,
                     style: AppTextStyles.body2.copyWith(
                       color: _hasPendingMultiSelection
@@ -967,10 +967,8 @@ class _AiTypingIndicatorState extends State<AiTypingIndicator>
                     return Row(
                       mainAxisSize: MainAxisSize.min,
                       children: List.generate(3, (i) {
-                        final phase =
-                            ((_dotsController.value + i * 0.2) % 1.0);
-                        final opacity =
-                            phase < 0.5 ? phase * 2 : 2 - phase * 2;
+                        final phase = ((_dotsController.value + i * 0.2) % 1.0);
+                        final opacity = phase < 0.5 ? phase * 2 : 2 - phase * 2;
                         return Padding(
                           padding: EdgeInsets.only(left: i > 0 ? 3 : 0),
                           child: Opacity(

@@ -41,18 +41,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final phoneTrailing = profileState.isLoading && profile == null
         ? '加载中...'
         : _formatMaskedPhone(profile?.phone);
-    final wechatTrailing = profileState.isLoading && profile == null
-        ? '加载中...'
-        : profile == null
-            ? '--'
-            : (profile.wechatBound ? '已绑定' : '未绑定');
-    final verifyTrailing = profileState.isLoading && profile == null
-        ? '加载中...'
-        : profile == null
-            ? '--'
-            : (profile.isVerified ? '已认证' : '未认证');
-    final verifyColor =
-        profile?.isVerified == true ? AppColors.success : AppColors.gray400;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
@@ -103,12 +91,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'SETTINGS',
+                          '设置',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: Colors.white.withValues(alpha: 0.4),
-                            letterSpacing: 3,
+                            letterSpacing: 1.2,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -135,7 +123,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // — 账号与安全 —
-                _buildSectionLabel('ACCOUNT'),
+                _buildSectionLabel('账号与安全'),
                 const SizedBox(height: 10),
                 _buildCard([
                   _SettingsRow(
@@ -167,7 +155,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SizedBox(height: 32),
 
                 // — 通用 —
-                _buildSectionLabel('GENERAL'),
+                _buildSectionLabel('通用'),
                 const SizedBox(height: 10),
                 _buildCard([
                   _SettingsRow(
@@ -177,8 +165,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   _SettingsSwitchRow(
                     label: '消息通知',
                     value: _notificationsEnabled,
-                    onChanged: (v) =>
-                        setState(() => _notificationsEnabled = v),
+                    onChanged: (v) => setState(() => _notificationsEnabled = v),
                   ),
                   const _SettingsRow(
                     label: '语言',
@@ -190,7 +177,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SizedBox(height: 32),
 
                 // — 关于 —
-                _buildSectionLabel('ABOUT'),
+                _buildSectionLabel('关于'),
                 const SizedBox(height: 10),
                 _buildCard([
                   _SettingsRow(
@@ -262,7 +249,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         fontSize: 11,
         fontWeight: FontWeight.w600,
         color: AppColors.gray400,
-        letterSpacing: 2.5,
+        letterSpacing: 0.8,
       ),
     );
   }
@@ -325,8 +312,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                   child: const Text(
                     '退出登录',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                   ),
                 ),
               ),
@@ -368,7 +354,6 @@ class _SettingsRow extends StatelessWidget {
   final String label;
   final String? trailingText;
   final Widget? trailing;
-  final Color? trailingColor;
   final bool showArrow;
   final VoidCallback? onTap;
 
@@ -376,7 +361,6 @@ class _SettingsRow extends StatelessWidget {
     required this.label,
     this.trailingText,
     this.trailing,
-    this.trailingColor,
     this.showArrow = true,
     this.onTap,
   });
@@ -404,9 +388,9 @@ class _SettingsRow extends StatelessWidget {
             if (trailing == null && trailingText != null)
               Text(
                 trailingText!,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: trailingColor ?? AppColors.gray400,
+                  color: AppColors.gray400,
                 ),
               ),
             if (showArrow) ...[
@@ -487,39 +471,6 @@ class _RoleBadge extends StatelessWidget {
           letterSpacing: 0.2,
         ),
       ),
-    );
-  }
-}
-
-class _StatusDot extends StatelessWidget {
-  final String text;
-  final bool active;
-
-  const _StatusDot({required this.text, required this.active});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: active ? AppColors.success : AppColors.gray300,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 13,
-            color: active ? AppColors.success : AppColors.gray400,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 }

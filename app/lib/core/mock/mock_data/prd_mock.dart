@@ -23,7 +23,7 @@ class PrdMock {
       'data': {
         'prd_id': 'prd_001',
         'project_id': options.path.split('/')[4],
-        'title': '智能协作平台 PRD',
+        'title': '智能协作平台项目文档',
         'version': '1.0',
         'created_at': '2026-03-20T10:00:00Z',
         'modules': [
@@ -40,7 +40,11 @@ class PrdMock {
                   response: '验证成功跳转首页，失败提示错误',
                   stateChange: '用户状态从未登录变为已登录',
                   criteria: [
-                    {'id': 'ac_001', 'content': '手机号格式校验（11位数字）', 'checked': true},
+                    {
+                      'id': 'ac_001',
+                      'content': '手机号格式校验（11位数字）',
+                      'checked': true
+                    },
                     {'id': 'ac_002', 'content': '验证码60秒倒计时', 'checked': true},
                     {'id': 'ac_003', 'content': '3次错误后锁定5分钟', 'checked': false},
                   ],
@@ -75,11 +79,15 @@ class PrdMock {
               _makeCard('card_003', 'mod_home', '个性化推荐', 'response', 'P0',
                   description: '首页展示个性化推荐内容',
                   event: '用户进入首页',
-                  action: '根据用户画像请求推荐数据',
+                  action: '根据用户偏好请求推荐数据',
                   response: '展示推荐卡片列表',
                   stateChange: '首页数据加载完成',
                   criteria: [
-                    {'id': 'ac_006', 'content': '首屏加载时间 < 2秒', 'checked': false},
+                    {
+                      'id': 'ac_006',
+                      'content': '首屏加载时间 < 2秒',
+                      'checked': false
+                    },
                     {'id': 'ac_007', 'content': '支持下拉刷新', 'checked': false},
                     {'id': 'ac_008', 'content': '无数据时展示空状态', 'checked': false},
                   ],
@@ -135,7 +143,11 @@ class PrdMock {
                   response: '展示匹配结果列表',
                   stateChange: '需求状态变为匹配中',
                   criteria: [
-                    {'id': 'ac_015', 'content': '匹配结果在30秒内返回', 'checked': false},
+                    {
+                      'id': 'ac_015',
+                      'content': '匹配结果在30秒内返回',
+                      'checked': false
+                    },
                     {'id': 'ac_016', 'content': '展示匹配度百分比', 'checked': false},
                     {'id': 'ac_017', 'content': '支持手动筛选', 'checked': false},
                   ],

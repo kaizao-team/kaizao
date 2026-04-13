@@ -19,6 +19,7 @@ class AuthPageShell extends StatelessWidget {
   final Widget primaryAction;
   final Widget agreement;
   final Widget? footer;
+  final bool prioritizeDescription;
   final VoidCallback onLoginTap;
   final VoidCallback onRegisterTap;
 
@@ -38,6 +39,7 @@ class AuthPageShell extends StatelessWidget {
     this.footer,
     this.heroScale,
     this.heroLift,
+    this.prioritizeDescription = false,
   });
 
   @override
@@ -84,6 +86,7 @@ class AuthPageShell extends StatelessWidget {
                 lift: heroLift,
                 title: heroTitle,
                 description: heroDescription,
+                prioritizeDescription: prioritizeDescription || isRegister,
               ),
             ),
             Expanded(
@@ -238,6 +241,7 @@ class AuthBrandHero extends StatelessWidget {
   final Animation<double>? lift;
   final String title;
   final String description;
+  final bool prioritizeDescription;
 
   const AuthBrandHero({
     super.key,
@@ -245,6 +249,7 @@ class AuthBrandHero extends StatelessWidget {
     required this.keyboardVisible,
     required this.title,
     required this.description,
+    required this.prioritizeDescription,
     this.scale,
     this.lift,
   });
@@ -267,7 +272,10 @@ class AuthBrandHero extends StatelessWidget {
             : (tightHero ? 2.0 : AppSpacing.base);
         final descriptionSpacing =
             tightHero ? 4.0 : (compact ? AppSpacing.sm : AppSpacing.md);
-        final showDescription = !keyboardVisible && !ultraTightHero;
+        final showDescription =
+            !keyboardVisible && (prioritizeDescription || !ultraTightHero);
+        final descriptionMaxLines =
+            prioritizeDescription ? 1 : (tightHero ? 2 : 3);
         final titleStyle = AppTextStyles.onboardingTitle.copyWith(
           fontSize: keyboardVisible
               ? 24
@@ -302,7 +310,7 @@ class AuthBrandHero extends StatelessWidget {
                     SizedBox(height: descriptionSpacing),
                     Text(
                       description,
-                      maxLines: tightHero ? 2 : 3,
+                      maxLines: descriptionMaxLines,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.body2.copyWith(
                         color: AppColors.gray500,

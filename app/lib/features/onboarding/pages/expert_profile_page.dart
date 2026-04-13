@@ -57,7 +57,8 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
     _inviteCodeController.text = draft['invite_code'] as String? ?? '';
     _avatarUrl = draft['avatar_url'] as String?;
     if (draft['service_directions'] is List) {
-      _serviceDirections.addAll((draft['service_directions'] as List).cast<String>());
+      _serviceDirections
+          .addAll((draft['service_directions'] as List).cast<String>());
     } else if (draft['service_direction'] is String) {
       _serviceDirections.add(draft['service_direction'] as String);
     }
@@ -191,17 +192,17 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
           context.go(RoutePaths.roleSelect);
         }
       },
-      primaryActionText: '继续完善',
+      primaryActionText: '保存并继续',
       onPrimaryAction: _isValid ? _next : null,
       isPrimaryLoading: state.isLoading,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 36),
-          const Text('建立你的团队档案', style: AppTextStyles.onboardingTitle),
+          const Text('先把团队资料立起来', style: AppTextStyles.onboardingTitle),
           const SizedBox(height: 12),
           const Text(
-            '告诉平台你擅长什么、习惯怎样合作。项目方会更快判断你是否适合这个项目。',
+            '把你们擅长什么、怎么合作说清楚，项目方会更快判断适不适合一起做。',
             style: AppTextStyles.onboardingBody,
           ),
           const SizedBox(height: 28),
@@ -218,8 +219,8 @@ class _ExpertProfilePageState extends ConsumerState<ExpertProfilePage> {
           const SizedBox(height: 18),
           const OnboardingSectionHeader(
             title: '这是一份动态团队档案',
-            description: '你每选择一项能力，平台就会更准确地理解你适合解决什么问题。',
-            accessory: OnboardingHelperTag(text: '平台会据此生成初始团队画像'),
+            description: '你每补一项能力，这页就会更像你们，也更方便别人判断合不合拍。',
+            accessory: OnboardingHelperTag(text: '先立住第一版，再慢慢补完整'),
           ),
           const SizedBox(height: 32),
           const OnboardingSectionHeader(
@@ -540,14 +541,14 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'TEAM PROFILE DRAFT',
+                '团队资料草稿',
                 style: AppTextStyles.onboardingMeta.copyWith(
                   color: AppColors.onboardingPrimary,
                 ),
               ),
               const Spacer(),
               OnboardingStatusBadge(
-                text: skills.isEmpty ? '待完善' : '画像生成中',
+                text: skills.isEmpty ? '待完善' : '资料整理中',
                 animate: skills.isNotEmpty,
               ),
             ],
@@ -573,21 +574,29 @@ class _ExpertProfilePreviewCard extends StatelessWidget {
             Wrap(
               spacing: 6,
               runSpacing: 4,
-              children: serviceDirections.map((d) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.onboardingPrimary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  projectCategoryLabel(d),
-                  style: AppTextStyles.caption.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onboardingPrimary,
-                  ),
-                ),
-              )).toList(),
+              children: serviceDirections
+                  .map(
+                    (d) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            AppColors.onboardingPrimary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        projectCategoryLabel(d),
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onboardingPrimary,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ],
           const SizedBox(height: 10),

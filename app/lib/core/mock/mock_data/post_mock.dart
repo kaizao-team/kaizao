@@ -58,19 +58,19 @@ class PostMock {
       },
       {
         'reply':
-            '围绕「{{userMessage}}」，目标已经开始清晰了。还想确认最终交付更偏实时 dashboard、固定周期报告，还是一次专项分析结论？这些信息已经足够先生成 PRD，但补充越细，后面模块越准。',
+            '围绕「{{userMessage}}」，目标已经开始清晰了。还想确认最终交付更偏实时 dashboard、固定周期报告，还是一次专项分析结论？这些信息已经够我先整理一版项目摘要，补充越细，后面拆得越准。',
         'completeness_score': 60,
         'can_generate_prd': true,
       },
       {
         'reply':
-            '基于你刚才补充的「{{userMessage}}」，我现在基本能拆出数据接入、指标建模和结果展示三层结构。还差两个关键点：谁是主要查看人，以及期望上线时间或分析周期是什么？现在已经可以生成 PRD。',
+            '基于你刚才补充的「{{userMessage}}」，我现在基本能拆出数据接入、指标建模和结果展示三层结构。还差两个关键点：谁是主要查看人，以及期望上线时间或分析周期是什么？现在已经可以整理项目摘要了。',
         'completeness_score': 80,
         'can_generate_prd': true,
       },
       {
         'reply':
-            '我把「{{userMessage}}」相关需求汇总一下：要先明确业务问题，接着梳理数据源与指标口径，最后交付可复用的分析结果或看板。信息已经足够生成完整 PRD，最后请确认是否还有权限、合规、预算或跨部门协作方面的限制？',
+            '我把「{{userMessage}}」相关需求汇总一下：要先明确业务问题，接着梳理数据源与指标口径，最后交付可复用的分析结果或看板。信息已经足够整理完整的项目摘要，最后请确认是否还有权限、合规、预算或跨部门协作方面的限制？',
         'completeness_score': 100,
         'can_generate_prd': true,
       },
@@ -90,19 +90,19 @@ class PostMock {
       },
       {
         'reply':
-            '结合你刚补充的「{{userMessage}}」，需求主线已经有了。现在请确认交付平台和技术偏好：是 Web、App、小程序，还是多端一起上？这一步确认后就已经可以先生成 PRD。',
+            '结合你刚补充的「{{userMessage}}」，需求主线已经有了。现在请确认交付平台和技术偏好：是 Web、App、小程序，还是多端一起上？这一步确认后就已经可以先整理项目摘要了。',
         'completeness_score': 60,
         'can_generate_prd': true,
       },
       {
         'reply':
-            '按目前对「{{userMessage}}」的理解，我可以开始拆认证、核心流程和管理后台了。还想补上时间线与约束：预计什么时候上线，是否有现有系统、接口或合规要求需要兼容？现在已经足够生成 PRD。',
+            '按目前对「{{userMessage}}」的理解，我可以开始拆认证、核心流程和管理后台了。还想补上时间线与约束：预计什么时候上线，是否有现有系统、接口或合规要求需要兼容？现在已经足够整理项目摘要了。',
         'completeness_score': 80,
         'can_generate_prd': true,
       },
       {
         'reply':
-            '我把这轮围绕「{{userMessage}}」的研发需求汇总一下：目标用户、核心功能、交付平台、技术边界和上线节奏都已经基本齐了。信息足够生成完整 PRD，最后请确认是否还存在预算、第三方集成或团队协作上的限制？',
+            '我把这轮围绕「{{userMessage}}」的研发需求汇总一下：目标用户、核心功能、交付平台、技术边界和上线节奏都已经基本齐了。信息足够整理完整的项目摘要，最后请确认是否还存在预算、第三方集成或团队协作上的限制？',
         'completeness_score': 100,
         'can_generate_prd': true,
       },
@@ -122,19 +122,19 @@ class PostMock {
       },
       {
         'reply':
-            '围绕「{{userMessage}}」，我已经能初步判断交付范围了。最终你更需要高保真页面、完整品牌视觉包，还是一套可复用的 design system？这些信息已经足够先生成 PRD。',
+            '围绕「{{userMessage}}」，我已经能初步判断交付范围了。最终你更需要高保真页面、完整品牌视觉包，还是一套可复用的设计规范？这些信息已经够我先整理一版项目摘要。',
         'completeness_score': 60,
         'can_generate_prd': true,
       },
       {
         'reply':
-            '结合你对「{{userMessage}}」的补充，我可以开始拆品牌、界面和规范三个层级。还差受众场景与执行限制：主要面对谁、在哪些渠道使用、可接受几轮修改，以及是否需要和研发同步落地？现在已经能生成 PRD。',
+            '结合你对「{{userMessage}}」的补充，我可以开始拆品牌、界面和规范三个层级。还差受众场景与执行限制：主要面对谁、在哪些渠道使用、可接受几轮修改，以及是否需要和研发同步落地？现在已经能整理项目摘要了。',
         'completeness_score': 80,
         'can_generate_prd': true,
       },
       {
         'reply':
-            '我把「{{userMessage}}」这类设计需求整理一下：目标、风格方向、交付清单、受众场景与协作方式都已经比较完整。现在足够生成完整 PRD，最后请确认是否还有品牌审批、素材准备或工期上的硬约束？',
+            '我把「{{userMessage}}」这类设计需求整理一下：目标、风格方向、交付清单、受众场景与协作方式都已经比较完整。现在足够整理完整的项目摘要，最后请确认是否还有品牌审批、素材准备或工期上的硬约束？',
         'completeness_score': 100,
         'can_generate_prd': true,
       },
@@ -154,19 +154,19 @@ class PostMock {
       },
       {
         'reply':
-            '结合你刚才关于「{{userMessage}}」的描述，问题边界已经开始成形。最终输出更偏策略文档、实施路径图、阶段性里程碑，还是陪跑式拆解方案？这些信息已经足够先生成 PRD。',
+            '结合你刚才关于「{{userMessage}}」的描述，问题边界已经开始成形。最终输出更偏策略文档、实施路径图、阶段性里程碑，还是陪跑式拆解方案？这些信息已经够我先整理一版项目摘要。',
         'completeness_score': 60,
         'can_generate_prd': true,
       },
       {
         'reply':
-            '按目前对「{{userMessage}}」的理解，我可以开始拆研究诊断、策略设计和落地计划了。还想补上关键干系人、决策节奏，以及最大的风险或约束条件是什么。现在已经可以生成 PRD。',
+            '按目前对「{{userMessage}}」的理解，我可以开始拆研究诊断、策略设计和落地计划了。还想补上关键干系人、决策节奏，以及最大的风险或约束条件是什么。现在已经可以整理项目摘要了。',
         'completeness_score': 80,
         'can_generate_prd': true,
       },
       {
         'reply':
-            '我把围绕「{{userMessage}}」的解决方案需求汇总一下：问题定义、现状前提、输出形式、关键干系人与落地约束都已经比较明确。信息足够生成完整 PRD，最后请确认是否还要纳入预算、组织协同或阶段验收方面的要求？',
+            '我把围绕「{{userMessage}}」的解决方案需求汇总一下：问题定义、现状前提、输出形式、关键干系人与落地约束都已经比较明确。信息足够整理完整的项目摘要，最后请确认是否还要纳入预算、组织协同或阶段验收方面的要求？',
         'completeness_score': 100,
         'can_generate_prd': true,
       },
@@ -374,7 +374,7 @@ class PostMock {
       case 'data':
         return {
           'prd_id': 'prd_data_001',
-          'title': '$focus 数据分析项目 PRD',
+          'title': '$focus 数据分析项目文档',
           'modules': _buildDataModules(focus, brief),
           'budget_suggestion': {
             'min': 12000,
@@ -386,7 +386,7 @@ class PostMock {
       case 'design':
         return {
           'prd_id': 'prd_design_001',
-          'title': '$focus 设计项目 PRD',
+          'title': '$focus 设计项目文档',
           'modules': _buildDesignModules(focus, brief),
           'budget_suggestion': {
             'min': 8000,
@@ -398,7 +398,7 @@ class PostMock {
       case 'solution':
         return {
           'prd_id': 'prd_solution_001',
-          'title': '$focus 解决方案 PRD',
+          'title': '$focus 解决方案文档',
           'modules': _buildSolutionModules(focus, brief),
           'budget_suggestion': {
             'min': 12000,
@@ -411,7 +411,7 @@ class PostMock {
       default:
         return {
           'prd_id': 'prd_dev_001',
-          'title': '$focus 软件产品 PRD',
+          'title': '$focus 软件产品文档',
           'modules': _buildDevModules(focus, brief),
           'budget_suggestion': {
             'min': 18000,

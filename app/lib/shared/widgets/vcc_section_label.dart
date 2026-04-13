@@ -18,13 +18,14 @@ class VccSectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = uppercase ? text.toUpperCase() : text;
+    final isAsciiLabel = RegExp(r'^[\x00-\x7F]+$').hasMatch(label);
     return Text(
       label,
       textAlign: textAlign,
       style: AppTextStyles.overline.copyWith(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        letterSpacing: 2.4,
+        letterSpacing: isAsciiLabel ? 2.4 : 0.8,
         color: AppColors.gray400,
       ),
     );

@@ -26,8 +26,11 @@ class PrdPage extends ConsumerWidget {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          prdState.data?.title ?? 'PRD 文档',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.black),
+          prdState.data?.title ?? '项目文档',
+          style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.black),
         ),
         centerTitle: true,
         actions: [
@@ -42,9 +45,11 @@ class PrdPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildBody(BuildContext context, WidgetRef ref, PrdState prdState, bool isDemander) {
+  Widget _buildBody(
+      BuildContext context, WidgetRef ref, PrdState prdState, bool isDemander) {
     if (prdState.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.black));
+      return const Center(
+          child: CircularProgressIndicator(color: AppColors.black));
     }
 
     if (prdState.errorMessage != null) {
@@ -54,14 +59,20 @@ class PrdPage extends ConsumerWidget {
           children: [
             const Icon(Icons.error_outline, size: 48, color: AppColors.gray400),
             const SizedBox(height: 16),
-            Text(prdState.errorMessage!, style: const TextStyle(color: AppColors.gray500)),
+            Text(prdState.errorMessage!,
+                style: const TextStyle(color: AppColors.gray500)),
             const SizedBox(height: 16),
             GestureDetector(
-              onTap: () => ref.read(prdStateProvider(projectId).notifier).loadPrd(),
+              onTap: () =>
+                  ref.read(prdStateProvider(projectId).notifier).loadPrd(),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                decoration: BoxDecoration(color: AppColors.black, borderRadius: BorderRadius.circular(8)),
-                child: const Text('重试', style: TextStyle(color: AppColors.white)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                    color: AppColors.black,
+                    borderRadius: BorderRadius.circular(8)),
+                child:
+                    const Text('重试', style: TextStyle(color: AppColors.white)),
               ),
             ),
           ],
@@ -76,12 +87,15 @@ class PrdPage extends ConsumerWidget {
       children: [
         _ViewModeToggle(
           viewMode: prdState.viewMode,
-          onToggle: () => ref.read(prdStateProvider(projectId).notifier).toggleViewMode(),
+          onToggle: () =>
+              ref.read(prdStateProvider(projectId).notifier).toggleViewMode(),
         ),
         if (prdState.viewMode == PrdViewMode.cards)
           PrdRoleFilter(
             selected: prdState.roleFilter,
-            onChanged: (role) => ref.read(prdStateProvider(projectId).notifier).setRoleFilter(role),
+            onChanged: (role) => ref
+                .read(prdStateProvider(projectId).notifier)
+                .setRoleFilter(role),
           ),
         const SizedBox(height: 8),
         Expanded(
@@ -92,8 +106,12 @@ class PrdPage extends ConsumerWidget {
                     key: const ValueKey('overview'),
                     data: data,
                     onCardTap: (cardId) {
-                      ref.read(prdStateProvider(projectId).notifier).toggleViewMode();
-                      ref.read(prdStateProvider(projectId).notifier).expandCard(cardId);
+                      ref
+                          .read(prdStateProvider(projectId).notifier)
+                          .toggleViewMode();
+                      ref
+                          .read(prdStateProvider(projectId).notifier)
+                          .expandCard(cardId);
                     },
                   )
                 : _CardsTab(
@@ -159,23 +177,37 @@ class _ViewModeToggle extends StatelessWidget {
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: viewMode == PrdViewMode.overview ? AppColors.white : Colors.transparent,
+                    color: viewMode == PrdViewMode.overview
+                        ? AppColors.white
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: viewMode == PrdViewMode.overview
-                        ? const [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.05), blurRadius: 4)]
+                        ? const [
+                            BoxShadow(
+                                color: Color.fromRGBO(0, 0, 0, 0.05),
+                                blurRadius: 4)
+                          ]
                         : null,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.account_tree_outlined, size: 16, color: viewMode == PrdViewMode.overview ? AppColors.black : AppColors.gray400),
+                      Icon(Icons.account_tree_outlined,
+                          size: 16,
+                          color: viewMode == PrdViewMode.overview
+                              ? AppColors.black
+                              : AppColors.gray400),
                       const SizedBox(width: 6),
                       Text(
                         '概览',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: viewMode == PrdViewMode.overview ? FontWeight.w600 : FontWeight.w400,
-                          color: viewMode == PrdViewMode.overview ? AppColors.black : AppColors.gray500,
+                          fontWeight: viewMode == PrdViewMode.overview
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: viewMode == PrdViewMode.overview
+                              ? AppColors.black
+                              : AppColors.gray500,
                         ),
                       ),
                     ],
@@ -190,23 +222,37 @@ class _ViewModeToggle extends StatelessWidget {
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: viewMode == PrdViewMode.cards ? AppColors.white : Colors.transparent,
+                    color: viewMode == PrdViewMode.cards
+                        ? AppColors.white
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: viewMode == PrdViewMode.cards
-                        ? const [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.05), blurRadius: 4)]
+                        ? const [
+                            BoxShadow(
+                                color: Color.fromRGBO(0, 0, 0, 0.05),
+                                blurRadius: 4)
+                          ]
                         : null,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.view_agenda_outlined, size: 16, color: viewMode == PrdViewMode.cards ? AppColors.black : AppColors.gray400),
+                      Icon(Icons.view_agenda_outlined,
+                          size: 16,
+                          color: viewMode == PrdViewMode.cards
+                              ? AppColors.black
+                              : AppColors.gray400),
                       const SizedBox(width: 6),
                       Text(
                         '卡片',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: viewMode == PrdViewMode.cards ? FontWeight.w600 : FontWeight.w400,
-                          color: viewMode == PrdViewMode.cards ? AppColors.black : AppColors.gray500,
+                          fontWeight: viewMode == PrdViewMode.cards
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: viewMode == PrdViewMode.cards
+                              ? AppColors.black
+                              : AppColors.gray500,
                         ),
                       ),
                     ],
@@ -265,24 +311,32 @@ class _CardsTab extends ConsumerWidget {
                 card: card,
                 isExpanded: prdState.expandedCardId == card.id,
                 isDemander: isDemander,
-                onToggle: () => ref.read(prdStateProvider(projectId).notifier).expandCard(card.id),
-                onToggleCriteria: (criteriaId) =>
-                    ref.read(prdStateProvider(projectId).notifier).toggleCriteria(card.id, criteriaId),
-                onDependencyTap: (depId) =>
-                    ref.read(prdStateProvider(projectId).notifier).expandCard(depId),
+                onToggle: () => ref
+                    .read(prdStateProvider(projectId).notifier)
+                    .expandCard(card.id),
+                onToggleCriteria: (criteriaId) => ref
+                    .read(prdStateProvider(projectId).notifier)
+                    .toggleCriteria(card.id, criteriaId),
+                onDependencyTap: (depId) => ref
+                    .read(prdStateProvider(projectId).notifier)
+                    .expandCard(depId),
               )),
         ],
         if (completed.isNotEmpty) ...[
           const SizedBox(height: 16),
-          _SectionHeader(label: '已完成', count: completed.length, isCompleted: true),
+          _SectionHeader(
+              label: '已完成', count: completed.length, isCompleted: true),
           const SizedBox(height: 8),
           ...completed.map((card) => EarsCardWidget(
                 card: card,
                 isExpanded: prdState.expandedCardId == card.id,
                 isDemander: isDemander,
-                onToggle: () => ref.read(prdStateProvider(projectId).notifier).expandCard(card.id),
-                onToggleCriteria: (criteriaId) =>
-                    ref.read(prdStateProvider(projectId).notifier).toggleCriteria(card.id, criteriaId),
+                onToggle: () => ref
+                    .read(prdStateProvider(projectId).notifier)
+                    .expandCard(card.id),
+                onToggleCriteria: (criteriaId) => ref
+                    .read(prdStateProvider(projectId).notifier)
+                    .toggleCriteria(card.id, criteriaId),
               )),
         ],
       ],
@@ -316,7 +370,10 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.black),
+          style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.black),
         ),
         const SizedBox(width: 6),
         Container(
@@ -325,7 +382,8 @@ class _SectionHeader extends StatelessWidget {
             color: AppColors.gray100,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Text('$count', style: const TextStyle(fontSize: 11, color: AppColors.gray500)),
+          child: Text('$count',
+              style: const TextStyle(fontSize: 11, color: AppColors.gray500)),
         ),
       ],
     );

@@ -91,9 +91,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
           slivers: [
             VccEditorialAppBar(
               title: '我的项目',
-              subtitle: isDemander
-                  ? '按状态管理招募、推进、验收与争议处理'
-                  : '按阶段查看交付、验收、争议与结项',
+              subtitle: isDemander ? '按状态管理招募、推进、验收与争议处理' : '按阶段查看交付、验收、争议与结项',
               trailing: headerTrailing,
             ),
             SliverPersistentHeader(
@@ -158,7 +156,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                     child: _SectionIntro(
                       title: '优先处理',
                       count: 1,
-                      note: isDemander ? '当前最值得先看的一单' : '当前最该先推进的项目',
+                      note: isDemander ? '当前最值得先看的项目' : '当前最该先推进的项目',
                     ),
                   ),
                 ),
@@ -344,7 +342,7 @@ class _SectionIntro extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: AppColors.gray400,
-            letterSpacing: 1.8,
+            letterSpacing: 0.8,
           ),
         ),
         if (note != null) ...[
@@ -845,7 +843,7 @@ String _rowMetaText(ProjectModel project, bool isDemander) {
     }
   } else {
     parts.add(
-      (project.ownerName?.isNotEmpty ?? false) ? project.ownerName! : '需求方',
+      (project.ownerName?.isNotEmpty ?? false) ? project.ownerName! : '项目方',
     );
     if (project.progress > 0) {
       parts.add('${project.progress}% 进度');

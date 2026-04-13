@@ -27,9 +27,8 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
       return;
     }
 
-    final success = await ref
-        .read(authStateProvider.notifier)
-        .selectRole(_selectedRole!);
+    final success =
+        await ref.read(authStateProvider.notifier).selectRole(_selectedRole!);
     if (success && mounted) {
       final onboardingNotifier = ref.read(onboardingProvider.notifier);
       if (_selectedRole == 1) {
@@ -45,11 +44,11 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
   String get _headlineBody {
     switch (_selectedRole) {
       case 1:
-        return '你会先进入项目创建路径，把想法、预算和方向收拢成一份能推进的 brief。';
+        return '你会先进入项目路径，把想法、预算和方向整理成一份能继续往前推的项目摘要。';
       case 2:
-        return '你会先进入团队建档路径，把能力、案例和协作方式压成一张可承接项目的画像。';
+        return '你会先进入团队路径，把能力、案例和协作方式整理成一份方便接项目的团队资料。';
       default:
-        return '先挑一个更顺手的入口。选中后，版面会顺势展开，后面的引导也会直接接上。';
+        return '先选一个更顺手的入口，后面的步骤会顺着接上。';
     }
   }
 
@@ -60,13 +59,22 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
       case 2:
         return '以团队方身份继续';
       default:
-        return '下一步';
+        return '选好继续';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authStateProvider).isLoading;
+    final viewportHeight = MediaQuery.sizeOf(context).height -
+        MediaQuery.paddingOf(context).vertical;
+    final compactLayout = viewportHeight < 820;
+    final ctaButton = VccButton(
+      text: _buttonText,
+      onPressed: _selectedRole != null ? _confirm : null,
+      isLoading: isLoading,
+      icon: _selectedRole == null ? null : Icons.arrow_forward_rounded,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.onboardingBackground,
@@ -76,89 +84,97 @@ class _RoleSelectPageState extends ConsumerState<RoleSelectPage> {
             child: IgnorePointer(child: _RoleSelectionBackdrop()),
           ),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'KAIZO',
-                        style: AppTextStyles.onboardingWordmark,
-                      ),
-                      const Spacer(),
-                      _RolePageStatus(selectedRole: _selectedRole),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  Text(
-                    '你想怎样进入 KAIZO',
-                    style: AppTextStyles.onboardingTitle.copyWith(
-                      fontSize: 36,
-                      letterSpacing: -1.2,
+            bottom: false,
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      24,
+                      compactLayout ? 12 : 14,
+                      24,
+                      compactLayout ? 20 : 24,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 280),
-                    switchInCurve: AppCurves.standard,
-                    switchOutCurve: AppCurves.standard,
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.08),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'KAIZO',
+                              style: AppTextStyles.onboardingWordmark,
+                            ),
+                            const Spacer(),
+                            _RolePageStatus(selectedRole: _selectedRole),
+                          ],
                         ),
-                      );
-                    },
-                    child: Text(
-                      _headlineBody,
-                      key: ValueKey(_headlineBody),
-                      style: AppTextStyles.onboardingBody,
+                        SizedBox(height: compactLayout ? 24 : 28),
+                        Text(
+                          '你想怎样进入 KAIZO',
+                          style: AppTextStyles.onboardingTitle.copyWith(
+                            fontSize: compactLayout ? 35 : 36,
+                            letterSpacing: -1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 280),
+                          switchInCurve: AppCurves.standard,
+                          switchOutCurve: AppCurves.standard,
+                          transitionBuilder: (child, animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.08),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Text(
+                            _headlineBody,
+                            key: ValueKey(_headlineBody),
+                            style: AppTextStyles.onboardingBody.copyWith(
+                              height: 1.55,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: compactLayout ? 26 : 30),
+                        _PaperRoleBranch(
+                          serial: '01',
+                          title: '我是项目方',
+                          titleTag: '发布路径',
+                          shortDescription: '带着想法、目标和预算进来。',
+                          expandedDescription:
+                              '先定方向，再把项目要点说清，后面就会把你带到更合适的团队那边。',
+                          icon: Icons.wb_incandescent_outlined,
+                          pathLabel: '项目方路径',
+                          steps: const ['创建项目', '整理摘要', '匹配团队'],
+                          isSelected: _selectedRole == 1,
+                          onTap: () => setState(() => _selectedRole = 1),
+                        ),
+                        SizedBox(height: compactLayout ? 14 : 16),
+                        _PaperRoleBranch(
+                          serial: '02',
+                          title: '我是团队方',
+                          titleTag: '建档路径',
+                          shortDescription: '带着能力、案例和协作方式进来。',
+                          expandedDescription:
+                              '先把团队资料立起来，再把能力、案例和协作节奏整理成更好接项目的入口。',
+                          icon: Icons.code_rounded,
+                          pathLabel: '团队方路径',
+                          steps: const ['展示能力', '补案例', '开始接单'],
+                          isSelected: _selectedRole == 2,
+                          onTap: () => setState(() => _selectedRole = 2),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 34),
-                  _PaperRoleBranch(
-                    serial: '01',
-                    title: '我是项目方',
-                    titleTag: '发布路径',
-                    shortDescription: '带着想法、目标和预算进来。',
-                    expandedDescription: '先定方向，再收 brief，系统会把项目推到更合适的团队面前。',
-                    icon: Icons.wb_incandescent_outlined,
-                    pathLabel: '项目方路径',
-                    steps: const ['创建项目', '整理 brief', '匹配团队'],
-                    isSelected: _selectedRole == 1,
-                    onTap: () => setState(() => _selectedRole = 1),
-                  ),
-                  const SizedBox(height: 18),
-                  _PaperRoleBranch(
-                    serial: '02',
-                    title: '我是团队方',
-                    titleTag: '建档路径',
-                    shortDescription: '带着能力、案例和协作方式进来。',
-                    expandedDescription: '先建立团队画像，再把能力信号、案例和协作节奏整理成可承接项目的入口。',
-                    icon: Icons.code_rounded,
-                    pathLabel: '团队方路径',
-                    steps: const ['展示能力', '补案例', '开始接单'],
-                    isSelected: _selectedRole == 2,
-                    onTap: () => setState(() => _selectedRole = 2),
-                  ),
-                  const SizedBox(height: 22),
-                  VccButton(
-                    text: _buttonText,
-                    onPressed: _selectedRole != null ? _confirm : null,
-                    isLoading: isLoading,
-                    icon: _selectedRole == null
-                        ? null
-                        : Icons.arrow_forward_rounded,
-                  ),
-                ],
-              ),
+                ),
+                _RolePageBottomBar(child: ctaButton),
+              ],
             ),
           ),
         ],
@@ -202,7 +218,7 @@ class _RolePageStatus extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            locked ? '入口已准备' : '等待你定方向',
+            locked ? '入口已就位' : '等你定方向',
             style: AppTextStyles.caption.copyWith(
               color: locked ? AppColors.white : AppColors.black,
               fontWeight: FontWeight.w600,
@@ -252,7 +268,7 @@ class _PaperRoleBranch extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 352;
-        final panelLeftInset = isCompact ? 96.0 : 112.0;
+        final panelLeftInset = isCompact ? 88.0 : 100.0;
 
         return GestureDetector(
           onTap: onTap,
@@ -260,101 +276,151 @@ class _PaperRoleBranch extends StatelessWidget {
             duration: const Duration(milliseconds: 460),
             curve: AppCurves.standard,
             child: Padding(
-              padding: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.only(top: 8),
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Column(
                     children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 460),
-                        curve: AppCurves.standard,
-                        width: double.infinity,
-                        padding: EdgeInsets.fromLTRB(
-                          panelLeftInset,
-                          24,
-                          isCompact ? 18 : 22,
-                          20,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.black
-                              : AppColors.onboardingSurface,
-                          borderRadius: BorderRadius.circular(
-                            isSelected ? 30 : 24,
-                          ),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.black
-                                : AppColors.onboardingHairline,
-                          ),
-                          boxShadow: isSelected
-                              ? AppShadows.onboardingLift
-                              : AppShadows.shadow1,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.h2.copyWith(
-                                fontSize: isCompact ? 20 : 22,
-                                color: textColor,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 280),
-                              switchInCurve: AppCurves.standard,
-                              switchOutCurve: AppCurves.standard,
-                              transitionBuilder: (child, animation) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0, 0.08),
-                                      end: Offset.zero,
-                                    ).animate(animation),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                isSelected
-                                    ? expandedDescription
-                                    : shortDescription,
-                                key: ValueKey(isSelected),
-                                maxLines: isSelected ? 4 : 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.body2.copyWith(
-                                  color: bodyColor,
-                                  height: 1.5,
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            left: isSelected ? 12 : 10,
+                            top: isSelected ? 10 : 8,
+                            right: -2,
+                            bottom: -4,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFF2F2F2F)
+                                    : const Color(0xFFEAE6DE),
+                                borderRadius: BorderRadius.circular(
+                                  isSelected ? 24 : 20,
+                                ),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF2F2F2F)
+                                      : AppColors.onboardingHairline,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 18),
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 8,
-                              crossAxisAlignment: WrapCrossAlignment.center,
+                          ),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 460),
+                            curve: AppCurves.standard,
+                            width: double.infinity,
+                            padding: EdgeInsets.fromLTRB(
+                              panelLeftInset,
+                              20,
+                              isCompact ? 18 : 20,
+                              16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.black
+                                  : AppColors.onboardingSurface,
+                              borderRadius: BorderRadius.circular(
+                                isSelected ? 26 : 22,
+                              ),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.black
+                                    : AppColors.onboardingHairline,
+                              ),
+                              boxShadow: isSelected
+                                  ? AppShadows.onboardingLift
+                                  : AppShadows.shadow1,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _RoleTitleTag(
-                                  label: titleTag,
-                                  isSelected: isSelected,
-                                ),
-                                Text(
-                                  isSelected ? '已经沿这条路径展开' : '轻触展开这条路径',
-                                  style: AppTextStyles.caption.copyWith(
-                                    color: metaColor,
-                                    fontWeight: FontWeight.w500,
+                                AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 240),
+                                  curve: AppCurves.standard,
+                                  style: AppTextStyles.h2.copyWith(
+                                    fontSize: isSelected
+                                        ? (isCompact ? 27 : 30)
+                                        : (isCompact ? 20 : 22),
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                    letterSpacing: isSelected ? -0.5 : -0.3,
+                                    color: textColor,
                                   ),
+                                  child: Text(
+                                    title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 280),
+                                  switchInCurve: AppCurves.standard,
+                                  switchOutCurve: AppCurves.standard,
+                                  transitionBuilder: (child, animation) {
+                                    return FadeTransition(
+                                      opacity: animation,
+                                      child: SlideTransition(
+                                        position: Tween<Offset>(
+                                          begin: const Offset(0, 0.08),
+                                          end: Offset.zero,
+                                        ).animate(animation),
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    isSelected
+                                        ? expandedDescription
+                                        : shortDescription,
+                                    key: ValueKey(isSelected),
+                                    maxLines: isSelected ? 3 : 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.body2.copyWith(
+                                      color: bodyColor,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                Row(
+                                  children: [
+                                    Text(
+                                      titleTag,
+                                      style: AppTextStyles.caption.copyWith(
+                                        color: metaColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      width: 14,
+                                      height: 1,
+                                      color: isSelected
+                                          ? AppColors.white
+                                              .withValues(alpha: 0.22)
+                                          : AppColors.gray300,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        isSelected ? '已经沿这条路径展开' : '轻触展开这条路径',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTextStyles.caption.copyWith(
+                                          color: metaColor,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 320),
@@ -376,7 +442,7 @@ class _PaperRoleBranch extends StatelessWidget {
                             ? Padding(
                                 key: ValueKey('${serial}_path_strip'),
                                 padding: EdgeInsets.fromLTRB(
-                                  isCompact ? 34 : 42,
+                                  isCompact ? 34 : 40,
                                   6,
                                   14,
                                   0,
@@ -396,8 +462,8 @@ class _PaperRoleBranch extends StatelessWidget {
                     ],
                   ),
                   Positioned(
-                    left: isCompact ? 16 : 22,
-                    top: -10,
+                    left: isCompact ? 16 : 20,
+                    top: -8,
                     child: _PaperSerialTag(
                       serial: serial,
                       isSelected: isSelected,
@@ -405,7 +471,7 @@ class _PaperRoleBranch extends StatelessWidget {
                   ),
                   Positioned(
                     left: isCompact ? -2 : 0,
-                    top: isCompact ? 44 : 46,
+                    top: isCompact ? 42 : 44,
                     child: _MorphRoleChip(icon: icon, isSelected: isSelected),
                   ),
                   Positioned(
@@ -439,7 +505,7 @@ class _RoleTitleTag extends StatelessWidget {
         color: isSelected
             ? AppColors.white.withValues(alpha: 0.12)
             : AppColors.onboardingSurfaceMuted,
-        borderRadius: BorderRadius.circular(AppRadius.full),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         label,
@@ -463,10 +529,10 @@ class _PaperSerialTag extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 460),
       curve: AppCurves.standard,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: isSelected ? AppColors.white : AppColors.onboardingSurfaceMuted,
-        borderRadius: BorderRadius.circular(isSelected ? 16 : 14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.onboardingHairline.withValues(alpha: 0.8),
         ),
@@ -490,12 +556,12 @@ class _MorphRoleChip extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 460),
       curve: AppCurves.standard,
-      width: isSelected ? 108 : 54,
-      height: isSelected ? 58 : 54,
+      width: isSelected ? 82 : 48,
+      height: isSelected ? 50 : 48,
       padding: EdgeInsets.all(isSelected ? 6 : 0),
       decoration: BoxDecoration(
         color: isSelected ? AppColors.white : AppColors.onboardingSurface,
-        borderRadius: BorderRadius.circular(isSelected ? 20 : 18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: AppColors.onboardingHairline.withValues(alpha: 0.9),
         ),
@@ -516,13 +582,13 @@ class _MorphRoleChip extends StatelessWidget {
                 key: const ValueKey('morph-expanded'),
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: AppColors.black,
                       borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
-                    child: Icon(icon, size: 20, color: AppColors.white),
+                    child: Icon(icon, size: 18, color: AppColors.white),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -531,17 +597,17 @@ class _MorphRoleChip extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 28,
-                          height: 6,
+                          width: 16,
+                          height: 5,
                           decoration: BoxDecoration(
                             color: AppColors.black.withValues(alpha: 0.88),
                             borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 4),
                         Container(
-                          width: 18,
-                          height: 6,
+                          width: 10,
+                          height: 5,
                           decoration: BoxDecoration(
                             color: AppColors.black.withValues(alpha: 0.22),
                             borderRadius: BorderRadius.circular(AppRadius.full),
@@ -554,7 +620,7 @@ class _MorphRoleChip extends StatelessWidget {
               )
             : Center(
                 key: const ValueKey('morph-collapsed'),
-                child: Icon(icon, size: 24, color: AppColors.black),
+                child: Icon(icon, size: 22, color: AppColors.black),
               ),
       ),
     );
@@ -571,13 +637,13 @@ class _PaperSelectionSeal extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 460),
       curve: AppCurves.standard,
-      width: isSelected ? 82 : 28,
+      width: isSelected ? 74 : 28,
       height: 28,
       alignment: Alignment.center,
-      padding: EdgeInsets.symmetric(horizontal: isSelected ? 9 : 0),
+      padding: EdgeInsets.symmetric(horizontal: isSelected ? 8 : 0),
       decoration: BoxDecoration(
         color: isSelected ? AppColors.white : Colors.transparent,
-        borderRadius: BorderRadius.circular(AppRadius.full),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.onboardingHairline),
         boxShadow: isSelected ? AppShadows.shadow1 : const [],
       ),
@@ -605,7 +671,7 @@ class _PaperSelectionSeal extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '选中',
+                      '已选',
                       style: AppTextStyles.caption.copyWith(
                         color: AppColors.black,
                         fontWeight: FontWeight.w600,
@@ -638,51 +704,44 @@ class _DetachedPathStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final stepSummary = steps.join(' / ');
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: AppColors.onboardingSurface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.onboardingHairline.withValues(alpha: 0.9),
+    return Transform.rotate(
+      angle: -0.014,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        decoration: BoxDecoration(
+          color: AppColors.onboardingSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.onboardingHairline.withValues(alpha: 0.9),
+          ),
+          boxShadow: AppShadows.shadow1,
         ),
-        boxShadow: AppShadows.shadow1,
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: AppColors.onboardingSurfaceMuted,
-              borderRadius: BorderRadius.circular(AppRadius.full),
+        child: Row(
+          children: [
+            _RoleTitleTag(
+              label: pathLabel,
+              isSelected: false,
             ),
-            child: Text(
-              pathLabel,
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.black,
-                fontWeight: FontWeight.w600,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                stepSummary,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.onboardingMutedText,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              stepSummary,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.onboardingMutedText,
-                fontWeight: FontWeight.w500,
-              ),
+            const SizedBox(width: 6),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              size: 14,
+              color: AppColors.gray400,
             ),
-          ),
-          const SizedBox(width: 6),
-          const Icon(
-            Icons.arrow_forward_rounded,
-            size: 14,
-            color: AppColors.gray400,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -696,52 +755,16 @@ class _RoleSelectionBackdrop extends StatelessWidget {
     return Stack(
       children: [
         Positioned(
-          top: -18,
-          right: -44,
+          top: -20,
+          right: -42,
           child: Transform.rotate(
             angle: 0.06,
             child: Container(
-              width: 196,
-              height: 132,
+              width: 184,
+              height: 120,
               decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(36),
-                border: Border.all(
-                  color: AppColors.onboardingHairline.withValues(alpha: 0.42),
-                ),
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 118,
-          left: 24,
-          right: 24,
-          child: Container(
-            height: 1,
-            color: AppColors.onboardingHairline.withValues(alpha: 0.42),
-          ),
-        ),
-        Positioned(
-          left: 46,
-          top: 152,
-          bottom: 86,
-          child: Container(
-            width: 1,
-            color: AppColors.onboardingHairline.withValues(alpha: 0.22),
-          ),
-        ),
-        Positioned(
-          right: 28,
-          bottom: 96,
-          child: Transform.rotate(
-            angle: -0.08,
-            child: Container(
-              width: 118,
-              height: 92,
-              decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(28),
+                color: AppColors.white.withValues(alpha: 0.74),
+                borderRadius: BorderRadius.circular(32),
                 border: Border.all(
                   color: AppColors.onboardingHairline.withValues(alpha: 0.28),
                 ),
@@ -749,7 +772,57 @@ class _RoleSelectionBackdrop extends StatelessWidget {
             ),
           ),
         ),
+        Positioned(
+          right: 34,
+          bottom: 104,
+          child: Transform.rotate(
+            angle: -0.08,
+            child: Container(
+              width: 104,
+              height: 82,
+              decoration: BoxDecoration(
+                color: AppColors.white.withValues(alpha: 0.44),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppColors.onboardingHairline.withValues(alpha: 0.18),
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _RolePageBottomBar extends StatelessWidget {
+  final Widget child;
+
+  const _RolePageBottomBar({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomSafeArea = MediaQuery.paddingOf(context).bottom;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        12,
+        24,
+        bottomSafeArea > 0 ? bottomSafeArea + 12 : 18,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.onboardingBackground.withValues(alpha: 0),
+            AppColors.onboardingBackground.withValues(alpha: 0.92),
+            AppColors.onboardingBackground,
+          ],
+        ),
+      ),
+      child: child,
     );
   }
 }

@@ -70,7 +70,8 @@ class NotificationItem {
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
       targetType: json['target_type']?.toString(),
-      targetId: json['target_uuid']?.toString() ?? json['target_id']?.toString(),
+      targetId:
+          json['target_uuid']?.toString() ?? json['target_id']?.toString(),
     );
   }
 
@@ -137,7 +138,7 @@ class NotificationItem {
       case 'conversation':
       case 'order':
       case 'milestone':
-        return '该通知暂时无法直接打开。';
+        return '这条提醒暂时不能直接打开，可以先回相关项目里继续看。';
       default:
         return null;
     }
