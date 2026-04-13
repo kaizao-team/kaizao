@@ -206,8 +206,8 @@ class _ExpandedIndicator extends StatelessWidget {
     );
 
     return Semantics(
-      label: 'Step $currentStep of $safeStepCount'
-          '${currentLabel.isEmpty ? '' : ': $currentLabel'}',
+      label: '第$currentStep步，共$safeStepCount步'
+          '${currentLabel.isEmpty ? '' : '：$currentLabel'}',
       child: Container(
         height: 28,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -219,10 +219,10 @@ class _ExpandedIndicator extends StatelessWidget {
         child: Row(
           children: [
             Text(
-              'STEP',
+              '进度',
               style: AppTextStyles.onboardingMeta.copyWith(
                 color: AppColors.gray400,
-                letterSpacing: 0.7,
+                letterSpacing: 0.2,
               ),
             ),
             const SizedBox(width: 10),
@@ -272,8 +272,8 @@ class _CompactIndicator extends StatelessWidget {
     );
 
     return Semantics(
-      label: 'Step $currentStep of $safeStepCount'
-          '${currentLabel.isEmpty ? '' : ': $currentLabel'}',
+      label: '第$currentStep步，共$safeStepCount步'
+          '${currentLabel.isEmpty ? '' : '：$currentLabel'}',
       child: Container(
         height: 28,
         padding: const EdgeInsets.symmetric(horizontal: 10),

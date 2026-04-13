@@ -47,7 +47,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final offset = _scrollController.offset.clamp(0.0, double.infinity).toDouble();
+    final offset =
+        _scrollController.offset.clamp(0.0, double.infinity).toDouble();
     if ((offset - _scrollOffset).abs() > 0.5) {
       setState(() => _scrollOffset = offset);
     }
@@ -153,7 +154,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         VccPageSection(
-                          label: 'OVERVIEW',
+                          label: '概览',
                           child: _ProfileMetricsCard(profile: profile),
                         ),
                         if (!profile.isDemander &&
@@ -163,13 +164,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ],
                         const SizedBox(height: _kProfileSectionGap),
                         VccPageSection(
-                          label: 'ACCOUNT',
+                          label: '账号信息',
                           child: _ProfileInfoCard(profile: profile),
                         ),
                         if (isSelf) ...[
                           const SizedBox(height: _kProfileSectionGap),
                           VccPageSection(
-                            label: 'QUICK ACTIONS',
+                            label: '快捷入口',
                             child: _ProfileMenuGroup(
                               items: [
                                 _ProfileMenuItem(
@@ -199,7 +200,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ],
                         const SizedBox(height: _kProfileSectionGap),
                         VccPageSection(
-                          label: 'SUPPORT',
+                          label: '帮助与支持',
                           child: _ProfileMenuGroup(
                             items: [
                               _ProfileMenuItem(
@@ -208,7 +209,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                     context.push(RoutePaths.helpFeedback),
                               ),
                               _ProfileMenuItem(
-                                label: '关于 KAIZO',
+                                label: '关于开造',
                                 onTap: () => context.push(RoutePaths.about),
                               ),
                             ],
@@ -1137,17 +1138,16 @@ class _ImmersiveProfileHeader extends StatelessWidget {
     final titleWeight =
         FontWeight.lerp(FontWeight.w700, FontWeight.w600, progress) ??
             FontWeight.w700;
-    final titleTop =
-        lerpDouble(topPadding + 12, topPadding + 14, progress)!;
+    final titleTop = lerpDouble(topPadding + 12, topPadding + 14, progress)!;
 
     // Colors: white (on dark hero) → dark (on light header)
     final textColor = Color.lerp(Colors.white, AppColors.black, progress)!;
-    final bgColor = AppColors.surface
-        .withValues(alpha: Curves.easeIn.transform(progress));
+    final bgColor =
+        AppColors.surface.withValues(alpha: Curves.easeIn.transform(progress));
 
     // Text portion collapses in the first half of scroll
-    final textProgress = Curves.easeInOut
-        .transform((progress * 2).clamp(0.0, 1.0));
+    final textProgress =
+        Curves.easeInOut.transform((progress * 2).clamp(0.0, 1.0));
 
     // Settings button: ghost white → invisible container (just icon)
     final settingsBg = Color.lerp(
@@ -1166,8 +1166,8 @@ class _ImmersiveProfileHeader extends StatelessWidget {
     final settingsTop = titleCenterY - iconContainerHeight / 2;
 
     // Divider appears at full collapse
-    final dividerOpacity = Curves.easeOut
-        .transform(((progress - 0.9) / 0.1).clamp(0.0, 1.0));
+    final dividerOpacity =
+        Curves.easeOut.transform(((progress - 0.9) / 0.1).clamp(0.0, 1.0));
 
     return SizedBox(
       height: topPadding + 48,

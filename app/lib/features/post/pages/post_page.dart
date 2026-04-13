@@ -875,7 +875,7 @@ class _ConfirmRequirementButtonState extends State<_ConfirmRequirementButton>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '正在确认当前 PRD',
+                      '正在确认当前需求摘要',
                       style: AppTextStyles.body1.copyWith(
                         color: AppColors.white,
                         fontWeight: FontWeight.w700,
@@ -883,7 +883,7 @@ class _ConfirmRequirementButtonState extends State<_ConfirmRequirementButton>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '这是轻量确认操作，不再等待 requirement.md 生成',
+                      '做最后一遍确认，马上进入项目概览',
                       style: AppTextStyles.caption.copyWith(
                         color: AppColors.white.withValues(alpha: 0.72),
                         height: 1.45,
@@ -969,7 +969,7 @@ class _ProjectOverviewStage extends StatelessWidget {
       return const _InlineStepIntro(
         eyebrow: '项目概览',
         title: '还没有可确认的发布摘要',
-        body: '先完成需求对话并确认 PRD，这里才会展示已锁定的摘要。',
+        body: '先完成需求对话并确认项目摘要，这里才会展示已锁定的内容。',
       );
     }
 

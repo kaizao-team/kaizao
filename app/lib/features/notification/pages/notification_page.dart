@@ -153,9 +153,8 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
           slivers: [
             VccEditorialAppBar(
               title: '通知',
-              subtitle: state.unreadCount > 0
-                  ? '${state.unreadCount} 条未读'
-                  : null,
+              subtitle:
+                  state.unreadCount > 0 ? '${state.unreadCount} 条未读' : null,
               trailing: state.unreadCount > 0
                   ? TextButton(
                       onPressed: () => ref
@@ -171,7 +170,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        '全部已读',
+                        '全部标为已读',
                         style: AppTextStyles.body2.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -195,71 +194,69 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                 ),
               ),
             ),
-              if (state.isLoading && state.notifications.isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _NotificationLoadingState(),
-                )
-              else if (state.errorMessage != null &&
-                  state.notifications.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _NotificationErrorState(
-                    message: state.errorMessage!,
-                    onRetry: () =>
-                        ref.read(notificationProvider.notifier).refresh(),
-                  ),
-                )
-              else if (filtered.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _NotificationEmptyState(
-                    isFiltered: _filter != _NotificationFilter.all,
-                    onResetFilter: _filter == _NotificationFilter.all
-                        ? null
-                        : () =>
-                            setState(() => _filter = _NotificationFilter.all),
-                  ),
-                )
-              else ...[
-                for (var index = 0; index < groups.length; index++) ...[
-                  if (showGroupHeaders || groups.length > 1)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          20,
-                          index == 0 ? 8 : 22,
-                          20,
-                          10,
-                        ),
-                        child: _SectionHeader(
-                          label: groups[index].kind.label,
-                          count: groups[index].items.length,
-                        ),
+            if (state.isLoading && state.notifications.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: _NotificationLoadingState(),
+              )
+            else if (state.errorMessage != null && state.notifications.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _NotificationErrorState(
+                  message: state.errorMessage!,
+                  onRetry: () =>
+                      ref.read(notificationProvider.notifier).refresh(),
+                ),
+              )
+            else if (filtered.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _NotificationEmptyState(
+                  isFiltered: _filter != _NotificationFilter.all,
+                  onResetFilter: _filter == _NotificationFilter.all
+                      ? null
+                      : () => setState(() => _filter = _NotificationFilter.all),
+                ),
+              )
+            else ...[
+              for (var index = 0; index < groups.length; index++) ...[
+                if (showGroupHeaders || groups.length > 1)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        index == 0 ? 8 : 22,
+                        20,
+                        10,
+                      ),
+                      child: _SectionHeader(
+                        label: groups[index].kind.label,
+                        count: groups[index].items.length,
                       ),
                     ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    sliver: SliverList.separated(
-                      itemCount: groups[index].items.length,
-                      itemBuilder: (context, itemIndex) {
-                        final item = groups[index].items[itemIndex];
-                        return _NotificationRow(
-                          item: item,
-                          onTap: () => _onNotificationTap(item),
-                        );
-                      },
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    ),
                   ),
-                ],
-                SliverToBoxAdapter(
-                  child: _LoadMoreFooter(state: state),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  sliver: SliverList.separated(
+                    itemCount: groups[index].items.length,
+                    itemBuilder: (context, itemIndex) {
+                      final item = groups[index].items[itemIndex];
+                      return _NotificationRow(
+                        item: item,
+                        onTap: () => _onNotificationTap(item),
+                      );
+                    },
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  ),
                 ),
               ],
+              SliverToBoxAdapter(
+                child: _LoadMoreFooter(state: state),
+              ),
             ],
-          ),
+          ],
         ),
+      ),
     );
   }
 }
@@ -267,7 +264,6 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
 class _SectionHeader extends StatelessWidget {
   final String label;
   final int? count;
-
 
   const _SectionHeader({
     required this.label,
@@ -282,7 +278,7 @@ class _SectionHeader extends StatelessWidget {
       style: AppTextStyles.caption.copyWith(
         fontWeight: FontWeight.w600,
         color: AppColors.gray400,
-        letterSpacing: 1.8,
+        letterSpacing: 0.8,
       ),
     );
   }
@@ -313,9 +309,7 @@ class _NotificationRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadius.xxl),
             color: AppColors.surfaceRaised,
             border: Border.all(
-              color: item.isRead
-                  ? AppColors.gray200
-                  : AppColors.gray300,
+              color: item.isRead ? AppColors.gray200 : AppColors.gray300,
               width: 0.5,
             ),
           ),
@@ -660,7 +654,7 @@ class _LoadMoreFooter extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 36),
         child: Center(
           child: Text(
-            '已经到底了',
+            '没有更多通知了',
             style: AppTextStyles.body2.copyWith(
               color: AppColors.gray400,
             ),

@@ -126,14 +126,14 @@ class _AssessmentLoadingView extends StatelessWidget {
         const Text('正在生成你的团队等级', style: AppTextStyles.onboardingTitle),
         const SizedBox(height: 12),
         const Text(
-          'AI 正在把你的能力、排期与协作方式压成一张初始团队画像。',
+          '系统正在整理你的能力、排期和协作方式，先给你生成一版团队等级。',
           style: AppTextStyles.onboardingBody,
         ),
         const SizedBox(height: 18),
         Row(
           children: [
             Text(
-              'AI ASSESSMENT',
+              'AI 评估中',
               style: AppTextStyles.onboardingMeta.copyWith(
                 color: AppColors.onboardingPrimary,
               ),
@@ -154,7 +154,7 @@ class _AssessmentLoadingView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'SIGNAL BUILDING',
+                '资料整理中',
                 style: AppTextStyles.onboardingMeta.copyWith(
                   color: AppColors.white.withValues(alpha: 0.62),
                 ),
@@ -169,7 +169,7 @@ class _AssessmentLoadingView extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                '通常只需 2-3 秒，系统会先给你一个能进入市场的起始位。',
+                '通常只需 2-3 秒，先给你一个可以开始接项目的起点。',
                 style: AppTextStyles.body2.copyWith(
                   color: AppColors.white.withValues(alpha: 0.72),
                   height: 1.5,
@@ -311,13 +311,13 @@ class _AssessmentResultView extends StatelessWidget {
   String _ratingHint() {
     switch (rating) {
       case 5:
-        return '你已经具备主导关键路径的信号，适合接高判断密度的项目。';
+        return '你已经具备主导关键路径的能力，适合接判断密度更高的项目。';
       case 4:
         return '复杂协作和稳定交付是你的起点，可以直接接中高复杂度项目。';
       case 3:
         return '独立推进能力已经成形，先用真实案例把信任继续往上拉。';
       default:
-        return '先用清晰案例和高响应速度，把第一批信号建立起来。';
+        return '先用清晰案例和高响应速度，把第一批可信度慢慢立住。';
     }
   }
 
@@ -338,14 +338,14 @@ class _AssessmentResultView extends StatelessWidget {
         const Text('你的团队等级已生成', style: AppTextStyles.onboardingTitle),
         const SizedBox(height: 12),
         const Text(
-          '这不是终局评级，而是你进入 KAIZO 团队网络的起始位。后面的真实合作会继续抬高它。',
+          '这不是终局评级，而是你进入 KAIZO 团队网络的起点。后面的真实合作会继续把它抬上去。',
           style: AppTextStyles.onboardingBody,
         ),
         const SizedBox(height: 18),
         Row(
           children: [
             Text(
-              'TEAM SIGNAL READY',
+              '团队等级已生成',
               style: AppTextStyles.onboardingMeta.copyWith(
                 color: AppColors.onboardingPrimary,
               ),
@@ -383,7 +383,7 @@ class _AssessmentResultView extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                '你的技能结构和协作状态已经足够形成第一版市场画像。先进入网络，再用真实交付继续抬升。',
+                '你的技能结构和协作状态已经够清楚，可以先开始接触项目了。后面的真实合作，会继续把这份档案补得更扎实。',
                 style: AppTextStyles.body2.copyWith(
                   color: AppColors.white.withValues(alpha: 0.72),
                   height: 1.5,

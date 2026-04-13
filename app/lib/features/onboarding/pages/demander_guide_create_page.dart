@@ -26,7 +26,7 @@ class DemanderGuideCreatePage extends ConsumerWidget {
           context.go(RoutePaths.demanderOnboarding1);
         }
       },
-      primaryActionText: '创建需求',
+      primaryActionText: '开始创建',
       onPrimaryAction: () async {
         final projectId = await ref
             .read(onboardingProvider.notifier)
@@ -59,19 +59,19 @@ class DemanderGuideCreatePage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 36),
-          Text('发布你的第一个需求', style: AppTextStyles.onboardingTitle),
+          Text('把第一个需求发出来', style: AppTextStyles.onboardingTitle),
           SizedBox(height: 12),
           Text(
-            '描述你想要实现的功能，AI 会帮你整理成更清晰的项目需求文档。',
+            '先把要做的事讲清一点，这页就会先把骨架搭出来。',
             style: AppTextStyles.onboardingBody,
           ),
           SizedBox(height: 28),
           _RequirementDraftPreview(),
           SizedBox(height: 18),
           OnboardingSectionHeader(
-            title: '先让 AI 起一版草稿',
-            description: '你不用从 PRD 开始，只要先把方向说清，结构会慢慢长出来。',
-            accessory: OnboardingHelperTag(text: 'AI 会先帮你整理结构'),
+            title: '先把骨架搭起来',
+            description: '你不用一上来就写完整文档，先把方向说清，结构会慢慢长出来。',
+            accessory: OnboardingHelperTag(text: '先搭骨架，再慢慢补细节'),
           ),
           SizedBox(height: 24),
         ],
@@ -91,7 +91,7 @@ class _RequirementDraftPreview extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'REQUIREMENT DRAFT',
+            '需求草稿',
             style: AppTextStyles.onboardingMeta.copyWith(
               color: AppColors.onboardingPrimary,
             ),
@@ -135,7 +135,7 @@ class _RequirementDraftPreview extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           Text(
-            'Waiting for your input...',
+            '等你补充项目关键信息',
             style: AppTextStyles.body2.copyWith(
               color: AppColors.onboardingMutedText,
               fontStyle: FontStyle.italic,
@@ -145,7 +145,7 @@ class _RequirementDraftPreview extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              'PROFESSIONAL STANDARDS APPLIED',
+              '已按项目摘要结构预排版',
               style: AppTextStyles.onboardingMeta.copyWith(
                 color: AppColors.gray400,
               ),

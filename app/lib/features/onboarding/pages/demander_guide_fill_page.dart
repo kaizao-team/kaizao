@@ -231,26 +231,25 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
     final budgetText =
         '¥${_formatBudget(_budgetMin)} - ¥${_formatBudget(_budgetMax)}';
     final categoryHint = _selectedCategoryLabel.isEmpty
-        ? '先点亮一个方向，后面的匹配才有抓手。'
+        ? '先定个方向，后面才知道该往哪找。'
         : (_categoryDescriptions[_selectedCategoryLabel] ?? '继续补充项目细节。');
     final briefStatusText = _selectedCategoryLabel.isEmpty
-        ? '等待起笔'
+        ? '等你开写'
         : _isValid
-        ? '可直接发布'
-        : (hasTitle ? '继续完善' : '方向已点亮');
+            ? '可以发布了'
+            : (hasTitle ? '继续补两句' : '方向已选好');
     final titleHelperText = !hasTitle
-        ? '标题至少 5 个字，接口才会接收。'
+        ? '先起个能看懂的标题，至少 5 个字。'
         : title.length >= 5
-        ? '这一行已经够清楚了。'
-        : '再补 ${5 - title.length} 个字，至少 5 个字。';
+            ? '这一行已经够清楚了。'
+            : '再补 ${5 - title.length} 个字，就更像一条能推进的项目名。';
     final descriptionHelperText = !hasDescription
-        ? '项目语境至少 20 个字，目标和范围要写出来。'
+        ? '把目标、范围或参考说一句，至少 20 个字。'
         : description.length >= 20
-        ? '这段信息已经够团队快速判断。'
-        : '再补 ${20 - description.length} 个字，接口才会接收。';
-    final footnoteText = _isValid
-        ? '骨架已经立住了，再补两句语境，系统会更快把你推到合适的人面前。'
-        : '标题至少 5 个字，描述至少 20 个字，分类也要选定。';
+            ? '这段信息已经够团队快速判断。'
+            : '再补 ${20 - description.length} 个字，让团队更快看懂。';
+    final footnoteText =
+        _isValid ? '骨架已经立住了，发出去后，就可以开始往合适的团队那边靠。' : '标题、描述和方向都补齐后，就可以继续往下走。';
 
     return OnboardingScaffold(
       currentStep: 2,
@@ -260,17 +259,17 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
           context.go(RoutePaths.demanderOnboarding2);
         }
       },
-      primaryActionText: '创建项目',
+      primaryActionText: '发布项目',
       onPrimaryAction: _isValid ? _submit : null,
       isPrimaryLoading: state.isLoading,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 30),
-          const Text('把想法推成一页 Brief', style: AppTextStyles.onboardingTitle),
+          const Text('把想法整理成项目摘要', style: AppTextStyles.onboardingTitle),
           const SizedBox(height: 10),
           const Text(
-            '不用一次写满。先把方向、预算和语境推出来，系统就能开始替你匹配。',
+            '不用一次写满。先把方向、预算和语境说清，后面就知道该往哪找人。',
             style: AppTextStyles.onboardingBody,
           ),
           const SizedBox(height: 24),
@@ -287,7 +286,7 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
                   child: Row(
                     children: [
                       Text(
-                        'PROJECT BRIEF',
+                        '项目摘要',
                         style: AppTextStyles.onboardingMeta.copyWith(
                           color: AppColors.onboardingPrimary,
                         ),
@@ -341,7 +340,7 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
                       const _ComposerSectionLabel(
                         index: '01',
                         title: '项目方向',
-                        hint: '先把赛道点亮，后面才会越填越快',
+                        hint: '先把方向选定，后面会越填越顺',
                       ),
                       const SizedBox(height: 12),
                       Wrap(
@@ -406,7 +405,7 @@ class _DemanderGuideFillPageState extends ConsumerState<DemanderGuideFillPage>
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        '系统会先按这个预算段为你收拢合适的人',
+                        '先按这个预算段去看人，会更接近你的预期。',
                         style: AppTextStyles.caption.copyWith(
                           color: AppColors.onboardingMutedText,
                         ),

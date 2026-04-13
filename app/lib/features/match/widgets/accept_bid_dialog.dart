@@ -61,7 +61,7 @@ class _AcceptBidDialogState extends State<AcceptBidDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '确认选择',
+                '确认合作',
                 style: AppTextStyles.h3.copyWith(
                   fontWeight: FontWeight.w700,
                   color: AppColors.black,
@@ -75,8 +75,8 @@ class _AcceptBidDialogState extends State<AcceptBidDialog> {
               _Row(label: '工期', value: '${bid.durationDays}天'),
               const SizedBox(height: 10),
               Text('方案摘要',
-                  style: AppTextStyles.caption.copyWith(
-                      fontSize: 13, color: AppColors.gray500)),
+                  style: AppTextStyles.caption
+                      .copyWith(fontSize: 13, color: AppColors.gray500)),
               const SizedBox(height: 4),
               Text(
                 bid.proposal,
@@ -101,7 +101,7 @@ class _AcceptBidDialogState extends State<AcceptBidDialog> {
                         ),
                         child: Center(
                           child: Text(
-                            '再考虑',
+                            '暂不选择',
                             style: AppTextStyles.body2.copyWith(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
@@ -127,7 +127,7 @@ class _AcceptBidDialogState extends State<AcceptBidDialog> {
                         ),
                         child: Center(
                           child: Text(
-                            '确认选择',
+                            '确认合作',
                             style: AppTextStyles.body2.copyWith(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -159,12 +159,11 @@ class _Row extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
-            style: AppTextStyles.caption.copyWith(
-                fontSize: 13, color: AppColors.gray500)),
+            style: AppTextStyles.caption
+                .copyWith(fontSize: 13, color: AppColors.gray500)),
         Text(value,
-            style: AppTextStyles.body2.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.black)),
+            style: AppTextStyles.body2
+                .copyWith(fontWeight: FontWeight.w600, color: AppColors.black)),
       ],
     );
   }

@@ -37,9 +37,14 @@ class PrdModuleTree extends StatelessWidget {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.description_outlined, size: 18, color: AppColors.white),
+                  Icon(Icons.description_outlined,
+                      size: 18, color: AppColors.white),
                   SizedBox(width: 8),
-                  Text('PRD', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.white)),
+                  Text('项目文档',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.white)),
                 ],
               ),
             ),
@@ -90,7 +95,12 @@ class _ModuleNodeState extends State<_ModuleNode> {
               color: AppColors.white,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.gray200),
-              boxShadow: const [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.04), blurRadius: 4, offset: Offset(0, 2))],
+              boxShadow: const [
+                BoxShadow(
+                    color: Color.fromRGBO(0, 0, 0, 0.04),
+                    blurRadius: 4,
+                    offset: Offset(0, 2))
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -107,18 +117,25 @@ class _ModuleNodeState extends State<_ModuleNode> {
                 const SizedBox(width: 10),
                 Text(
                   widget.module.name,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.black),
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.black),
                 ),
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppColors.gray100,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '${widget.module.cards.length}',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.gray500),
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.gray500),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -134,7 +151,8 @@ class _ModuleNodeState extends State<_ModuleNode> {
         AnimatedCrossFade(
           firstChild: const SizedBox(width: double.infinity),
           secondChild: _buildCardList(),
-          crossFadeState: _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          crossFadeState:
+              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 260),
         ),
       ],
@@ -156,12 +174,17 @@ class _ModuleNodeState extends State<_ModuleNode> {
                       onTap: () => widget.onCardTap(card.id),
                       child: Container(
                         margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: card.isCompleted ? AppColors.gray50 : AppColors.white,
+                          color: card.isCompleted
+                              ? AppColors.gray50
+                              : AppColors.white,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: card.isCompleted ? AppColors.success : _typeColor(card.type),
+                            color: card.isCompleted
+                                ? AppColors.success
+                                : _typeColor(card.type),
                             width: card.isCompleted ? 1 : 1.5,
                           ),
                         ),
@@ -175,8 +198,12 @@ class _ModuleNodeState extends State<_ModuleNode> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: card.isCompleted ? AppColors.gray400 : AppColors.black,
-                                  decoration: card.isCompleted ? TextDecoration.lineThrough : null,
+                                  color: card.isCompleted
+                                      ? AppColors.gray400
+                                      : AppColors.black,
+                                  decoration: card.isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : null,
                                 ),
                               ),
                             ),
@@ -236,9 +263,14 @@ class _TypeBadge extends StatelessWidget {
     return Container(
       width: 20,
       height: 20,
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+      decoration:
+          BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
       child: Center(
-        child: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.white)),
+        child: Text(label,
+            style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: AppColors.white)),
       ),
     );
   }
@@ -268,7 +300,8 @@ class _PriorityBadge extends StatelessWidget {
       ),
       child: Text(
         priority,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
+        style:
+            TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
       ),
     );
   }

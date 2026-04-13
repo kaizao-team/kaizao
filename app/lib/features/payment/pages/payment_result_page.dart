@@ -64,8 +64,7 @@ class _PaymentResultPageState extends ConsumerState<PaymentResultPage>
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color:
-                        isSuccess ? AppColors.successBg : AppColors.errorBg,
+                    color: isSuccess ? AppColors.successBg : AppColors.errorBg,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -119,7 +118,7 @@ class _PaymentResultPageState extends ConsumerState<PaymentResultPage>
                     SizedBox(
                       width: double.infinity,
                       child: VccButton(
-                        text: isSuccess ? '查看项目' : '重新支付',
+                        text: isSuccess ? '返回项目列表' : '重新支付',
                         onPressed: () {
                           if (isSuccess) {
                             context.go('/projects');
