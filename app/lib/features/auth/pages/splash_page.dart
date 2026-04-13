@@ -96,8 +96,20 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
       final controller = VideoPlayerController.file(file);
       await controller.initialize();
-      await controller.setLooping(true);
+      await controller.setLooping(false);
       await controller.setVolume(0);
+
+      controller.addListener(() {
+        if (!mounted || !controller.value.isInitialized) return;
+        final position = controller.value.position;
+        final duration = controller.value.duration;
+        if (duration == Duration.zero) return;
+
+        final isAtEnd = position >= duration - const Duration(milliseconds: 32);
+        if (isAtEnd && controller.value.isPlaying) {
+          controller.pause();
+        }
+      });
 
       if (!mounted) {
         controller.dispose();
