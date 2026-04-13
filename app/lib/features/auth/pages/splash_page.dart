@@ -7,9 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../app/routes.dart';
-import '../../../app/theme/app_colors.dart';
 import '../../onboarding/providers/onboarding_provider.dart';
 import '../providers/auth_provider.dart';
+
+const _kBgColor = Color(0xFFF9F9F7);
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -39,7 +40,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: AppColors.surface,
+        systemNavigationBarColor: _kBgColor,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
@@ -95,8 +96,8 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
       final controller = VideoPlayerController.file(file);
       await controller.initialize();
-      controller.setLooping(false);
-      controller.setVolume(0);
+      await controller.setLooping(true);
+      await controller.setVolume(0);
 
       if (!mounted) {
         controller.dispose();
@@ -146,12 +147,11 @@ class _SplashPageState extends ConsumerState<SplashPage>
     final padding = MediaQuery.of(context).padding;
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     const logoViewportSize = 212.0;
-    const logoZoomScale = 1.45;
-    final logoCacheSize =
-        (logoViewportSize * logoZoomScale * devicePixelRatio).round();
+    const logoMediaScale = 2.25;
+    final logoCacheSize = (logoViewportSize * devicePixelRatio).round();
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: _kBgColor,
       body: AnimatedBuilder(
         animation: Listenable.merge([
           _logoController,
@@ -169,40 +169,40 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       opacity: _logoOpacityAnim.value,
                       child: Transform.scale(
                         scale: _scaleAnim.value,
-                        filterQuality: FilterQuality.high,
-                        child: RepaintBoundary(
-                          child: SizedBox(
-                            width: logoViewportSize,
-                            height: logoViewportSize,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(AppRadius.xs),
-                              child: Transform.scale(
-                                scale: logoZoomScale,
-                                filterQuality: FilterQuality.high,
-                                child: _videoReady && _videoController != null
-                                    ? FittedBox(
-                                        fit: BoxFit.cover,
-                                        child: SizedBox(
-                                          width: _videoController!
-                                              .value.size.width,
-                                          height: _videoController!
-                                              .value.size.height,
-                                          child: VideoPlayer(
-                                            _videoController!,
-                                          ),
-                                        ),
-                                      )
-                                    : Image.asset(
-                                        'assets/branding/app_launch_static_transparent_cropped.png',
-                                        fit: BoxFit.cover,
-                                        alignment: Alignment.center,
-                                        filterQuality: FilterQuality.high,
-                                        isAntiAlias: true,
-                                        gaplessPlayback: true,
-                                        cacheWidth: logoCacheSize,
-                                        cacheHeight: logoCacheSize,
+                        child: SizedBox(
+                          width: logoViewportSize,
+                          height: logoViewportSize,
+                          child: ClipRect(
+                            child: Transform.scale(
+                              scale: logoMediaScale,
+                              child: _videoReady && _videoController != null
+                                  ? FittedBox(
+                                      fit: BoxFit.contain,
+                                      child: SizedBox(
+                                        width:
+                                            _videoController!.value.size.width,
+                                        height:
+                                            _videoController!.value.size.height,
+                                        child: VideoPlayer(_videoController!),
                                       ),
-                              ),
+                                    )
+                                  : FittedBox(
+                                      fit: BoxFit.contain,
+                                      child: SizedBox(
+                                        width: logoViewportSize,
+                                        height: logoViewportSize,
+                                        child: Image.asset(
+                                          'assets/branding/app_launch_static_transparent_cropped.png',
+                                          fit: BoxFit.contain,
+                                          alignment: Alignment.center,
+                                          filterQuality: FilterQuality.high,
+                                          isAntiAlias: true,
+                                          gaplessPlayback: true,
+                                          cacheWidth: logoCacheSize,
+                                          cacheHeight: logoCacheSize,
+                                        ),
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
@@ -220,7 +220,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                               style: TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.black,
+                                color: Color(0xFF1A1A1A),
                                 letterSpacing: 6,
                               ),
                             ),
@@ -236,7 +236,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
-                          color: AppColors.gray400,
+                          color: Color(0xFF9CA3AF),
                           letterSpacing: 4,
                         ),
                       ),
@@ -257,8 +257,8 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       child: ElevatedButton(
                         onPressed: _onStart,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.black,
-                          foregroundColor: AppColors.white,
+                          backgroundColor: const Color(0xFF1A1A1A),
+                          foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),

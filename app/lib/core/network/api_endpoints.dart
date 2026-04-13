@@ -85,6 +85,7 @@ class ApiEndpoints {
   static String projectFileDetail(String id, String uuid) =>
       '/api/v1/projects/$id/files/$uuid';
   static String projectClose(String id) => '/api/v1/projects/$id/close';
+  static String projectAccept(String id) => '/api/v1/projects/$id/accept';
   static String projectConfirmAlignment(String id) =>
       '/api/v1/projects/$id/confirm-alignment';
   static String projectStart(String id) => '/api/v1/projects/$id/start';
@@ -107,8 +108,7 @@ class ApiEndpoints {
       '/api/v1/milestones/$id/revision';
   static String milestoneComplete(String id) =>
       '/api/v1/milestones/$id/complete';
-  static String projectDeliver(String id) =>
-      '/api/v1/projects/$id/deliver';
+  static String projectDeliver(String id) => '/api/v1/projects/$id/deliver';
 
   // ============================================================
   // 评论模块 /api/v1/projects/:id/comments

@@ -47,33 +47,33 @@ class CaptchaField extends StatelessWidget {
         Theme(
           data: theme.copyWith(
             inputDecorationTheme: theme.inputDecorationTheme.copyWith(
-              fillColor: AppColors.white,
+              fillColor: AppColors.surfaceCanvas,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.base,
                 vertical: AppSpacing.base,
               ),
               hintStyle: AppTextStyles.inputHint.copyWith(
-                color: AppColors.gray300,
+                color: AppColors.gray400,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: const BorderSide(
                   color: AppColors.gray200,
-                  width: 1.2,
+                  width: 1,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: const BorderSide(
                   color: AppColors.black,
-                  width: 1.4,
+                  width: 1.3,
                 ),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: const BorderSide(
                   color: AppColors.gray200,
-                  width: 1.2,
+                  width: 1,
                 ),
               ),
             ),
@@ -97,14 +97,14 @@ class CaptchaField extends StatelessWidget {
               GestureDetector(
                 onTap: isLoading ? null : onRefresh,
                 child: Container(
-                  width: 120,
+                  width: compact ? 104 : 116,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.gray100,
+                    color: AppColors.surfaceCanvas,
                     borderRadius: BorderRadius.circular(AppRadius.md),
                     border: Border.all(
                       color: AppColors.gray200,
-                      width: 1.2,
+                      width: 1,
                     ),
                   ),
                   child: _buildCaptchaContent(),
@@ -149,7 +149,7 @@ class CaptchaField extends StatelessWidget {
         child: Image.memory(
           bytes,
           fit: BoxFit.contain,
-          width: 120,
+          width: compact ? 104 : 116,
           height: 48,
         ),
       );

@@ -10,15 +10,12 @@ class AuthMetaBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        'KAIZO',
-        style: AppTextStyles.overline.copyWith(
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.8,
-          color: AppColors.black,
-        ),
+    return Text(
+      'KAIZO',
+      style: AppTextStyles.overline.copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: 2.2,
+        color: AppColors.gray600,
       ),
     );
   }
@@ -128,45 +125,45 @@ class AuthFieldShell extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: AppSpacing.xs),
+          padding: const EdgeInsets.only(left: 2, bottom: AppSpacing.sm),
           child: Text(
             label,
             style: AppTextStyles.caption.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.gray500,
+              color: AppColors.gray600,
             ),
           ),
         ),
         Theme(
           data: theme.copyWith(
             inputDecorationTheme: theme.inputDecorationTheme.copyWith(
-              fillColor: AppColors.white,
+              fillColor: AppColors.surfaceCanvas,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.base,
                 vertical: AppSpacing.base,
               ),
               hintStyle: AppTextStyles.inputHint.copyWith(
-                color: AppColors.gray300,
+                color: AppColors.gray400,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: const BorderSide(
                   color: AppColors.gray200,
-                  width: 1.2,
+                  width: 1,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: const BorderSide(
                   color: AppColors.black,
-                  width: 1.4,
+                  width: 1.3,
                 ),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: const BorderSide(
                   color: AppColors.gray200,
-                  width: 1.2,
+                  width: 1,
                 ),
               ),
             ),
