@@ -8,4 +8,6 @@ class AssetsRes {
 
   static const String PROJECT_NAME = 'vibebuild_app';
   static const String PROJECT_VERSION = '1.0.0+1';
+  static const String AUTH_LOGO_TRANSPARENT = 'assets/branding/auth_logo_transparent.png';
+  static const String LANUCH = 'assets/branding/lanuch.mp4';
 }

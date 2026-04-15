@@ -181,8 +181,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       compact: compact,
       keyboardInset: keyboardInset,
       heroHeightFactor: 0.72,
-      heroTitle: '加入开造',
-      heroDescription: '先来占个位置，再选身份，一起开造。',
+      heroTitle: '加入 KAIZO',
+      heroDescription: '先来占个位置，再选身份，一起把事情做起来。',
       heroScale: _heroScale,
       heroLift: _heroLift,
       onLoginTap: () {

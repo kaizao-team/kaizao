@@ -189,7 +189,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     onTap: () => context.push(RoutePaths.privacyPolicy),
                   ),
                   _SettingsRow(
-                    label: '关于开造',
+                    label: '关于 KAIZO',
                     onTap: () => context.push(RoutePaths.about),
                   ),
                 ]),

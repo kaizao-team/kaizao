@@ -172,7 +172,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
       mode: AuthScreenMode.login,
       compact: compact,
       keyboardInset: keyboardInset,
-      heroTitle: '回来继续\n开造',
+      heroTitle: '回来继续\nKAIZO',
       heroDescription: '项目进度、协作消息和匹配节奏，都在这里接上。',
       heroScale: _heroScale,
       heroLift: _heroLift,

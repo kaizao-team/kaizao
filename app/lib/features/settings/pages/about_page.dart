@@ -13,7 +13,7 @@ class AboutPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         title: const Text(
-          '关于开造',
+          '关于 KAIZO',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
       ),
@@ -75,7 +75,7 @@ class AboutPage extends StatelessWidget {
               Padding(
                 padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
                 child: Text(
-                  '开造会先帮项目方把方向、需求和预算理顺，再把项目推给更合适的团队。对项目方来说，少一点来回解释；对团队方来说，更快看到适合自己的合作机会。',
+                  'KAIZO 会先帮项目方把方向、需求和预算理顺，再把项目推给更合适的团队。对项目方来说，少一点来回解释；对团队方来说，更快看到适合自己的合作机会。',
                   style: TextStyle(
                     fontSize: 14,
                     color: Color(0xFF555555),
@@ -167,7 +167,7 @@ class AboutPage extends StatelessWidget {
           const SizedBox(height: 40),
           Center(
             child: Text(
-              '© 2026 开造 KAIZO',
+              '© 2026 KAIZO',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.gray400.withValues(alpha: 0.6),

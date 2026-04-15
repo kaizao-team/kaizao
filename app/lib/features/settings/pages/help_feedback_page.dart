@@ -16,8 +16,8 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
 
   static const _faqItems = <_FaqItem>[
     _FaqItem(
-      question: '开造是做什么的？',
-      answer: '开造帮项目方先把需求和预算理顺，再把项目推给更合适的团队，也让团队更快看到适合自己的合作机会。',
+      question: 'KAIZO 是做什么的？',
+      answer: 'KAIZO 帮项目方先把需求和预算理顺，再把项目推给更合适的团队，也让团队更快看到适合自己的合作机会。',
     ),
     _FaqItem(
       question: '怎么发布一个项目？',

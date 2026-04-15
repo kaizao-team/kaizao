@@ -1,5 +1,5 @@
 name: vibebuild_app
-description: 开造 — AI项目撮合平台
+description: KAIZO — AI项目撮合平台
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -50,6 +50,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/branding/
     - assets/avatars/users/
+    - assets/branding/
+    - assets/branding/auth_logo_transparent.png
+    - assets/branding/lanuch.mp4
     - assets/skills/icons/

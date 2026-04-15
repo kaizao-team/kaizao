@@ -209,7 +209,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                     context.push(RoutePaths.helpFeedback),
                               ),
                               _ProfileMenuItem(
-                                label: '关于开造',
+                                label: '关于 KAIZO',
                                 onTap: () => context.push(RoutePaths.about),
                               ),
                             ],
