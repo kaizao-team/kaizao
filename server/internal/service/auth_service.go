@@ -258,6 +258,9 @@ func (s *AuthService) LoginOrRegister(ctx context.Context, phone, smsCode, devic
 		if user.Status == 2 {
 			return nil, nil, false, fmt.Errorf("%d", errcode.ErrAccountFrozen)
 		}
+		if user.Status == 3 {
+			return nil, nil, false, fmt.Errorf("%d", errcode.ErrUserDeactivated)
+		}
 		now := time.Now()
 		user.LastLoginAt = &now
 		s.repos.User.Update(user)
@@ -344,6 +347,9 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*j
 	}
 	if user.Status == 2 {
 		return nil, fmt.Errorf("%d", errcode.ErrAccountFrozen)
+	}
+	if user.Status == 3 {
+		return nil, fmt.Errorf("%d", errcode.ErrUserDeactivated)
 	}
 
 	blacklistKey := fmt.Sprintf("token:blacklist:%s", claims.ID)
@@ -519,6 +525,9 @@ func (s *AuthService) LoginByPassword(_ context.Context, req *dto.LoginByPasswor
 	}
 	if user.Status == 2 {
 		return nil, nil, fmt.Errorf("%d", errcode.ErrAccountFrozen)
+	}
+	if user.Status == 3 {
+		return nil, nil, fmt.Errorf("%d", errcode.ErrUserDeactivated)
 	}
 	now := time.Now()
 	user.LastLoginAt = &now

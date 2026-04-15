@@ -527,6 +527,28 @@ func (h *UserHandler) SubmitOnboardingApplication(c *gin.Context) {
 }
 
 
+// DeactivateAccount POST /api/v1/users/me/deactivate
+func (h *UserHandler) DeactivateAccount(c *gin.Context) {
+	userUUID := c.GetString("user_uuid")
+	var req struct {
+		Password string `json:"password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorBadRequest(c, errcode.ErrParamInvalid, "请输入密码")
+		return
+	}
+	if err := h.userService.DeactivateAccount(userUUID, req.Password); err != nil {
+		code, _ := strconv.Atoi(err.Error())
+		if code > 0 {
+			response.ErrorBadRequest(c, code, errcode.GetMessage(code))
+			return
+		}
+		response.ErrorInternal(c, "注销失败")
+		return
+	}
+	response.SuccessMsg(c, "账号已注销", nil)
+}
+
 // ListExperts 专家列表（以团队为主实体）
 // GET /api/v1/market/experts
 func (h *UserHandler) ListExperts(c *gin.Context) {

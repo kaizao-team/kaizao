@@ -10,6 +10,7 @@ import (
 	"github.com/vibebuild/server/internal/pkg/errcode"
 	"github.com/vibebuild/server/internal/repository"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -186,6 +187,21 @@ func (s *UserService) SetOnboarding(userUUID string, status int16, reason *strin
 		fields["onboarding_reject_reason"] = nil
 	}
 	return s.repos.User.UpdateFields(user.ID, fields)
+}
+
+// DeactivateAccount 注销账号：验证密码后将用户 status 置为 3（已注销）。
+func (s *UserService) DeactivateAccount(userUUID, password string) error {
+	user, err := s.repos.User.FindByUUID(userUUID)
+	if err != nil {
+		return err
+	}
+	if user.PasswordHash == nil || *user.PasswordHash == "" {
+		return fmt.Errorf("%d", errcode.ErrPasswordNotSet)
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(password)); err != nil {
+		return fmt.Errorf("%d", errcode.ErrLoginFailed)
+	}
+	return s.repos.User.UpdateFields(user.ID, map[string]interface{}{"status": 3})
 }
 
 func (s *UserService) SubmitOnboardingApplication(userUUID string, resumeURL *string, note *string, portfolioUUIDs []string) error {

@@ -36,6 +36,7 @@ class ApiEndpoints {
   static String userSkills(String id) => '/api/v1/users/$id/skills';
   static String userPortfolios(String id) => '/api/v1/users/$id/portfolios';
   static const String currentUser = '/api/v1/users/me';
+  static const String deactivateAccount = '/api/v1/users/me/deactivate';
   static const String myPortfolios = '/api/v1/users/me/portfolios';
   static String myPortfolio(String uuid) => '/api/v1/users/me/portfolios/$uuid';
 

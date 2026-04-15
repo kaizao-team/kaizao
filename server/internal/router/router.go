@@ -83,6 +83,7 @@ func Setup(cfg *config.Config, handlers *handler.Handlers, services *service.Ser
 		users.POST("/me/portfolios", middleware.JWTAuth(services.JWT), handlers.User.CreatePortfolio)
 		users.PUT("/me/portfolios/:uuid", middleware.JWTAuth(services.JWT), handlers.User.UpdatePortfolio)
 		users.DELETE("/me/portfolios/:uuid", middleware.JWTAuth(services.JWT), handlers.User.DeletePortfolio)
+		users.POST("/me/deactivate", middleware.JWTAuth(services.JWT), handlers.User.DeactivateAccount)
 		users.POST("/me/verification", middleware.JWTAuth(services.JWT), placeholder)
 		users.POST("/me/certifications", middleware.JWTAuth(services.JWT), placeholder)
 		users.GET("/me/projects", middleware.JWTAuth(services.JWT), placeholder)

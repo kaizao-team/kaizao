@@ -185,6 +185,14 @@ class AuthRepository {
     );
   }
 
+  /// 注销账号
+  Future<void> deactivateAccount(String password) async {
+    await _client.post(
+      ApiEndpoints.deactivateAccount,
+      data: {'password': password},
+    );
+  }
+
   /// 退出登录
   Future<void> logout() async {
     await _client.post(ApiEndpoints.logout);

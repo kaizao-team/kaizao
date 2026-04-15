@@ -211,7 +211,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SizedBox(height: 14),
                 Center(
                   child: GestureDetector(
-                    onTap: () {},
+                    onTap: () => _showDeactivateConfirm(context),
                     child: const Text(
                       '注销账号',
                       style: TextStyle(
@@ -343,6 +343,125 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         );
       },
     );
+  }
+
+  Future<void> _showDeactivateConfirm(BuildContext context) async {
+    final passwordController = TextEditingController();
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.white,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final bottomPadding = MediaQuery.of(ctx).padding.bottom;
+        final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 16 + bottomPadding + bottomInset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '注销账号',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1C1C),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '注销后账号数据将无法恢复。\n请输入密码确认注销。',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: AppColors.gray400),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  hintText: '请输入密码',
+                  hintStyle: const TextStyle(color: AppColors.gray300),
+                  filled: true,
+                  fillColor: const Color(0xFFF3F3F3),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (passwordController.text.trim().isNotEmpty) {
+                      Navigator.pop(ctx, true);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: AppColors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    '确认注销',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFF3F3F3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    '取消',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.gray600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+
+    final password = passwordController.text.trim();
+    final success = await ref.read(authStateProvider.notifier).deactivateAccount(password);
+    if (!context.mounted) return;
+    if (success) {
+      ref.invalidate(profileProvider('me'));
+      ref.invalidate(homeStateProvider);
+      ref.invalidate(onboardingProvider);
+      context.go(RoutePaths.login);
+    } else {
+      final error = ref.read(authStateProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error ?? '注销失败，请重试')),
+      );
+    }
+    passwordController.dispose();
   }
 }
 

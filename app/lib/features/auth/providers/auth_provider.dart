@@ -218,6 +218,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// 注销账号
+  Future<bool> deactivateAccount(String password) async {
+    state = state.copyWith(isLoading: true, errorMessage: () => null);
+    try {
+      await _repository.deactivateAccount(password);
+      await logout();
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state =
+          state.copyWith(isLoading: false, errorMessage: () => e.toString());
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     try {
       await _repository.logout();
