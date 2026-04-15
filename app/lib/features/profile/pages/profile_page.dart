@@ -181,8 +181,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 ),
                                 _ProfileMenuItem(
                                   label: '我的钱包',
-                                  trailingText: '余额与记录',
-                                  onTap: () => context.push(RoutePaths.wallet),
+                                  trailingText: '敬请期待',
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('钱包功能即将上线，敬请期待')),
+                                    );
+                                  },
                                 ),
                                 _ProfileMenuItem(
                                   label: '消息通知',
