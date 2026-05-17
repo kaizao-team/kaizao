@@ -23,20 +23,34 @@ class OpenAIGPTClient:
     - 返回兼容 Anthropic Message 格式的对象
     """
 
+    _UA = "codex_cli_rs/0.77.0 (Windows 10.0.26100; x86_64) WindowsTerminal"
+
     def __init__(self):
         if not settings.openai_api_key:
             logger.warning("OpenAI API Key 未配置，GPT 客户端不可用")
             self._client = None
+            self._fallback_client = None
             return
 
         self._client = AsyncOpenAI(
             api_key=settings.openai_api_key,
             base_url=settings.openai_base_url,
             timeout=settings.openai_timeout,
+            default_headers={"User-Agent": self._UA},
         )
+        # 备用 endpoint（codex-for.me，恢复后自动接管）
+        self._fallback_client = None
+        if settings.openai_fallback_api_key:
+            self._fallback_client = AsyncOpenAI(
+                api_key=settings.openai_fallback_api_key,
+                base_url=settings.openai_fallback_base_url,
+                timeout=settings.openai_timeout,
+                default_headers={"User-Agent": self._UA},
+            )
         logger.info(
             "OpenAI GPT 客户端初始化完成",
             base_url=settings.openai_base_url,
+            fallback=settings.openai_fallback_base_url if self._fallback_client else "disabled",
             model=settings.openai_model,
         )
 
@@ -85,12 +99,10 @@ class OpenAIGPTClient:
         if openai_tools:
             kwargs["tools"] = openai_tools
 
-        # codex-for.me 代理要求 stream=True，收集 chunk 后组装完整响应
-        # 用 asyncio.wait_for 包裹整个 stream 过程，防止代理不可达时无限挂起
         import asyncio
 
-        async def _stream_and_collect():
-            stream = await self._client.chat.completions.create(**kwargs)
+        async def _stream_and_collect(client):
+            stream = await client.chat.completions.create(**kwargs)
             content = ""
             tool_calls: dict[int, dict] = {}
             fin_reason = None
@@ -119,9 +131,18 @@ class OpenAIGPTClient:
             return content, tool_calls, fin_reason
 
         timeout = settings.openai_timeout
-        collected_content, collected_tool_calls, finish_reason = await asyncio.wait_for(
-            _stream_and_collect(), timeout=timeout,
-        )
+        try:
+            collected_content, collected_tool_calls, finish_reason = await asyncio.wait_for(
+                _stream_and_collect(self._client), timeout=timeout,
+            )
+        except Exception as e:
+            if self._fallback_client:
+                logger.warning("主 GPT endpoint 失败，切换备用", error=str(e))
+                collected_content, collected_tool_calls, finish_reason = await asyncio.wait_for(
+                    _stream_and_collect(self._fallback_client), timeout=timeout,
+                )
+            else:
+                raise
 
         logger.info(
             "openai_gpt_api_call",
