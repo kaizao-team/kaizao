@@ -12,6 +12,7 @@ export function getServerSession(): ServerSession {
   const token = store.get(TOKEN_COOKIE)?.value
   const roleStr = store.get(ROLE_COOKIE)?.value
   if (!token) return { isLoggedIn: false }
-  const role = roleStr ? (Number(roleStr) as 1 | 2) : undefined
+  const parsed = roleStr ? Number(roleStr) : NaN
+  const role = parsed === 1 || parsed === 2 ? (parsed as 1 | 2) : undefined
   return { isLoggedIn: true, role }
 }
