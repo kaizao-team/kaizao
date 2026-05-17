@@ -8,21 +8,21 @@ export function Footer() {
         <div>
           <div className="font-mono text-fg mb-3 text-xs uppercase tracking-wider">产品</div>
           <ul className="space-y-2">
-            <li><Link href={'/projects' as any} className="hover:text-fg">需求广场</Link></li>
-            <li><Link href={'/experts' as any} className="hover:text-fg">团队广场</Link></li>
+            <li><Link href="/projects" className="hover:text-fg">需求广场</Link></li>
+            <li><Link href="/experts" className="hover:text-fg">团队广场</Link></li>
           </ul>
         </div>
         <div>
           <div className="font-mono text-fg mb-3 text-xs uppercase tracking-wider">公司</div>
           <ul className="space-y-2">
-            <li><Link href={'/about' as any} className="hover:text-fg">关于 KAIZAO</Link></li>
+            <li><Link href="/about" className="hover:text-fg">关于 KAIZAO</Link></li>
           </ul>
         </div>
         <div>
           <div className="font-mono text-fg mb-3 text-xs uppercase tracking-wider">法务</div>
           <ul className="space-y-2">
-            <li><Link href={'/about#privacy' as any} className="hover:text-fg">隐私政策</Link></li>
-            <li><Link href={'/about#terms' as any} className="hover:text-fg">用户协议</Link></li>
+            <li><Link href="/about#privacy" className="hover:text-fg">隐私政策</Link></li>
+            <li><Link href="/about#terms" className="hover:text-fg">用户协议</Link></li>
           </ul>
         </div>
         <div>

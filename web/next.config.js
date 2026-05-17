@@ -3,6 +3,6 @@ const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
-  experimental: { typedRoutes: true },
+  experimental: { typedRoutes: false },
 }
 module.exports = nextConfig
