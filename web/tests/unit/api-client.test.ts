@@ -16,3 +16,13 @@ describe('ApiError', () => {
     expect(e instanceof ApiError).toBe(true)
   })
 })
+
+describe('market module', () => {
+  it('exports browser query functions', async () => {
+    const m = await import('@/lib/api/market')
+    expect(typeof m.listProjectsBrowser).toBe('function')
+    expect(typeof m.listExpertsBrowser).toBe('function')
+    expect(typeof m.listProjectsServer).toBe('function')
+    expect(typeof m.listExpertsServer).toBe('function')
+  })
+})

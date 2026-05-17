@@ -6,6 +6,12 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
+    server: { deps: { inline: ['server-only'] } },
   },
-  resolve: { alias: { '@': resolve(__dirname, '.') } },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, '.'),
+      'server-only': resolve(__dirname, './tests/mocks/server-only.ts'),
+    },
+  },
 })
