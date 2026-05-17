@@ -16,6 +16,10 @@ const config: Config = {
         'fg-muted': 'hsl(var(--fg-muted) / <alpha-value>)',
         'fg-faint': 'hsl(var(--fg-faint) / <alpha-value>)',
         border: 'hsl(var(--border) / <alpha-value>)',
+        'accent-1': 'hsl(var(--accent-1) / <alpha-value>)',
+        'accent-2': 'hsl(var(--accent-2) / <alpha-value>)',
+        'accent-3': 'hsl(var(--accent-3) / <alpha-value>)',
+        'accent-4': 'hsl(var(--accent-4) / <alpha-value>)',
       },
       borderRadius: {
         sm: 'var(--radius-sm)',
