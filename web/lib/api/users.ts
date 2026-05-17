@@ -27,3 +27,7 @@ export function getUserReviewsServer(id: string) {
 export function getMeBrowser() {
   return browserFetch<User>('/api/v1/users/me')
 }
+
+export function getMeServer() {
+  return serverFetch<User>('/api/v1/users/me', { auth: true })
+}
