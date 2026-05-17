@@ -1,1 +1,14 @@
-body { font-family: system-ui, sans-serif; margin: 0; padding: 24px; }
+@import '../styles/tokens.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: hsl(var(--bg));
+    color: hsl(var(--fg));
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+}
