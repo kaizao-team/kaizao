@@ -36,7 +36,7 @@ export default async function ExpertProfilePage({ params }: { params: { id: stri
               ))}
             </div>
           </div>
-          <ExpertActions userId={user.id} />
+          <ExpertActions />
         </Container>
       </section>
 
@@ -46,6 +46,7 @@ export default async function ExpertProfilePage({ params }: { params: { id: stri
             <Card><CardContent className="pt-6">
               <h2 className="text-sm font-mono uppercase tracking-wider text-fg-muted mb-4">作品</h2>
               <div className="grid sm:grid-cols-2 gap-4">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {portfolios.map((p: any) => (
                   <div key={p.id} className="rounded-lg overflow-hidden border border-fg/5">
                     {p.cover && <img src={p.cover} alt={p.title} className="aspect-video w-full object-cover" />}
@@ -59,6 +60,7 @@ export default async function ExpertProfilePage({ params }: { params: { id: stri
             <Card><CardContent className="pt-6">
               <h2 className="text-sm font-mono uppercase tracking-wider text-fg-muted mb-4">评价</h2>
               <ul className="divide-y divide-fg/5">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {reviews.map((r: any) => (
                   <li key={r.id} className="py-3">
                     <div className="flex items-center justify-between mb-1">

@@ -75,6 +75,7 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
               <CardContent className="pt-6">
                 <h2 className="text-sm font-mono uppercase tracking-wider text-fg-muted mb-4">PRD</h2>
                 <div className="space-y-4">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {prd.map((c: any) => (
                     <article key={c.id}>
                       <h3 className="font-medium mb-1.5">{c.title}</h3>

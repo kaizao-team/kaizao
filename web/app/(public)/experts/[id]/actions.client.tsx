@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button'
 import { useAuthIntercept } from '@/components/auth/auth-intercept'
 
-export function ExpertActions({ userId }: { userId: string }) {
+export function ExpertActions() {
   const { gate, interceptNode } = useAuthIntercept()
   return (
     <>

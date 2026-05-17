@@ -44,12 +44,14 @@ export default async function DashboardPage() {
               {isDemander ? '进行中的项目' : '进行中的投标'}
             </div>
             {(() => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const list = isDemander ? (data as any)?.ongoing_projects : (data as any)?.ongoing_bids
               if (!list || list.length === 0) {
                 return <p className="text-sm text-fg-muted">暂无内容</p>
               }
               return (
                 <ul className="space-y-2">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {list.map((it: any) => (
                     <li key={it.id ?? it.project_id} className="flex items-center justify-between text-sm">
                       <span>{it.title ?? it.project_title}</span>

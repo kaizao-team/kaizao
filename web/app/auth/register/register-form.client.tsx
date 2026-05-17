@@ -38,7 +38,9 @@ export function RegisterForm({ initialRole }: { initialRole?: 1 | 2 }) {
     try {
       await sendSmsCode({ mobile, scene: 'register' })
       setCooldown(60)
-    } catch (e: any) { setError(e?.message ?? '发送失败') }
+    } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      setError(e?.message ?? '发送失败')
+    }
   }
 
   const submit = async (ev: React.FormEvent) => {
@@ -49,7 +51,7 @@ export function RegisterForm({ initialRole }: { initialRole?: 1 | 2 }) {
       await register({ mobile, sms_code: code, role })
       router.replace('/dashboard')
       router.refresh()
-    } catch (e: any) {
+    } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(e?.message ?? '注册失败')
     } finally { setSubmitting(false) }
   }

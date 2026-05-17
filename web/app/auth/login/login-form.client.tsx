@@ -27,7 +27,7 @@ export function LoginForm({ from }: { from?: string }) {
     try {
       await sendSmsCode({ mobile, scene: 'login' })
       setCooldown(60)
-    } catch (e: any) {
+    } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(e?.message ?? '发送失败')
     } finally { setSending(false) }
   }
@@ -40,7 +40,7 @@ export function LoginForm({ from }: { from?: string }) {
       await login({ mobile, sms_code: code })
       router.replace(from || '/dashboard')
       router.refresh()
-    } catch (e: any) {
+    } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(e?.message ?? '登录失败')
     } finally { setSubmitting(false) }
   }

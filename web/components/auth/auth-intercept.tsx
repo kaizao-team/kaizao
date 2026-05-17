@@ -1,7 +1,6 @@
 'use client'
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/use-auth'
 import { Button } from '@/components/ui/button'
 
@@ -31,7 +30,6 @@ export function AuthIntercept({ action, open, onClose }: InterceptProps) {
 export function useAuthIntercept() {
   const { isLoggedIn } = useAuth()
   const [intercept, setIntercept] = React.useState<{ action: string } | null>(null)
-  const router = useRouter()
 
   function gate(action: string, onAuthed: () => void) {
     if (isLoggedIn) onAuthed()
@@ -42,5 +40,5 @@ export function useAuthIntercept() {
     <AuthIntercept action={intercept.action} open onClose={() => setIntercept(null)} />
   ) : null
 
-  return { gate, interceptNode: node }
+  return { gate, interceptNode: node, isLoggedIn }
 }

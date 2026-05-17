@@ -6,6 +6,7 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
+    exclude: ['node_modules', 'dist', 'tests/e2e'],
     server: { deps: { inline: ['server-only'] } },
   },
   resolve: {

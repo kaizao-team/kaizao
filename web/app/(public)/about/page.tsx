@@ -13,7 +13,7 @@ export default function AboutPage() {
           <p className="text-lg text-fg-muted max-w-2xl leading-relaxed">
             KAIZAO(开造 / VCC)是一个 AI 驱动的软件需求撮合平台。
             我们用 AI Agent 帮项目方拆解需求、用 T 级评级帮团队建立信用，
-            让"靠谱的人"和"靠谱的活"高效相遇。
+            让&ldquo;靠谱的人&rdquo;和&ldquo;靠谱的活&rdquo;高效相遇。
           </p>
         </Container>
       </section>

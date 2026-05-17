@@ -44,7 +44,7 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
   let upstream: Response
   try {
     upstream = await fetch(url, init)
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { code: 503, message: '上游服务暂不可用' },
       { status: 503 },
