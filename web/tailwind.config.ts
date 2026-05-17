@@ -31,6 +31,10 @@ const config: Config = {
       boxShadow: {
         glass: '0 1px 0 rgba(255,255,255,.9) inset, 0 8px 24px rgba(60,60,100,.08)',
       },
+      fontFamily: {
+        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
+      },
     },
   },
   plugins: [require('tailwindcss-animate')],

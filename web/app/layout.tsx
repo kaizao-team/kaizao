@@ -1,5 +1,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
+import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
 
 export const metadata: Metadata = {
   title: 'KAIZAO · AI 驱动的软件需求撮合平台',
@@ -9,8 +11,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN">
-      <body>{children}</body>
+    <html lang="zh-CN" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className="font-sans">{children}</body>
     </html>
   )
 }
