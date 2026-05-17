@@ -2,6 +2,8 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
+import { AuthProvider } from '@/lib/auth/use-auth'
+import { getServerSession } from '@/lib/auth/session'
 
 export const metadata: Metadata = {
   title: 'KAIZAO · AI 驱动的软件需求撮合平台',
@@ -10,9 +12,12 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = getServerSession()
   return (
     <html lang="zh-CN" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <AuthProvider value={session}>{children}</AuthProvider>
+      </body>
     </html>
   )
 }

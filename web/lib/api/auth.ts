@@ -14,7 +14,7 @@ export function sendSmsCode(req: SmsCodeReq) {
 }
 
 export function login(req: LoginReq) {
-  return browserFetch<AuthResult>('/api/v1/auth/login', {
+  return browserFetch<AuthResult>('/api/auth/login', {
     method: 'POST', body: JSON.stringify(req),
   })
 }
@@ -26,7 +26,7 @@ export function loginPassword(req: LoginPasswordReq) {
 }
 
 export function register(req: RegisterReq) {
-  return browserFetch<AuthResult>('/api/v1/auth/register', {
+  return browserFetch<AuthResult>('/api/auth/register', {
     method: 'POST', body: JSON.stringify(req),
   })
 }
