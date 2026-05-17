@@ -1,0 +1,1 @@
+PRD 已确认，我将使用 decompose_to_ears 工具将 PRD 拆解为 EARS 最小任务单元。

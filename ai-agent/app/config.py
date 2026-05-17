@@ -26,11 +26,15 @@ class Settings(BaseSettings):
     claude_max_tokens: int = 8192
     claude_timeout: int = 30
 
-    # OpenAI GPT 配置（通过 codex-for.me 代理，主选 LLM）
+    # OpenAI GPT 配置（主力：openclaudecode.cn）
     openai_api_key: str = Field(default="", description="OpenAI/Codex API Key")
-    openai_base_url: str = Field(default="https://api-vip.codex-for.me/v1", description="OpenAI 兼容 Base URL")
+    openai_base_url: str = Field(default="https://www.openclaudecode.cn/v1", description="OpenAI 兼容 Base URL")
     openai_model: str = Field(default="gpt-5.4", description="GPT 模型名称")
     openai_timeout: int = 60
+
+    # OpenAI GPT 备用配置（codex-for.me，恢复后可用）
+    openai_fallback_api_key: str = Field(default="", description="备用 Codex API Key")
+    openai_fallback_base_url: str = Field(default="https://api-vip.codex-for.me/v1", description="备用 Base URL")
 
     # 智谱 GLM API 配置（降级备选，支持 tool use）
     zhipu_api_key: str = Field(default="", description="智谱 API Key")

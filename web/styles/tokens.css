@@ -1,0 +1,40 @@
+:root {
+  --bg: 0 0% 100%;
+  --bg-subtle: 240 20% 99%;
+  --fg: 0 0% 4%;
+  --fg-muted: 240 10% 39%;
+  --fg-faint: 0 0% 53%;
+  --border: 240 33% 10%;
+
+  --accent-1: 332 100% 78%;
+  --accent-2: 219 100% 77%;
+  --accent-3: 137 100% 86%;
+  --accent-4: 39 100% 75%;
+
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 99px;
+
+  --gradient-hero: linear-gradient(120deg, #6a5ae8 0%, #ec5e9d 60%, #ff9472 100%);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 8px 24px rgba(60, 60, 100, 0.08);
+}
+
+.text-gradient-hero {
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+@supports not (backdrop-filter: blur(10px)) {
+  .glass { background: rgba(255, 255, 255, 0.9); }
+}
