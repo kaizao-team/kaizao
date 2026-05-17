@@ -1,9 +1,21 @@
+import { Hero } from '@/components/landing/hero'
+import { ValueProps } from '@/components/landing/value-props'
+import { HowItWorks } from '@/components/landing/how-it-works'
+import { Featured } from '@/components/landing/featured'
+import { StatsWall } from '@/components/landing/stats-wall'
+import { Faq } from '@/components/landing/faq'
+
+export const revalidate = 60
+
 export default function Home() {
   return (
-    <main className="min-h-screen flex items-center justify-center">
-      <div className="glass rounded-lg px-6 py-3">
-        <span className="text-gradient-hero text-2xl font-medium">KAIZAO</span>
-      </div>
-    </main>
+    <>
+      <Hero />
+      <ValueProps />
+      <HowItWorks />
+      <Featured />
+      <StatsWall />
+      <Faq />
+    </>
   )
 }
