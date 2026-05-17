@@ -1,5 +1,5 @@
 import { serverFetch } from './client'
-import type { Project } from './types'
+import type { Project, PageResult } from './types'
 
 export interface ProjectDetail extends Project {
   prd_cards?: Array<{ id: string; title: string; content: string }>
@@ -16,4 +16,12 @@ export function getProjectPrdServer(id: string) {
 
 export function getProjectOverviewServer(id: string) {
   return serverFetch<ProjectDetail['overview']>(`/api/v1/projects/${id}/overview`)
+}
+
+export function listMyProjects(q: { page?: number; size?: number } = {}) {
+  const params = new URLSearchParams()
+  if (q.page) params.set('page', String(q.page))
+  if (q.size) params.set('size', String(q.size))
+  params.set('owner', 'me')
+  return serverFetch<PageResult<Project>>(`/api/v1/projects?${params.toString()}`, { auth: true })
 }
