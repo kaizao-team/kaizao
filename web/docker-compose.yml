@@ -1,0 +1,21 @@
+services:
+  kaizao-web:
+    container_name: kaizao-web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kaizao-web:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:39532:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      KAIZAO_SERVER_INTERNAL: ${KAIZAO_SERVER_INTERNAL}
+      AI_AGENT_INTERNAL: ${AI_AGENT_INTERNAL}
+    networks:
+      - default
+networks:
+  default:
+    external: true
+    name: kaizao-server_default
